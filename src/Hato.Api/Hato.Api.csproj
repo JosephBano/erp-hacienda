@@ -4,6 +4,7 @@
     <ProjectReference Include="..\Modules\Livestock\Hato.Modules.Livestock.Infrastructure\Hato.Modules.Livestock.Infrastructure.csproj" />
     <ProjectReference Include="..\Modules\Production\Hato.Modules.Production.Infrastructure\Hato.Modules.Production.Infrastructure.csproj" />
     <ProjectReference Include="..\Modules\Inventory\Hato.Modules.Inventory.Infrastructure\Hato.Modules.Inventory.Infrastructure.csproj" />
+    <ProjectReference Include="..\Modules\People\Hato.Modules.People.Infrastructure\Hato.Modules.People.Infrastructure.csproj" />
   </ItemGroup>
 
   <ItemGroup>

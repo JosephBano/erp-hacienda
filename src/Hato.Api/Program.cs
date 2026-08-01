@@ -4,6 +4,7 @@ using Hato.Modules.Livestock.Infrastructure;
 
 using Hato.Modules.Production.Infrastructure;
 using Hato.Modules.Inventory.Infrastructure;
+using Hato.Modules.People.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -12,6 +13,7 @@ builder.Services.AddExceptionHandler<ApiExceptionHandler>();
 builder.Services.AddLivestockModule(builder.Configuration);
 builder.Services.AddProductionModule(builder.Configuration);
 builder.Services.AddInventoryModule(builder.Configuration);
+builder.Services.AddPeopleModule(builder.Configuration);
 
 var app = builder.Build();
 
@@ -28,6 +30,7 @@ app.MapAnimalGroupsEndpoints();
 app.MapAnimalEventsEndpoints();
 app.MapMilkingEndpoints();
 app.MapInventoryEndpoints();
+app.MapPeopleEndpoints();
 
 app.Run();
 

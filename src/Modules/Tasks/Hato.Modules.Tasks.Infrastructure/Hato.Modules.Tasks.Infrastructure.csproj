@@ -1,10 +1,11 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
+    <!-- Only Application (which pulls in the other modules' *.Contracts) is needed:
+         Tasks never depends on another module's Domain/Infrastructure (Art. 6). The
+         actual reader implementations are wired into the shared container by each
+         module's own Add*Module() call from Hato.Api. -->
     <ProjectReference Include="..\Hato.Modules.Tasks.Application\Hato.Modules.Tasks.Application.csproj" />
-    <ProjectReference Include="..\..\Breeding\Hato.Modules.Breeding.Infrastructure\Hato.Modules.Breeding.Infrastructure.csproj" />
-    <ProjectReference Include="..\..\Inventory\Hato.Modules.Inventory.Infrastructure\Hato.Modules.Inventory.Infrastructure.csproj" />
-    <ProjectReference Include="..\..\Livestock\Hato.Modules.Livestock.Infrastructure\Hato.Modules.Livestock.Infrastructure.csproj" />
   </ItemGroup>
 
   <ItemGroup>

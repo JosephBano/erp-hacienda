@@ -1,5 +1,7 @@
 using FluentValidation;
 using Hato.Modules.Breeding.Application.Abstractions;
+using Hato.Modules.Breeding.Application.CrossModule;
+using Hato.Modules.Breeding.Contracts;
 using Hato.Modules.Breeding.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -24,6 +26,9 @@ public static class BreedingModule
         });
 
         services.AddScoped<IBreedingDbContext>(sp => sp.GetRequiredService<BreedingDbContext>());
+
+        services.AddScoped<IActivePregnanciesReader, ActivePregnanciesReader>();
+        services.AddScoped<IPendingPregnancyChecksReader, PendingPregnancyChecksReader>();
 
         services.AddMediatR(cfg =>
         {

@@ -18,6 +18,10 @@ public class LivestockDbContext(DbContextOptions<LivestockDbContext> options)
     public DbSet<AnimalCategory> AnimalCategories => Set<AnimalCategory>();
     public DbSet<Animal> Animals => Set<Animal>();
     public DbSet<AnimalIdentifier> AnimalIdentifiers => Set<AnimalIdentifier>();
+    public DbSet<AnimalGroup> AnimalGroups => Set<AnimalGroup>();
+    public DbSet<GroupMembership> GroupMemberships => Set<GroupMembership>();
+    public DbSet<AnimalEvent> AnimalEvents => Set<AnimalEvent>();
+    public DbSet<WithdrawalPeriod> WithdrawalPeriods => Set<WithdrawalPeriod>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

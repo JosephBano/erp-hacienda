@@ -3,6 +3,7 @@ using System;
 using Hato.Modules.Livestock.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Hato.Modules.Livestock.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(LivestockDbContext))]
-    partial class LivestockDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260801183204_AddAnimalGroups")]
+    partial class AddAnimalGroups
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -131,75 +134,6 @@ namespace Hato.Modules.Livestock.Infrastructure.Persistence.Migrations
                         .HasDatabaseName("i_x_animal_categories_species_id");
 
                     b.ToTable("animal_categories", "livestock");
-                });
-
-            modelBuilder.Entity("Hato.Modules.Livestock.Domain.AnimalEvent", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasColumnName("id");
-
-                    b.Property<Guid>("AnimalId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("animal_id");
-
-                    b.Property<decimal?>("Cost")
-                        .HasColumnType("numeric")
-                        .HasColumnName("cost");
-
-                    b.Property<DateTimeOffset>("CreatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_at");
-
-                    b.Property<Guid?>("CreatedBy")
-                        .HasColumnType("uuid")
-                        .HasColumnName("created_by");
-
-                    b.Property<DateTimeOffset?>("DeletedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("deleted_at");
-
-                    b.Property<string>("EventType")
-                        .IsRequired()
-                        .HasMaxLength(30)
-                        .HasColumnType("character varying(30)")
-                        .HasColumnName("event_type");
-
-                    b.Property<DateTimeOffset>("OccurredAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("occurred_at");
-
-                    b.Property<string>("PayloadJson")
-                        .IsRequired()
-                        .HasColumnType("jsonb")
-                        .HasColumnName("payload_json");
-
-                    b.Property<string>("RecordedBy")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)")
-                        .HasColumnName("recorded_by");
-
-                    b.Property<Guid?>("RelatedEventId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("related_event_id");
-
-                    b.Property<DateTimeOffset?>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("updated_at");
-
-                    b.Property<Guid?>("UpdatedBy")
-                        .HasColumnType("uuid")
-                        .HasColumnName("updated_by");
-
-                    b.HasKey("Id")
-                        .HasName("p_k_animal_events");
-
-                    b.HasIndex("AnimalId", "OccurredAt")
-                        .HasDatabaseName("i_x_animal_events_animal_id_occurred_at");
-
-                    b.ToTable("animal_events", "livestock");
                 });
 
             modelBuilder.Entity("Hato.Modules.Livestock.Domain.AnimalGroup", b =>
@@ -468,67 +402,6 @@ namespace Hato.Modules.Livestock.Infrastructure.Persistence.Migrations
                     b.ToTable("species", "livestock");
                 });
 
-            modelBuilder.Entity("Hato.Modules.Livestock.Domain.WithdrawalPeriod", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasColumnName("id");
-
-                    b.Property<Guid>("AnimalId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("animal_id");
-
-                    b.Property<DateTimeOffset>("CreatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_at");
-
-                    b.Property<Guid?>("CreatedBy")
-                        .HasColumnType("uuid")
-                        .HasColumnName("created_by");
-
-                    b.Property<DateTimeOffset?>("DeletedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("deleted_at");
-
-                    b.Property<DateOnly>("EndsAt")
-                        .HasColumnType("date")
-                        .HasColumnName("ends_at");
-
-                    b.Property<Guid>("EventId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("event_id");
-
-                    b.Property<DateOnly>("StartsAt")
-                        .HasColumnType("date")
-                        .HasColumnName("starts_at");
-
-                    b.Property<string>("Target")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)")
-                        .HasColumnName("target");
-
-                    b.Property<DateTimeOffset?>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("updated_at");
-
-                    b.Property<Guid?>("UpdatedBy")
-                        .HasColumnType("uuid")
-                        .HasColumnName("updated_by");
-
-                    b.HasKey("Id")
-                        .HasName("p_k_withdrawal_periods");
-
-                    b.HasIndex("EventId")
-                        .HasDatabaseName("i_x_withdrawal_periods_event_id");
-
-                    b.HasIndex("AnimalId", "EndsAt")
-                        .HasDatabaseName("i_x_withdrawal_periods_animal_id_ends_at");
-
-                    b.ToTable("withdrawal_periods", "livestock");
-                });
-
             modelBuilder.Entity("Hato.Modules.Livestock.Domain.Animal", b =>
                 {
                     b.HasOne("Hato.Modules.Livestock.Domain.Breed", null)
@@ -559,16 +432,6 @@ namespace Hato.Modules.Livestock.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("f_k_animal_categories_species_species_id");
-                });
-
-            modelBuilder.Entity("Hato.Modules.Livestock.Domain.AnimalEvent", b =>
-                {
-                    b.HasOne("Hato.Modules.Livestock.Domain.Animal", null)
-                        .WithMany()
-                        .HasForeignKey("AnimalId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired()
-                        .HasConstraintName("f_k_animal_events_animals_animal_id");
                 });
 
             modelBuilder.Entity("Hato.Modules.Livestock.Domain.AnimalGroup", b =>
@@ -615,23 +478,6 @@ namespace Hato.Modules.Livestock.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("f_k_group_memberships_animal_groups_group_id");
-                });
-
-            modelBuilder.Entity("Hato.Modules.Livestock.Domain.WithdrawalPeriod", b =>
-                {
-                    b.HasOne("Hato.Modules.Livestock.Domain.Animal", null)
-                        .WithMany()
-                        .HasForeignKey("AnimalId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired()
-                        .HasConstraintName("f_k_withdrawal_periods_animals_animal_id");
-
-                    b.HasOne("Hato.Modules.Livestock.Domain.AnimalEvent", null)
-                        .WithMany()
-                        .HasForeignKey("EventId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
-                        .HasConstraintName("f_k_withdrawal_periods_animal_events_event_id");
                 });
 
             modelBuilder.Entity("Hato.Modules.Livestock.Domain.Animal", b =>

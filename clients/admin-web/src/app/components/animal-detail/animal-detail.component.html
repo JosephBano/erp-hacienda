@@ -44,6 +44,9 @@
     <button class="tab-btn" [class.active]="activeTab === 'milking'" (click)="setTab('milking')">
       🥛 Ordeño y Producción ({{ animal.milkYields.length }})
     </button>
+    <button class="tab-btn" [class.active]="activeTab === 'breeding'" (click)="setTab('breeding')">
+      🧬 Reproducción & Genealogía
+    </button>
     <button class="tab-btn" [class.active]="activeTab === 'withdrawals'" (click)="setTab('withdrawals')">
       🛡️ Estado de Retiro Sanitario
     </button>
@@ -97,6 +100,59 @@
           </tr>
           <tr *ngIf="animal.milkYields.length === 0">
             <td colspan="3" class="text-muted text-center py-3">Sin pesajes de leche registrados.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Tab Content: Breeding -->
+  <div class="tab-content glass-card" *ngIf="activeTab === 'breeding'">
+    <h3>Indicadores Reproductivos & Árbol Genealógico</h3>
+
+    <!-- Dam KPIs Grid -->
+    <div class="info-grid mt-3" *ngIf="damKpis">
+      <div class="glass-card info-card">
+        <span class="info-label">Intervalo entre Partos (Promedio)</span>
+        <span class="info-value">{{ damKpis.averageCalvingIntervalDays ? damKpis.averageCalvingIntervalDays + ' días' : 'Sin partos múltiples' }}</span>
+      </div>
+      <div class="glass-card info-card">
+        <span class="info-label">Días Abiertos</span>
+        <span class="info-value">{{ damKpis.daysOpen !== null ? damKpis.daysOpen + ' días' : '-' }}</span>
+      </div>
+      <div class="glass-card info-card">
+        <span class="info-label">Servicios / Concepción</span>
+        <span class="info-value">{{ damKpis.servicesPerConception }}</span>
+      </div>
+      <div class="glass-card info-card">
+        <span class="info-label">Nacidos Vivos Totales</span>
+        <span class="info-value">{{ damKpis.totalOffspringAlive }} crías</span>
+      </div>
+    </div>
+
+    <!-- Pedigree Ancestors Table -->
+    <h4 class="mt-4">Ancestros Registrados (CTE Tree)</h4>
+    <div class="table-container mt-2">
+      <table>
+        <thead>
+          <tr>
+            <th>Generación</th>
+            <th>Rol</th>
+            <th>ID Ancestro</th>
+            <th>Arete Finca</th>
+            <th>Padre (Semen/Animal)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let a of pedigree?.ancestors">
+            <td><strong>Gen {{ a.generationLevel }}</strong></td>
+            <td><span class="badge" [class.badge-info]="a.role === 'Mother'" [class.badge-success]="a.role === 'Father'">{{ a.role === 'Mother' ? 'Madre' : 'Padre' }}</span></td>
+            <td>{{ a.animalId }}</td>
+            <td>{{ a.farmTag || '-' }}</td>
+            <td>{{ a.fatherStrawBullName ? 'Pajuela: ' + a.fatherStrawBullName : (a.fatherAnimalId || '-') }}</td>
+          </tr>
+          <tr *ngIf="!pedigree?.ancestors || pedigree?.ancestors?.length === 0">
+            <td colspan="5" class="text-muted text-center py-3">No hay registros de genealogía de ancestros para este animal.</td>
           </tr>
         </tbody>
       </table>

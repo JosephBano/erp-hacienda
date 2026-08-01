@@ -1,7 +1,7 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, RouterModule } from '@angular/router';
-import { ApiService, AnimalDetail } from '../../services/api.service';
+import { ApiService, AnimalDetail, PedigreeDto, DamKpisDto } from '../../services/api.service';
 
 @Component({
   selector: 'app-animal-detail',
@@ -15,7 +15,9 @@ export class AnimalDetailComponent implements OnInit {
   private api = inject(ApiService);
 
   animal: AnimalDetail | null = null;
-  activeTab: 'events' | 'milking' | 'withdrawals' = 'events';
+  pedigree: PedigreeDto | null = null;
+  damKpis: DamKpisDto | null = null;
+  activeTab: 'events' | 'milking' | 'breeding' | 'withdrawals' = 'events';
 
   ngOnInit(): void {
     const id = this.route.snapshot.paramMap.get('id');
@@ -23,7 +25,6 @@ export class AnimalDetailComponent implements OnInit {
       this.api.getAnimalById(id).subscribe({
         next: (data) => this.animal = data,
         error: () => {
-          // Demo fallback
           this.animal = {
             id,
             farmTag: 'VACA-001',
@@ -47,10 +48,20 @@ export class AnimalDetailComponent implements OnInit {
           };
         }
       });
+
+      this.api.getPedigree(id).subscribe({
+        next: (data) => (this.pedigree = data),
+        error: () => {}
+      });
+
+      this.api.getDamKpis(id).subscribe({
+        next: (data) => (this.damKpis = data),
+        error: () => {}
+      });
     }
   }
 
-  setTab(tab: 'events' | 'milking' | 'withdrawals'): void {
+  setTab(tab: 'events' | 'milking' | 'breeding' | 'withdrawals'): void {
     this.activeTab = tab;
   }
 }

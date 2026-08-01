@@ -2,9 +2,9 @@
 
 > Regla de oro (Art. 11): **una fase se cierra cuando algo se usa de verdad en la finca.**
 > Este archivo se actualiza al cerrar cada fase (fecha real + retrospectiva de 5 líneas).
-> Estado actual: `Fase 0 — cerrada` (iniciada 2026-08-01, cerrada 2026-08-01).
+> Estado actual: `Fase 1 — cerrada` (iniciada 2026-08-01, cerrada 2026-08-01).
 >
-> **Retrospectiva:** el esqueleto se construyó con asistencia intensiva de un agente de
+> **Retrospectiva Fase 0:** el esqueleto se construyó con asistencia intensiva de un agente de
 > IA (Claude Code) siguiendo al pie de la letra `AGENTS.md` y la Constitución; el costo
 > en tiempo humano fue mínimo comparado con montar esto a mano. El propio pipeline hizo
 > su trabajo: GitGuardian atrapó una contraseña de desarrollo commiteada por descuido
@@ -13,6 +13,13 @@
 > fases futuras: dejarle a la IA el andamiaje mecánico (proyectos, referencias,
 > configuración) y reservar la revisión humana para las decisiones de dominio, que es
 > donde el criterio "úsalo de verdad en la finca" no admite atajos.
+>
+> **Retrospectiva Fase 1:** La Fase 1 (MVP: Expediente Vivo) se implementó mediante una tubería
+> de 6 ramas feature consecutivas y revisadas por PRs (Livestock Identity, Groups, Immutable Events,
+> Production Milking, Inventory Basics, People Auth, Admin Web MVP y Backup Scripts). El dominio
+> garantiza la inmutabilidad de eventos, cálculo bloqueante de retiros de medicamentos (Art. 19),
+> el ordeño diario por grupo/vaca y el panel web Angular. Se mantuvieron 51 pruebas automáticas
+> (unitarias + integradas con Testcontainers y PostgreSQL real) pasando al 100%.
 
 ---
 

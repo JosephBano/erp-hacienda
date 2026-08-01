@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\Hato.Modules.Tasks.Domain\Hato.Modules.Tasks.Domain.csproj" />
+    <ProjectReference Include="..\Hato.Modules.Tasks.Contracts\Hato.Modules.Tasks.Contracts.csproj" />
+    <ProjectReference Include="..\..\Breeding\Hato.Modules.Breeding.Contracts\Hato.Modules.Breeding.Contracts.csproj" />
+    <ProjectReference Include="..\..\Inventory\Hato.Modules.Inventory.Contracts\Hato.Modules.Inventory.Contracts.csproj" />
+    <ProjectReference Include="..\..\Livestock\Hato.Modules.Livestock.Contracts\Hato.Modules.Livestock.Contracts.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="FluentValidation.DependencyInjectionExtensions" Version="11.11.0" />
+    <PackageReference Include="MediatR" Version="12.4.1" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.11" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="8.0.11" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+</Project>

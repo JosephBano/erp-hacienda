@@ -22,6 +22,11 @@ public class Animal : AuditableEntity
     public Sex Sex { get; private set; }
     public DateOnly? BirthDate { get; private set; }
 
+    public Guid? MotherId { get; private set; }
+    public Guid? FatherAnimalId { get; private set; }
+    public Guid? FatherStrawId { get; private set; }
+    public Guid? BirthingId { get; private set; }
+
     public IReadOnlyCollection<AnimalIdentifier> Identifiers => _identifiers.AsReadOnly();
 
     private Animal(Guid speciesId, Sex sex, DateOnly? birthDate, Guid? breedId, Guid? categoryId)
@@ -55,5 +60,20 @@ public class Animal : AuditableEntity
         var identifier = new AnimalIdentifier(Id, type, value, validFrom);
         _identifiers.Add(identifier);
         return identifier;
+    }
+
+    public void SetGenealogy(Guid? motherId, Guid? fatherAnimalId, Guid? fatherStrawId, Guid? birthingId = null)
+    {
+        if (motherId.HasValue && motherId.Value == Id)
+            throw new DomainException("Un animal no puede ser su propia madre.");
+        if (fatherAnimalId.HasValue && fatherAnimalId.Value == Id)
+            throw new DomainException("Un animal no puede ser su propio padre.");
+        if (fatherAnimalId.HasValue && fatherStrawId.HasValue)
+            throw new DomainException("El padre no puede ser un animal y una pajuela simultáneamente.");
+
+        MotherId = motherId;
+        FatherAnimalId = fatherAnimalId;
+        FatherStrawId = fatherStrawId;
+        BirthingId = birthingId;
     }
 }

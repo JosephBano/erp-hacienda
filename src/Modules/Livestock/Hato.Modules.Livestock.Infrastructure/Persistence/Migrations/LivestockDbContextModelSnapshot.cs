@@ -34,6 +34,10 @@ namespace Hato.Modules.Livestock.Infrastructure.Persistence.Migrations
                         .HasColumnType("date")
                         .HasColumnName("birth_date");
 
+                    b.Property<Guid?>("BirthingId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("birthing_id");
+
                     b.Property<Guid?>("BreedId")
                         .HasColumnType("uuid")
                         .HasColumnName("breed_id");
@@ -53,6 +57,18 @@ namespace Hato.Modules.Livestock.Infrastructure.Persistence.Migrations
                     b.Property<DateTimeOffset?>("DeletedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("deleted_at");
+
+                    b.Property<Guid?>("FatherAnimalId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("father_animal_id");
+
+                    b.Property<Guid?>("FatherStrawId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("father_straw_id");
+
+                    b.Property<Guid?>("MotherId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("mother_id");
 
                     b.Property<string>("Sex")
                         .IsRequired()
@@ -80,6 +96,15 @@ namespace Hato.Modules.Livestock.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("CategoryId")
                         .HasDatabaseName("i_x_animals_category_id");
+
+                    b.HasIndex("FatherAnimalId")
+                        .HasDatabaseName("i_x_animals_father_animal_id");
+
+                    b.HasIndex("FatherStrawId")
+                        .HasDatabaseName("i_x_animals_father_straw_id");
+
+                    b.HasIndex("MotherId")
+                        .HasDatabaseName("i_x_animals_mother_id");
 
                     b.HasIndex("SpeciesId")
                         .HasDatabaseName("i_x_animals_species_id");
@@ -542,6 +567,18 @@ namespace Hato.Modules.Livestock.Infrastructure.Persistence.Migrations
                         .HasForeignKey("CategoryId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .HasConstraintName("f_k_animals_animal_categories_category_id");
+
+                    b.HasOne("Hato.Modules.Livestock.Domain.Animal", null)
+                        .WithMany()
+                        .HasForeignKey("FatherAnimalId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("f_k_animals_animals_father_animal_id");
+
+                    b.HasOne("Hato.Modules.Livestock.Domain.Animal", null)
+                        .WithMany()
+                        .HasForeignKey("MotherId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("f_k_animals_animals_mother_id");
 
                     b.HasOne("Hato.Modules.Livestock.Domain.Species", null)
                         .WithMany()

@@ -1,0 +1,73 @@
+<div class="page-container">
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Inventario de Ganado</h1>
+      <p class="subtitle">Búsqueda, filtrado y monitoreo de sanidad del hato.</p>
+    </div>
+  </div>
+
+  <!-- Filters Toolbar -->
+  <div class="glass-card filter-toolbar">
+    <div class="search-box">
+      <input 
+        type="text" 
+        class="form-input" 
+        placeholder="🔍 Buscar por arete finca, SIFAE o nombre..." 
+        [(ngModel)]="searchTerm" 
+        (ngModelChange)="applyFilter()">
+    </div>
+
+    <div class="filter-group">
+      <label class="form-label">Filtrar por Retiro:</label>
+      <select class="form-select" [(ngModel)]="statusFilter" (ngModelChange)="applyFilter()">
+        <option value="All">Todos los animales</option>
+        <option value="Active">Sin Retiro (Aptos)</option>
+        <option value="Withdrawal">En Período de Retiro (Bloqueados)</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Table -->
+  <div class="table-container glass-card">
+    <table>
+      <thead>
+        <tr>
+          <th>Arete Finca</th>
+          <th>Arete SIFAE</th>
+          <th>Nombre</th>
+          <th>Género</th>
+          <th>Especie / Raza</th>
+          <th>Categoría</th>
+          <th>Estado Sanitario</th>
+          <th>Acción</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let animal of filteredAnimals">
+          <td><strong>{{ animal.farmTag || 'Sin arete' }}</strong></td>
+          <td>{{ animal.officialTag || 'N/A' }}</td>
+          <td>{{ animal.name || 'Sin nombre' }}</td>
+          <td>{{ animal.gender === 'Female' ? 'Hembra ♀' : 'Macho ♂' }}</td>
+          <td>{{ animal.breedName }} ({{ animal.speciesName }})</td>
+          <td>{{ animal.categoryName }}</td>
+          <td>
+            <span *ngIf="animal.isInWithdrawal" class="badge badge-danger">
+              🚫 RETIRO HASTA {{ animal.withdrawalUntil }}
+            </span>
+            <span *ngIf="!animal.isInWithdrawal" class="badge badge-success">
+              ✅ APTO
+            </span>
+          </td>
+          <td>
+            <a [routerLink]="['/animals', animal.id]" class="btn btn-secondary btn-sm">Ficha Completa</a>
+          </td>
+        </tr>
+        <tr *ngIf="filteredAnimals.length === 0">
+          <td colspan="8" class="text-center py-4 text-muted">
+            No se encontraron animales con los filtros seleccionados.
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>

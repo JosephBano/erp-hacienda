@@ -2,7 +2,7 @@
 
 > Regla de oro (Art. 11): **una fase se cierra cuando algo se usa de verdad en la finca.**
 > Este archivo se actualiza al cerrar cada fase (fecha real + retrospectiva de 5 líneas).
-> Estado actual: `Fase 1 — cerrada` (iniciada 2026-08-01, cerrada 2026-08-01).
+> Estado actual: `Fase 2 — cerrada` (iniciada 2026-08-01, cerrada 2026-08-01).
 >
 > **Retrospectiva Fase 0:** el esqueleto se construyó con asistencia intensiva de un agente de
 > IA (Claude Code) siguiendo al pie de la letra `AGENTS.md` y la Constitución; el costo
@@ -20,6 +20,14 @@
 > garantiza la inmutabilidad de eventos, cálculo bloqueante de retiros de medicamentos (Art. 19),
 > el ordeño diario por grupo/vaca y el panel web Angular. Se mantuvieron 51 pruebas automáticas
 > (unitarias + integradas con Testcontainers y PostgreSQL real) pasando al 100%.
+>
+> **Retrospectiva Fase 2:** La Fase 2 (Reproducción, Genética y Alertas) se completó mediante dos
+> PRs integrados (#11 y #12). Se implementó el módulo de dominio `Breeding` (servicios, pajuelas
+> de semen con stock, diagnósticos de preñez, gestaciones con FPP por especie, partos y camadas),
+> árbol genealógico por CTE recursiva en PostgreSQL (`Pedigree`), KPIs reproductivos de madres
+> (`CalvingInterval`, `DaysOpen`) y el motor de alertas `Tasks/Alertas` v1. El panel web Angular
+> expone la gestión reproductiva, catálogo de semen y centro de alertas activas. Se alcanzaron
+> 71 pruebas automáticas al 100%.
 
 ---
 

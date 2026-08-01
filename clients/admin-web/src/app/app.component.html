@@ -1,0 +1,55 @@
+<div class="app-layout">
+  <!-- Sidebar Navigation -->
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <span class="brand-logo">🐄</span>
+      <span class="brand-title">HATO ERP</span>
+    </div>
+
+    <nav class="sidebar-nav">
+      <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}" class="nav-item">
+        <span class="nav-icon">📊</span>
+        <span>Panel Principal</span>
+      </a>
+
+      <a routerLink="/animals" routerLinkActive="active" class="nav-item">
+        <span class="nav-icon">🐄</span>
+        <span>Inventario Ganado</span>
+      </a>
+
+      <a routerLink="/milking" routerLinkActive="active" class="nav-item">
+        <span class="nav-icon">🥛</span>
+        <span>Registro de Ordeño</span>
+      </a>
+
+      <a routerLink="/events" routerLinkActive="active" class="nav-item">
+        <span class="nav-icon">⚡</span>
+        <span>Registro de Eventos</span>
+      </a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="user-badge">
+        <span class="user-avatar">👤</span>
+        <div class="user-info">
+          <span class="user-name">Administrador</span>
+          <span class="user-role">Finca La Esperanza</span>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main Content Area -->
+  <main class="main-content">
+    <header class="topbar">
+      <div class="topbar-status">
+        <span class="status-dot"></span>
+        <span>ERP Ganadero Online | Ecuador</span>
+      </div>
+    </header>
+
+    <div class="content-body">
+      <router-outlet></router-outlet>
+    </div>
+  </main>
+</div>

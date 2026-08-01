@@ -1,0 +1,72 @@
+erDiagram
+    %% ============================================
+    %% NUCLEO 2: EVENTOS - el corazon del sistema
+    %% Art. 1 y 4: append-only, inmutable, JSONB
+    %% ============================================
+
+    EVENT_TYPES ||--o{ ANIMAL_EVENTS : "tipifica"
+    ANIMALS ||--o{ ANIMAL_EVENTS : "protagoniza"
+    ANIMAL_GROUPS |o--o{ ANIMAL_EVENTS : "evento grupal (opcional)"
+    USERS ||--o{ ANIMAL_EVENTS : "registrado por"
+    ANIMAL_EVENTS |o--o{ ANIMAL_EVENTS : "corregido por"
+    ANIMAL_EVENTS ||--o{ WITHDRAWAL_PERIODS : "tratamiento genera"
+    ANIMALS ||--o{ WITHDRAWAL_PERIODS : "bloqueado por"
+    ANIMAL_EVENTS ||--o{ ATTACHMENTS : "documentado por"
+
+    EVENT_TYPES {
+        uuid id PK
+        varchar code UK "weighing, treatment, vaccination, diagnosis, movement, disposal, correction..."
+        varchar name "nombre visible"
+        varchar applies_to "animal / group / both"
+        jsonb payload_schema "validacion del payload por tipo"
+        boolean is_active
+    }
+
+    ANIMAL_EVENTS {
+        uuid id PK "UUID generable offline en el movil"
+        uuid animal_id FK "nullable si es 100 por ciento grupal"
+        uuid group_id FK "nullable; evento aplicado a todo un grupo"
+        uuid event_type_id FK
+        timestamptz occurred_at "cuando paso en la finca"
+        timestamptz recorded_at "cuando se registro"
+        uuid recorded_by FK
+        numeric cost_amount "decimal, jamas float"
+        char currency "USD"
+        jsonb payload "datos especificos del tipo de evento"
+        uuid corrects_event_id FK "nullable; correccion referencia al original"
+        varchar sync_source "web / mobile"
+        timestamptz created_at
+    }
+
+    WITHDRAWAL_PERIODS {
+        uuid id PK
+        uuid animal_id FK
+        uuid treatment_event_id FK "el tratamiento que lo origino"
+        varchar product_type "milk / meat / both"
+        date starts_at
+        date ends_at "hasta aqui NO se vende"
+        varchar status "active / completed"
+        timestamptz created_at
+    }
+
+    ATTACHMENTS {
+        uuid id PK
+        varchar entity_type "animal_event / sale / purchase..."
+        uuid entity_id "referencia polimorfica"
+        varchar file_path
+        varchar file_name
+        varchar mime_type
+        text description "guia de movilizacion, factura vet, certificado pajuela"
+        uuid uploaded_by FK
+        timestamptz created_at
+    }
+
+    ANIMALS {
+        uuid id PK
+    }
+    ANIMAL_GROUPS {
+        uuid id PK
+    }
+    USERS {
+        uuid id PK
+    }

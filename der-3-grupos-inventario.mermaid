@@ -1,0 +1,109 @@
+erDiagram
+    %% ============================================
+    %% NUCLEO 3: GRUPOS, POTREROS E INVENTARIO
+    %% El costeo vive aqui: consumo por grupo,
+    %% prorrateo por animal-dia
+    %% ============================================
+
+    ANIMAL_GROUPS ||--o{ GROUP_MEMBERSHIPS : "compuesto por"
+    ANIMALS ||--o{ GROUP_MEMBERSHIPS : "pertenece con historial"
+    ANIMAL_GROUPS ||--o{ GRAZING_MOVEMENTS : "rota por"
+    PADDOCKS ||--o{ GRAZING_MOVEMENTS : "recibe"
+
+    UNITS ||--o{ INVENTORY_ITEMS : "se mide en"
+    INVENTORY_ITEMS ||--o{ INVENTORY_BATCHES : "entra por lotes"
+    INVENTORY_ITEMS ||--o{ GROUP_FEED_CONSUMPTIONS : "consumido"
+    INVENTORY_BATCHES |o--o{ GROUP_FEED_CONSUMPTIONS : "de que lote (opcional)"
+    ANIMAL_GROUPS ||--o{ GROUP_FEED_CONSUMPTIONS : "consume"
+    UNITS ||--o{ UNIT_CONVERSIONS : "convierte desde"
+
+    ANIMAL_GROUPS {
+        uuid id PK
+        varchar name "vacas_ordeno, engorde_mar2026, terneras"
+        uuid species_id FK "nullable; grupos suelen ser monoespecie"
+        varchar purpose "produccion / engorde / cria / levante"
+        boolean is_active
+        timestamptz created_at
+        timestamptz deleted_at
+    }
+
+    GROUP_MEMBERSHIPS {
+        uuid id PK
+        uuid animal_id FK
+        uuid group_id FK
+        date from_date
+        date to_date "nullable = sigue en el grupo"
+        varchar moved_reason "destete, secado, venta..."
+        uuid created_by FK
+    }
+
+    PADDOCKS {
+        uuid id PK
+        varchar name
+        numeric area_ha "hectareas"
+        text notes "tipo de pasto, agua, sombra"
+        boolean is_active
+    }
+
+    GRAZING_MOVEMENTS {
+        uuid id PK
+        uuid group_id FK
+        uuid paddock_id FK
+        date from_date
+        date to_date "nullable = estan ahi ahora"
+        numeric forage_assessment "aforo kg MS por ha, opcional"
+        uuid created_by FK
+    }
+
+    UNITS {
+        uuid id PK
+        varchar code UK "kg, l, unidad, saco45kg, ml, dosis"
+        varchar name
+    }
+
+    UNIT_CONVERSIONS {
+        uuid id PK
+        uuid from_unit_id FK
+        uuid to_unit_id FK
+        numeric factor "saco45kg -> kg = 45"
+    }
+
+    INVENTORY_ITEMS {
+        uuid id PK
+        varchar name "balanceado lechero, oxitetraciclina, sal mineral"
+        varchar item_type "feed / medicine / supply / product"
+        uuid base_unit_id FK
+        numeric min_stock "para alertas de reposicion"
+        int default_milk_withdrawal_days "si es medicamento"
+        int default_meat_withdrawal_days "si es medicamento"
+        timestamptz deleted_at
+    }
+
+    INVENTORY_BATCHES {
+        uuid id PK
+        uuid item_id FK
+        varchar batch_code "lote del fabricante"
+        numeric quantity_received
+        numeric quantity_remaining
+        numeric unit_cost "decimal"
+        date expiry_date "alerta de vencimiento"
+        date received_at
+        varchar supplier_name "FK a suppliers en Fase 4"
+        timestamptz created_at
+    }
+
+    GROUP_FEED_CONSUMPTIONS {
+        uuid id PK
+        uuid group_id FK
+        uuid item_id FK
+        uuid batch_id FK "nullable"
+        date consumption_date
+        numeric quantity
+        uuid unit_id FK
+        numeric total_cost "congela el costo del dia"
+        uuid recorded_by FK
+    }
+
+    ANIMALS {
+        uuid id PK
+    }

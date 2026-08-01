@@ -1,0 +1,64 @@
+erDiagram
+    %% ============================================
+    %% NUCLEO 5: PRODUCCION DE LECHE (Fase 1)
+    %% Registro flexible: por vaca o por grupo/tanque
+    %% ============================================
+
+    MILKING_SESSIONS ||--o{ MILK_RECORDS : "contiene"
+    ANIMALS |o--o{ MILK_RECORDS : "vaca individual (opcional)"
+    ANIMAL_GROUPS |o--o{ MILK_RECORDS : "o grupo/tanque (opcional)"
+    LACTATIONS |o--o{ MILK_RECORDS : "dentro de lactancia"
+    ANIMALS |o--o{ MILK_QUALITY_TESTS : "analizada (o tanque)"
+    USERS ||--o{ MILKING_SESSIONS : "registrada por"
+    WITHDRAWAL_PERIODS ||..o{ MILK_RECORDS : "marca no-vendible"
+
+    MILKING_SESSIONS {
+        uuid id PK
+        date session_date
+        varchar session_slot "am / pm / unica"
+        uuid group_id FK "nullable; ordeno de que grupo"
+        uuid recorded_by FK
+        varchar sync_source "web / mobile"
+        timestamptz created_at
+    }
+
+    MILK_RECORDS {
+        uuid id PK
+        uuid session_id FK
+        uuid animal_id FK "nullable si el registro es por tanque"
+        uuid group_id FK "nullable si es por vaca"
+        uuid lactation_id FK "nullable; se resuelve automatico"
+        numeric liters "decimal"
+        boolean is_sellable "false si la vaca esta en retiro"
+        uuid withdrawal_period_id FK "nullable; por que no es vendible"
+        text notes
+        timestamptz created_at
+    }
+
+    MILK_QUALITY_TESTS {
+        uuid id PK
+        uuid animal_id FK "nullable; puede ser del tanque"
+        date test_date
+        varchar test_type "cmt / celulas_somaticas / solidos / reductasa / acidez"
+        jsonb results "valores segun tipo de prueba"
+        varchar tested_by "procesadora / finca / laboratorio"
+        uuid recorded_by FK
+    }
+
+    ANIMALS {
+        uuid id PK
+    }
+    ANIMAL_GROUPS {
+        uuid id PK
+    }
+    LACTATIONS {
+        uuid id PK
+        int lactation_number
+    }
+    WITHDRAWAL_PERIODS {
+        uuid id PK
+        varchar product_type
+    }
+    USERS {
+        uuid id PK
+    }

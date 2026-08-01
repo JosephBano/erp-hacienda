@@ -1,0 +1,20 @@
+# Copias empaquetadas de la documentación
+hato-docs.zip
+
+# Sistema operativo / editores
+.DS_Store
+Thumbs.db
+*.swp
+
+# .NET (fase 0+)
+bin/
+obj/
+*.user
+
+# Node (clients, fase 3+)
+node_modules/
+dist/
+
+# Entorno local
+.env
+.env.local

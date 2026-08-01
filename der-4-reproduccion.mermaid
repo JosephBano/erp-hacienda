@@ -1,0 +1,89 @@
+erDiagram
+    %% ============================================
+    %% NUCLEO 4: REPRODUCCION Y GENETICA (Fase 2)
+    %% La cadena: servicio -> chequeo -> gestacion
+    %% -> parto -> crias -> destete
+    %% ============================================
+
+    ANIMALS ||--o{ BREEDING_SERVICES : "madre servida"
+    ANIMALS |o--o{ BREEDING_SERVICES : "semental (monta)"
+    SEMEN_STRAWS |o--o{ BREEDING_SERVICES : "pajuela usada (IA)"
+    BREEDING_SERVICES ||--o{ PREGNANCY_CHECKS : "verificado por"
+    BREEDING_SERVICES |o--o| PREGNANCIES : "si positivo, origina"
+    ANIMALS ||--o{ PREGNANCIES : "gesta"
+    PREGNANCIES |o--o| BIRTHINGS : "termina en"
+    ANIMALS ||--o{ BIRTHINGS : "madre pare"
+    BIRTHINGS ||--o{ ANIMALS : "crea crias enlazadas"
+    BIRTHINGS |o--o| LACTATIONS : "inicia (en lecheras)"
+    ANIMALS ||--o{ LACTATIONS : "produce durante"
+
+    BREEDING_SERVICES {
+        uuid id PK
+        uuid dam_id FK "la madre (animals)"
+        varchar service_type "natural / artificial_insemination"
+        uuid sire_animal_id FK "nullable (monta)"
+        uuid straw_id FK "nullable (IA) - excluyente"
+        date service_date
+        varchar technician "quien inseminó"
+        text notes "celo observado, condicion corporal"
+        uuid recorded_by FK
+        timestamptz created_at
+    }
+
+    PREGNANCY_CHECKS {
+        uuid id PK
+        uuid service_id FK
+        date check_date
+        varchar method "palpacion / ecografia / no_retorno"
+        varchar result "positivo / negativo / dudoso"
+        varchar checked_by "veterinario"
+        uuid recorded_by FK
+    }
+
+    PREGNANCIES {
+        uuid id PK
+        uuid dam_id FK
+        uuid service_id FK "nullable; puede ignorarse el servicio exacto"
+        date confirmed_at
+        date expected_birth_date "calculada: service_date + gestation_days de la especie"
+        varchar status "activa / abortada / completada"
+        text notes
+    }
+
+    BIRTHINGS {
+        uuid id PK
+        uuid dam_id FK
+        uuid pregnancy_id FK "nullable si no se registro la gestacion"
+        date birth_date
+        varchar difficulty "normal / asistido / cesarea / distocia"
+        int total_born "camada total (clave en cerdas)"
+        int born_alive
+        int born_dead
+        int mummified "momias (porcinos)"
+        numeric litter_weight "peso de camada, opcional"
+        text notes
+        uuid recorded_by FK
+    }
+
+    LACTATIONS {
+        uuid id PK
+        uuid animal_id FK "la vaca"
+        uuid birthing_id FK "parto que la inicio"
+        int lactation_number "1ra, 2da, 3ra..."
+        date started_at
+        date dried_off_at "secado; nullable = en produccion"
+        varchar status "activa / seca"
+    }
+
+    ANIMALS {
+        uuid id PK
+        uuid mother_id FK
+        uuid father_animal_id FK
+        uuid father_straw_id FK
+        uuid birthing_id FK "parto que lo creo"
+    }
+
+    SEMEN_STRAWS {
+        uuid id PK
+        varchar bull_name
+    }

@@ -1,0 +1,98 @@
+erDiagram
+    %% ============================================
+    %% NUCLEO 1: IDENTIDAD - Animal generico + doble ID
+    %% Art. 3 y 8: lo especifico es dato, UUID soberano
+    %% ============================================
+
+    SPECIES ||--o{ BREEDS : "tiene razas"
+    SPECIES ||--o{ ANIMAL_CATEGORIES : "define etapas"
+    SPECIES ||--o{ ANIMALS : "clasifica"
+    BREEDS |o--o{ ANIMALS : "raza (opcional)"
+    ANIMAL_CATEGORIES |o--o{ ANIMALS : "etapa actual"
+
+    ANIMALS |o--o{ ANIMALS : "madre de"
+    ANIMALS |o--o{ ANIMALS : "padre (monta) de"
+    SEMEN_STRAWS |o--o{ ANIMALS : "padre (pajuela IA) de"
+
+    ANIMALS ||--o{ ANIMAL_IDENTIFIERS : "identificado por"
+    USERS ||--o{ ANIMALS : "registrado por"
+
+    SPECIES {
+        uuid id PK
+        varchar code UK "BOV, POR, EQU..."
+        varchar name "Bovino, Porcino..."
+        int gestation_days "283, 114... parametro, no constante"
+        int milk_withdrawal_default "dias retiro por defecto"
+        timestamptz created_at
+        timestamptz deleted_at "borrado logico"
+    }
+
+    BREEDS {
+        uuid id PK
+        uuid species_id FK
+        varchar name "Holstein, Brahman, Landrace"
+        timestamptz deleted_at
+    }
+
+    ANIMAL_CATEGORIES {
+        uuid id PK
+        uuid species_id FK
+        varchar name "ternera, vaca_produccion, lechon..."
+        varchar description
+        timestamptz deleted_at
+    }
+
+    ANIMALS {
+        uuid id PK "UUID interno soberano, generable offline"
+        uuid species_id FK
+        uuid breed_id FK "nullable"
+        uuid category_id FK "etapa actual"
+        char sex "M / F"
+        date birth_date "nullable"
+        boolean birth_date_estimated "true si es aproximada"
+        uuid mother_id FK "nullable, self-ref"
+        uuid father_animal_id FK "nullable, self-ref (monta)"
+        uuid father_straw_id FK "nullable (IA) - excluyente con anterior"
+        uuid birthing_id FK "parto que lo creo, nullable"
+        varchar origin "nacido / comprado"
+        varchar status "activo / vendido / muerto / robado / descartado"
+        date acquired_at "si fue comprado"
+        text notes
+        uuid created_by FK
+        timestamptz created_at
+        timestamptz updated_at
+        timestamptz deleted_at "borrado logico, jamas fisico"
+    }
+
+    ANIMAL_IDENTIFIERS {
+        uuid id PK
+        uuid animal_id FK
+        varchar id_type "farm_tag / official_sifae / rfid / name"
+        varchar value "el codigo o numero"
+        date valid_from "asignacion"
+        date valid_to "nullable = vigente; los aretes se caen"
+        text notes "motivo de reemplazo, etc"
+        uuid created_by FK
+        timestamptz created_at
+    }
+
+    SEMEN_STRAWS {
+        uuid id PK
+        varchar bull_name "toro de catalogo"
+        uuid breed_id FK
+        varchar registration_code "registro genealogico del toro"
+        varchar supplier_name "o FK a suppliers en Fase 4"
+        varchar batch_code
+        jsonb genetic_info "pruebas, indices, catalogo"
+        int doses_purchased
+        int doses_remaining
+        timestamptz created_at
+    }
+
+    USERS {
+        uuid id PK
+        varchar name
+        varchar email UK
+        uuid role_id FK
+        timestamptz deleted_at
+    }

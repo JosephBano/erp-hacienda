@@ -17,6 +17,7 @@ TestResults/
 # Node (clients, fase 3+)
 node_modules/
 dist/
+.angular/
 
 # Entorno local
 .env

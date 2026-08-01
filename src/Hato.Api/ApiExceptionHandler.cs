@@ -20,7 +20,10 @@ public class ApiExceptionHandler : IExceptionHandler
         };
 
         if (statusCode == 0)
-            return false;
+        {
+            statusCode = StatusCodes.Status500InternalServerError;
+            title = "Error interno";
+        }
 
         var problemDetails = new ProblemDetails
         {

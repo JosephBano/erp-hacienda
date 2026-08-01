@@ -19,6 +19,8 @@ public interface ILivestockDbContext
     DbSet<Domain.AnimalIdentifier> AnimalIdentifiers { get; }
     DbSet<Domain.AnimalGroup> AnimalGroups { get; }
     DbSet<Domain.GroupMembership> GroupMemberships { get; }
+    DbSet<Domain.AnimalEvent> AnimalEvents { get; }
+    DbSet<Domain.WithdrawalPeriod> WithdrawalPeriods { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken);
 }

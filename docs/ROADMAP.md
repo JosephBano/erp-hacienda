@@ -2,7 +2,17 @@
 
 > Regla de oro (Art. 11): **una fase se cierra cuando algo se usa de verdad en la finca.**
 > Este archivo se actualiza al cerrar cada fase (fecha real + retrospectiva de 5 líneas).
-> Estado actual: `Fase 0 — en curso` (iniciada 2026-08-01).
+> Estado actual: `Fase 0 — cerrada` (iniciada 2026-08-01, cerrada 2026-08-01).
+>
+> **Retrospectiva:** el esqueleto se construyó con asistencia intensiva de un agente de
+> IA (Claude Code) siguiendo al pie de la letra `AGENTS.md` y la Constitución; el costo
+> en tiempo humano fue mínimo comparado con montar esto a mano. El propio pipeline hizo
+> su trabajo: GitGuardian atrapó una contraseña de desarrollo commiteada por descuido
+> antes de llegar a `develop`, y se resolvió aplastando la rama antes del merge — la
+> disciplina de PR + CI de Fase 0 se pagó sola en la primera pasada. Lección para
+> fases futuras: dejarle a la IA el andamiaje mecánico (proyectos, referencias,
+> configuración) y reservar la revisión humana para las decisiones de dominio, que es
+> donde el criterio "úsalo de verdad en la finca" no admite atajos.
 
 ---
 

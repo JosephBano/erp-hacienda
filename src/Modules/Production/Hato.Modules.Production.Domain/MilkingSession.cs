@@ -1,7 +1,9 @@
+using System.Text.Json.Serialization;
 using Hato.SharedKernel;
 
 namespace Hato.Modules.Production.Domain;
 
+[JsonConverter(typeof(JsonStringEnumConverter))]
 public enum MilkingShift
 {
     Morning,

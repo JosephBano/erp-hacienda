@@ -1,6 +1,8 @@
 using FluentValidation;
+using Hato.Modules.Livestock.Contracts;
 using Hato.Modules.Production.Application.Abstractions;
 using Hato.Modules.Production.Domain;
+using Hato.SharedKernel;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
@@ -27,7 +29,7 @@ public class RecordMilkingSessionValidator : AbstractValidator<RecordMilkingSess
     }
 }
 
-public class RecordMilkingSessionHandler(IProductionDbContext dbContext)
+public class RecordMilkingSessionHandler(IProductionDbContext dbContext, IWithdrawalPeriodsReader withdrawals)
     : IRequestHandler<RecordMilkingSessionCommand, Guid>
 {
     public async Task<Guid> Handle(RecordMilkingSessionCommand request, CancellationToken cancellationToken)
@@ -44,6 +46,15 @@ public class RecordMilkingSessionHandler(IProductionDbContext dbContext)
         {
             foreach (var item in request.IndividualYields)
             {
+                // Art. 19: milk from an animal under an active withdrawal cannot be sold —
+                // enforced here at the point of entry, not left to a report someone reads later.
+                var isWithheld = await withdrawals.HasActiveWithdrawalAsync(
+                    item.AnimalId, request.Date, WithdrawalTargetKind.Milk, cancellationToken);
+
+                if (isWithheld)
+                    throw new DomainException(
+                        $"El animal '{item.AnimalId}' tiene un período de retiro de leche activo y no puede registrarse su producción.");
+
                 var y = session.RecordAnimalYield(item.AnimalId, item.Liters);
                 dbContext.MilkYields.Add(y);
             }

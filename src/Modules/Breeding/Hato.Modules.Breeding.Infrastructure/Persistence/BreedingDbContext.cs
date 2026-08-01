@@ -1,10 +1,12 @@
 using Hato.Modules.Breeding.Application.Abstractions;
 using Hato.Modules.Breeding.Domain;
+using Hato.SharedKernel;
+using MediatR;
 using Microsoft.EntityFrameworkCore;
 
 namespace Hato.Modules.Breeding.Infrastructure.Persistence;
 
-public class BreedingDbContext(DbContextOptions<BreedingDbContext> options)
+public class BreedingDbContext(DbContextOptions<BreedingDbContext> options, IPublisher? publisher = null)
     : DbContext(options), IBreedingDbContext
 {
     public const string Schema = "breeding";
@@ -14,6 +16,34 @@ public class BreedingDbContext(DbContextOptions<BreedingDbContext> options)
     public DbSet<PregnancyCheck> PregnancyChecks => Set<PregnancyCheck>();
     public DbSet<Pregnancy> Pregnancies => Set<Pregnancy>();
     public DbSet<Birthing> Birthings => Set<Birthing>();
+
+    /// <summary>
+    /// Publishes each aggregate's raised domain events after a successful save, then
+    /// clears them. Without this, events like BirthingRecordedEvent were built and
+    /// discarded — nothing downstream ever ran.
+    /// </summary>
+    public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+    {
+        var entitiesWithEvents = ChangeTracker.Entries<Entity>()
+            .Select(e => e.Entity)
+            .Where(e => e.DomainEvents.Count > 0)
+            .ToList();
+
+        var result = await base.SaveChangesAsync(cancellationToken);
+
+        if (publisher is not null)
+        {
+            foreach (var entity in entitiesWithEvents)
+            {
+                var events = entity.DomainEvents.ToList();
+                entity.ClearDomainEvents();
+                foreach (var domainEvent in events)
+                    await publisher.Publish(domainEvent, cancellationToken);
+            }
+        }
+
+        return result;
+    }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

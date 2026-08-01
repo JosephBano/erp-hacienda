@@ -4,6 +4,7 @@ using Hato.Modules.Breeding.Contracts;
 using Hato.Modules.Breeding.Domain;
 using Hato.Modules.Breeding.Domain.Enums;
 using Hato.Modules.Breeding.Domain.Events;
+using Hato.Modules.Livestock.Contracts;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
@@ -35,7 +36,7 @@ public class RecordBirthingCommandValidator : AbstractValidator<RecordBirthingCo
     }
 }
 
-public class RecordBirthingCommandHandler(IBreedingDbContext dbContext)
+public class RecordBirthingCommandHandler(IBreedingDbContext dbContext, IAnimalRegistrationService animalRegistration)
     : IRequestHandler<RecordBirthingCommand, BirthingDto>
 {
     public async Task<BirthingDto> Handle(RecordBirthingCommand request, CancellationToken cancellationToken)
@@ -86,6 +87,27 @@ public class RecordBirthingCommandHandler(IBreedingDbContext dbContext)
 
         dbContext.Birthings.Add(birthing);
         await dbContext.SaveChangesAsync(cancellationToken);
+
+        // Enroll each live-born calf as a first-class Animal in Livestock, with
+        // genealogy set — this is what makes "the calf was born inside the system"
+        // (Fase 2 exit criterion) true, instead of just recording a litter count.
+        if (request.Offspring is { Count: > 0 })
+        {
+            foreach (var offspring in request.Offspring)
+            {
+                await animalRegistration.RegisterOffspringAsync(
+                    new RegisterOffspringRequest(
+                        DamId: request.DamId,
+                        Sex: offspring.Sex,
+                        BirthDate: request.BirthDate,
+                        CategoryId: offspring.CategoryId,
+                        FarmTag: offspring.FarmTag,
+                        FatherAnimalId: sireAnimalId,
+                        FatherStrawId: fatherStrawId,
+                        BirthingId: birthing.Id),
+                    cancellationToken);
+            }
+        }
 
         return new BirthingDto(
             birthing.Id,

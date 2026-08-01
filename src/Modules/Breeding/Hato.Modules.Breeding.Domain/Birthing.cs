@@ -16,6 +16,8 @@ public class Birthing : AuditableEntity
     public int Mummified { get; private set; }
     public decimal? LitterWeight { get; private set; }
     public string? Notes { get; private set; }
+    public DateOnly? WeanedAt { get; private set; }
+    public int? WeanedCount { get; private set; }
 
     private Birthing() { } // EF Core
 
@@ -69,5 +71,21 @@ public class Birthing : AuditableEntity
         ));
 
         return birthing;
+    }
+
+    public void RecordWeaning(DateOnly weaningDate, int weanedCount, string? notes = null)
+    {
+        if (WeanedAt is not null)
+            throw new DomainException("Este parto ya tiene un destete registrado.");
+        if (weaningDate < BirthDate)
+            throw new DomainException("La fecha de destete no puede ser anterior a la fecha de parto.");
+        if (weanedCount < 0 || weanedCount > BornAlive)
+            throw new DomainException("La cantidad destetada no puede ser mayor a las crías nacidas vivas.");
+
+        WeanedAt = weaningDate;
+        WeanedCount = weanedCount;
+        if (!string.IsNullOrWhiteSpace(notes))
+            Notes = string.IsNullOrWhiteSpace(Notes) ? notes.Trim() : $"{Notes} | Destete: {notes.Trim()}";
+        UpdatedAt = DateTimeOffset.UtcNow;
     }
 }

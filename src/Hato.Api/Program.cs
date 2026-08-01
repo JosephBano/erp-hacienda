@@ -19,6 +19,7 @@ app.MapSpeciesEndpoints();
 app.MapBreedsEndpoints();
 app.MapAnimalCategoriesEndpoints();
 app.MapAnimalsEndpoints();
+app.MapAnimalGroupsEndpoints();
 
 app.Run();
 

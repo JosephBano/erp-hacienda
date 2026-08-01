@@ -1,4 +1,6 @@
-<div class="app-layout">
+<router-outlet *ngIf="isLoginPage()"></router-outlet>
+
+<div class="app-layout" *ngIf="!isLoginPage()">
   <!-- Sidebar Navigation -->
   <aside class="sidebar">
     <div class="sidebar-brand">
@@ -37,10 +39,11 @@
       <div class="user-badge">
         <span class="user-avatar">👤</span>
         <div class="user-info">
-          <span class="user-name">Administrador</span>
-          <span class="user-role">Finca La Esperanza</span>
+          <span class="user-name">{{ auth.currentUser()?.fullName || 'Usuario' }}</span>
+          <span class="user-role">{{ auth.currentUser()?.role || '' }}</span>
         </div>
       </div>
+      <button type="button" class="logout-button" (click)="logout()">Cerrar sesión</button>
     </div>
   </aside>
 

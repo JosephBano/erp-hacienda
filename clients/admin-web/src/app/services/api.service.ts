@@ -49,6 +49,8 @@ export interface RecordEventRequest {
   eventDate: string;
   details: any;
   recordedBy: string;
+  milkWithdrawalDays?: number;
+  meatWithdrawalDays?: number;
 }
 
 export interface SemenStraw {
@@ -101,6 +103,8 @@ export interface BirthingDto {
   litterWeight?: number;
   notes?: string;
   createdAt: string;
+  weanedAt?: string;
+  weanedCount?: number;
 }
 
 export interface AncestorDto {
@@ -128,6 +132,7 @@ export interface DamKpisDto {
   servicesPerConception: number;
   totalBirthings: number;
   totalOffspringAlive: number;
+  weanedPerYear: number;
 }
 
 export interface AlertDto {
@@ -161,11 +166,27 @@ export class ApiService {
   }
 
   recordAnimalEvent(animalId: string, data: RecordEventRequest): Observable<{ id: string }> {
-    return this.http.post<{ id: string }>(`${this.baseUrl}/animals/${animalId}/events`, data);
+    return this.http.post<{ id: string }>(`${this.baseUrl}/animals/${animalId}/events`, {
+      eventType: data.eventType,
+      occurredAt: data.eventDate,
+      recordedBy: data.recordedBy,
+      payloadJson: JSON.stringify(data.details),
+      milkWithdrawalDays: data.milkWithdrawalDays,
+      meatWithdrawalDays: data.meatWithdrawalDays
+    });
   }
 
   recordMilkingSession(data: MilkingSessionRequest): Observable<{ id: string }> {
-    return this.http.post<{ id: string }>(`${this.baseUrl}/production/milking-sessions`, data);
+    const individualYields = data.yields.map((y) => ({ animalId: y.animalId, liters: y.liters }));
+    const totalLiters = individualYields.reduce((sum, y) => sum + y.liters, 0);
+
+    return this.http.post<{ id: string }>(`${this.baseUrl}/milking-sessions`, {
+      date: data.date,
+      shift: data.sessionType,
+      recordedBy: data.recordedBy,
+      totalLiters,
+      individualYields
+    });
   }
 
   // --- Breeding API ---
@@ -191,6 +212,10 @@ export class ApiService {
 
   recordBirthing(data: any): Observable<BirthingDto> {
     return this.http.post<BirthingDto>(`${this.baseUrl}/breeding/birthings`, data);
+  }
+
+  recordWeaning(data: { birthingId: string; weaningDate: string; weanedCount: number; notes?: string }): Observable<BirthingDto> {
+    return this.http.post<BirthingDto>(`${this.baseUrl}/breeding/weanings`, data);
   }
 
   getPedigree(animalId: string): Observable<PedigreeDto> {

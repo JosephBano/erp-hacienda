@@ -22,7 +22,7 @@
         <label class="form-label">Tipo de Evento:</label>
         <select class="form-select" [(ngModel)]="eventType">
           <option value="Treatment">💊 Tratamiento Medicamentoso (con Retiro)</option>
-          <option value="Weight">⚖️ Pesaje / Peso Corporal</option>
+          <option value="Weighing">⚖️ Pesaje / Peso Corporal</option>
           <option value="Diagnosis">🩺 Diagnóstico Clínico / Enfermedad</option>
           <option value="Vaccination">💉 Vacunación</option>
         </select>
@@ -59,7 +59,7 @@
       </div>
     </div>
 
-    <div class="event-details-box mt-3" *ngIf="eventType === 'Weight'">
+    <div class="event-details-box mt-3" *ngIf="eventType === 'Weighing'">
       <h4>Detalles del Pesaje</h4>
       <div class="form-group mt-2">
         <label class="form-label">Peso Registrado (Kg):</label>

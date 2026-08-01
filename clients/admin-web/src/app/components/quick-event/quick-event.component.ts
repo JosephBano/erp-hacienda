@@ -55,10 +55,12 @@ export class QuickEventComponent implements OnInit {
     }
 
     let detailsPayload: any = {};
-    if (this.eventType === 'Weight') {
+    let milkWithdrawalDays: number | undefined;
+    if (this.eventType === 'Weighing') {
       detailsPayload = { WeightKg: this.weightKg, Notes: this.notes };
     } else if (this.eventType === 'Treatment') {
       detailsPayload = { MedicationName: this.medicationName, Dosage: this.dosage, WithdrawalDays: this.withdrawalDays, Notes: this.notes };
+      milkWithdrawalDays = this.withdrawalDays;
     } else if (this.eventType === 'Diagnosis') {
       detailsPayload = { Disease: this.diseaseDiagnosis, Notes: this.notes };
     }
@@ -67,7 +69,8 @@ export class QuickEventComponent implements OnInit {
       eventType: this.eventType,
       eventDate: this.eventDate,
       details: detailsPayload,
-      recordedBy: this.recordedBy
+      recordedBy: this.recordedBy,
+      milkWithdrawalDays
     }).subscribe({
       next: () => {
         this.successMessage = '¡Evento inmutable registrado correctamente!';

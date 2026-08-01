@@ -16,6 +16,13 @@ public class AnimalConfiguration : IEntityTypeConfiguration<Animal>
         builder.HasOne<Breed>().WithMany().HasForeignKey(a => a.BreedId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne<AnimalCategory>().WithMany().HasForeignKey(a => a.CategoryId).OnDelete(DeleteBehavior.Restrict);
 
+        builder.HasOne<Animal>().WithMany().HasForeignKey(a => a.MotherId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne<Animal>().WithMany().HasForeignKey(a => a.FatherAnimalId).OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasIndex(a => a.MotherId);
+        builder.HasIndex(a => a.FatherAnimalId);
+        builder.HasIndex(a => a.FatherStrawId);
+
         // Identifiers is a read-only projection over the private backing field (Art. 1:
         // history is never exposed as directly mutable outside the aggregate root).
         builder.Metadata.FindNavigation(nameof(Animal.Identifiers))!

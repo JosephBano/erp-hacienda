@@ -7,7 +7,7 @@ public static class AnimalCategoriesEndpoints
 {
     public static void MapAnimalCategoriesEndpoints(this IEndpointRouteBuilder app)
     {
-        var group = app.MapGroup("/api/v1/animal-categories").WithTags("AnimalCategories");
+        var group = app.MapGroup("/api/v1/animal-categories").WithTags("AnimalCategories").RequireAuthorization();
 
         group.MapPost("/", async (CreateAnimalCategoryCommand command, ISender sender) =>
         {

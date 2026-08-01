@@ -9,7 +9,7 @@ public static class InventoryEndpoints
 {
     public static void MapInventoryEndpoints(this IEndpointRouteBuilder app)
     {
-        var group = app.MapGroup("/api/v1/inventory").WithTags("Inventory");
+        var group = app.MapGroup("/api/v1/inventory").WithTags("Inventory").RequireAuthorization();
 
         group.MapPost("/items", async (CreateInventoryItemCommand command, ISender sender) =>
         {

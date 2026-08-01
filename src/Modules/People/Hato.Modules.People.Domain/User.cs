@@ -47,4 +47,6 @@ public class User : AuditableEntity
     {
         IsActive = false;
     }
+
+    public bool VerifyPassword(string password) => PasswordHasher.Verify(password, PasswordHash);
 }

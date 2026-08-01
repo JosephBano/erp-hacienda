@@ -15,6 +15,7 @@ public class ApiExceptionHandler : IExceptionHandler
         {
             ValidationException => (StatusCodes.Status400BadRequest, "Solicitud inválida"),
             DomainException => (StatusCodes.Status400BadRequest, "Regla de negocio violada"),
+            UnauthorizedAccessException => (StatusCodes.Status401Unauthorized, "No autorizado"),
             KeyNotFoundException => (StatusCodes.Status404NotFound, "No encontrado"),
             _ => (0, string.Empty),
         };

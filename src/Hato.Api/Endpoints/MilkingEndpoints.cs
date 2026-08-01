@@ -7,7 +7,7 @@ public static class MilkingEndpoints
 {
     public static void MapMilkingEndpoints(this IEndpointRouteBuilder app)
     {
-        var group = app.MapGroup("/api/v1/milking-sessions").WithTags("Milking");
+        var group = app.MapGroup("/api/v1/milking-sessions").WithTags("Milking").RequireAuthorization();
 
         group.MapPost("/", async (RecordMilkingSessionCommand command, ISender sender) =>
         {

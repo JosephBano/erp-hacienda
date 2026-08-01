@@ -7,7 +7,7 @@ public static class AnimalEventsEndpoints
 {
     public static void MapAnimalEventsEndpoints(this IEndpointRouteBuilder app)
     {
-        var group = app.MapGroup("/api/v1/animals/{animalId:guid}/events").WithTags("AnimalEvents");
+        var group = app.MapGroup("/api/v1/animals/{animalId:guid}/events").WithTags("AnimalEvents").RequireAuthorization();
 
         group.MapPost("/", async (Guid animalId, RecordAnimalEventRequest request, ISender sender) =>
         {
@@ -37,7 +37,7 @@ public static class AnimalEventsEndpoints
             var date = targetDate ?? DateOnly.FromDateTime(DateTime.UtcNow);
             var withdrawals = await sender.Send(new GetActiveWithdrawalsQuery(animalId, date));
             return Results.Ok(withdrawals);
-        }).WithTags("AnimalEvents");
+        }).WithTags("AnimalEvents").RequireAuthorization();
     }
 }
 

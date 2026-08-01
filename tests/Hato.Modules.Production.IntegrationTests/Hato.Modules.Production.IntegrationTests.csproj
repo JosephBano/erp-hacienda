@@ -2,6 +2,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Hato.Api\Hato.Api.csproj" />
+    <ProjectReference Include="..\Hato.TestSupport\Hato.TestSupport.csproj" />
   </ItemGroup>
 
   <ItemGroup>

@@ -1,10 +1,13 @@
 using Hato.Modules.Inventory.Infrastructure.Persistence;
 using Hato.Modules.Livestock.Infrastructure.Persistence;
 using Hato.Modules.Production.Infrastructure.Persistence;
+using Hato.TestSupport;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.AspNetCore.TestHost;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Testcontainers.PostgreSql;
 using Xunit;
 
@@ -25,6 +28,8 @@ public class InventoryApiFactory : WebApplicationFactory<Program>, IAsyncLifetim
                 ["ConnectionStrings:HatoDb"] = _postgres.GetConnectionString(),
             });
         });
+
+        builder.ConfigureTestServices(services => services.AddTestAuthentication());
     }
 
     public async Task InitializeAsync()

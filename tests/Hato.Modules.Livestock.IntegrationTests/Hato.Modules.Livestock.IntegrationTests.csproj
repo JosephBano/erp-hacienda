@@ -24,7 +24,9 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Modules\Livestock\Hato.Modules.Livestock.Infrastructure\Hato.Modules.Livestock.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Production\Hato.Modules.Production.Infrastructure\Hato.Modules.Production.Infrastructure.csproj" />
     <ProjectReference Include="..\..\src\Hato.Api\Hato.Api.csproj" />
+    <ProjectReference Include="..\Hato.TestSupport\Hato.TestSupport.csproj" />
   </ItemGroup>
 
 </Project>

@@ -2,7 +2,7 @@
 
 > Regla de oro (Art. 11): **una fase se cierra cuando algo se usa de verdad en la finca.**
 > Este archivo se actualiza al cerrar cada fase (fecha real + retrospectiva de 5 líneas).
-> Estado actual: `Fase 0 — no iniciada`.
+> Estado actual: `Fase 0 — en curso` (iniciada 2026-08-01).
 
 ---
 

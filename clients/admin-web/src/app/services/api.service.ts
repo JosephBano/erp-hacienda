@@ -191,12 +191,28 @@ export interface PagedAuditLogsDto {
   pageSize: number;
 }
 
+export interface SyncOperationDto {
+  id: string;
+  clientOperationId: string;
+  operationType: string;
+  status: string;
+  deviceId: string;
+  errorDetails?: string;
+  receivedAt: string;
+}
+
 @Injectable({
   providedIn: 'root'
 })
 export class ApiService {
   private http = inject(HttpClient);
   private baseUrl = '/api/v1';
+
+  getSyncOperations(status?: string): Observable<SyncOperationDto[]> {
+    let httpParams = new HttpParams();
+    if (status) httpParams = httpParams.set('status', status);
+    return this.http.get<SyncOperationDto[]>(`${this.baseUrl}/sync/operations`, { params: httpParams });
+  }
 
   getAnimals(): Observable<Animal[]> {
     return this.http.get<Animal[]>(`${this.baseUrl}/animals`);

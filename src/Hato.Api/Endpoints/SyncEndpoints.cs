@@ -20,5 +20,11 @@ public static class SyncEndpoints
             var result = await sender.Send(command);
             return Results.Ok(result);
         });
+
+        group.MapGet("/operations", async (string? status, ISender sender) =>
+        {
+            var result = await sender.Send(new GetSyncOperationsQuery(status));
+            return Results.Ok(result);
+        });
     }
 }

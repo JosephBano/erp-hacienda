@@ -1,5 +1,6 @@
 using Hato.Modules.Inventory.Application.Abstractions;
 using Hato.Modules.Livestock.Application.Abstractions;
+using Hato.Modules.People.Application.Abstractions;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
@@ -283,3 +284,48 @@ public class GetSyncPullQueryHandler(
         return new SyncPullResponseDto(nextCursor, hasMore, collectionsDto);
     }
 }
+
+public record GetSyncOperationsQuery(string? Status = null) : IRequest<List<SyncOperationDto>>;
+
+public record SyncOperationDto(
+    Guid Id,
+    string ClientOperationId,
+    string OperationType,
+    string Status,
+    string DeviceId,
+    string? ErrorDetails,
+    DateTimeOffset ReceivedAt);
+
+public class GetSyncOperationsQueryHandler : IRequestHandler<GetSyncOperationsQuery, List<SyncOperationDto>>
+{
+    private readonly IPeopleDbContext _context;
+
+    public GetSyncOperationsQueryHandler(IPeopleDbContext context)
+    {
+        _context = context;
+    }
+
+    public async Task<List<SyncOperationDto>> Handle(GetSyncOperationsQuery request, CancellationToken cancellationToken)
+    {
+        var query = _context.SyncOperations.AsNoTracking();
+
+        if (!string.IsNullOrWhiteSpace(request.Status) && Enum.TryParse<Hato.Modules.People.Domain.SyncOperationStatus>(request.Status, true, out var parsedStatus))
+        {
+            query = query.Where(o => o.Status == parsedStatus);
+        }
+
+        return await query
+            .OrderByDescending(o => o.ReceivedAt)
+            .Take(100)
+            .Select(o => new SyncOperationDto(
+                o.Id,
+                o.ClientOperationId.ToString(),
+                o.OperationType,
+                o.Status.ToString(),
+                o.DeviceId ?? string.Empty,
+                o.ErrorDetails,
+                o.ReceivedAt))
+            .ToListAsync(cancellationToken);
+    }
+}
+

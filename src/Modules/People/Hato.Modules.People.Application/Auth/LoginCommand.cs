@@ -1,5 +1,6 @@
 using FluentValidation;
 using Hato.Modules.People.Application.Abstractions;
+using Hato.Modules.People.Domain;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
@@ -9,6 +10,7 @@ public record LoginCommand(string Email, string Password) : IRequest<LoginResult
 
 public record LoginResultDto(
     string Token,
+    string RefreshToken,
     DateTimeOffset ExpiresAt,
     Guid UserId,
     string FullName,
@@ -41,6 +43,10 @@ public class LoginCommandHandler(IPeopleDbContext dbContext, IJwtTokenGenerator 
             throw new UnauthorizedAccessException("Correo o contraseña incorrectos.");
 
         var (token, expiresAt) = tokenGenerator.GenerateToken(user);
+        var (refreshTokenEntity, rawRefreshToken) = Domain.RefreshToken.Create(user.Id);
+
+        dbContext.RefreshTokens.Add(refreshTokenEntity);
+        await dbContext.SaveChangesAsync(cancellationToken);
 
         var roles = user.UserRoles
             .Where(ur => ur.Role != null)
@@ -56,6 +62,6 @@ public class LoginCommandHandler(IPeopleDbContext dbContext, IJwtTokenGenerator 
             .Distinct()
             .ToList();
 
-        return new LoginResultDto(token, expiresAt, user.Id, user.FullName, roles, permissions);
+        return new LoginResultDto(token, rawRefreshToken, expiresAt, user.Id, user.FullName, roles, permissions);
     }
 }

@@ -38,10 +38,16 @@ public class RecordAnimalEventHandler(ILivestockDbContext dbContext)
         if (!animalExists)
             throw new DomainException($"El animal con ID '{request.AnimalId}' no existe.");
 
+        // Dates in UTC in persistence (AGENTS.md rule 6): Npgsql only accepts
+        // DateTimeOffset with Offset=0 for 'timestamp with time zone', so a client
+        // submitting a local Ecuador offset must be normalized here, once, rather than
+        // crashing at SaveChangesAsync or drifting the withdrawal start date.
+        var occurredAtUtc = request.OccurredAt.ToUniversalTime();
+
         var animalEvent = AnimalEvent.Create(
             request.AnimalId,
             request.EventType,
-            request.OccurredAt,
+            occurredAtUtc,
             request.RecordedBy,
             request.PayloadJson,
             request.Cost,
@@ -50,7 +56,7 @@ public class RecordAnimalEventHandler(ILivestockDbContext dbContext)
         dbContext.AnimalEvents.Add(animalEvent);
 
         // Process Withdrawal Period if specified (e.g. for TreatmentEvent)
-        var startDate = DateOnly.FromDateTime(request.OccurredAt.DateTime);
+        var startDate = DateOnly.FromDateTime(occurredAtUtc.UtcDateTime);
 
         if (request.MilkWithdrawalDays is > 0 && request.MeatWithdrawalDays is > 0)
         {

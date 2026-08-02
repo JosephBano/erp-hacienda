@@ -21,6 +21,7 @@ public class Lactation : AuditableEntity
         AnimalId = animalId;
         LactationNumber = lactationNumber;
         StartDate = startDate;
+        CreatedAt = DateTimeOffset.UtcNow;
     }
 
     public static Lactation Start(Guid animalId, int lactationNumber, DateOnly startDate)

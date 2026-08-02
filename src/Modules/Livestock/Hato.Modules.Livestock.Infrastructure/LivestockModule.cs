@@ -38,6 +38,7 @@ public static class LivestockModule
         services.AddScoped<IWithdrawalPeriodsReader, WithdrawalPeriodsReader>();
         services.AddScoped<IAnimalGenealogyReader, AnimalGenealogyReader>();
         services.AddScoped<IAnimalRegistrationService, AnimalRegistrationService>();
+        services.AddScoped<IAnimalSpeciesReader, AnimalSpeciesReader>();
 
         services.AddMediatR(cfg =>
         {

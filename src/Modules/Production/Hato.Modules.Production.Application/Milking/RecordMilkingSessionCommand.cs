@@ -34,6 +34,19 @@ public class RecordMilkingSessionHandler(IProductionDbContext dbContext, IWithdr
 {
     public async Task<Guid> Handle(RecordMilkingSessionCommand request, CancellationToken cancellationToken)
     {
+        // Art. 19: a group/tank session pools milk from every member of the group, so one
+        // withheld animal is enough to withhold the whole session — not just the animals
+        // listed individually below.
+        if (request.GroupId is Guid groupId)
+        {
+            var withheldInGroup = await withdrawals.GetWithdrawnAnimalIdsInGroupAsync(
+                groupId, request.Date, WithdrawalTargetKind.Milk, cancellationToken);
+
+            if (withheldInGroup.Count > 0)
+                throw new DomainException(
+                    $"El grupo tiene animal(es) con período de retiro de leche activo y no puede registrarse el ordeño grupal: {string.Join(", ", withheldInGroup)}.");
+        }
+
         var session = MilkingSession.Create(
             request.Date,
             request.Shift,

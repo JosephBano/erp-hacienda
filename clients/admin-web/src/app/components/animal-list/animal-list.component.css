@@ -33,3 +33,9 @@
   padding: 0.35rem 0.7rem;
   font-size: 0.8rem;
 }
+
+.alert-danger {
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  color: #f87171;
+}

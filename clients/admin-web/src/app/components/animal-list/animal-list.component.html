@@ -27,8 +27,12 @@
     </div>
   </div>
 
+  <div *ngIf="loadError" class="glass-card alert-danger" style="padding: 1rem; margin-bottom: 1rem;">
+    No se pudo cargar el listado de animales desde el servidor. Intente de nuevo más tarde.
+  </div>
+
   <!-- Table -->
-  <div class="table-container glass-card">
+  <div class="table-container glass-card" *ngIf="!loadError">
     <table>
       <thead>
         <tr>

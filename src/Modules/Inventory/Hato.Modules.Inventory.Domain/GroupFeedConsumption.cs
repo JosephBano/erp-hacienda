@@ -37,6 +37,7 @@ public class GroupFeedConsumption : AuditableEntity
         ConsumedAt = consumedAt;
         RecordedBy = recordedBy;
         Notes = notes;
+        CreatedAt = DateTimeOffset.UtcNow;
     }
 
     public static GroupFeedConsumption Record(

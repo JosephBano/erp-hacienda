@@ -2,7 +2,7 @@
 
 > Regla de oro (Art. 11): **una fase se cierra cuando algo se usa de verdad en la finca.**
 > Este archivo se actualiza al cerrar cada fase (fecha real + retrospectiva de 5 líneas).
-> Estado actual: `Fase 2 — cerrada` (iniciada 2026-08-01, cerrada 2026-08-01).
+> Estado actual: `Fase 3 — cerrada` (iniciada 2026-08-02, cerrada 2026-08-02).
 >
 > **Retrospectiva Fase 0:** el esqueleto se construyó con asistencia intensiva de un agente de
 > IA (Claude Code) siguiendo al pie de la letra `AGENTS.md` y la Constitución; el costo
@@ -28,6 +28,14 @@
 > (`CalvingInterval`, `DaysOpen`) y el motor de alertas `Tasks/Alertas` v1. El panel web Angular
 > expone la gestión reproductiva, catálogo de semen y centro de alertas activas. Se alcanzaron
 > 71 pruebas automáticas al 100%.
+>
+> **Retrospectiva Fase 3:** La Fase 3 (App móvil offline-first) se completó en 9 PRs continuos (#17 a #27).
+> Se implementó la seguridad con roles/permisos dinámicos en DB, auditoría de entidades (`AuditLog`), rotación de
+> refresh tokens, protocolo de sync bidireccional idempotente (Push/Pull con tombstones y `client_operation_id`),
+> la aplicación móvil React Native Expo con WatermelonDB (`clients/field-app/`), motor de Sync Engine en cliente
+> con Outbox local, ordeño offline en ≤3 toques, eventos (tratamientos, pesajes, movimientos), partos con crías en
+> operaciones atómicas, logs locales exportables sin telemetría (LOPDP) y endpoints de auditoría en backend. Se
+> alcanzaron 121 pruebas backend y 24 pruebas Jest de cliente móvil verdes al 100%.
 
 ---
 

@@ -64,6 +64,12 @@ completos, adjuntos documentales, reportes exportables por si la autoridad los s
 - Medidas del sistema: cifrado en tránsito, contraseñas con hash, control de acceso por
   roles, auditoría — ya exigidas por la Constitución del proyecto.
 
+### 5.1 Deber de Información al Empleado (Bitácora de Auditoría LOPDP - Art. 12/15)
+Al registrar empleados en el sistema (Módulo People / App Móvil), se debe entregar por escrito o incluir en la cláusula de uso de herramientas de trabajo la siguiente notificación:
+
+> **Cláusula Modelo de Transparencia de Auditoría Operativa:**
+> *"El Administrado/Empleado conoce y acepta que el sistema de gestión ganadera (HATO) registra automáticamente la trazabilidad de sus operaciones (eventos de animales, registros de ordeño, consumo de alimento y cambios en el sistema) asociando su identificador de usuario, nombre, fecha y hora UTC. Esta información se recolecta exclusivamente para fines de auditoría operativa, control de calidad pecuario y cumplimiento de estándares zoosanitarios. Los registros de auditoría son inalterables e impiden su edición o eliminación."*
+
 ## 6. Otros frentes según crezca el proyecto
 
 - **Turismo en la hacienda (Fase 7+):** registro turístico, LUAE/permisos municipales,

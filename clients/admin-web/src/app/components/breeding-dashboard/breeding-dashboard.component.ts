@@ -59,7 +59,11 @@ export class BreedingDashboardComponent implements OnInit {
     bornDead: 0,
     mummified: 0,
     litterWeight: 35.0,
-    notes: ''
+    notes: '',
+    // Single-calf case (the common one for bovine): registering the calf itself is
+    // optional — leave farmTag blank to just log the litter counts.
+    calfFarmTag: '',
+    calfSex: 'F'
   };
 
   // Straw form
@@ -181,7 +185,14 @@ export class BreedingDashboardComponent implements OnInit {
     this.errorMessage = '';
     this.successMessage = '';
 
-    this.api.recordBirthing(this.birthingForm).subscribe({
+    const { calfFarmTag, calfSex, ...payload } = this.birthingForm as any;
+    if (this.birthingForm.bornAlive > 0 && calfFarmTag) {
+      payload.offspring = [
+        { childId: crypto.randomUUID(), farmTag: calfFarmTag, sex: calfSex }
+      ];
+    }
+
+    this.api.recordBirthing(payload).subscribe({
       next: () => {
         this.loading = false;
         this.successMessage = 'Parto y crías registrados exitosamente.';

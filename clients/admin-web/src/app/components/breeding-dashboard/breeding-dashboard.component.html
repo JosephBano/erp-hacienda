@@ -195,6 +195,19 @@
           </div>
         </div>
 
+        <div class="form-group" *ngIf="birthingForm.bornAlive > 0">
+          <label>Arete de la Cría (opcional — déjalo vacío para solo registrar el conteo)</label>
+          <input type="text" [(ngModel)]="birthingForm.calfFarmTag" name="bCalfTag" placeholder="p.ej. TERNERA-045" class="form-control" />
+        </div>
+
+        <div class="form-group" *ngIf="birthingForm.bornAlive > 0 && birthingForm.calfFarmTag">
+          <label>Sexo de la Cría</label>
+          <select [(ngModel)]="birthingForm.calfSex" name="bCalfSex" class="form-control">
+            <option value="F">Hembra</option>
+            <option value="M">Macho</option>
+          </select>
+        </div>
+
         <button type="submit" class="btn btn-success btn-block" [disabled]="loading">
           Guardar Parto
         </button>

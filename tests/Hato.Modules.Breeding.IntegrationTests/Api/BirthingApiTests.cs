@@ -59,6 +59,41 @@ public class BirthingApiTests(BreedingApiFactory factory) : IClassFixture<Breedi
         Assert.Equal(birthing!.Id, calfDetail.BirthingId);
     }
 
+    [Fact]
+    public async Task RecordBirthing_WithOffspringButNoCategory_StillCreatesAnimal()
+    {
+        // The admin panel's birthing form doesn't have a category picker — it only
+        // asks for the calf's farm tag and sex. CategoryId must be optional end to
+        // end or every real submission from the panel fails.
+        var speciesResponse = await _client.PostAsJsonAsync("/api/v1/species", new { name = "Bovino NoCat", gestationDays = 283 });
+        speciesResponse.EnsureSuccessStatusCode();
+        var speciesId = (await speciesResponse.Content.ReadFromJsonAsync<CreatedId>())!.Id;
+
+        var damResponse = await _client.PostAsJsonAsync("/api/v1/animals", new { speciesId, sex = "Female" });
+        damResponse.EnsureSuccessStatusCode();
+        var damId = (await damResponse.Content.ReadFromJsonAsync<CreatedId>())!.Id;
+
+        var birthingResponse = await _client.PostAsJsonAsync("/api/v1/breeding/birthings", new
+        {
+            damId,
+            birthDate = new DateOnly(2026, 8, 1),
+            difficulty = "Normal",
+            bornAlive = 1,
+            offspring = new[]
+            {
+                new { childId = Guid.NewGuid(), farmTag = "TERNERA-NOCAT", sex = "F" }
+            }
+        });
+
+        Assert.True(birthingResponse.IsSuccessStatusCode, await birthingResponse.Content.ReadAsStringAsync());
+
+        var animalsResponse = await _client.GetAsync("/api/v1/animals");
+        animalsResponse.EnsureSuccessStatusCode();
+        var animals = await animalsResponse.Content.ReadFromJsonAsync<List<AnimalListItemDto>>();
+
+        Assert.Contains(animals!, a => a.FarmTag == "TERNERA-NOCAT");
+    }
+
     private sealed record CreatedId(Guid Id);
     private sealed record BirthingDto(Guid Id);
     private sealed record AnimalListItemDto(Guid Id, string? FarmTag, string Gender);

@@ -3,6 +3,7 @@ using Hato.Modules.Breeding.Application.Pregnancies;
 using Hato.Modules.Breeding.Application.PregnancyChecks;
 using Hato.Modules.Breeding.Application.Services;
 using Hato.Modules.Breeding.Application.SemenStraws;
+using Hato.Modules.Breeding.Application.Weanings;
 using MediatR;
 
 namespace Hato.Api.Endpoints;
@@ -11,7 +12,7 @@ public static class BreedingEndpoints
 {
     public static void MapBreedingEndpoints(this IEndpointRouteBuilder app)
     {
-        var group = app.MapGroup("/api/v1/breeding").WithTags("Breeding");
+        var group = app.MapGroup("/api/v1/breeding").WithTags("Breeding").RequireAuthorization();
 
         group.MapPost("/semen-straws", async (CreateSemenStrawCommand command, ISender sender) =>
         {
@@ -47,6 +48,12 @@ public static class BreedingEndpoints
         {
             var birthing = await sender.Send(command);
             return Results.Created($"/api/v1/breeding/birthings/{birthing.Id}", birthing);
+        });
+
+        group.MapPost("/weanings", async (RecordWeaningCommand command, ISender sender) =>
+        {
+            var birthing = await sender.Send(command);
+            return Results.Ok(birthing);
         });
 
         group.MapGet("/pedigree/{animalId:guid}", async (Guid animalId, ISender sender) =>

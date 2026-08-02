@@ -61,7 +61,9 @@ public record BirthingDto(
     int Mummified,
     decimal? LitterWeight,
     string? Notes,
-    DateTimeOffset CreatedAt
+    DateTimeOffset CreatedAt,
+    DateOnly? WeanedAt = null,
+    int? WeanedCount = null
 );
 
 public record AncestorDto(

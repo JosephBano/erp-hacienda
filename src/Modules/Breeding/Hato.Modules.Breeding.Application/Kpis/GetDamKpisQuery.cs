@@ -11,7 +11,8 @@ public record DamKpisDto(
     int? DaysOpen,
     double ServicesPerConception,
     int TotalBirthings,
-    int TotalOffspringAlive
+    int TotalOffspringAlive,
+    double WeanedPerYear
 );
 
 public record GetDamKpisQuery(Guid DamId) : IRequest<DamKpisDto>;
@@ -69,13 +70,24 @@ public class GetDamKpisQueryHandler(IBreedingDbContext dbContext)
 
         int totalAlive = birthings.Sum(b => b.BornAlive);
 
+        double weanedPerYear = 0;
+        if (birthings.Count > 0)
+        {
+            var totalWeaned = birthings.Sum(b => b.WeanedCount ?? 0);
+            var yearsSpan = Math.Max(
+                1.0,
+                (DateOnly.FromDateTime(DateTime.UtcNow).DayNumber - birthings[0].BirthDate.DayNumber) / 365.25);
+            weanedPerYear = Math.Round(totalWeaned / yearsSpan, 2);
+        }
+
         return new DamKpisDto(
             request.DamId,
             avgCalvingInterval,
             daysOpen,
             Math.Round(servicesPerConception, 2),
             birthings.Count,
-            totalAlive
+            totalAlive,
+            weanedPerYear
         );
     }
 }

@@ -1,6 +1,9 @@
 using Hato.Modules.Livestock.Infrastructure.Persistence;
+using Hato.Modules.Production.Infrastructure.Persistence;
+using Hato.TestSupport;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.AspNetCore.TestHost;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -27,6 +30,8 @@ public class HatoApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
                 ["ConnectionStrings:HatoDb"] = _postgres.GetConnectionString(),
             });
         });
+
+        builder.ConfigureTestServices(services => services.AddTestAuthentication());
     }
 
     public async Task InitializeAsync()
@@ -39,6 +44,14 @@ public class HatoApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
 
         await using var context = new LivestockDbContext(options);
         await context.Database.MigrateAsync();
+
+        // GetAnimalByIdQuery reads milk yields through Production's public contract
+        // (Art. 6), so the animal detail screen needs that schema present too.
+        var productionOptions = new DbContextOptionsBuilder<ProductionDbContext>()
+            .UseNpgsql(_postgres.GetConnectionString(), n => n.MigrationsHistoryTable("__ef_migrations_history", ProductionDbContext.Schema))
+            .Options;
+        await using var productionContext = new ProductionDbContext(productionOptions);
+        await productionContext.Database.MigrateAsync();
     }
 
     async Task IAsyncLifetime.DisposeAsync()

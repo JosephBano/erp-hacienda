@@ -24,7 +24,11 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Modules\Tasks\Hato.Modules.Tasks.Infrastructure\Hato.Modules.Tasks.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Livestock\Hato.Modules.Livestock.Infrastructure\Hato.Modules.Livestock.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Breeding\Hato.Modules.Breeding.Infrastructure\Hato.Modules.Breeding.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Inventory\Hato.Modules.Inventory.Infrastructure\Hato.Modules.Inventory.Infrastructure.csproj" />
     <ProjectReference Include="..\..\src\Hato.Api\Hato.Api.csproj" />
+    <ProjectReference Include="..\Hato.TestSupport\Hato.TestSupport.csproj" />
   </ItemGroup>
 
 </Project>

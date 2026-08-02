@@ -1,5 +1,7 @@
 using FluentValidation;
 using Hato.Modules.Production.Application.Abstractions;
+using Hato.Modules.Production.Application.CrossModule;
+using Hato.Modules.Production.Contracts;
 using Hato.Modules.Production.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -23,6 +25,8 @@ public static class ProductionModule
         });
 
         services.AddScoped<IProductionDbContext>(sp => sp.GetRequiredService<ProductionDbContext>());
+
+        services.AddScoped<IMilkYieldsReader, MilkYieldsReader>();
 
         services.AddMediatR(cfg =>
             cfg.RegisterServicesFromAssembly(typeof(Application.Abstractions.IProductionDbContext).Assembly));

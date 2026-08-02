@@ -1,5 +1,7 @@
 using FluentValidation;
 using Hato.Modules.Inventory.Application.Abstractions;
+using Hato.Modules.Inventory.Application.CrossModule;
+using Hato.Modules.Inventory.Contracts;
 using Hato.Modules.Inventory.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -23,6 +25,8 @@ public static class InventoryModule
         });
 
         services.AddScoped<IInventoryDbContext>(sp => sp.GetRequiredService<InventoryDbContext>());
+
+        services.AddScoped<IExpiringBatchesReader, ExpiringBatchesReader>();
 
         services.AddMediatR(cfg =>
             cfg.RegisterServicesFromAssembly(typeof(Application.Abstractions.IInventoryDbContext).Assembly));

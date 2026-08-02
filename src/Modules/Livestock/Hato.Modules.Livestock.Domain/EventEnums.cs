@@ -1,5 +1,8 @@
+using System.Text.Json.Serialization;
+
 namespace Hato.Modules.Livestock.Domain;
 
+[JsonConverter(typeof(JsonStringEnumConverter))]
 public enum EventType
 {
     Weighing,
@@ -11,6 +14,7 @@ public enum EventType
     Correction
 }
 
+[JsonConverter(typeof(JsonStringEnumConverter))]
 public enum DisposalType
 {
     Sale,
@@ -19,6 +23,7 @@ public enum DisposalType
     Stolen
 }
 
+[JsonConverter(typeof(JsonStringEnumConverter))]
 public enum WithdrawalTarget
 {
     Milk,

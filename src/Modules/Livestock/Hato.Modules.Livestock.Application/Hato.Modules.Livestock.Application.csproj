@@ -3,6 +3,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Hato.Modules.Livestock.Domain\Hato.Modules.Livestock.Domain.csproj" />
     <ProjectReference Include="..\Hato.Modules.Livestock.Contracts\Hato.Modules.Livestock.Contracts.csproj" />
+    <ProjectReference Include="..\..\Production\Hato.Modules.Production.Contracts\Hato.Modules.Production.Contracts.csproj" />
   </ItemGroup>
 
   <ItemGroup>

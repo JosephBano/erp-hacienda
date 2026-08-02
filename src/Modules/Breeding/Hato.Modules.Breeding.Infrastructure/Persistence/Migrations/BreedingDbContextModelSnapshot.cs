@@ -94,6 +94,14 @@ namespace Hato.Modules.Breeding.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("updated_by");
 
+                    b.Property<DateOnly?>("WeanedAt")
+                        .HasColumnType("date")
+                        .HasColumnName("weaned_at");
+
+                    b.Property<int?>("WeanedCount")
+                        .HasColumnType("integer")
+                        .HasColumnName("weaned_count");
+
                     b.HasKey("Id")
                         .HasName("p_k_birthings");
 

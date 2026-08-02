@@ -1,10 +1,13 @@
 using Hato.Modules.Livestock.Infrastructure.Persistence;
 using Xunit;
 using Hato.Modules.Production.Infrastructure.Persistence;
+using Hato.TestSupport;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.AspNetCore.TestHost;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Testcontainers.PostgreSql;
 
 namespace Hato.Modules.Production.IntegrationTests;
@@ -24,6 +27,8 @@ public class ProductionApiFactory : WebApplicationFactory<Program>, IAsyncLifeti
                 ["ConnectionStrings:HatoDb"] = _postgres.GetConnectionString(),
             });
         });
+
+        builder.ConfigureTestServices(services => services.AddTestAuthentication());
     }
 
     public async Task InitializeAsync()

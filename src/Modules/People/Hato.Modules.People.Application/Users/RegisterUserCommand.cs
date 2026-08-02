@@ -30,7 +30,7 @@ public class RegisterUserHandler(IPeopleDbContext dbContext)
         if (existingEmail)
             throw new DomainException($"El correo '{request.Email}' ya se encuentra registrado.");
 
-        var passwordHash = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(request.Password));
+        var passwordHash = PasswordHasher.Hash(request.Password);
 
         var user = User.Create(request.FullName, request.Email, passwordHash, request.Role);
         dbContext.Users.Add(user);

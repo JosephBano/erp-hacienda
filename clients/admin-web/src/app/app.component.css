@@ -79,6 +79,17 @@
   padding-top: 1rem;
 }
 
+.logout-button {
+  width: 100%;
+  margin-top: 0.5rem;
+  padding: 0.5rem;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background: transparent;
+  cursor: pointer;
+  font-size: 0.8rem;
+}
+
 .user-badge {
   display: flex;
   align-items: center;

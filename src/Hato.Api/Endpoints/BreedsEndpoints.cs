@@ -7,7 +7,7 @@ public static class BreedsEndpoints
 {
     public static void MapBreedsEndpoints(this IEndpointRouteBuilder app)
     {
-        var group = app.MapGroup("/api/v1/breeds").WithTags("Breeds");
+        var group = app.MapGroup("/api/v1/breeds").WithTags("Breeds").RequireAuthorization();
 
         group.MapPost("/", async (CreateBreedCommand command, ISender sender) =>
         {

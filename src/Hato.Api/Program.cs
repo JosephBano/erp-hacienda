@@ -10,6 +10,8 @@ using Hato.Modules.Tasks.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
 
+const string AdminWebCorsPolicy = "AdminWebCors";
+
 builder.Services.AddProblemDetails();
 builder.Services.AddExceptionHandler<ApiExceptionHandler>();
 builder.Services.AddLivestockModule(builder.Configuration);
@@ -19,12 +21,30 @@ builder.Services.AddPeopleModule(builder.Configuration);
 builder.Services.AddBreedingModule(builder.Configuration);
 builder.Services.AddTasksModule(builder.Configuration);
 
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy(AdminWebCorsPolicy, policy =>
+    {
+        var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
+            ?? ["http://localhost:4200"];
+
+        policy.WithOrigins(allowedOrigins)
+            .AllowAnyHeader()
+            .AllowAnyMethod();
+    });
+});
+
 var app = builder.Build();
 
 app.UseExceptionHandler();
 app.UseStatusCodePages();
 
-app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
+app.UseCors(AdminWebCorsPolicy);
+
+app.UseAuthentication();
+app.UseAuthorization();
+
+app.MapGet("/health", () => Results.Ok(new { status = "ok" })).AllowAnonymous();
 
 app.MapSpeciesEndpoints();
 app.MapBreedsEndpoints();

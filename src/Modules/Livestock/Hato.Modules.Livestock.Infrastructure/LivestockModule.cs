@@ -1,5 +1,8 @@
 using FluentValidation;
 using Hato.Modules.Livestock.Application.Abstractions;
+using Hato.Modules.Livestock.Application.CrossModule;
+using Hato.Modules.Livestock.Contracts;
+using Hato.Modules.Livestock.Infrastructure.CrossModule;
 using Hato.Modules.Livestock.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -30,6 +33,11 @@ public static class LivestockModule
         });
 
         services.AddScoped<ILivestockDbContext>(sp => sp.GetRequiredService<LivestockDbContext>());
+
+        // Public contracts other modules depend on (Art. 6) instead of raw cross-schema SQL.
+        services.AddScoped<IWithdrawalPeriodsReader, WithdrawalPeriodsReader>();
+        services.AddScoped<IAnimalGenealogyReader, AnimalGenealogyReader>();
+        services.AddScoped<IAnimalRegistrationService, AnimalRegistrationService>();
 
         services.AddMediatR(cfg =>
         {

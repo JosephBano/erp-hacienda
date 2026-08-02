@@ -7,12 +7,18 @@ public static class AnimalsEndpoints
 {
     public static void MapAnimalsEndpoints(this IEndpointRouteBuilder app)
     {
-        var group = app.MapGroup("/api/v1/animals").WithTags("Animals");
+        var group = app.MapGroup("/api/v1/animals").WithTags("Animals").RequireAuthorization();
 
         group.MapPost("/", async (RegisterAnimalCommand command, ISender sender) =>
         {
             var id = await sender.Send(command);
             return Results.Created($"/api/v1/animals/{id}", new { id });
+        });
+
+        group.MapGet("/", async (ISender sender) =>
+        {
+            var animals = await sender.Send(new GetAnimalsQuery());
+            return Results.Ok(animals);
         });
 
         group.MapGet("/{id:guid}", async (Guid id, ISender sender) =>

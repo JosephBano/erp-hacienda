@@ -1,3 +1,4 @@
+using System.IdentityModel.Tokens.Jwt;
 using System.Security.Cryptography;
 using System.Text;
 using FluentValidation;
@@ -67,6 +68,11 @@ public static class PeopleModule
         services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             .AddJwtBearer(options =>
             {
+                // Without this, the default handler silently remaps short JWT claim
+                // names ("sub") to long legacy URIs, so FindFirst(sub) below would
+                // always miss and OnTokenValidated would reject every valid token.
+                options.MapInboundClaims = false;
+
                 options.TokenValidationParameters = new TokenValidationParameters
                 {
                     ValidateIssuer = true,
@@ -77,6 +83,33 @@ public static class PeopleModule
                     IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtOptions.SigningKey ?? string.Empty)),
                     ValidateLifetime = true,
                     ClockSkew = TimeSpan.FromMinutes(1),
+                };
+
+                // JWTs are stateless: without this, deactivating a user (or a future
+                // "change role") has no effect until their existing token expires
+                // (ExpiryMinutes). Re-checking IsActive per request closes that gap
+                // at the cost of one indexed lookup — acceptable at this app's scale.
+                options.Events = new JwtBearerEvents
+                {
+                    OnTokenValidated = async context =>
+                    {
+                        var userIdClaim = context.Principal?.FindFirst(JwtRegisteredClaimNames.Sub)?.Value;
+                        if (!Guid.TryParse(userIdClaim, out var userId))
+                        {
+                            context.Fail("Token inválido.");
+                            return;
+                        }
+
+                        var dbContext = context.HttpContext.RequestServices.GetRequiredService<IPeopleDbContext>();
+                        var isActive = await dbContext.Users
+                            .AsNoTracking()
+                            .Where(u => u.Id == userId)
+                            .Select(u => (bool?)u.IsActive)
+                            .FirstOrDefaultAsync();
+
+                        if (isActive != true)
+                            context.Fail("La cuenta fue desactivada.");
+                    }
                 };
             });
 

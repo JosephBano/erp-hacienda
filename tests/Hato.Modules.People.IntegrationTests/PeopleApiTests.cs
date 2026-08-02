@@ -126,6 +126,58 @@ public class PeopleApiTests(PeopleApiFactory factory) : IClassFixture<PeopleApiF
         Assert.Equal(HttpStatusCode.Unauthorized, loginResponse.StatusCode);
     }
 
+    [Fact]
+    public async Task DeactivateUser_RevokesAlreadyIssuedToken()
+    {
+        var authedClient = await CreateAuthenticatedAdminClientAsync();
+
+        var email = "sesion-activa@finca.ec";
+        var password = "CorrectPassword123!";
+        var registerResponse = await authedClient.PostAsJsonAsync("/api/v1/people/users", new
+        {
+            fullName = "Sesión Activa",
+            email,
+            password,
+            role = UserRole.Registrar
+        });
+        registerResponse.EnsureSuccessStatusCode();
+        var userId = (await registerResponse.Content.ReadFromJsonAsync<CreatedId>())!.Id;
+
+        var loginResponse = await _client.PostAsJsonAsync("/api/v1/people/auth/login", new { email, password });
+        loginResponse.EnsureSuccessStatusCode();
+        var login = await loginResponse.Content.ReadFromJsonAsync<LoginResultDto>();
+
+        using var sessionClient = factory.CreateClient();
+        sessionClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", login!.Token);
+
+        // The token is still valid (not expired) and works before deactivation.
+        var beforeResponse = await sessionClient.GetAsync("/api/v1/inventory/items");
+        Assert.NotEqual(HttpStatusCode.Unauthorized, beforeResponse.StatusCode);
+
+        var deactivateResponse = await authedClient.PostAsync($"/api/v1/people/users/{userId}/deactivate", null);
+        Assert.Equal(HttpStatusCode.NoContent, deactivateResponse.StatusCode);
+
+        // Same still-unexpired token, but the account is now inactive: JWTs are
+        // stateless, so this only works if every request re-checks IsActive.
+        var afterResponse = await sessionClient.GetAsync("/api/v1/inventory/items");
+        Assert.Equal(HttpStatusCode.Unauthorized, afterResponse.StatusCode);
+    }
+
+    [Fact]
+    public async Task DeactivateUser_LastActiveAdmin_IsRejected()
+    {
+        var authedClient = await CreateAuthenticatedAdminClientAsync();
+
+        var meResponse = await authedClient.GetAsync("/api/v1/people/users");
+        meResponse.EnsureSuccessStatusCode();
+        var users = await meResponse.Content.ReadFromJsonAsync<List<UserDto>>();
+        var admin = users!.Single(u => u.Email == AdminEmail);
+
+        var response = await authedClient.PostAsync($"/api/v1/people/users/{admin.Id}/deactivate", null);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
     /// <summary>
     /// Idempotent across the whole test class (shared Postgres via IClassFixture):
     /// the first caller to run this creates the bootstrap Admin, everyone after just

@@ -9,6 +9,13 @@ namespace Hato.Api.Endpoints;
 
 public static class PeopleEndpoints
 {
+    // Guards the bootstrap check-then-create below. Without it, two concurrent
+    // anonymous requests can both observe "no users yet" and both slip through as
+    // self-elevated Admins before either INSERT commits — a classic TOCTOU race.
+    // Process-local is sufficient: this API runs as a single instance (Art. 1
+    // ARCHITECTURE.md — "un deploy"), not horizontally scaled.
+    private static readonly SemaphoreSlim BootstrapLock = new(1, 1);
+
     public static void MapPeopleEndpoints(this IEndpointRouteBuilder app)
     {
         var group = app.MapGroup("/api/v1/people").WithTags("People").RequireAuthorization();
@@ -19,12 +26,20 @@ public static class PeopleEndpoints
         // the Admin role, then self-elevate whenever they choose.
         group.MapPost("/users", async (RegisterUserCommand command, ISender sender, IPeopleDbContext db, HttpContext http, CancellationToken ct) =>
         {
-            var hasAnyUser = await db.Users.AnyAsync(ct);
-            if (hasAnyUser && !http.User.IsInRole(nameof(UserRole.Admin)))
-                return Results.Forbid();
+            await BootstrapLock.WaitAsync(ct);
+            try
+            {
+                var hasAnyUser = await db.Users.AnyAsync(ct);
+                if (hasAnyUser && !http.User.IsInRole(nameof(UserRole.Admin)))
+                    return Results.Forbid();
 
-            var id = await sender.Send(command, ct);
-            return Results.Created($"/api/v1/people/users/{id}", new { id });
+                var id = await sender.Send(command, ct);
+                return Results.Created($"/api/v1/people/users/{id}", new { id });
+            }
+            finally
+            {
+                BootstrapLock.Release();
+            }
         }).AllowAnonymous();
 
         group.MapGet("/users", async (ISender sender) =>

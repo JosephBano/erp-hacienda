@@ -16,13 +16,28 @@ public class JwtTokenGenerator(IOptions<JwtOptions> options) : IJwtTokenGenerato
     {
         var expiresAt = DateTimeOffset.UtcNow.AddMinutes(_options.ExpiryMinutes);
 
-        var claims = new[]
+        var claims = new List<Claim>
         {
-            new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
-            new Claim(JwtRegisteredClaimNames.Email, user.Email),
-            new Claim(ClaimTypes.Name, user.FullName),
-            new Claim(ClaimTypes.Role, user.Role.ToString()),
+            new(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
+            new(JwtRegisteredClaimNames.Email, user.Email),
+            new(ClaimTypes.Name, user.FullName)
         };
+
+        foreach (var userRole in user.UserRoles)
+        {
+            if (userRole.Role != null)
+            {
+                claims.Add(new Claim(ClaimTypes.Role, userRole.Role.Code));
+
+                foreach (var rolePermission in userRole.Role.RolePermissions)
+                {
+                    if (rolePermission.Permission != null)
+                    {
+                        claims.Add(new Claim("permission", rolePermission.Permission.Code));
+                    }
+                }
+            }
+        }
 
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_options.SigningKey));
         var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);

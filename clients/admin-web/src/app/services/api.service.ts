@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 
 export interface Animal {
@@ -171,6 +171,26 @@ export interface UserDto {
   isActive: boolean;
 }
 
+export interface AuditLogDto {
+  id: string;
+  userId?: string;
+  userEmail?: string;
+  userFullName?: string;
+  action: string;
+  module: string;
+  entityName: string;
+  entityId: string;
+  detailsJson?: string;
+  timestamp: string;
+}
+
+export interface PagedAuditLogsDto {
+  items: AuditLogDto[];
+  totalCount: number;
+  page: number;
+  pageSize: number;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -237,6 +257,17 @@ export class ApiService {
 
   assignUserRole(userId: string, roleId: string): Observable<void> {
     return this.http.post<void>(`${this.baseUrl}/people/users/${userId}/roles/${roleId}`, {});
+  }
+
+  getAuditLogs(params?: { userId?: string; from?: string; to?: string; page?: number; pageSize?: number }): Observable<PagedAuditLogsDto> {
+    let httpParams = new HttpParams();
+    if (params?.userId) httpParams = httpParams.set('userId', params.userId);
+    if (params?.from) httpParams = httpParams.set('from', params.from);
+    if (params?.to) httpParams = httpParams.set('to', params.to);
+    if (params?.page) httpParams = httpParams.set('page', params.page);
+    if (params?.pageSize) httpParams = httpParams.set('pageSize', params.pageSize);
+
+    return this.http.get<PagedAuditLogsDto>(`${this.baseUrl}/audit`, { params: httpParams });
   }
 
   // --- Breeding API ---

@@ -12,12 +12,16 @@ public class AnimalEventConfiguration : IEntityTypeConfiguration<AnimalEvent>
         builder.HasKey(e => e.Id);
 
         builder.Property(e => e.EventType).HasConversion<string>().HasMaxLength(30).IsRequired();
-        builder.Property(e => e.RecordedBy).HasMaxLength(100).IsRequired();
+        builder.Property(e => e.RecordedByLabel).HasMaxLength(100).IsRequired();
+        builder.Property(e => e.RecordedById).IsRequired(false);
+        builder.Ignore(e => e.RecordedBy);
+
         builder.Property(e => e.PayloadJson).HasColumnType("jsonb").IsRequired();
 
         builder.HasOne<Animal>().WithMany().HasForeignKey(e => e.AnimalId).OnDelete(DeleteBehavior.Restrict);
 
         builder.HasIndex(e => new { e.AnimalId, e.OccurredAt });
+        builder.HasIndex(e => e.RecordedById);
     }
 }
 

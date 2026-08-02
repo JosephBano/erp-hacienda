@@ -12,13 +12,16 @@ public class MilkingSessionConfiguration : IEntityTypeConfiguration<MilkingSessi
         builder.HasKey(s => s.Id);
 
         builder.Property(s => s.Shift).HasConversion<string>().HasMaxLength(20).IsRequired();
-        builder.Property(s => s.RecordedBy).HasMaxLength(100).IsRequired();
+        builder.Property(s => s.RecordedByLabel).HasMaxLength(100).IsRequired();
+        builder.Property(s => s.RecordedById).IsRequired(false);
+        builder.Ignore(s => s.RecordedBy);
         builder.Property(s => s.Notes).HasMaxLength(500);
 
         builder.Metadata.FindNavigation(nameof(MilkingSession.Yields))!
             .SetPropertyAccessMode(PropertyAccessMode.Field);
 
         builder.HasIndex(s => new { s.Date, s.Shift });
+        builder.HasIndex(s => s.RecordedById);
     }
 }
 

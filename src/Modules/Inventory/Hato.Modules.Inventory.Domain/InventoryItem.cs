@@ -30,6 +30,7 @@ public class InventoryItem : AuditableEntity
         Unit = unit;
         MinStock = minStock;
         Description = description;
+        CreatedAt = DateTimeOffset.UtcNow;
     }
 
     public static InventoryItem Create(
@@ -87,6 +88,7 @@ public class InventoryBatch : AuditableEntity
         Quantity = quantity;
         CostPerUnit = costPerUnit;
         ExpirationDate = expirationDate;
+        CreatedAt = DateTimeOffset.UtcNow;
     }
 
     public void DeductQuantity(decimal amount)

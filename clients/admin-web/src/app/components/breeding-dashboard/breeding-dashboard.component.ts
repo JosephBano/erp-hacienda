@@ -39,12 +39,13 @@ export class BreedingDashboardComponent implements OnInit {
   };
 
   // Pregnancy check form
+  // gestationDays is intentionally not part of this form: the API resolves it from the
+  // dam's Species.GestationDays (Art. 8) instead of the client guessing a number.
   checkForm = {
     serviceId: '',
     checkDate: new Date().toISOString().substring(0, 10),
     method: 'Palpation', // 'Palpation' | 'Ultrasound' | 'NonReturn'
     result: 'Positive', // 'Positive' | 'Negative' | 'Doubtful'
-    gestationDays: 283,
     checkedBy: '',
     notes: ''
   };

@@ -41,6 +41,7 @@ public class MilkingSession : AuditableEntity
         TotalLiters = totalLiters;
         RecordedBy = recordedBy;
         Notes = notes;
+        CreatedAt = DateTimeOffset.UtcNow;
     }
 
     public static MilkingSession Create(
@@ -89,5 +90,6 @@ public class MilkYield : AuditableEntity
         MilkingSessionId = milkingSessionId;
         AnimalId = animalId;
         Liters = liters;
+        CreatedAt = DateTimeOffset.UtcNow;
     }
 }

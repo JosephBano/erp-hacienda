@@ -3,6 +3,7 @@ using Hato.Modules.Breeding.Application.Abstractions;
 using Hato.Modules.Breeding.Contracts;
 using Hato.Modules.Breeding.Domain;
 using Hato.Modules.Breeding.Domain.Enums;
+using Hato.SharedKernel;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
@@ -55,7 +56,16 @@ public class RegisterBreedingServiceCommandHandler(IBreedingDbContext dbContext)
         );
 
         dbContext.BreedingServices.Add(service);
-        await dbContext.SaveChangesAsync(cancellationToken);
+
+        try
+        {
+            await dbContext.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateConcurrencyException) when (request.StrawId.HasValue)
+        {
+            throw new DomainException(
+                $"La pajuela '{request.StrawId.Value}' fue modificada por otra operación simultánea. Intente de nuevo.");
+        }
 
         return new BreedingServiceDto(
             service.Id,

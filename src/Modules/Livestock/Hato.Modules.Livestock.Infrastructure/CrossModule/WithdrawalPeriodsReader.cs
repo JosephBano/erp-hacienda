@@ -30,6 +30,24 @@ public class WithdrawalPeriodsReader(LivestockDbContext dbContext) : IWithdrawal
                 && domainTargets.Contains(w.Target), cancellationToken);
     }
 
+    public async Task<IReadOnlyList<Guid>> GetWithdrawnAnimalIdsInGroupAsync(Guid groupId, DateOnly date, WithdrawalTargetKind target, CancellationToken cancellationToken)
+    {
+        var domainTargets = ToDomainTargets(target);
+
+        var memberIds = dbContext.GroupMemberships
+            .AsNoTracking()
+            .Where(m => m.GroupId == groupId && m.JoinedAt <= date && (m.LeftAt == null || m.LeftAt >= date))
+            .Select(m => m.AnimalId);
+
+        return await dbContext.WithdrawalPeriods
+            .AsNoTracking()
+            .Where(w => w.StartsAt <= date && w.EndsAt >= date && domainTargets.Contains(w.Target))
+            .Where(w => memberIds.Contains(w.AnimalId))
+            .Select(w => w.AnimalId)
+            .Distinct()
+            .ToListAsync(cancellationToken);
+    }
+
     private static WithdrawalTargetKind ToContract(WithdrawalTarget target) => target switch
     {
         WithdrawalTarget.Milk => WithdrawalTargetKind.Milk,

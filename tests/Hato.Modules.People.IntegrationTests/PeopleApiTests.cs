@@ -207,5 +207,55 @@ public class PeopleApiTests(PeopleApiFactory factory) : IClassFixture<PeopleApiF
         return authedClient;
     }
 
+    [Fact]
+    public async Task CreateSpecies_AsRegistrar_IsForbidden()
+    {
+        var registrarClient = await CreateAuthenticatedRegistrarClientAsync();
+
+        var response = await registrarClient.PostAsJsonAsync("/api/v1/species", new { name = "Porcino", gestationDays = 114 });
+
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task CreateSpecies_AsAdmin_Succeeds()
+    {
+        var authedClient = await CreateAuthenticatedAdminClientAsync();
+
+        var response = await authedClient.PostAsJsonAsync("/api/v1/species", new { name = $"Bovino-{Guid.NewGuid()}", gestationDays = 283 });
+
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+    }
+
+    /// <summary>
+    /// Idempotent across the whole test class, same pattern as
+    /// <see cref="CreateAuthenticatedAdminClientAsync"/>: creates the Registrar once,
+    /// then just logs in on later calls.
+    /// </summary>
+    private async Task<HttpClient> CreateAuthenticatedRegistrarClientAsync()
+    {
+        var authedAdminClient = await CreateAuthenticatedAdminClientAsync();
+
+        const string email = "registrador-rbac@finca.ec";
+        const string password = "CorrectPassword123!";
+
+        await authedAdminClient.PostAsJsonAsync("/api/v1/people/users", new
+        {
+            fullName = "Registrador RBAC",
+            email,
+            password,
+            role = UserRole.Registrar
+        });
+
+        var loginResponse = await _client.PostAsJsonAsync("/api/v1/people/auth/login", new { email, password });
+        loginResponse.EnsureSuccessStatusCode();
+        var login = await loginResponse.Content.ReadFromJsonAsync<LoginResultDto>();
+        Assert.NotNull(login);
+
+        var registrarClient = factory.CreateClient();
+        registrarClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", login!.Token);
+        return registrarClient;
+    }
+
     private sealed record CreatedId(Guid Id);
 }

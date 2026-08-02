@@ -17,7 +17,7 @@ builder.Services.AddExceptionHandler<ApiExceptionHandler>();
 builder.Services.AddLivestockModule(builder.Configuration);
 builder.Services.AddProductionModule(builder.Configuration);
 builder.Services.AddInventoryModule(builder.Configuration);
-builder.Services.AddPeopleModule(builder.Configuration);
+builder.Services.AddPeopleModule(builder.Configuration, builder.Environment);
 builder.Services.AddBreedingModule(builder.Configuration);
 builder.Services.AddTasksModule(builder.Configuration);
 

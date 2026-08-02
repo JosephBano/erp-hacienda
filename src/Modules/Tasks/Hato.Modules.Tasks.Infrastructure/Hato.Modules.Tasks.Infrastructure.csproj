@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <!-- Only Application (which pulls in the other modules' *.Contracts) is needed:
+         Tasks never depends on another module's Domain/Infrastructure (Art. 6). The
+         actual reader implementations are wired into the shared container by each
+         module's own Add*Module() call from Hato.Api. -->
+    <ProjectReference Include="..\Hato.Modules.Tasks.Application\Hato.Modules.Tasks.Application.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" Version="8.0.0" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="8.0.11" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+</Project>

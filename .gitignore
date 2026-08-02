@@ -10,11 +10,16 @@ Thumbs.db
 bin/
 obj/
 *.user
+TestResults/
+.vs/
+.idea/
 
 # Node (clients, fase 3+)
 node_modules/
 dist/
+.angular/
 
 # Entorno local
 .env
 .env.local
+.claude/settings.local.json*

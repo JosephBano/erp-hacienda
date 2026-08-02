@@ -1,0 +1,79 @@
+using Hato.SharedKernel;
+
+namespace Hato.Modules.Livestock.Domain;
+
+/// <summary>
+/// A generic animal of any species (Art. 8 + ADR-0006): there is no `Cow`/`Pig` table,
+/// only `Animal` with a sovereign internal UUID (Art. 3) that exists whether or not the
+/// animal has a tag or an official registration.
+///
+/// Genealogy (mother/father, dual father as animal-or-straw) is deliberately out of
+/// scope here — it belongs to Breeding, Phase 2 of the roadmap — even though the data
+/// model draws those foreign keys next to identity. Adding them is a non-breaking
+/// migration when that phase opens.
+/// </summary>
+public class Animal : AuditableEntity
+{
+    private readonly List<AnimalIdentifier> _identifiers = [];
+
+    public Guid SpeciesId { get; private set; }
+    public Guid? BreedId { get; private set; }
+    public Guid? CategoryId { get; private set; }
+    public Sex Sex { get; private set; }
+    public DateOnly? BirthDate { get; private set; }
+
+    public Guid? MotherId { get; private set; }
+    public Guid? FatherAnimalId { get; private set; }
+    public Guid? FatherStrawId { get; private set; }
+    public Guid? BirthingId { get; private set; }
+
+    public IReadOnlyCollection<AnimalIdentifier> Identifiers => _identifiers.AsReadOnly();
+
+    private Animal(Guid speciesId, Sex sex, DateOnly? birthDate, Guid? breedId, Guid? categoryId)
+    {
+        SpeciesId = speciesId;
+        Sex = sex;
+        BirthDate = birthDate;
+        BreedId = breedId;
+        CategoryId = categoryId;
+    }
+
+    public static Animal Register(
+        Guid speciesId, Sex sex, DateOnly? birthDate = null, Guid? breedId = null, Guid? categoryId = null)
+    {
+        if (speciesId == Guid.Empty)
+            throw new DomainException("Un animal debe pertenecer a una especie.");
+
+        return new Animal(speciesId, sex, birthDate, breedId, categoryId);
+    }
+
+    /// <summary>
+    /// Attaches a new external identifier. If one of the same type is already active,
+    /// it is closed as of <paramref name="validFrom"/> first — this is how a replaced
+    /// tag or a late SIFAE registration is modeled, without ever editing history.
+    /// </summary>
+    public AnimalIdentifier AssignIdentifier(IdentifierType type, string value, DateOnly validFrom)
+    {
+        var current = _identifiers.SingleOrDefault(i => i.Type == type && i.IsActive);
+        current?.Close(validFrom);
+
+        var identifier = new AnimalIdentifier(Id, type, value, validFrom);
+        _identifiers.Add(identifier);
+        return identifier;
+    }
+
+    public void SetGenealogy(Guid? motherId, Guid? fatherAnimalId, Guid? fatherStrawId, Guid? birthingId = null)
+    {
+        if (motherId.HasValue && motherId.Value == Id)
+            throw new DomainException("Un animal no puede ser su propia madre.");
+        if (fatherAnimalId.HasValue && fatherAnimalId.Value == Id)
+            throw new DomainException("Un animal no puede ser su propio padre.");
+        if (fatherAnimalId.HasValue && fatherStrawId.HasValue)
+            throw new DomainException("El padre no puede ser un animal y una pajuela simultáneamente.");
+
+        MotherId = motherId;
+        FatherAnimalId = fatherAnimalId;
+        FatherStrawId = fatherStrawId;
+        BirthingId = birthingId;
+    }
+}

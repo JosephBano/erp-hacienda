@@ -1,0 +1,21 @@
+<div class="login-page">
+  <form class="login-card" (ngSubmit)="submit()">
+    <div class="login-brand">
+      <span class="brand-logo">🐄</span>
+      <h1>HATO ERP</h1>
+      <p>Gestión ganadera integral</p>
+    </div>
+
+    <label for="email">Correo electrónico</label>
+    <input id="email" name="email" type="email" [(ngModel)]="email" required autocomplete="username" />
+
+    <label for="password">Contraseña</label>
+    <input id="password" name="password" type="password" [(ngModel)]="password" required autocomplete="current-password" />
+
+    <p class="error-message" *ngIf="errorMessage">{{ errorMessage }}</p>
+
+    <button type="submit" [disabled]="isSubmitting">
+      {{ isSubmitting ? 'Ingresando…' : 'Ingresar' }}
+    </button>
+  </form>
+</div>

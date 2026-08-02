@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using Hato.Modules.People.Application.Auth;
+using Hato.Modules.People.Application.Roles;
 using Hato.Modules.People.Application.Users;
 using Hato.Modules.People.Domain;
 using Xunit;
@@ -25,7 +26,7 @@ public class PeopleApiTests(PeopleApiFactory factory) : IClassFixture<PeopleApiF
             fullName = "Mayordomo Carlos",
             email = "carlos@finca.ec",
             password = "AnotherSecurePassword123!",
-            role = UserRole.Registrar
+            role = "registrar"
         });
         registerResponse.EnsureSuccessStatusCode();
         var userId = (await registerResponse.Content.ReadFromJsonAsync<CreatedId>())!.Id;
@@ -39,8 +40,46 @@ public class PeopleApiTests(PeopleApiFactory factory) : IClassFixture<PeopleApiF
         var user = users!.First(u => u.Id == userId);
         Assert.Equal("Mayordomo Carlos", user.FullName);
         Assert.Equal("carlos@finca.ec", user.Email);
-        Assert.Equal(UserRole.Registrar, user.Role);
+        Assert.Contains("registrar", user.Roles);
         Assert.True(user.IsActive);
+    }
+
+    [Fact]
+    public async Task GetRolesAndPermissions_ReturnsSeededData()
+    {
+        var authedClient = await CreateAuthenticatedAdminClientAsync();
+
+        var permissionsResponse = await authedClient.GetAsync("/api/v1/people/permissions");
+        permissionsResponse.EnsureSuccessStatusCode();
+        var permissions = await permissionsResponse.Content.ReadFromJsonAsync<List<PermissionDto>>();
+
+        Assert.NotNull(permissions);
+        Assert.Contains(permissions!, p => p.Code == SystemPermissions.PeopleUsersManage);
+        Assert.Contains(permissions!, p => p.Code == SystemPermissions.ProductionMilkingRecord);
+
+        var rolesResponse = await authedClient.GetAsync("/api/v1/people/roles");
+        rolesResponse.EnsureSuccessStatusCode();
+        var roles = await rolesResponse.Content.ReadFromJsonAsync<List<RoleDto>>();
+
+        Assert.NotNull(roles);
+        Assert.Contains(roles!, r => r.Code == SystemRoles.Admin);
+        Assert.Contains(roles!, r => r.Code == SystemRoles.Registrar);
+    }
+
+    [Fact]
+    public async Task CreateCustomRole_Succeeds()
+    {
+        var authedClient = await CreateAuthenticatedAdminClientAsync();
+
+        var roleCode = $"custom-role-{Guid.NewGuid():N}";
+        var response = await authedClient.PostAsJsonAsync("/api/v1/people/roles", new
+        {
+            code = roleCode,
+            name = "Rol Personalizado",
+            description = "Descripción del rol personalizado"
+        });
+
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
     }
 
     [Fact]
@@ -54,7 +93,7 @@ public class PeopleApiTests(PeopleApiFactory factory) : IClassFixture<PeopleApiF
             fullName = "Veterinario Ana",
             email,
             password = "CorrectPassword123!",
-            role = UserRole.Veterinarian
+            role = "veterinarian"
         });
 
         var loginResponse = await _client.PostAsJsonAsync("/api/v1/people/auth/login", new
@@ -85,18 +124,15 @@ public class PeopleApiTests(PeopleApiFactory factory) : IClassFixture<PeopleApiF
             fullName = "Veterinario Sin Privilegios",
             email = vetEmail,
             password = "CorrectPassword123!",
-            role = UserRole.Veterinarian
+            role = "veterinarian"
         });
 
-        // A second, unauthenticated caller must not be able to self-register once the
-        // farm already has at least one account — the bootstrap window is exactly one
-        // account wide, not "until someone happens to pick Admin".
         var anonymousAttempt = await _client.PostAsJsonAsync("/api/v1/people/users", new
         {
             fullName = "Intruso",
             email = "intruso@finca.ec",
             password = "WhateverPassword123!",
-            role = UserRole.Admin
+            role = "admin"
         });
 
         Assert.Equal(HttpStatusCode.Forbidden, anonymousAttempt.StatusCode);
@@ -114,7 +150,7 @@ public class PeopleApiTests(PeopleApiFactory factory) : IClassFixture<PeopleApiF
             fullName = "Empleado Saliente",
             email,
             password,
-            role = UserRole.Registrar
+            role = "registrar"
         });
         registerResponse.EnsureSuccessStatusCode();
         var userId = (await registerResponse.Content.ReadFromJsonAsync<CreatedId>())!.Id;
@@ -138,7 +174,7 @@ public class PeopleApiTests(PeopleApiFactory factory) : IClassFixture<PeopleApiF
             fullName = "Sesión Activa",
             email,
             password,
-            role = UserRole.Registrar
+            role = "registrar"
         });
         registerResponse.EnsureSuccessStatusCode();
         var userId = (await registerResponse.Content.ReadFromJsonAsync<CreatedId>())!.Id;
@@ -150,15 +186,12 @@ public class PeopleApiTests(PeopleApiFactory factory) : IClassFixture<PeopleApiF
         using var sessionClient = factory.CreateClient();
         sessionClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", login!.Token);
 
-        // The token is still valid (not expired) and works before deactivation.
         var beforeResponse = await sessionClient.GetAsync("/api/v1/inventory/items");
         Assert.NotEqual(HttpStatusCode.Unauthorized, beforeResponse.StatusCode);
 
         var deactivateResponse = await authedClient.PostAsync($"/api/v1/people/users/{userId}/deactivate", null);
         Assert.Equal(HttpStatusCode.NoContent, deactivateResponse.StatusCode);
 
-        // Same still-unexpired token, but the account is now inactive: JWTs are
-        // stateless, so this only works if every request re-checks IsActive.
         var afterResponse = await sessionClient.GetAsync("/api/v1/inventory/items");
         Assert.Equal(HttpStatusCode.Unauthorized, afterResponse.StatusCode);
     }
@@ -178,11 +211,6 @@ public class PeopleApiTests(PeopleApiFactory factory) : IClassFixture<PeopleApiF
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
 
-    /// <summary>
-    /// Idempotent across the whole test class (shared Postgres via IClassFixture):
-    /// the first caller to run this creates the bootstrap Admin, everyone after just
-    /// logs in with the same fixed credentials.
-    /// </summary>
     private async Task<HttpClient> CreateAuthenticatedAdminClientAsync()
     {
         await _client.PostAsJsonAsync("/api/v1/people/users", new
@@ -190,7 +218,7 @@ public class PeopleApiTests(PeopleApiFactory factory) : IClassFixture<PeopleApiF
             fullName = "Administrador Finca",
             email = AdminEmail,
             password = AdminPassword,
-            role = UserRole.Admin
+            role = "admin"
         });
 
         var loginResponse = await _client.PostAsJsonAsync("/api/v1/people/auth/login", new
@@ -227,11 +255,6 @@ public class PeopleApiTests(PeopleApiFactory factory) : IClassFixture<PeopleApiF
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
     }
 
-    /// <summary>
-    /// Idempotent across the whole test class, same pattern as
-    /// <see cref="CreateAuthenticatedAdminClientAsync"/>: creates the Registrar once,
-    /// then just logs in on later calls.
-    /// </summary>
     private async Task<HttpClient> CreateAuthenticatedRegistrarClientAsync()
     {
         var authedAdminClient = await CreateAuthenticatedAdminClientAsync();
@@ -244,7 +267,7 @@ public class PeopleApiTests(PeopleApiFactory factory) : IClassFixture<PeopleApiF
             fullName = "Registrador RBAC",
             email,
             password,
-            role = UserRole.Registrar
+            role = "registrar"
         });
 
         var loginResponse = await _client.PostAsJsonAsync("/api/v1/people/auth/login", new { email, password });

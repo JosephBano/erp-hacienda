@@ -146,6 +146,31 @@ export interface AlertDto {
   createdAt: string;
 }
 
+export interface PermissionDto {
+  id: string;
+  code: string;
+  name: string;
+  module: string;
+  description: string;
+}
+
+export interface RoleDto {
+  id: string;
+  code: string;
+  name: string;
+  description: string;
+  isSystem: boolean;
+  permissions: PermissionDto[];
+}
+
+export interface UserDto {
+  id: string;
+  fullName: string;
+  email: string;
+  roles: string[];
+  isActive: boolean;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -187,6 +212,31 @@ export class ApiService {
       totalLiters,
       individualYields
     });
+  }
+
+  // --- People, Roles & Permissions API ---
+  getUsers(): Observable<UserDto[]> {
+    return this.http.get<UserDto[]>(`${this.baseUrl}/people/users`);
+  }
+
+  getRoles(): Observable<RoleDto[]> {
+    return this.http.get<RoleDto[]>(`${this.baseUrl}/people/roles`);
+  }
+
+  getPermissions(): Observable<PermissionDto[]> {
+    return this.http.get<PermissionDto[]>(`${this.baseUrl}/people/permissions`);
+  }
+
+  createRole(data: { code: string; name: string; description: string; permissionIds?: string[] }): Observable<{ id: string }> {
+    return this.http.post<{ id: string }>(`${this.baseUrl}/people/roles`, data);
+  }
+
+  updateRole(roleId: string, data: { roleId: string; name: string; description: string; permissionIds?: string[] }): Observable<void> {
+    return this.http.put<void>(`${this.baseUrl}/people/roles/${roleId}`, data);
+  }
+
+  assignUserRole(userId: string, roleId: string): Observable<void> {
+    return this.http.post<void>(`${this.baseUrl}/people/users/${userId}/roles/${roleId}`, {});
   }
 
   // --- Breeding API ---

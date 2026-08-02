@@ -2,15 +2,10 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using Hato.Modules.People.Application.Auth;
-using Hato.Modules.People.Domain;
 using Xunit;
 
 namespace Hato.Modules.People.IntegrationTests;
 
-/// <summary>
-/// Isolated in its own test class (fresh database via IClassFixture) so exactly two
-/// Admins exist and nothing else races for the same lock.
-/// </summary>
 public class AdminDeactivationRaceApiTests(PeopleApiFactory factory) : IClassFixture<PeopleApiFactory>
 {
     [Fact]
@@ -22,7 +17,7 @@ public class AdminDeactivationRaceApiTests(PeopleApiFactory factory) : IClassFix
             fullName = "Admin Uno",
             email = "admin-uno@finca.ec",
             password = "SecurePassword123!",
-            role = UserRole.Admin
+            role = "admin"
         });
         var adminOneClient = await LoginAsync(bootstrapClient, "admin-uno@finca.ec", "SecurePassword123!");
 
@@ -31,7 +26,7 @@ public class AdminDeactivationRaceApiTests(PeopleApiFactory factory) : IClassFix
             fullName = "Admin Dos",
             email = "admin-dos@finca.ec",
             password = "SecurePassword123!",
-            role = UserRole.Admin
+            role = "admin"
         });
         registerTwoResponse.EnsureSuccessStatusCode();
         var adminTwoId = (await registerTwoResponse.Content.ReadFromJsonAsync<CreatedId>())!.Id;
@@ -41,7 +36,6 @@ public class AdminDeactivationRaceApiTests(PeopleApiFactory factory) : IClassFix
         var users = await usersResponse.Content.ReadFromJsonAsync<List<UserRecord>>();
         var adminOneId = users!.Single(u => u.Email == "admin-uno@finca.ec").Id;
 
-        // Each Admin races to deactivate the other at the same time.
         var deactivateTwo = adminOneClient.PostAsync($"/api/v1/people/users/{adminTwoId}/deactivate", null);
         var deactivateOne = adminTwoClient.PostAsync($"/api/v1/people/users/{adminOneId}/deactivate", null);
 

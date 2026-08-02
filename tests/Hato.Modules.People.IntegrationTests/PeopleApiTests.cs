@@ -10,35 +10,15 @@ namespace Hato.Modules.People.IntegrationTests;
 
 public class PeopleApiTests(PeopleApiFactory factory) : IClassFixture<PeopleApiFactory>
 {
+    private const string AdminEmail = "admin@finca.ec";
+    private const string AdminPassword = "SecurePassword123!";
+
     private readonly HttpClient _client = factory.CreateClient();
 
     [Fact]
     public async Task RegisterUser_AndGetUsers_RoundTripsThroughPostgres()
     {
-        // The very first user bootstraps as Admin with no token required.
-        var adminEmail = "admin@finca.ec";
-        var adminPassword = "SecurePassword123!";
-        var registerAdminResponse = await _client.PostAsJsonAsync("/api/v1/people/users", new
-        {
-            fullName = "Administrador Finca",
-            email = adminEmail,
-            password = adminPassword,
-            role = UserRole.Admin
-        });
-        registerAdminResponse.EnsureSuccessStatusCode();
-
-        var loginResponse = await _client.PostAsJsonAsync("/api/v1/people/auth/login", new
-        {
-            email = adminEmail,
-            password = adminPassword
-        });
-        loginResponse.EnsureSuccessStatusCode();
-        var login = await loginResponse.Content.ReadFromJsonAsync<LoginResultDto>();
-        Assert.NotNull(login);
-        Assert.Equal(UserRole.Admin, login!.Role);
-
-        using var authedClient = factory.CreateClient();
-        authedClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", login.Token);
+        var authedClient = await CreateAuthenticatedAdminClientAsync();
 
         var registerResponse = await authedClient.PostAsJsonAsync("/api/v1/people/users", new
         {
@@ -66,8 +46,10 @@ public class PeopleApiTests(PeopleApiFactory factory) : IClassFixture<PeopleApiF
     [Fact]
     public async Task Login_WithWrongPassword_ReturnsUnauthorized()
     {
+        var authedClient = await CreateAuthenticatedAdminClientAsync();
+
         var email = "vet@finca.ec";
-        await _client.PostAsJsonAsync("/api/v1/people/users", new
+        await authedClient.PostAsJsonAsync("/api/v1/people/users", new
         {
             fullName = "Veterinario Ana",
             email,
@@ -90,6 +72,87 @@ public class PeopleApiTests(PeopleApiFactory factory) : IClassFixture<PeopleApiF
         var response = await _client.GetAsync("/api/v1/people/users");
 
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task RegisterUser_AsNonAdminAfterBootstrap_IsForbidden()
+    {
+        var authedClient = await CreateAuthenticatedAdminClientAsync();
+
+        var vetEmail = "vet-no-escalation@finca.ec";
+        await authedClient.PostAsJsonAsync("/api/v1/people/users", new
+        {
+            fullName = "Veterinario Sin Privilegios",
+            email = vetEmail,
+            password = "CorrectPassword123!",
+            role = UserRole.Veterinarian
+        });
+
+        // A second, unauthenticated caller must not be able to self-register once the
+        // farm already has at least one account — the bootstrap window is exactly one
+        // account wide, not "until someone happens to pick Admin".
+        var anonymousAttempt = await _client.PostAsJsonAsync("/api/v1/people/users", new
+        {
+            fullName = "Intruso",
+            email = "intruso@finca.ec",
+            password = "WhateverPassword123!",
+            role = UserRole.Admin
+        });
+
+        Assert.Equal(HttpStatusCode.Forbidden, anonymousAttempt.StatusCode);
+    }
+
+    [Fact]
+    public async Task DeactivateUser_PreventsFurtherLogin()
+    {
+        var authedClient = await CreateAuthenticatedAdminClientAsync();
+
+        var email = "empleado-saliente@finca.ec";
+        var password = "CorrectPassword123!";
+        var registerResponse = await authedClient.PostAsJsonAsync("/api/v1/people/users", new
+        {
+            fullName = "Empleado Saliente",
+            email,
+            password,
+            role = UserRole.Registrar
+        });
+        registerResponse.EnsureSuccessStatusCode();
+        var userId = (await registerResponse.Content.ReadFromJsonAsync<CreatedId>())!.Id;
+
+        var deactivateResponse = await authedClient.PostAsync($"/api/v1/people/users/{userId}/deactivate", null);
+        Assert.Equal(HttpStatusCode.NoContent, deactivateResponse.StatusCode);
+
+        var loginResponse = await _client.PostAsJsonAsync("/api/v1/people/auth/login", new { email, password });
+        Assert.Equal(HttpStatusCode.Unauthorized, loginResponse.StatusCode);
+    }
+
+    /// <summary>
+    /// Idempotent across the whole test class (shared Postgres via IClassFixture):
+    /// the first caller to run this creates the bootstrap Admin, everyone after just
+    /// logs in with the same fixed credentials.
+    /// </summary>
+    private async Task<HttpClient> CreateAuthenticatedAdminClientAsync()
+    {
+        await _client.PostAsJsonAsync("/api/v1/people/users", new
+        {
+            fullName = "Administrador Finca",
+            email = AdminEmail,
+            password = AdminPassword,
+            role = UserRole.Admin
+        });
+
+        var loginResponse = await _client.PostAsJsonAsync("/api/v1/people/auth/login", new
+        {
+            email = AdminEmail,
+            password = AdminPassword
+        });
+        loginResponse.EnsureSuccessStatusCode();
+        var login = await loginResponse.Content.ReadFromJsonAsync<LoginResultDto>();
+        Assert.NotNull(login);
+
+        var authedClient = factory.CreateClient();
+        authedClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", login!.Token);
+        return authedClient;
     }
 
     private sealed record CreatedId(Guid Id);

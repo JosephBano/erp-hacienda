@@ -13,12 +13,14 @@ public static class PeopleEndpoints
     {
         var group = app.MapGroup("/api/v1/people").WithTags("People").RequireAuthorization();
 
-        // Bootstrap: anyone may self-register while no Admin exists yet. Once the
-        // farm has an Admin, only that Admin can create further accounts.
+        // Bootstrap: self-registration is only allowed while the farm has zero users
+        // at all — the single very first account. Checking "no Admin yet" instead
+        // would leave the endpoint open indefinitely to anyone willing to never pick
+        // the Admin role, then self-elevate whenever they choose.
         group.MapPost("/users", async (RegisterUserCommand command, ISender sender, IPeopleDbContext db, HttpContext http, CancellationToken ct) =>
         {
-            var hasAdmin = await db.Users.AnyAsync(u => u.Role == UserRole.Admin, ct);
-            if (hasAdmin && !http.User.IsInRole(nameof(UserRole.Admin)))
+            var hasAnyUser = await db.Users.AnyAsync(ct);
+            if (hasAnyUser && !http.User.IsInRole(nameof(UserRole.Admin)))
                 return Results.Forbid();
 
             var id = await sender.Send(command, ct);
@@ -29,6 +31,12 @@ public static class PeopleEndpoints
         {
             var users = await sender.Send(new GetUsersQuery());
             return Results.Ok(users);
+        }).RequireAuthorization(policy => policy.RequireRole(nameof(UserRole.Admin)));
+
+        group.MapPost("/users/{id:guid}/deactivate", async (Guid id, ISender sender) =>
+        {
+            await sender.Send(new DeactivateUserCommand(id));
+            return Results.NoContent();
         }).RequireAuthorization(policy => policy.RequireRole(nameof(UserRole.Admin)));
 
         group.MapPost("/auth/login", async (LoginCommand command, ISender sender) =>

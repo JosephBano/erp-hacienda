@@ -44,7 +44,7 @@ public record OffspringBirthInfo(
     string? FarmTag,
     string Sex, // "M" or "F"
     decimal? BirthWeightKg,
-    Guid CategoryId
+    Guid? CategoryId = null
 );
 
 public record BirthingRecordedEvent(

@@ -15,6 +15,10 @@ export interface LoginResult {
   role: string;
 }
 
+// sessionStorage, not localStorage: an XSS payload can still read it, but the token
+// dies with the tab instead of persisting indefinitely on a shared/farm computer.
+// A httpOnly cookie would be stronger but needs backend session support this API
+// doesn't have yet.
 const TOKEN_KEY = 'hato_token';
 const USER_KEY = 'hato_user';
 
@@ -30,21 +34,21 @@ export class AuthService {
   login(request: LoginRequest): Observable<LoginResult> {
     return this.http.post<LoginResult>(`${this.baseUrl}/auth/login`, request).pipe(
       tap((result) => {
-        localStorage.setItem(TOKEN_KEY, result.token);
-        localStorage.setItem(USER_KEY, JSON.stringify(result));
+        sessionStorage.setItem(TOKEN_KEY, result.token);
+        sessionStorage.setItem(USER_KEY, JSON.stringify(result));
         this.currentUser.set(result);
       })
     );
   }
 
   logout(): void {
-    localStorage.removeItem(TOKEN_KEY);
-    localStorage.removeItem(USER_KEY);
+    sessionStorage.removeItem(TOKEN_KEY);
+    sessionStorage.removeItem(USER_KEY);
     this.currentUser.set(null);
   }
 
   getToken(): string | null {
-    return localStorage.getItem(TOKEN_KEY);
+    return sessionStorage.getItem(TOKEN_KEY);
   }
 
   isAuthenticated(): boolean {
@@ -52,7 +56,7 @@ export class AuthService {
   }
 
   private readStoredUser(): LoginResult | null {
-    const raw = localStorage.getItem(USER_KEY);
+    const raw = sessionStorage.getItem(USER_KEY);
     return raw ? (JSON.parse(raw) as LoginResult) : null;
   }
 }

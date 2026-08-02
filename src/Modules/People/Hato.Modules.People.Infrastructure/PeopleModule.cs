@@ -6,6 +6,7 @@ using Hato.Modules.People.Application.Abstractions;
 using Hato.Modules.People.Domain;
 using Hato.Modules.People.Infrastructure.Authorization;
 using Hato.Modules.People.Infrastructure.Persistence;
+using Hato.SharedKernel;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
@@ -21,6 +22,10 @@ public static class PeopleModule
     public static IServiceCollection AddPeopleModule(
         this IServiceCollection services, IConfiguration configuration, IHostEnvironment environment)
     {
+        services.AddHttpContextAccessor();
+        services.AddScoped<ICurrentUser, HttpContextCurrentUser>();
+        services.AddScoped<AuditSaveChangesInterceptor>();
+
         services.AddDbContext<PeopleDbContext>((sp, options) =>
         {
             var connectionString = sp.GetRequiredService<IConfiguration>().GetConnectionString("HatoDb")
@@ -29,6 +34,8 @@ public static class PeopleModule
             options.UseNpgsql(
                 connectionString,
                 npgsql => npgsql.MigrationsHistoryTable("__ef_migrations_history", PeopleDbContext.Schema));
+
+            options.AddInterceptors(sp.GetRequiredService<AuditSaveChangesInterceptor>());
         });
 
         services.AddScoped<IPeopleDbContext>(sp => sp.GetRequiredService<PeopleDbContext>());

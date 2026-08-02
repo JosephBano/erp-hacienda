@@ -1,4 +1,5 @@
 using Hato.Modules.People.Application.Abstractions;
+using Hato.Modules.People.Application.Audit;
 using Hato.Modules.People.Application.Auth;
 using Hato.Modules.People.Application.Roles;
 using Hato.Modules.People.Application.Users;
@@ -87,5 +88,18 @@ public static class PeopleEndpoints
             await sender.Send(new AssignUserRoleCommand(userId, roleId));
             return Results.NoContent();
         }).RequireAuthorization(policy => policy.RequirePermission(SystemPermissions.PeopleRolesManage));
+
+        // Audit Trail Endpoint
+        group.MapGet("/audit", async (Guid? userId, DateTimeOffset? from, DateTimeOffset? to, int? page, int? pageSize, ISender sender) =>
+        {
+            var result = await sender.Send(new GetAuditLogsQuery(userId, from, to, page ?? 1, pageSize ?? 50));
+            return Results.Ok(result);
+        }).RequireAuthorization(policy => policy.RequirePermission(SystemPermissions.PeopleUsersManage));
+
+        app.MapGet("/api/v1/audit", async (Guid? userId, DateTimeOffset? from, DateTimeOffset? to, int? page, int? pageSize, ISender sender) =>
+        {
+            var result = await sender.Send(new GetAuditLogsQuery(userId, from, to, page ?? 1, pageSize ?? 50));
+            return Results.Ok(result);
+        }).WithTags("Audit").RequireAuthorization(policy => policy.RequirePermission(SystemPermissions.PeopleUsersManage));
     }
 }

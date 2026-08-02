@@ -49,10 +49,23 @@ public static class PeopleEndpoints
             return Results.NoContent();
         }).RequireAuthorization(policy => policy.RequirePermission(SystemPermissions.PeopleUsersManage));
 
+        // Auth Endpoints
         group.MapPost("/auth/login", async (LoginCommand command, ISender sender) =>
         {
             var result = await sender.Send(command);
             return Results.Ok(result);
+        }).AllowAnonymous();
+
+        group.MapPost("/auth/refresh", async (RefreshAuthTokenCommand command, ISender sender) =>
+        {
+            var result = await sender.Send(command);
+            return Results.Ok(result);
+        }).AllowAnonymous();
+
+        group.MapPost("/auth/revoke", async (RevokeRefreshTokenCommand command, ISender sender) =>
+        {
+            await sender.Send(command);
+            return Results.NoContent();
         }).AllowAnonymous();
 
         // Roles & Permissions Endpoints

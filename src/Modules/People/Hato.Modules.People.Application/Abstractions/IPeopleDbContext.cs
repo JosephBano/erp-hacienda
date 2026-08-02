@@ -11,6 +11,7 @@ public interface IPeopleDbContext
     DbSet<RolePermission> RolePermissions { get; }
     DbSet<UserRole> UserRoles { get; }
     DbSet<AuditLog> AuditLogs { get; }
+    DbSet<RefreshToken> RefreshTokens { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken);
 }

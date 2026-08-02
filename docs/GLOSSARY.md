@@ -90,6 +90,16 @@
 | Rol | `Role` | Conjunto configurable de permisos (mayordomo, ordeñador, veterinario, admin). |
 | Tarea / Alerta | `Task` / `Alert` | Acción pendiente generada por reglas (vacunar, palpar, fin de retiro, vencimiento). |
 
+## Sincronización móvil fuera de línea (Offline Sync)
+
+| Término (ES) | Código (EN) | Definición |
+|---|---|---|
+| Bandeja de salida local | `SyncOutbox` | Cola local en el cliente móvil donde se registran las operaciones pendientes de sincronización. |
+| Identificador de operación cliente | `ClientOperationId` | UUIDv4 generado en el móvil para garantizar la idempotencia estricta en el backend. |
+| Tirón incremental | `SyncPull` | Obtención incremental de cambios desde la BD del servidor basada en cursor. |
+| Empuje de lote | `SyncPush` | Envío en lote de operaciones offline desde el móvil hacia el backend (`Accepted`, `Duplicate`, `Rejected`). |
+| Cursor de sincronización | `Cursor` | Marca de tiempo y UUID de desempate para sincronizar diferencialmente la información sin duplicados. |
+
 ## Legal Ecuador (referencias)
 
 | Término | Qué es |

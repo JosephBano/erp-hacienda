@@ -137,4 +137,14 @@ hato/
 | GraphQL | existan clientes con necesidades de datos divergentes | 0002 |
 | Facturación SRI directa | el volumen justifique dejar al proveedor autorizado | — |
 | Blockchain | un comprador/certificador exija trazabilidad verificable (→ anclaje de hashes) | — |
-| IA/ML propio | existan ≥2 años de datos limpios (antes: features con LLM vía API, p. ej. registro por voz) | — |
+| IA/ML propio | existan ≥2 años de datos limpios (antes: features with LLM vía API, p. ej. registro por voz) | — |
+
+## Arquitectura de Cliente Móvil y Protocolo de Sincronización (Fase 3)
+
+- **Cliente Móvil (`clients/field-app/`)**: Desarrollado en React Native (Expo SDK 51), TypeScript y WatermelonDB (SQLite reactiva multihilo).
+- **Seguridad Offline**: Caché cifrada del JWT + Refresh token con desbloqueo mediante PIN local de 4-6 dígitos en `expo-secure-store`.
+- **Protocolo Push/Pull Bidireccional (ADR-0008, ADR-0009)**:
+  - **Pull Incremental**: `GET /api/v1/sync/pull?since=<cursor>` entrega colecciones de cambios con tombstones (`isDeleted: true`) y desempate por timestamp + UUID.
+  - **Push Idempotente**: `POST /api/v1/sync/push` procesa lotes de operaciones con `client_operation_id` (UUIDv4) garantizando idempotencia estricta en base de datos.
+  - **Manejo de Rechazos e Invariante de Cero Pérdida**: Operaciones rechazadas se marcan como `rejected` con detalles de error en la bandeja de problemas sin borrarse jamás en silencio.
+

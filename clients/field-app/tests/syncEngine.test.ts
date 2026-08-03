@@ -175,6 +175,64 @@ describe('SyncEngine', () => {
       expect(await outbox.pending()).toHaveLength(0);
     });
 
+    /**
+     * Scenario 10 of PLAN-FASE-3-4 §2.2, literally: the cut happens *mid* push, after
+     * some batches already landed — not before the first one. The employee's first three
+     * records must not be re-sent (and thus not risk becoming duplicates) just because
+     * the fourth one hit a dead connection.
+     */
+    it('keeps what already landed when the connection dies partway through a multi-batch push', async () => {
+      for (let i = 0; i < 7; i++) {
+        await outbox.enqueue('createAnimal', { index: i });
+      }
+
+      let batchNumber = 0;
+      api.pushHandler = async (ops) => {
+        batchNumber += 1;
+        if (batchNumber === 2) {
+          throw new Error('Network request failed');
+        }
+        return {
+          processedCount: ops.length,
+          results: ops.map((o) => ({
+            clientOperationId: o.clientOperationId,
+            status: 'Accepted' as const,
+            resultRef: 'ok',
+            errorDetails: null,
+          })),
+        };
+      };
+
+      const first = await engine.syncNow();
+
+      expect(first.ok).toBe(false);
+      expect(await outbox.pending()).toHaveLength(4);
+      expect(await outbox.stats()).toMatchObject({ pending: 4, synced: 3, rejected: 0 });
+
+      api.pushHandler = async (ops) => ({
+        processedCount: ops.length,
+        results: ops.map((o) => ({
+          clientOperationId: o.clientOperationId,
+          status: 'Accepted' as const,
+          resultRef: 'ok',
+          errorDetails: null,
+        })),
+      });
+
+      // The three that already landed before the cut must never appear in a later call —
+      // a retry legitimately resends the batch that failed, but not the one that didn't.
+      const landedIds = new Set(api.pushCalls[0].map((op) => op.clientOperationId));
+
+      const second = await engine.syncNow();
+
+      expect(second.ok).toBe(true);
+      expect(await outbox.pending()).toHaveLength(0);
+      expect(await outbox.stats()).toMatchObject({ pending: 0, synced: 7, rejected: 0 });
+
+      const idsSentDuringRetry = api.pushCalls.slice(2).flat().map((op) => op.clientOperationId);
+      expect(idsSentDuringRetry.some((id) => landedIds.has(id))).toBe(false);
+    });
+
     it('does not contact the server at all with no connectivity', async () => {
       await outbox.enqueue('recordMilking', { totalLiters: 4 });
       (global as any).__setNetworkConnected(false);

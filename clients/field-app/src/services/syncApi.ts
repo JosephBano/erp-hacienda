@@ -85,7 +85,14 @@ export class HttpSyncApi implements SyncApi {
       },
     });
 
-    if (response.status === 401 && !isRetry) {
+    if (response.status === 401) {
+      if (isRetry) {
+        // The freshest token available was still refused: whatever the server's reason,
+        // from the employee's side this is indistinguishable from "session expired" and
+        // must surface as the same error, not a generic one the UI wouldn't recognise.
+        throw new AuthenticationExpiredError();
+      }
+
       const refreshed = await this.options.refreshToken();
       if (refreshed) {
         return this.request<T>(path, init, true);

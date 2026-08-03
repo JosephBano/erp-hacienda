@@ -30,6 +30,12 @@ export class RolesManagementComponent implements OnInit {
   newRoleDescription = '';
   newRolePermissionIds = new Set<string>();
 
+  /** Non-null while a role's name/description/permissions are being edited in place. */
+  editingRoleId: string | null = null;
+  editRoleName = '';
+  editRoleDescription = '';
+  editRolePermissionIds = new Set<string>();
+
   assignUserId = '';
   assignRoleId = '';
 
@@ -79,6 +85,61 @@ export class RolesManagementComponent implements OnInit {
     } else {
       this.newRolePermissionIds.add(id);
     }
+  }
+
+  /**
+   * Editing is offered only for custom roles. The three system roles (admin, registrar,
+   * veterinarian) are the RBAC seed's baseline — the API would technically allow editing
+   * them too, but doing that casually from this screen is how an admin locks themselves
+   * out by unchecking `people.roles.manage` from their own role.
+   */
+  startEditingRole(role: RoleDto): void {
+    this.errorMessage = '';
+    this.successMessage = '';
+    this.editingRoleId = role.id;
+    this.editRoleName = role.name;
+    this.editRoleDescription = role.description;
+    this.editRolePermissionIds = new Set(role.permissions.map((p) => p.id));
+  }
+
+  cancelEditingRole(): void {
+    this.editingRoleId = null;
+  }
+
+  toggleEditPermission(id: string): void {
+    if (this.editRolePermissionIds.has(id)) {
+      this.editRolePermissionIds.delete(id);
+    } else {
+      this.editRolePermissionIds.add(id);
+    }
+  }
+
+  saveRoleEdits(): void {
+    if (!this.editingRoleId) return;
+
+    this.errorMessage = '';
+    this.successMessage = '';
+
+    if (!this.editRoleName.trim()) {
+      this.errorMessage = 'El nombre del rol no puede quedar vacío.';
+      return;
+    }
+
+    this.api.updateRole(this.editingRoleId, {
+      roleId: this.editingRoleId,
+      name: this.editRoleName.trim(),
+      description: this.editRoleDescription.trim(),
+      permissionIds: Array.from(this.editRolePermissionIds)
+    }).subscribe({
+      next: () => {
+        this.successMessage = `Rol "${this.editRoleName}" actualizado.`;
+        this.editingRoleId = null;
+        this.loadAll();
+      },
+      error: (err) => {
+        this.errorMessage = err?.error?.detail || 'No se pudo actualizar el rol.';
+      }
+    });
   }
 
   createRole(): void {

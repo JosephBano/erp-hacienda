@@ -19,6 +19,7 @@
           <th>Nombre</th>
           <th>Tipo</th>
           <th>Permisos</th>
+          <th>Acción</th>
         </tr>
       </thead>
       <tbody>
@@ -36,12 +37,55 @@
             </span>
             <span *ngIf="role.permissions.length === 0" class="text-muted">Sin permisos</span>
           </td>
+          <td>
+            <button
+              class="btn btn-secondary btn-sm"
+              *ngIf="!role.isSystem"
+              (click)="startEditingRole(role)">
+              Editar
+            </button>
+            <span *ngIf="role.isSystem" class="field-hint">— rol de sistema —</span>
+          </td>
         </tr>
         <tr *ngIf="roles.length === 0">
-          <td colspan="4" class="text-center py-4 text-muted">No hay roles todavía.</td>
+          <td colspan="5" class="text-center py-4 text-muted">No hay roles todavía.</td>
         </tr>
       </tbody>
     </table>
+  </div>
+
+  <!-- Edit role -->
+  <div class="glass-card form-card mt-3" *ngIf="editingRoleId">
+    <h3>Editar rol</h3>
+    <div class="form-grid mt-2">
+      <div class="form-group">
+        <label class="form-label">Nombre:</label>
+        <input type="text" class="form-input" [(ngModel)]="editRoleName">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Descripción:</label>
+        <input type="text" class="form-input" [(ngModel)]="editRoleDescription">
+      </div>
+    </div>
+
+    <div class="permission-groups mt-3">
+      <div class="permission-group" *ngFor="let group of permissionsByModule">
+        <h4>{{ group.module }}</h4>
+        <label class="checkbox-item" *ngFor="let p of group.items">
+          <input
+            type="checkbox"
+            [checked]="editRolePermissionIds.has(p.id)"
+            (change)="toggleEditPermission(p.id)">
+          {{ p.name }}
+          <span class="field-hint">({{ p.code }})</span>
+        </label>
+      </div>
+    </div>
+
+    <div class="form-actions mt-3">
+      <button class="btn btn-secondary" (click)="cancelEditingRole()">Cancelar</button>
+      <button class="btn btn-primary" (click)="saveRoleEdits()">Guardar cambios</button>
+    </div>
   </div>
 
   <!-- Create role -->

@@ -230,9 +230,12 @@ quedado obsoleta, así que se aplica siempre sin pasar por la detección de conf
 > que gana se aplica a los tres campos juntos), no por campo individual con marcas de
 > tiempo independientes — coincide con lo que ADR-0008 describe ("basado en `updated_at`
 > reportado"), aunque el registro del conflicto sí detalla cada campo por separado.
-> Falta: extender el mismo patrón a otras entidades editables si aparece un caso de uso
-> real. La pantalla del panel Angular que consume este endpoint (`/sync`, pestaña
-> "Conflictos LWW") ya existe.
+> El mecanismo es alcanzable desde un cliente real por ambos lados: la pantalla
+> "Editar animal" en `clients/field-app/` encola la edición offline con el
+> `knownUpdatedAt` que ese dispositivo vio la última vez (sin aplicarla localmente —
+> ver el README del cliente), y la bandeja `/sync` en `admin-web` expone lo que se
+> resolvió. Falta: extender el mismo patrón a otras entidades editables si aparece un
+> caso de uso real.
 
 ### Push
 

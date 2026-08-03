@@ -117,16 +117,28 @@ sistema, y la cría nació "dentro" del sistema con su genealogía.
 **Criterio de salida:** una semana completa de registros de campo hechos solo desde el
 móvil, incluyendo días sin señal, sin pérdida ni duplicación de datos.
 
-> **Pendiente para cerrar (2026-08-03):** el piloto con empleados reales no ha ocurrido. Ya
-> resuelto desde la reapertura: borrado lógico real (`Animal.Delete()`, con invariante de
-> "no eliminar con historia" y filtro de query), filtrado del pull por permisos (una
-> colección sólo baja si el rol tiene el permiso correspondiente), la bitácora de
-> conflictos LWW (`Animal.LastEditedAt` + `GET /api/v1/sync/conflicts`, para la única
-> entidad genuinamente editable del modelo), los endpoints de lectura de especies/razas/
-> categorías que faltaban para poder registrar un animal desde cualquier cliente, y las
-> pantallas del panel Angular que consumen todo lo anterior (alta de animal, roles y
-> permisos, bitácora de auditoría, bandeja de sincronización). Sigue faltando: la subida
-> de fotos (depende del módulo de adjuntos de la Fase 4).
+> **Pendiente para cerrar (2026-08-03):** de todo lo que quedaba abierto al reabrir la
+> fase, sólo falta una cosa y es deliberadamente ajena al código: **el piloto real** —
+> una semana de registros hechos por un empleado desde un teléfono de verdad, sin señal,
+> tal como exige el criterio de salida. Nada de trabajo de ingeniería puede sustituir esa
+> semana.
+>
+> Todo lo demás ya está resuelto: borrado lógico real (`Animal.Delete()`, con invariante
+> de "no eliminar con historia" y filtro de query), filtrado del pull por permisos, la
+> bitácora de conflictos LWW (`Animal.LastEditedAt` + `GET /api/v1/sync/conflicts`) con
+> una pantalla en `field-app` que la hace alcanzable en uso real (antes, ningún cliente
+> podía disparar un conflicto LWW fuera de una prueba) y otra en `admin-web` que la
+> expone, los endpoints de lectura de especies/razas/categorías que faltaban para poder
+> registrar un animal desde cualquier cliente con su pantalla correspondiente, los 10
+> escenarios obligatorios de sincronización de PLAN-FASE-3-4 §2.2 (los últimos dos —
+> token expirado a mitad de push y corte de red a mitad de un lote — encontraron y
+> corrigieron un bug real en el cliente), la prueba de convergencia end-to-end con dos
+> dispositivos simulados, y las pantallas de roles/permisos (con edición), auditoría y
+> sincronización en el panel. `docs/BACKLOG.md` recoge lo que se dejó fuera a propósito
+> (extender borrado lógico y LWW a otras entidades, resolución manual de operaciones
+> rechazadas, `ng test` roto en `admin-web`) y por qué. Sigue pendiente, heredado y sin
+> relación con esta fase: la subida de fotos (Fase 4) y el ciclo de vida de `Lactation`
+> (Fase 2, nunca implementado).
 
 ---
 

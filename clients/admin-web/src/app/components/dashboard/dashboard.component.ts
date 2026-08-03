@@ -1,6 +1,7 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
+import { forkJoin } from 'rxjs';
 import { ApiService, Animal } from '../../services/api.service';
 
 @Component({
@@ -12,28 +13,41 @@ import { ApiService, Animal } from '../../services/api.service';
 })
 export class DashboardComponent implements OnInit {
   private api = inject(ApiService);
-  
+
   animalsCount = 0;
   withdrawalCount = 0;
-  todayMilkLiters = 148.5; // Demo / dynamic summary
-  activeLactations = 12;
+  todayMilkLiters = 0;
+  todaySessionsCount = 0;
   recentAnimals: Animal[] = [];
 
+  loadError = false;
+
   ngOnInit(): void {
-    this.api.getAnimals().subscribe({
-      next: (data) => {
-        this.animalsCount = data.length;
-        this.withdrawalCount = data.filter(a => a.isInWithdrawal).length;
-        this.recentAnimals = data.slice(0, 5);
+    this.loadError = false;
+
+    // Both calls default to "today" server-side, so a KPI here always matches what
+    // /milking and /animals would show if you navigated there yourself.
+    forkJoin({
+      animals: this.api.getAnimals(),
+      sessions: this.api.getMilkingSessions()
+    }).subscribe({
+      next: ({ animals, sessions }) => {
+        this.animalsCount = animals.length;
+        this.withdrawalCount = animals.filter((a) => a.isInWithdrawal).length;
+        this.recentAnimals = animals.slice(0, 5);
+
+        this.todaySessionsCount = sessions.length;
+        this.todayMilkLiters = Math.round(sessions.reduce((sum, s) => sum + s.totalLiters, 0) * 10) / 10;
       },
       error: () => {
-        // Fallback demo data if backend offline
-        this.animalsCount = 28;
-        this.withdrawalCount = 2;
-        this.recentAnimals = [
-          { id: '1', farmTag: 'VACA-001', officialTag: 'EC-17-00123', name: 'Mariposa', gender: 'Female', speciesName: 'Bovino', breedName: 'Holstein', categoryName: 'Vaca en Producción', status: 'Active', isInWithdrawal: true, withdrawalUntil: '2026-08-05' },
-          { id: '2', farmTag: 'VACA-002', officialTag: 'EC-17-00124', name: 'Estrella', gender: 'Female', speciesName: 'Bovino', breedName: 'Jersey', categoryName: 'Vaca en Producción', status: 'Active', isInWithdrawal: false }
-        ];
+        // No fallback to invented numbers: a real outage must look like an outage,
+        // not like a farm with 28 animals and 148.5 L milked that don't exist.
+        this.loadError = true;
+        this.animalsCount = 0;
+        this.withdrawalCount = 0;
+        this.todayMilkLiters = 0;
+        this.todaySessionsCount = 0;
+        this.recentAnimals = [];
       }
     });
   }

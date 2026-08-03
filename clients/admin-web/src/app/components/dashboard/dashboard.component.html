@@ -10,8 +10,12 @@
     </div>
   </div>
 
+  <div *ngIf="loadError" class="glass-card alert-danger" style="padding: 1rem; margin-bottom: 1rem;">
+    No se pudo cargar el panel desde el servidor. Intente de nuevo más tarde.
+  </div>
+
   <!-- KPI Metrics Grid -->
-  <div class="metrics-grid">
+  <div class="metrics-grid" *ngIf="!loadError">
     <div class="glass-card kpi-card">
       <div class="kpi-icon icon-emerald">🐄</div>
       <div class="kpi-details">
@@ -42,15 +46,15 @@
     <div class="glass-card kpi-card">
       <div class="kpi-icon icon-amber">🌿</div>
       <div class="kpi-details">
-        <span class="kpi-label">Lactancias Activas</span>
-        <span class="kpi-value">{{ activeLactations }}</span>
-        <span class="kpi-subtext">Vacas en ordeño diario</span>
+        <span class="kpi-label">Sesiones de Ordeño Hoy</span>
+        <span class="kpi-value">{{ todaySessionsCount }}</span>
+        <span class="kpi-subtext">Registros AM/PM del día</span>
       </div>
     </div>
   </div>
 
   <!-- Recent Animals Section -->
-  <div class="section-container">
+  <div class="section-container" *ngIf="!loadError">
     <div class="section-header">
       <h2>Ganado Reciente</h2>
       <a routerLink="/animals" class="link-more">Ver todos los animales →</a>

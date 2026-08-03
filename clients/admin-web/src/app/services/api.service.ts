@@ -70,6 +70,17 @@ export interface MilkingSessionRequest {
   yields: { animalId: string; liters: number }[];
 }
 
+export interface MilkingSessionDto {
+  id: string;
+  date: string;
+  shift: string;
+  groupId?: string;
+  totalLiters: number;
+  recordedBy: string;
+  notes?: string;
+  yields: { id: string; animalId: string; liters: number }[];
+}
+
 export interface RecordEventRequest {
   eventType: string;
   eventDate: string;
@@ -322,6 +333,12 @@ export class ApiService {
       milkWithdrawalDays: data.milkWithdrawalDays,
       meatWithdrawalDays: data.meatWithdrawalDays
     });
+  }
+
+  getMilkingSessions(date?: string): Observable<MilkingSessionDto[]> {
+    let httpParams = new HttpParams();
+    if (date) httpParams = httpParams.set('date', date);
+    return this.http.get<MilkingSessionDto[]>(`${this.baseUrl}/milking-sessions`, { params: httpParams });
   }
 
   recordMilkingSession(data: MilkingSessionRequest): Observable<{ id: string }> {

@@ -2,6 +2,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Hato.Modules.Inventory.Application\Hato.Modules.Inventory.Application.csproj" />
+    <ProjectReference Include="..\..\..\Shared\Hato.SharedKernel.Persistence\Hato.SharedKernel.Persistence.csproj" />
   </ItemGroup>
 
   <ItemGroup>

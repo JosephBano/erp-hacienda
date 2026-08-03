@@ -6,6 +6,7 @@
          actual reader implementations are wired into the shared container by each
          module's own Add*Module() call from Hato.Api. -->
     <ProjectReference Include="..\Hato.Modules.Tasks.Application\Hato.Modules.Tasks.Application.csproj" />
+    <ProjectReference Include="..\..\..\Shared\Hato.SharedKernel.Persistence\Hato.SharedKernel.Persistence.csproj" />
   </ItemGroup>
 
   <ItemGroup>

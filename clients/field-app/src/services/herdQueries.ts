@@ -1,6 +1,14 @@
 import { Database, Q } from '@nozbe/watermelondb';
 
-import { Animal, AnimalGroup, AnimalIdentifier, InventoryItem, WithdrawalPeriod } from '../database/models';
+import {
+  Animal,
+  AnimalCategory,
+  AnimalGroup,
+  AnimalIdentifier,
+  Breed,
+  InventoryItem,
+  WithdrawalPeriod,
+} from '../database/models';
 
 export interface HerdMember {
   animalId: string;
@@ -8,6 +16,10 @@ export interface HerdMember {
   sex: string;
   isWithheld: boolean;
   withheldUntil?: string;
+  speciesId: string;
+  breedId?: string;
+  categoryId?: string;
+  birthDate?: string;
 }
 
 /**
@@ -48,6 +60,10 @@ export async function loadHerd(database: Database, date = todayIso()): Promise<H
       label: tagByAnimal.get(animal.id) ?? `Sin arete · ${animal.id.slice(0, 6)}`,
       isWithheld: milkBlockByAnimal.has(animal.id),
       withheldUntil: milkBlockByAnimal.get(animal.id),
+      speciesId: animal.speciesId,
+      breedId: animal.breedId,
+      categoryId: animal.categoryId,
+      birthDate: animal.birthDate,
     }))
     .sort((a, b) => a.label.localeCompare(b.label));
 }
@@ -58,6 +74,27 @@ export async function loadGroups(database: Database) {
   return groups
     .filter((group) => !group.isDeleted && group.isActive)
     .map((group) => ({ groupId: group.id, label: group.name }))
+    .sort((a, b) => a.label.localeCompare(b.label));
+}
+
+export async function loadBreeds(database: Database, speciesId: string) {
+  const breeds = await database.get<Breed>('breeds').query(Q.where('species_id', speciesId)).fetch();
+
+  return breeds
+    .filter((breed) => !breed.isDeleted)
+    .map((breed) => ({ breedId: breed.id, label: breed.name }))
+    .sort((a, b) => a.label.localeCompare(b.label));
+}
+
+export async function loadCategories(database: Database, speciesId: string) {
+  const categories = await database
+    .get<AnimalCategory>('animal_categories')
+    .query(Q.where('species_id', speciesId))
+    .fetch();
+
+  return categories
+    .filter((category) => !category.isDeleted)
+    .map((category) => ({ categoryId: category.id, label: category.name }))
     .sort((a, b) => a.label.localeCompare(b.label));
 }
 

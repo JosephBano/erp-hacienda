@@ -13,7 +13,7 @@ import { appSchema, tableSchema } from '@nozbe/watermelondb';
  * representable locally, otherwise a record deleted on the server would live on in the
  * employee's list forever.
  */
-export const SCHEMA_VERSION = 2;
+export const SCHEMA_VERSION = 3;
 
 export const schema = appSchema({
   version: SCHEMA_VERSION,
@@ -32,6 +32,11 @@ export const schema = appSchema({
         { name: 'is_deleted', type: 'boolean' },
         { name: 'server_created_at', type: 'number' },
         { name: 'server_updated_at', type: 'number', isOptional: true },
+        // The LWW baseline (ADR-0008), distinct from server_updated_at (processing
+        // time): the moment the field declares an edit happened. Echoed back as
+        // knownUpdatedAt on the next updateAnimal push so the server can tell whether
+        // another device's edit landed after this one last saw the row.
+        { name: 'last_edited_at', type: 'number', isOptional: true },
       ],
     }),
     tableSchema({

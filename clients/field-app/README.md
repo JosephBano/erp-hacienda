@@ -1,7 +1,8 @@
 # HATO — App de campo (`field-app`)
 
 Aplicación móvil offline-first (Fase 3). Registra ordeño, tratamientos, pesajes,
-movimientos y partos **sin señal**, y sincroniza contra `/api/v1/sync` cuando la hay.
+movimientos, partos y correcciones de animal **sin señal**, y sincroniza contra
+`/api/v1/sync` cuando la hay.
 
 ## Requisitos
 
@@ -53,6 +54,11 @@ Las decisiones que no son obvias leyendo el código:
   alta de animal suelta pierde la genealogía sin dar ningún error.
 - **La sesión vive en el llavero del dispositivo** (`expo-secure-store`) y el PIN se guarda
   como digest SHA-256 con sal.
+- **"Editar animal" no aplica el cambio localmente.** Es la única pantalla que puede
+  producir un conflicto LWW (ADR-0008): si la edición pierde la resolución del servidor
+  frente a la de otro dispositivo, mostrar el cambio como aplicado localmente sería mostrar
+  un valor que la resolución nunca produjo. La pantalla encola la operación y lo dice
+  explícitamente; el siguiente pull trae el valor resuelto, gane o pierda.
 
 ## Pruebas
 

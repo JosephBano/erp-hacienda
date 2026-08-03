@@ -319,8 +319,11 @@ function applyRow(record: any, row: Record<string, unknown>): void {
   for (const [key, value] of Object.entries(row)) {
     if (key === 'id') continue;
 
-    if (key === 'createdAt' || key === 'updatedAt') {
-      const target = key === 'createdAt' ? 'serverCreatedAt' : 'serverUpdatedAt';
+    if (key === 'createdAt' || key === 'updatedAt' || key === 'lastEditedAt') {
+      // Server dates arrive as ISO strings; WatermelonDB number columns need epoch ms.
+      // lastEditedAt keeps its own name (unlike created/updatedAt) because there is no
+      // WatermelonDB-reserved field it collides with.
+      const target = key === 'createdAt' ? 'serverCreatedAt' : key === 'updatedAt' ? 'serverUpdatedAt' : 'lastEditedAt';
       if (target in record) {
         record[target] = value ? Date.parse(String(value)) : undefined;
       }

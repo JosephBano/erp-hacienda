@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { SafeAreaView, StatusBar, StyleSheet, View } from 'react-native';
 
 import { createDatabase } from './database';
+import { AnimalEditService } from './services/animalEditService';
 import { AuthService } from './services/authService';
 import { BirthService } from './services/birthService';
 import { EventService } from './services/eventService';
@@ -10,6 +11,7 @@ import { MilkingService } from './services/milkingService';
 import { Outbox } from './services/outbox';
 import { SyncEngine } from './services/syncEngine';
 import { loadGroups, loadHerd, loadMedications } from './services/herdQueries';
+import { AnimalEditScreen } from './screens/AnimalEditScreen';
 import { BirthScreen } from './screens/BirthScreen';
 import { EventsScreen } from './screens/EventsScreen';
 import { LoginScreen } from './screens/LoginScreen';
@@ -21,7 +23,7 @@ import { theme } from './ui/theme';
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://10.0.2.2:5000';
 const DEVICE_ID = 'field-device';
 
-type Tab = 'home' | 'milking' | 'events' | 'birth' | 'sync';
+type Tab = 'home' | 'milking' | 'events' | 'birth' | 'editAnimal' | 'sync';
 
 /**
  * Composition root of the field app.
@@ -49,6 +51,7 @@ export default function App() {
   const milking = useMemo(() => new MilkingService(database), [database]);
   const events = useMemo(() => new EventService(database), [database]);
   const births = useMemo(() => new BirthService(database), [database]);
+  const animalEdits = useMemo(() => new AnimalEditService(database), [database]);
 
   const [ready, setReady] = useState(false);
   const [authenticated, setAuthenticated] = useState(false);
@@ -128,6 +131,7 @@ export default function App() {
             <BigButton testID="go-milking" label="Ordeño" onPress={() => setTab('milking')} />
             <BigButton testID="go-events" label="Eventos" tone="neutral" onPress={() => setTab('events')} />
             <BigButton testID="go-birth" label="Parto" tone="neutral" onPress={() => setTab('birth')} />
+            <BigButton testID="go-edit-animal" label="Editar animal" tone="neutral" onPress={() => setTab('editAnimal')} />
             <BigButton testID="go-sync" label="Sincronización" tone="neutral" onPress={() => setTab('sync')} />
           </Screen>
         ) : null}
@@ -153,6 +157,10 @@ export default function App() {
             sires={herd.filter((member) => member.sex === 'Male')}
             onRecorded={refresh}
           />
+        ) : null}
+
+        {tab === 'editAnimal' ? (
+          <AnimalEditScreen database={database} service={animalEdits} animals={herd} onQueued={refresh} />
         ) : null}
 
         {tab === 'sync' ? <SyncStatusScreen engine={engine} outbox={outbox} /> : null}

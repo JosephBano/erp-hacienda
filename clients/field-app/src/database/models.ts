@@ -24,6 +24,7 @@ export class Animal extends Model {
   @field('is_deleted') isDeleted!: boolean;
   @field('server_created_at') serverCreatedAt!: number;
   @field('server_updated_at') serverUpdatedAt?: number;
+  @field('last_edited_at') lastEditedAt?: number;
 }
 
 export class AnimalIdentifier extends Model {

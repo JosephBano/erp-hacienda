@@ -274,6 +274,66 @@ describe('SyncEngine', () => {
       expect(animals[0].id).toBe('an-1');
     });
 
+    /**
+     * lastEditedAt is the LWW baseline the app must echo back on its next edit
+     * (updateAnimal push). Stored as epoch ms like the other server dates, under its
+     * own field name — unlike createdAt/updatedAt it has no WatermelonDB-reserved name
+     * to dodge.
+     */
+    it('stores the animal edit baseline so a later edit can declare it', async () => {
+      const editedAt = '2026-08-03T06:00:00.000Z';
+
+      api.pullHandler = async () => ({
+        cursor: 'cursor-1',
+        hasMore: false,
+        collections: {
+          animals: [
+            {
+              id: 'an-1',
+              sex: 'Female',
+              speciesId: 'sp-1',
+              isDeleted: false,
+              createdAt: '2026-08-01T00:00:00Z',
+              updatedAt: editedAt,
+              lastEditedAt: editedAt,
+            },
+          ],
+        },
+      });
+
+      await engine.syncNow();
+
+      const [animal] = await database.get('animals').query().fetch();
+      expect((animal as any).lastEditedAt).toBe(Date.parse(editedAt));
+    });
+
+    it('leaves the edit baseline unset for an animal that has never been edited', async () => {
+      api.pullHandler = async () => ({
+        cursor: 'cursor-1',
+        hasMore: false,
+        collections: {
+          animals: [
+            {
+              id: 'an-1',
+              sex: 'Female',
+              speciesId: 'sp-1',
+              isDeleted: false,
+              createdAt: '2026-08-01T00:00:00Z',
+              updatedAt: null,
+              lastEditedAt: null,
+            },
+          ],
+        },
+      });
+
+      await engine.syncNow();
+
+      // WatermelonDB may represent "never set" as null rather than undefined depending
+      // on the adapter — either is "no baseline", which is the actual contract.
+      const [animal] = await database.get('animals').query().fetch();
+      expect((animal as any).lastEditedAt).toBeFalsy();
+    });
+
     it('updates an animal it already had instead of storing it twice', async () => {
       const row = {
         id: 'an-1',

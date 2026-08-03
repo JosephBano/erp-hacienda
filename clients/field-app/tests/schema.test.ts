@@ -46,6 +46,7 @@ describe('local schema', () => {
         'is_deleted',
         'server_created_at',
         'server_updated_at',
+        'last_edited_at',
       ]),
     );
   });

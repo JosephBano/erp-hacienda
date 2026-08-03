@@ -83,5 +83,14 @@ export const migrations = schemaMigrations({
         }),
       ],
     },
+    {
+      toVersion: 3,
+      steps: [
+        addColumns({
+          table: 'animals',
+          columns: [{ name: 'last_edited_at', type: 'number', isOptional: true }],
+        }),
+      ],
+    },
   ],
 });

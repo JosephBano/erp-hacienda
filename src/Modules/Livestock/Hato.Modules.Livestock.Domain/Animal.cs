@@ -93,4 +93,19 @@ public class Animal : AuditableEntity
         FatherStrawId = fatherStrawId;
         BirthingId = birthingId;
     }
+
+    /// <summary>
+    /// Undoes a mis-registration — a double-tap in the field, a typo in the species. This
+    /// is a tombstone, not a physical removal (Art. 1): the row stays, <see cref="AuditableEntity.DeletedAt"/>
+    /// is set, and every field the animal ever held is left untouched. Whether it is safe
+    /// to delete an animal with recorded history is an Application-layer decision — the
+    /// aggregate has no visibility into events recorded against it in another module.
+    /// </summary>
+    public void Delete()
+    {
+        if (IsDeleted)
+            throw new DomainException("El animal ya fue eliminado.");
+
+        DeletedAt = DateTimeOffset.UtcNow;
+    }
 }

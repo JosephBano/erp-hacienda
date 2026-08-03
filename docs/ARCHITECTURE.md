@@ -168,6 +168,38 @@ Requisito de infraestructura: toda entidad sincronizable recibe `created_at`/`up
 del `AuditTimestampInterceptor` compartido, registrado en **todos** los DbContext de módulo.
 Una fila sin sellar queda en `0001-01-01` y sale del flujo de cambios.
 
+### Filtrado por permisos
+
+El pull sólo entrega las colecciones que el rol del usuario puede leer (PLAN-FASE-3-4
+§3.A, tarea 4). `Hato.Api` resuelve el conjunto de permisos efectivos vía
+`IUserPermissionsReader` (contrato público de People, implementado en
+`People.Infrastructure/CrossModule`, sin que Livestock ni Inventory dependan de People —
+Art. 6) y lo cruza contra un mapa colección→permiso: `animals`, `animalIdentifiers`,
+`animalGroups`, `groupMemberships`, `withdrawalPeriods` y las tablas de referencia
+(`species`, `breeds`, `animalCategories`) requieren `livestock.animals.read`;
+`inventoryItems` requiere `inventory.items.read`. Un rol de admin ya trae todos los
+códigos por la semilla RBAC, así que no hace falta un bypass especial. El parámetro
+`collections=` explícito nunca puede ampliar lo que el permiso permite: se cruzan ambos
+filtros antes de tocar la base.
+
+### Borrado lógico
+
+`Animal.Delete()` es el primer —y por ahora único— caso real de tombstone: deshace un
+animal mal registrado (doble toque en el campo, especie equivocada). Es un tombstone en
+el sentido estricto de Art. 1: la fila nunca se toca físicamente, sólo se marca
+`deleted_at`. Un `HasQueryFilter(a => a.DeletedAt == null)` la oculta de los endpoints
+normales (`GET /api/v1/animals`, `GET /api/v1/animals/{id}`); el pull la sigue viendo
+porque lee con `IgnoreQueryFilters()` a propósito. Invariante de la capa de Aplicación
+(el agregado no puede verla): un animal con eventos registrados no se puede eliminar —
+en ese punto ya no es "un error", y borrarlo dejaría eventos apuntando a un animal
+oculto.
+
+> **Estado real**: el borrado lógico y el filtrado por permisos del pull ya están
+> implementados y probados de punta a punta (`Hato.Sync.IntegrationTests`). Sigue
+> pendiente: extender el borrado lógico a otras entidades sincronizables (grupos,
+> ítems de inventario) si aparece un caso de uso real que lo pida, y la bitácora de
+> conflictos LWW.
+
 ### Push
 
 `POST /api/v1/sync/push` — lote de hasta 500 operaciones tipadas (`recordMilking`,

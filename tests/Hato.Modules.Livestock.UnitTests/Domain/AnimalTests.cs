@@ -76,4 +76,30 @@ public class AnimalTests
         Assert.Throws<DomainException>(
             () => animal.AssignIdentifier(IdentifierType.FarmTag, " ", new DateOnly(2026, 1, 1)));
     }
+
+    /// <summary>
+    /// Undoes a mis-registration (a double-tap in the field, a typo in the species).
+    /// Art. 1 is honored because this never removes the row — it sets DeletedAt, which
+    /// is what turns it into a tombstone the sync pull propagates to every device.
+    /// </summary>
+    [Fact]
+    public void Delete_MarksTheAnimalAsDeletedWithoutClearingItsData()
+    {
+        var animal = Animal.Register(SpeciesId, Sex.Female, breedId: Guid.NewGuid());
+
+        animal.Delete();
+
+        Assert.True(animal.IsDeleted);
+        Assert.NotNull(animal.DeletedAt);
+        Assert.Equal(SpeciesId, animal.SpeciesId);
+    }
+
+    [Fact]
+    public void Delete_CalledTwice_Throws()
+    {
+        var animal = Animal.Register(SpeciesId, Sex.Female);
+        animal.Delete();
+
+        Assert.Throws<DomainException>(() => animal.Delete());
+    }
 }

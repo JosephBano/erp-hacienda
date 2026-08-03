@@ -3,8 +3,10 @@ using System.Security.Cryptography;
 using System.Text;
 using FluentValidation;
 using Hato.Modules.People.Application.Abstractions;
+using Hato.Modules.People.Contracts;
 using Hato.Modules.People.Domain;
 using Hato.Modules.People.Infrastructure.Authorization;
+using Hato.Modules.People.Infrastructure.CrossModule;
 using Hato.Modules.People.Infrastructure.Persistence;
 using Hato.SharedKernel;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -25,6 +27,7 @@ public static class PeopleModule
         services.AddHttpContextAccessor();
         services.AddScoped<ICurrentUser, HttpContextCurrentUser>();
         services.AddScoped<AuditSaveChangesInterceptor>();
+        services.AddScoped<IUserPermissionsReader, UserPermissionsReader>();
 
         services.AddDbContext<PeopleDbContext>((sp, options) =>
         {

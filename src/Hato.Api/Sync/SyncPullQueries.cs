@@ -2,6 +2,8 @@ using System.Linq.Expressions;
 using Hato.Modules.Inventory.Application.Abstractions;
 using Hato.Modules.Livestock.Application.Abstractions;
 using Hato.Modules.People.Application.Abstractions;
+using Hato.Modules.People.Contracts;
+using Hato.Modules.People.Domain;
 using Hato.SharedKernel;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -137,11 +139,34 @@ public record GetSyncPullQuery(
 
 public class GetSyncPullQueryHandler(
     ILivestockDbContext livestockDb,
-    IInventoryDbContext inventoryDb)
+    IInventoryDbContext inventoryDb,
+    IUserPermissionsReader permissionsReader,
+    ICurrentUser currentUser)
     : IRequestHandler<GetSyncPullQuery, SyncPullResponseDto>
 {
     public const int DefaultBatchSize = 500;
     public const int MaxBatchSize = 1000;
+
+    /// <summary>
+    /// The permission a role needs to read each collection (PLAN-FASE-3-4 §3.A, pull task
+    /// 4: "el empleado solo baja lo que le corresponde"). Reference tables (species,
+    /// breeds, categories) sit under the same permission as animals: they exist to
+    /// support working with animals, so a role with no livestock access has no use for
+    /// them either.
+    /// </summary>
+    private static readonly Dictionary<string, string> RequiredPermissionByCollection =
+        new(StringComparer.OrdinalIgnoreCase)
+        {
+            ["animals"] = SystemPermissions.LivestockAnimalsRead,
+            ["animalIdentifiers"] = SystemPermissions.LivestockAnimalsRead,
+            ["animalGroups"] = SystemPermissions.LivestockAnimalsRead,
+            ["groupMemberships"] = SystemPermissions.LivestockAnimalsRead,
+            ["species"] = SystemPermissions.LivestockAnimalsRead,
+            ["breeds"] = SystemPermissions.LivestockAnimalsRead,
+            ["animalCategories"] = SystemPermissions.LivestockAnimalsRead,
+            ["withdrawalPeriods"] = SystemPermissions.LivestockAnimalsRead,
+            ["inventoryItems"] = SystemPermissions.InventoryItemsRead,
+        };
 
     public async Task<SyncPullResponseDto> Handle(GetSyncPullQuery request, CancellationToken cancellationToken)
     {
@@ -150,8 +175,25 @@ public class GetSyncPullQueryHandler(
         var requested = ParseCollections(request.Collections);
         var frontier = new CursorFrontier(since);
 
+        // Deny by default: a user with no resolvable id (should not happen behind
+        // RequireAuthorization, but the pull must never fail open) sees nothing.
+        var permissionCodes = currentUser.UserId is { } userId
+            ? await permissionsReader.GetPermissionCodesAsync(userId, cancellationToken)
+            : [];
+
+        var visible = RequiredPermissionByCollection
+            .Where(kv => permissionCodes.Contains(kv.Value))
+            .Select(kv => kv.Key)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        // The explicit `collections=` filter and the permission filter both apply: asking
+        // by name for a collection the role cannot read must not leak it.
+        var effective = requested is null
+            ? visible
+            : requested.Where(visible.Contains).ToHashSet(StringComparer.OrdinalIgnoreCase);
+
         var animals = await ReadAsync(
-            requested, "animals", livestockDb.Animals, since, limit, frontier,
+            effective, "animals", livestockDb.Animals, since, limit, frontier,
             a => new SyncAnimalDto(
                 a.Id, a.Sex.ToString(), a.BirthDate, a.SpeciesId, a.BreedId, a.CategoryId,
                 a.MotherId, a.FatherAnimalId, a.FatherStrawId,
@@ -159,53 +201,53 @@ public class GetSyncPullQueryHandler(
             cancellationToken);
 
         var identifiers = await ReadAsync(
-            requested, "animalIdentifiers", livestockDb.AnimalIdentifiers, since, limit, frontier,
+            effective, "animalIdentifiers", livestockDb.AnimalIdentifiers, since, limit, frontier,
             i => new SyncAnimalIdentifierDto(
                 i.Id, i.AnimalId, i.Type.ToString(), i.Value, i.IsActive,
                 i.CreatedAt, i.UpdatedAt, i.DeletedAt != null),
             cancellationToken);
 
         var groups = await ReadAsync(
-            requested, "animalGroups", livestockDb.AnimalGroups, since, limit, frontier,
+            effective, "animalGroups", livestockDb.AnimalGroups, since, limit, frontier,
             g => new SyncAnimalGroupDto(
                 g.Id, g.Name, g.Description, g.SpeciesId, g.IsActive,
                 g.CreatedAt, g.UpdatedAt, g.DeletedAt != null),
             cancellationToken);
 
         var memberships = await ReadAsync(
-            requested, "groupMemberships", livestockDb.GroupMemberships, since, limit, frontier,
+            effective, "groupMemberships", livestockDb.GroupMemberships, since, limit, frontier,
             m => new SyncGroupMembershipDto(
                 m.Id, m.AnimalId, m.GroupId, m.JoinedAt, m.LeftAt, m.IsActive,
                 m.CreatedAt, m.UpdatedAt, m.DeletedAt != null),
             cancellationToken);
 
         var speciesList = await ReadAsync(
-            requested, "species", livestockDb.Species, since, limit, frontier,
+            effective, "species", livestockDb.Species, since, limit, frontier,
             s => new SyncSpeciesDto(
                 s.Id, s.Name, s.GestationDays, s.CreatedAt, s.UpdatedAt, s.DeletedAt != null),
             cancellationToken);
 
         var breeds = await ReadAsync(
-            requested, "breeds", livestockDb.Breeds, since, limit, frontier,
+            effective, "breeds", livestockDb.Breeds, since, limit, frontier,
             b => new SyncBreedDto(
                 b.Id, b.SpeciesId, b.Name, b.CreatedAt, b.UpdatedAt, b.DeletedAt != null),
             cancellationToken);
 
         var categories = await ReadAsync(
-            requested, "animalCategories", livestockDb.AnimalCategories, since, limit, frontier,
+            effective, "animalCategories", livestockDb.AnimalCategories, since, limit, frontier,
             c => new SyncCategoryDto(
                 c.Id, c.SpeciesId, c.Name, c.CreatedAt, c.UpdatedAt, c.DeletedAt != null),
             cancellationToken);
 
         var items = await ReadAsync(
-            requested, "inventoryItems", inventoryDb.InventoryItems, since, limit, frontier,
+            effective, "inventoryItems", inventoryDb.InventoryItems, since, limit, frontier,
             i => new SyncInventoryItemDto(
                 i.Id, i.Name, i.Category.ToString(), i.Unit, i.Description,
                 i.CreatedAt, i.UpdatedAt, i.DeletedAt != null),
             cancellationToken);
 
         var withdrawals = await ReadAsync(
-            requested, "withdrawalPeriods", livestockDb.WithdrawalPeriods, since, limit, frontier,
+            effective, "withdrawalPeriods", livestockDb.WithdrawalPeriods, since, limit, frontier,
             w => new SyncWithdrawalPeriodDto(
                 w.Id, w.AnimalId, w.EventId, w.Target.ToString(), w.StartsAt, w.EndsAt,
                 w.CreatedAt, w.UpdatedAt, w.DeletedAt != null),

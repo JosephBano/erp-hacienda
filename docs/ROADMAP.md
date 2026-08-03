@@ -117,11 +117,12 @@ sistema, y la cría nació "dentro" del sistema con su genealogía.
 **Criterio de salida:** una semana completa de registros de campo hechos solo desde el
 móvil, incluyendo días sin señal, sin pérdida ni duplicación de datos.
 
-> **Pendiente para cerrar (2026-08-03):** el piloto con empleados reales no ha ocurrido. Falta
-> además: bandeja de conflictos y pantallas de roles/auditoría en el panel Angular, borrado
-> lógico real (hoy nada asigna `deleted_at`, así que los tombstones no pueden viajar), filtrado
-> del pull por permisos, bitácora de conflictos LWW, y la subida de fotos (depende del módulo
-> de adjuntos de la Fase 4).
+> **Pendiente para cerrar (2026-08-03):** el piloto con empleados reales no ha ocurrido. Ya
+> resuelto desde la reapertura: borrado lógico real (`Animal.Delete()`, con invariante de
+> "no eliminar con historia" y filtro de query) y filtrado del pull por permisos (una
+> colección sólo baja si el rol tiene el permiso correspondiente). Sigue faltando: bandeja
+> de conflictos y pantallas de roles/auditoría en el panel Angular, bitácora de conflictos
+> LWW, y la subida de fotos (depende del módulo de adjuntos de la Fase 4).
 
 ---
 

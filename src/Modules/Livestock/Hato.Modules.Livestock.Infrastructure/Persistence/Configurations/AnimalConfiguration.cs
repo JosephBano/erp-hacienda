@@ -23,6 +23,11 @@ public class AnimalConfiguration : IEntityTypeConfiguration<Animal>
         builder.HasIndex(a => a.FatherAnimalId);
         builder.HasIndex(a => a.FatherStrawId);
 
+        // A deleted animal is a tombstone (Art. 1), not an absence — it still exists for
+        // the sync pull, which reads with IgnoreQueryFilters() precisely to see past this.
+        // Every other query (the regular listing/detail endpoints) must not see it.
+        builder.HasQueryFilter(a => a.DeletedAt == null);
+
         // Identifiers is a read-only projection over the private backing field (Art. 1:
         // history is never exposed as directly mutable outside the aggregate root).
         builder.Metadata.FindNavigation(nameof(Animal.Identifiers))!

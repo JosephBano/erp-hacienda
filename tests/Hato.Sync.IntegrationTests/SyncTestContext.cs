@@ -55,6 +55,58 @@ public class SyncTestContext
     }
 
     /// <summary>
+    /// A user whose role grants exactly the given permission codes — none of the system
+    /// roles (admin/registrar/veterinarian) are narrow enough to prove the pull actually
+    /// filters, since even "registrar" already reads Livestock and Inventory.
+    /// </summary>
+    public static async Task<SyncTestContext> CreateWithPermissionsAsync(
+        SyncApiFactory factory, string scenario, params string[] permissionCodes)
+    {
+        var admin = await GetBootstrapAdminAsync(factory);
+
+        var permissionsResponse = await admin.GetAsync("/api/v1/people/permissions");
+        permissionsResponse.EnsureSuccessStatusCode();
+        var allPermissions = await permissionsResponse.Content.ReadFromJsonAsync<JsonElement>();
+
+        var permissionIds = allPermissions.EnumerateArray()
+            .Where(p => permissionCodes.Contains(p.GetProperty("code").GetString()))
+            .Select(p => p.GetProperty("id").GetGuid())
+            .ToList();
+
+        // Role code has a 50-char limit: truncate the scenario name and keep a short
+        // random suffix so roles from different tests never collide.
+        var shortScenario = scenario.Length > 30 ? scenario[..30] : scenario;
+        var roleCode = $"{shortScenario}-{Guid.NewGuid():N}"[..Math.Min(shortScenario.Length + 9, 50)];
+        var roleResponse = await admin.PostAsJsonAsync("/api/v1/people/roles", new
+        {
+            code = roleCode,
+            name = $"Rol {scenario}",
+            description = "Rol de prueba con permisos acotados",
+            permissionIds,
+        });
+        roleResponse.EnsureSuccessStatusCode();
+
+        var email = $"{scenario}-{Guid.NewGuid():N}@finca.ec";
+        var create = await admin.PostAsJsonAsync("/api/v1/people/users", new
+        {
+            fullName = $"Usuario {scenario}",
+            email,
+            password = Password,
+            roleCodes = new[] { roleCode },
+        });
+        create.EnsureSuccessStatusCode();
+
+        var login = await LoginAsync(factory, email, Password);
+        var client = factory.CreateClient();
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", login.Token);
+
+        return new SyncTestContext(factory, client, login.UserId);
+    }
+
+    /// <summary>An authenticated admin client, for seeding fixtures a limited-permission test user cannot create itself.</summary>
+    public static Task<HttpClient> AdminClientAsync(SyncApiFactory factory) => GetBootstrapAdminAsync(factory);
+
+    /// <summary>
     /// The first user of a fresh database registers itself without a token; every later
     /// registration needs an authenticated admin. This creates that first user exactly
     /// once for the whole suite and hands back a session for it.

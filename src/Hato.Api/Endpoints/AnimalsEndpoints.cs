@@ -1,4 +1,6 @@
 using Hato.Modules.Livestock.Application.Animals;
+using Hato.Modules.People.Domain;
+using Hato.Modules.People.Infrastructure.Authorization;
 using MediatR;
 
 namespace Hato.Api.Endpoints;
@@ -33,6 +35,12 @@ public static class AnimalsEndpoints
             var identifierId = await sender.Send(command);
             return Results.Created($"/api/v1/animals/{id}/identifiers/{identifierId}", new { id = identifierId });
         });
+
+        group.MapDelete("/{id:guid}", async (Guid id, ISender sender) =>
+        {
+            await sender.Send(new DeleteAnimalCommand(id));
+            return Results.NoContent();
+        }).RequireAuthorization(policy => policy.RequirePermission(SystemPermissions.LivestockAnimalsWrite));
     }
 }
 

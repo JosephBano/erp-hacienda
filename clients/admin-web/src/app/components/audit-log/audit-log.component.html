@@ -1,0 +1,63 @@
+<div class="page-container">
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">📜 Bitácora de Auditoría</h1>
+      <p class="subtitle">Quién registró qué y cuándo. No permite edición ni borrado.</p>
+    </div>
+  </div>
+
+  <div class="glass-card filter-toolbar">
+    <div class="filter-group">
+      <label class="form-label">Usuario:</label>
+      <select class="form-select" [(ngModel)]="userIdFilter">
+        <option value="">Todos</option>
+        <option *ngFor="let u of users" [value]="u.id">{{ u.fullName }}</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <label class="form-label">Desde:</label>
+      <input type="date" class="form-input" [(ngModel)]="fromFilter">
+    </div>
+    <div class="filter-group">
+      <label class="form-label">Hasta:</label>
+      <input type="date" class="form-input" [(ngModel)]="toFilter">
+    </div>
+    <button class="btn btn-primary" (click)="page = 1; search()">Filtrar</button>
+  </div>
+
+  <div *ngIf="loadError" class="alert alert-danger">
+    No se pudo cargar la bitácora (requiere permiso de administración de usuarios).
+  </div>
+
+  <div class="table-container glass-card" *ngIf="!loadError">
+    <table>
+      <thead>
+        <tr>
+          <th>Fecha</th>
+          <th>Usuario</th>
+          <th>Acción</th>
+          <th>Módulo</th>
+          <th>Entidad</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let log of logs">
+          <td>{{ log.timestamp | date: 'short' }}</td>
+          <td>{{ log.userFullName || log.userEmail || 'Sistema' }}</td>
+          <td><span class="badge badge-info">{{ log.action }}</span></td>
+          <td>{{ log.module }}</td>
+          <td>{{ log.entityName }} <span class="text-muted">#{{ log.entityId.slice(0, 8) }}</span></td>
+        </tr>
+        <tr *ngIf="logs.length === 0">
+          <td colspan="5" class="text-center py-4 text-muted">Sin registros para los filtros seleccionados.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="pagination mt-3" *ngIf="!loadError && totalCount > 0">
+    <button class="btn btn-secondary btn-sm" [disabled]="page <= 1" (click)="goToPage(page - 1)">← Anterior</button>
+    <span>Página {{ page }} de {{ totalPages }} ({{ totalCount }} registros)</span>
+    <button class="btn btn-secondary btn-sm" [disabled]="page >= totalPages" (click)="goToPage(page + 1)">Siguiente →</button>
+  </div>
+</div>

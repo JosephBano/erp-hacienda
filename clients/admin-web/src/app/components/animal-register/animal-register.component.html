@@ -1,0 +1,99 @@
+<div class="page-container">
+  <div class="page-header">
+    <h1 class="page-title">🐄 Registrar Animal</h1>
+    <p class="subtitle">Alta de un animal en el sistema (Art. 3: identidad soberana, con o sin arete).</p>
+  </div>
+
+  <div *ngIf="successMessage" class="alert alert-success">{{ successMessage }}</div>
+  <div *ngIf="errorMessage" class="alert alert-danger">{{ errorMessage }}</div>
+
+  <div class="glass-card form-card">
+    <div class="form-grid">
+      <div class="form-group">
+        <label class="form-label">Especie:</label>
+        <div class="inline-field" *ngIf="species.length > 0">
+          <select class="form-select" [(ngModel)]="selectedSpeciesId" (ngModelChange)="onSpeciesChange()">
+            <option *ngFor="let s of species" [value]="s.id">{{ s.name }}</option>
+          </select>
+          <button type="button" class="btn-link" (click)="showNewSpeciesForm = !showNewSpeciesForm">+ nueva</button>
+        </div>
+        <p class="field-hint" *ngIf="species.length === 0">
+          Todavía no hay ninguna especie registrada. Cree la primera abajo.
+        </p>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Sexo:</label>
+        <select class="form-select" [(ngModel)]="sex">
+          <option value="Female">Hembra</option>
+          <option value="Male">Macho</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Fecha de nacimiento (opcional):</label>
+        <input type="date" class="form-input" [(ngModel)]="birthDate">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Arete / identificación (opcional):</label>
+        <input type="text" class="form-input" placeholder="Sin arete todavía es válido" [(ngModel)]="farmTag">
+      </div>
+    </div>
+
+    <div class="event-details-box mt-3" *ngIf="showNewSpeciesForm || species.length === 0">
+      <h4>Nueva especie</h4>
+      <div class="form-grid mt-2">
+        <div class="form-group">
+          <label class="form-label">Nombre:</label>
+          <input type="text" class="form-input" placeholder="Bovino, Porcino, Ovino…" [(ngModel)]="newSpeciesName">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Días de gestación (opcional):</label>
+          <input type="number" min="1" class="form-input" [(ngModel)]="newSpeciesGestationDays">
+        </div>
+      </div>
+      <div class="form-actions mt-2">
+        <button type="button" class="btn btn-secondary" (click)="saveNewSpecies()">Guardar especie</button>
+      </div>
+    </div>
+
+    <div class="form-grid mt-3" *ngIf="selectedSpeciesId">
+      <div class="form-group">
+        <label class="form-label">Raza (opcional):</label>
+        <div class="inline-field">
+          <select class="form-select" [(ngModel)]="selectedBreedId">
+            <option value="">— Sin especificar —</option>
+            <option *ngFor="let b of breeds" [value]="b.id">{{ b.name }}</option>
+          </select>
+          <button type="button" class="btn-link" (click)="showNewBreedForm = !showNewBreedForm">+ nueva</button>
+        </div>
+        <div class="inline-field mt-2" *ngIf="showNewBreedForm">
+          <input type="text" class="form-input" placeholder="Nombre de la raza" [(ngModel)]="newBreedName">
+          <button type="button" class="btn btn-secondary" (click)="saveNewBreed()">Guardar</button>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Categoría (opcional):</label>
+        <div class="inline-field">
+          <select class="form-select" [(ngModel)]="selectedCategoryId">
+            <option value="">— Sin especificar —</option>
+            <option *ngFor="let c of categories" [value]="c.id">{{ c.name }}</option>
+          </select>
+          <button type="button" class="btn-link" (click)="showNewCategoryForm = !showNewCategoryForm">+ nueva</button>
+        </div>
+        <div class="inline-field mt-2" *ngIf="showNewCategoryForm">
+          <input type="text" class="form-input" placeholder="Nombre de la categoría" [(ngModel)]="newCategoryName">
+          <button type="button" class="btn btn-secondary" (click)="saveNewCategory()">Guardar</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-actions mt-4">
+      <button class="btn btn-primary btn-lg" [disabled]="busy || !selectedSpeciesId" (click)="registerAnimal()">
+        {{ busy ? 'Guardando…' : '💾 Registrar animal' }}
+      </button>
+    </div>
+  </div>
+</div>

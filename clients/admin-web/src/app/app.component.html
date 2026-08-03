@@ -33,6 +33,25 @@
         <span class="nav-icon">🧬</span>
         <span>Reproducción y Alertas</span>
       </a>
+
+      <div class="nav-section-label" *ngIf="auth.hasPermission('people.roles.manage') || auth.hasPermission('people.users.manage')">
+        Administración
+      </div>
+
+      <a routerLink="/roles" routerLinkActive="active" class="nav-item" *ngIf="auth.hasPermission('people.roles.manage')">
+        <span class="nav-icon">🔐</span>
+        <span>Roles y Permisos</span>
+      </a>
+
+      <a routerLink="/audit" routerLinkActive="active" class="nav-item" *ngIf="auth.hasPermission('people.users.manage')">
+        <span class="nav-icon">📜</span>
+        <span>Auditoría</span>
+      </a>
+
+      <a routerLink="/sync" routerLinkActive="active" class="nav-item" *ngIf="auth.hasPermission('people.users.manage')">
+        <span class="nav-icon">📡</span>
+        <span>Sincronización</span>
+      </a>
     </nav>
 
     <div class="sidebar-footer">
@@ -40,7 +59,7 @@
         <span class="user-avatar">👤</span>
         <div class="user-info">
           <span class="user-name">{{ auth.currentUser()?.fullName || 'Usuario' }}</span>
-          <span class="user-role">{{ auth.currentUser()?.role || '' }}</span>
+          <span class="user-role">{{ auth.currentUser()?.roles?.join(', ') || '' }}</span>
         </div>
       </div>
       <button type="button" class="logout-button" (click)="logout()">Cerrar sesión</button>

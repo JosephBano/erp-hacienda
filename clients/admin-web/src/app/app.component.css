@@ -46,6 +46,16 @@
   flex: 1;
 }
 
+.nav-section-label {
+  margin-top: 0.75rem;
+  padding: 0 1rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-subtle);
+}
+
 .nav-item {
   display: flex;
   align-items: center;

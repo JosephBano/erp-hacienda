@@ -22,6 +22,32 @@ export interface AnimalDetail extends Animal {
   milkYields: MilkYield[];
 }
 
+export interface SpeciesDto {
+  id: string;
+  name: string;
+  gestationDays?: number;
+}
+
+export interface BreedDto {
+  id: string;
+  speciesId: string;
+  name: string;
+}
+
+export interface AnimalCategoryDto {
+  id: string;
+  speciesId: string;
+  name: string;
+}
+
+export interface RegisterAnimalRequest {
+  speciesId: string;
+  sex: 'Male' | 'Female';
+  breedId?: string;
+  categoryId?: string;
+  birthDate?: string;
+}
+
 export interface AnimalEvent {
   id: string;
   eventType: string;
@@ -198,7 +224,21 @@ export interface SyncOperationDto {
   status: string;
   deviceId: string;
   errorDetails?: string;
+  resultRef?: string;
+  occurredAt: string;
   receivedAt: string;
+}
+
+export interface SyncConflictDto {
+  id: string;
+  entityType: string;
+  entityId: string;
+  fieldName: string;
+  serverValue?: string;
+  attemptedValue?: string;
+  resolution: string;
+  deviceId?: string;
+  detectedAt: string;
 }
 
 @Injectable({
@@ -207,6 +247,53 @@ export interface SyncOperationDto {
 export class ApiService {
   private http = inject(HttpClient);
   private baseUrl = '/api/v1';
+
+  // --- Livestock catalogs (species/breeds/categories) ---
+  getSpecies(): Observable<SpeciesDto[]> {
+    return this.http.get<SpeciesDto[]>(`${this.baseUrl}/species`);
+  }
+
+  createSpecies(data: { name: string; gestationDays?: number }): Observable<{ id: string }> {
+    return this.http.post<{ id: string }>(`${this.baseUrl}/species`, data);
+  }
+
+  getBreeds(speciesId?: string): Observable<BreedDto[]> {
+    let httpParams = new HttpParams();
+    if (speciesId) httpParams = httpParams.set('speciesId', speciesId);
+    return this.http.get<BreedDto[]>(`${this.baseUrl}/breeds`, { params: httpParams });
+  }
+
+  createBreed(data: { speciesId: string; name: string }): Observable<{ id: string }> {
+    return this.http.post<{ id: string }>(`${this.baseUrl}/breeds`, data);
+  }
+
+  getAnimalCategories(speciesId?: string): Observable<AnimalCategoryDto[]> {
+    let httpParams = new HttpParams();
+    if (speciesId) httpParams = httpParams.set('speciesId', speciesId);
+    return this.http.get<AnimalCategoryDto[]>(`${this.baseUrl}/animal-categories`, { params: httpParams });
+  }
+
+  createAnimalCategory(data: { speciesId: string; name: string }): Observable<{ id: string }> {
+    return this.http.post<{ id: string }>(`${this.baseUrl}/animal-categories`, data);
+  }
+
+  registerAnimal(data: RegisterAnimalRequest): Observable<{ id: string }> {
+    return this.http.post<{ id: string }>(`${this.baseUrl}/animals`, data);
+  }
+
+  assignAnimalIdentifier(
+    animalId: string,
+    data: { type: string; value: string; validFrom: string }
+  ): Observable<{ id: string }> {
+    return this.http.post<{ id: string }>(`${this.baseUrl}/animals/${animalId}/identifiers`, data);
+  }
+
+  // --- Sync tray ---
+  getSyncConflicts(entityType?: string): Observable<SyncConflictDto[]> {
+    let httpParams = new HttpParams();
+    if (entityType) httpParams = httpParams.set('entityType', entityType);
+    return this.http.get<SyncConflictDto[]>(`${this.baseUrl}/sync/conflicts`, { params: httpParams });
+  }
 
   getSyncOperations(status?: string): Observable<SyncOperationDto[]> {
     let httpParams = new HttpParams();

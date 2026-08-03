@@ -1,0 +1,102 @@
+<div class="page-container">
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">📡 Sincronización — Problemas y Conflictos</h1>
+      <p class="subtitle">Nada de lo que un dispositivo envía se pierde en silencio: lo que el servidor rechaza o resuelve por LWW queda aquí.</p>
+    </div>
+  </div>
+
+  <div *ngIf="loadError" class="alert alert-danger">No se pudo cargar la bandeja de sincronización.</div>
+
+  <div class="tabs">
+    <button class="tab-button" [class.active]="activeTab === 'rejected'" (click)="activeTab = 'rejected'">
+      Operaciones rechazadas
+    </button>
+    <button class="tab-button" [class.active]="activeTab === 'conflicts'" (click)="activeTab = 'conflicts'">
+      Conflictos LWW
+    </button>
+  </div>
+
+  <div *ngIf="activeTab === 'rejected'">
+    <div class="glass-card filter-toolbar">
+      <label class="form-label">Estado:</label>
+      <select class="form-select" [(ngModel)]="statusFilter" (ngModelChange)="loadOperations()">
+        <option value="Rejected">Rechazadas</option>
+        <option value="Accepted">Aceptadas</option>
+        <option value="Duplicate">Duplicadas</option>
+        <option value="">Todas</option>
+      </select>
+    </div>
+
+    <div class="table-container glass-card mt-3">
+      <table>
+        <thead>
+          <tr>
+            <th>Recibida</th>
+            <th>Ocurrió</th>
+            <th>Tipo</th>
+            <th>Dispositivo</th>
+            <th>Estado</th>
+            <th>Motivo</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let op of operations">
+            <td>{{ op.receivedAt | date: 'short' }}</td>
+            <td>{{ op.occurredAt | date: 'short' }}</td>
+            <td>{{ op.operationType }}</td>
+            <td>{{ op.deviceId }}</td>
+            <td>
+              <span class="badge"
+                [class.badge-danger]="op.status === 'Rejected'"
+                [class.badge-success]="op.status === 'Accepted'"
+                [class.badge-info]="op.status === 'Duplicate'">
+                {{ op.status }}
+              </span>
+            </td>
+            <td>{{ op.errorDetails || '—' }}</td>
+          </tr>
+          <tr *ngIf="operations.length === 0">
+            <td colspan="6" class="text-center py-4 text-muted">Ninguna operación en este estado.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div *ngIf="activeTab === 'conflicts'">
+    <div class="table-container glass-card mt-3">
+      <table>
+        <thead>
+          <tr>
+            <th>Detectado</th>
+            <th>Entidad</th>
+            <th>Campo</th>
+            <th>Valor final</th>
+            <th>Valor intentado</th>
+            <th>Resolución</th>
+            <th>Dispositivo</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let c of conflicts">
+            <td>{{ c.detectedAt | date: 'short' }}</td>
+            <td>{{ c.entityType }} <span class="text-muted">#{{ c.entityId.slice(0, 8) }}</span></td>
+            <td>{{ c.fieldName }}</td>
+            <td>{{ c.serverValue || '—' }}</td>
+            <td>{{ c.attemptedValue || '—' }}</td>
+            <td>
+              <span class="badge" [class.badge-success]="c.resolution === 'ClientWon'" [class.badge-warning]="c.resolution === 'ServerWon'">
+                {{ c.resolution === 'ClientWon' ? 'Ganó el envío' : 'Se mantuvo el servidor' }}
+              </span>
+            </td>
+            <td>{{ c.deviceId || '—' }}</td>
+          </tr>
+          <tr *ngIf="conflicts.length === 0">
+            <td colspan="7" class="text-center py-4 text-muted">Sin conflictos registrados.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>

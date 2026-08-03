@@ -1,81 +1,147 @@
 import { AuthService } from '../src/services/authService';
 
-describe('AuthService Offline & Session Tests', () => {
-  let authService: AuthService;
+/**
+ * The employee unlocks the app at 5 AM with a PIN and no signal. Two things must hold:
+ * the session has to survive being closed (it lives in the device keystore, not in a
+ * browser API React Native does not have), and the PIN must be stored as a salted
+ * cryptographic digest — the previous implementation used a 32-bit string hash, which a
+ * phone can exhaust for every 4-digit PIN essentially instantly.
+ */
+describe('AuthService', () => {
+  const baseUrl = 'https://hato.test';
+  let service: AuthService;
+
+  const loginResponse = {
+    token: 'jwt-token',
+    refreshToken: 'refresh-token',
+    expiresAt: '2030-01-01T00:00:00Z',
+    userId: 'user-1',
+    fullName: 'María Campo',
+    roles: ['registrador'],
+    permissions: ['livestock.animals.write'],
+  };
 
   beforeEach(() => {
-    authService = new AuthService();
-    // Mock global fetch
-    global.fetch = jest.fn();
+    (global as any).__resetNativeMocks();
+    service = new AuthService(baseUrl);
+    global.fetch = jest.fn(async () => ({
+      ok: true,
+      status: 200,
+      json: async () => loginResponse,
+      text: async () => '',
+    })) as unknown as typeof fetch;
   });
 
-  test('loginOnline successful stores session and tokens', async () => {
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({
-        token: 'jwt-access-token-123',
-        refreshToken: 'refresh-token-456',
-        userId: 'user-guid-001',
-        role: 'registrar',
-      }),
-    });
+  it('keeps the session after a successful login', async () => {
+    const session = await service.login('maria@finca.ec', 'Secreta123!');
 
-    const session = await authService.loginOnline(
-      { email: 'empleado@finca.ec', password: 'password123' },
-      'http://localhost:5000'
-    );
-
-    Assert.assertNotNull(session);
-    expect(session.token).toBe('jwt-access-token-123');
-    expect(session.refreshToken).toBe('refresh-token-456');
-    expect(authService.isOffline()).toBe(false);
+    expect(session.fullName).toBe('María Campo');
+    expect(service.currentSession()?.token).toBe('jwt-token');
   });
 
-  test('setupOfflinePin and unlockOfflineWithPin succeeds offline', async () => {
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({
-        token: 'jwt-access-token-123',
-        refreshToken: 'refresh-token-456',
-        userId: 'user-guid-001',
-        role: 'registrar',
-      }),
-    });
+  it('restores the session from the device keystore when the app reopens', async () => {
+    await service.login('maria@finca.ec', 'Secreta123!');
 
-    await authService.loginOnline(
-      { email: 'empleado@finca.ec', password: 'password123' },
-      'http://localhost:5000'
-    );
+    const reopened = new AuthService(baseUrl);
+    await reopened.restore();
 
-    await authService.setupOfflinePin('1234');
-
-    const offlineSession = await authService.unlockOfflineWithPin('1234');
-    expect(offlineSession.email).toBe('empleado@finca.ec');
-    expect(authService.isOffline()).toBe(true);
+    expect(reopened.currentSession()?.userId).toBe('user-1');
   });
 
-  test('unlockOfflineWithPin fails on wrong PIN', async () => {
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
+  it('reports being offline when the login request cannot reach the server', async () => {
+    await service.login('maria@finca.ec', 'Secreta123!');
+    await service.setPin('4321');
+
+    global.fetch = jest.fn(async () => {
+      throw new Error('Network request failed');
+    }) as unknown as typeof fetch;
+
+    const reopened = new AuthService(baseUrl);
+    await reopened.restore();
+    const session = await reopened.unlockWithPin('4321');
+
+    expect(session.userId).toBe('user-1');
+    expect(reopened.isOffline()).toBe(true);
+  });
+
+  it('refuses the wrong PIN', async () => {
+    await service.login('maria@finca.ec', 'Secreta123!');
+    await service.setPin('4321');
+
+    const reopened = new AuthService(baseUrl);
+    await reopened.restore();
+
+    await expect(reopened.unlockWithPin('0000')).rejects.toThrow(/PIN/i);
+  });
+
+  it('never stores the PIN itself', async () => {
+    await service.login('maria@finca.ec', 'Secreta123!');
+    await service.setPin('4321');
+
+    const stored = await service.debugStoredSessionJson();
+
+    expect(stored).not.toContain('4321');
+  });
+
+  it('salts the digest so two employees with the same PIN do not share a hash', async () => {
+    await service.login('maria@finca.ec', 'Secreta123!');
+    await service.setPin('4321');
+    const first = JSON.parse((await service.debugStoredSessionJson())!).pinHash;
+
+    (global as any).__resetNativeMocks();
+    const other = new AuthService(baseUrl);
+    await other.login('jose@finca.ec', 'Secreta123!');
+    await other.setPin('4321');
+    const second = JSON.parse((await other.debugStoredSessionJson())!).pinHash;
+
+    expect(first).not.toBe(second);
+  });
+
+  it('rejects a PIN that is too short to be worth anything', async () => {
+    await service.login('maria@finca.ec', 'Secreta123!');
+
+    await expect(service.setPin('12')).rejects.toThrow(/PIN/i);
+  });
+
+  it('refuses to unlock when no session was ever cached', async () => {
+    await expect(service.unlockWithPin('4321')).rejects.toThrow(/sesión/i);
+  });
+
+  it('renews the token and keeps the new refresh token', async () => {
+    await service.login('maria@finca.ec', 'Secreta123!');
+
+    global.fetch = jest.fn(async () => ({
       ok: true,
-      json: async () => ({
-        token: 'jwt-access-token-123',
-        refreshToken: 'refresh-token-456',
-        userId: 'user-guid-001',
-        role: 'registrar',
-      }),
-    });
+      status: 200,
+      json: async () => ({ ...loginResponse, token: 'jwt-2', refreshToken: 'refresh-2' }),
+      text: async () => '',
+    })) as unknown as typeof fetch;
 
-    await authService.loginOnline(
-      { email: 'empleado@finca.ec', password: 'password123' },
-      'http://localhost:5000'
-    );
+    const refreshed = await service.refresh();
 
-    await authService.setupOfflinePin('1234');
+    expect(refreshed).toBe(true);
+    expect(service.currentSession()?.token).toBe('jwt-2');
+  });
 
-    await expect(authService.unlockOfflineWithPin('9999')).rejects.toThrow('PIN incorrecto.');
+  it('reports a failed renewal instead of throwing at the sync engine', async () => {
+    await service.login('maria@finca.ec', 'Secreta123!');
+
+    global.fetch = jest.fn(async () => ({
+      ok: false,
+      status: 401,
+      json: async () => ({}),
+      text: async () => 'expired',
+    })) as unknown as typeof fetch;
+
+    expect(await service.refresh()).toBe(false);
+  });
+
+  it('forgets everything on logout', async () => {
+    await service.login('maria@finca.ec', 'Secreta123!');
+
+    await service.logout();
+
+    expect(service.currentSession()).toBeNull();
+    expect(await service.debugStoredSessionJson()).toBeNull();
   });
 });
-
-const Assert = {
-  assertNotNull: (val: any) => expect(val).not.toBeNull(),
-};

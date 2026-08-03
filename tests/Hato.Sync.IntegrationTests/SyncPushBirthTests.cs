@@ -63,6 +63,41 @@ public class SyncPushBirthTests(SyncApiFactory factory)
         Assert.Single(offspring);
     }
 
+    /// <summary>
+    /// A birth witnessed in the paddock often has no pregnancy record behind it — natural
+    /// mating, nobody logged the service. The employee who was there knows the sire, so
+    /// the app lets them declare it, and that declaration has to reach the calf. If the
+    /// server only ever resolved the sire from a pregnancy, the field-recorded birth would
+    /// come back fatherless with no error to show for it.
+    /// </summary>
+    [Fact]
+    public async Task Push_RecordBirthWithDeclaredSire_LinksTheCalfToItsFather()
+    {
+        var context = await SyncTestContext.CreateAsync(factory, "birth-sire");
+        var speciesId = await context.CreateSpeciesAsync("Bovino");
+        var damId = await context.CreateAnimalAsync(speciesId);
+        var sireId = await context.CreateAnimalAsync(speciesId, sex: "Male");
+
+        var result = await context.PushAsync(
+            "recordBirth",
+            new
+            {
+                damId,
+                sireAnimalId = sireId,
+                birthDate = DateOnly.FromDateTime(DateTime.UtcNow),
+                difficulty = "Normal",
+                bornAlive = 1,
+                offspring = new[] { new { sex = "F", farmTag = (string?)null, birthWeightKg = (decimal?)null } },
+            });
+
+        Assert.Equal("Accepted", result.GetProperty("status").GetString());
+
+        var offspring = await context.FindOffspringOfAsync(damId);
+        var calf = await context.FindAsync("animals", Assert.Single(offspring));
+
+        Assert.Equal(sireId, calf.GetProperty("fatherAnimalId").GetGuid());
+    }
+
     [Fact]
     public async Task Push_RecordBirthOfTwins_ConvergesWithBothCalves()
     {

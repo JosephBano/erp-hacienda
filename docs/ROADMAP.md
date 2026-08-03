@@ -2,7 +2,7 @@
 
 > Regla de oro (Art. 11): **una fase se cierra cuando algo se usa de verdad en la finca.**
 > Este archivo se actualiza al cerrar cada fase (fecha real + retrospectiva de 5 líneas).
-> Estado actual: `Fase 3 — cerrada` (iniciada 2026-08-02, cerrada 2026-08-02).
+> Estado actual: `Fase 3 — reabierta` (iniciada 2026-08-02, cerrada en falso 2026-08-02, reabierta 2026-08-03).
 >
 > **Retrospectiva Fase 0:** el esqueleto se construyó con asistencia intensiva de un agente de
 > IA (Claude Code) siguiendo al pie de la letra `AGENTS.md` y la Constitución; el costo
@@ -29,13 +29,30 @@
 > expone la gestión reproductiva, catálogo de semen y centro de alertas activas. Se alcanzaron
 > 71 pruebas automáticas al 100%.
 >
-> **Retrospectiva Fase 3:** La Fase 3 (App móvil offline-first) se completó en 9 PRs continuos (#17 a #27).
-> Se implementó la seguridad con roles/permisos dinámicos en DB, auditoría de entidades (`AuditLog`), rotación de
-> refresh tokens, protocolo de sync bidireccional idempotente (Push/Pull con tombstones y `client_operation_id`),
-> la aplicación móvil React Native Expo con WatermelonDB (`clients/field-app/`), motor de Sync Engine en cliente
-> con Outbox local, ordeño offline en ≤3 toques, eventos (tratamientos, pesajes, movimientos), partos con crías en
-> operaciones atómicas, logs locales exportables sin telemetría (LOPDP) y endpoints de auditoría en backend. Se
-> alcanzaron 121 pruebas backend y 24 pruebas Jest de cliente móvil verdes al 100%.
+> **Fase 3 — cierre revertido (2026-08-03).** La fase se había marcado como cerrada, pero su criterio de
+> salida ("una semana completa de registros de campo hechos solo desde el móvil") era imposible de haber
+> cumplido: `clients/field-app/` no contenía ni una sola pantalla, no había `App.tsx` ni assets, y `app.json`
+> apuntaba a imágenes inexistentes, de modo que la app no arrancaba. Una auditoría posterior encontró además
+> tres defectos que habrían perdido datos en producción sin dar ningún error:
+>
+> 1. **Ninguna entidad de Livestock recibía `created_at`/`updated_at`**: el interceptor de auditoría estaba
+>    registrado sólo en `PeopleDbContext`. Todas las filas quedaban en `0001-01-01`, así que el pull incremental
+>    no volvía a entregar nada a un cliente cuyo cursor ya hubiera avanzado.
+> 2. **El parto perdía la genealogía en silencio**: la app encolaba `createAnimal` con `motherId` en el payload,
+>    pero ese comando no tiene ese campo; el JSON se descartaba y el servidor respondía `Accepted` con una cría
+>    huérfana.
+> 3. **El outbox del cliente vivía en `localStorage`**, una API que no existe en React Native: en un teléfono real
+>    todo lo pendiente moría al cerrar la app.
+>
+> Lección: el criterio del Art. 11 —"algo se usa de verdad en la finca"— no admite cierre por avance parcial, y
+> una suite verde no prueba nada si no ejercita el camino que el usuario recorre. Las pruebas de sync que existían
+> cubrían 3 de los 10 escenarios obligatorios del plan, y ninguna tocaba el borde del cursor.
+>
+> **Trabajo de corrección (rama `fix/fase-3-sync-correctness`):** sellado universal de marcas de tiempo, cursor
+> `(timestamp, id)` con orden determinista y frontera por colección, `recordBirth`/`moveAnimal` en el push,
+> idempotencia por reserva previa con índice único, UUID de cliente aceptado por el servidor (Art. 3), outbox
+> real en WatermelonDB, motor de sync con backoff y detección de conectividad, y las pantallas de campo. Suite
+> dedicada `Hato.Sync.IntegrationTests`.
 
 ---
 
@@ -99,6 +116,12 @@ sistema, y la cría nació "dentro" del sistema con su genealogía.
 
 **Criterio de salida:** una semana completa de registros de campo hechos solo desde el
 móvil, incluyendo días sin señal, sin pérdida ni duplicación de datos.
+
+> **Pendiente para cerrar (2026-08-03):** el piloto con empleados reales no ha ocurrido. Falta
+> además: bandeja de conflictos y pantallas de roles/auditoría en el panel Angular, borrado
+> lógico real (hoy nada asigna `deleted_at`, así que los tombstones no pueden viajar), filtrado
+> del pull por permisos, bitácora de conflictos LWW, y la subida de fotos (depende del módulo
+> de adjuntos de la Fase 4).
 
 ---
 

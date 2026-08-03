@@ -1,6 +1,10 @@
-import { SyncEngine } from './syncEngine';
+import { Database } from '@nozbe/watermelondb';
 
-export interface TreatmentEventRequest {
+import { WithdrawalPeriod } from '../database/models';
+import { newUuid } from './identifiers';
+import { Outbox } from './outbox';
+
+export interface TreatmentInput {
   animalId: string;
   medicationId: string;
   medicationName: string;
@@ -13,151 +17,180 @@ export interface TreatmentEventRequest {
   occurredAt?: string;
 }
 
-export interface WeightEventRequest {
+export interface WeightInput {
   animalId: string;
   weightKg: number;
   occurredAt?: string;
   notes?: string;
 }
 
-export interface GroupMoveEventRequest {
+export interface GroupMoveInput {
   animalId: string;
-  fromGroupId?: string;
   toGroupId: string;
-  occurredAt?: string;
+  fromGroupId?: string;
+  movedOn?: string;
   notes?: string;
 }
 
-export interface LocalAnimalEvent {
-  clientOperationId: string;
-  animalId: string;
-  eventType: string;
-  occurredAt: string;
-  cost?: number;
-  milkWithdrawalDays?: number;
-  meatWithdrawalDays?: number;
-  photoUri?: string;
+export interface RegisterAnimalInput {
+  speciesId: string;
+  sex: 'Male' | 'Female';
+  birthDate?: string;
+  breedId?: string;
+  categoryId?: string;
 }
 
+export interface QueuedEvent {
+  clientOperationId: string;
+}
+
+export interface QueuedAnimal extends QueuedEvent {
+  animalId: string;
+}
+
+/**
+ * Field events: treatments, weighings, moves and the registration of an animal that was
+ * never in the system.
+ */
 export class EventService {
-  private localEvents: LocalAnimalEvent[] = [];
+  private readonly outbox: Outbox;
 
-  constructor(private syncEngine: SyncEngine) {}
-
-  async recordTreatment(request: TreatmentEventRequest): Promise<LocalAnimalEvent> {
-    if (!request.animalId) throw new Error('El animal es obligatorio.');
-    if (!request.medicationId) throw new Error('El medicamento es obligatorio.');
-
-    const milkWithdrawalDays = request.milkWithdrawalDays || 0;
-    const meatWithdrawalDays = request.meatWithdrawalDays || 0;
-
-    const payload = {
-      animalId: request.animalId,
-      eventType: 'Treatment',
-      occurredAt: request.occurredAt || new Date().toISOString(),
-      recordedBy: 'field-user',
-      payloadJson: JSON.stringify({
-        medicationId: request.medicationId,
-        medicationName: request.medicationName,
-        dose: request.dose,
-        notes: request.notes,
-        photoUri: request.photoUri,
-      }),
-      cost: request.cost,
-      milkWithdrawalDays,
-      meatWithdrawalDays,
-    };
-
-    const outboxItem = await this.syncEngine.enqueueOperation('recordAnimalEvent', payload, request.occurredAt);
-
-    const localEvent: LocalAnimalEvent = {
-      clientOperationId: outboxItem.clientOperationId,
-      animalId: request.animalId,
-      eventType: 'Treatment',
-      occurredAt: payload.occurredAt,
-      cost: request.cost,
-      milkWithdrawalDays,
-      meatWithdrawalDays,
-      photoUri: request.photoUri,
-    };
-
-    this.localEvents.push(localEvent);
-    return localEvent;
+  constructor(private readonly database: Database) {
+    this.outbox = new Outbox(database);
   }
 
-  async recordWeight(request: WeightEventRequest): Promise<LocalAnimalEvent> {
-    if (!request.animalId) throw new Error('El animal es obligatorio.');
-    if (request.weightKg <= 0) throw new Error('El peso debe ser un número positivo.');
+  async recordTreatment(input: TreatmentInput): Promise<QueuedEvent> {
+    if (!input.animalId) throw new Error('El animal es obligatorio.');
+    if (!input.medicationId) throw new Error('El medicamento es obligatorio.');
 
-    const payload = {
-      animalId: request.animalId,
-      eventType: 'Weight',
-      occurredAt: request.occurredAt || new Date().toISOString(),
-      recordedBy: 'field-user',
-      payloadJson: JSON.stringify({
-        weightKg: request.weightKg,
-        notes: request.notes,
-      }),
-    };
+    const occurredAt = input.occurredAt ?? new Date().toISOString();
+    const milkWithdrawalDays = input.milkWithdrawalDays ?? 0;
+    const meatWithdrawalDays = input.meatWithdrawalDays ?? 0;
 
-    const outboxItem = await this.syncEngine.enqueueOperation('recordAnimalEvent', payload, request.occurredAt);
-
-    const localEvent: LocalAnimalEvent = {
-      clientOperationId: outboxItem.clientOperationId,
-      animalId: request.animalId,
-      eventType: 'Weight',
-      occurredAt: payload.occurredAt,
-    };
-
-    this.localEvents.push(localEvent);
-    return localEvent;
-  }
-
-  async recordGroupMove(request: GroupMoveEventRequest): Promise<LocalAnimalEvent> {
-    if (!request.animalId) throw new Error('El animal es obligatorio.');
-    if (!request.toGroupId) throw new Error('El grupo destino es obligatorio.');
-
-    const payload = {
-      animalId: request.animalId,
-      eventType: 'GroupMove',
-      occurredAt: request.occurredAt || new Date().toISOString(),
-      recordedBy: 'field-user',
-      payloadJson: JSON.stringify({
-        fromGroupId: request.fromGroupId,
-        toGroupId: request.toGroupId,
-        notes: request.notes,
-      }),
-    };
-
-    const outboxItem = await this.syncEngine.enqueueOperation('recordAnimalEvent', payload, request.occurredAt);
-
-    const localEvent: LocalAnimalEvent = {
-      clientOperationId: outboxItem.clientOperationId,
-      animalId: request.animalId,
-      eventType: 'GroupMove',
-      occurredAt: payload.occurredAt,
-    };
-
-    this.localEvents.push(localEvent);
-    return localEvent;
-  }
-
-  calculateLocalWithdrawalEndDate(startDateStr: string, withdrawalDays: number): string {
-    const start = new Date(startDateStr);
-    start.setDate(start.getDate() + withdrawalDays);
-    return start.toISOString().split('T')[0];
-  }
-
-  searchAnimalLocal(animals: Array<{ id: string; farmTag?: string; officialTag?: string; name?: string }>, query: string) {
-    const q = query.toLowerCase().trim();
-    if (!q) return animals;
-
-    return animals.filter(
-      (a) =>
-        a.id.toLowerCase().includes(q) ||
-        a.farmTag?.toLowerCase().includes(q) ||
-        a.officialTag?.toLowerCase().includes(q) ||
-        a.name?.toLowerCase().includes(q)
+    const entry = await this.outbox.enqueue(
+      'recordAnimalEvent',
+      {
+        animalId: input.animalId,
+        eventType: 'Treatment',
+        occurredAt,
+        recordedBy: 'field-app',
+        cost: input.cost,
+        milkWithdrawalDays,
+        meatWithdrawalDays,
+        payloadJson: JSON.stringify({
+          medicationId: input.medicationId,
+          medicationName: input.medicationName,
+          dose: input.dose,
+          notes: input.notes,
+          photoUri: input.photoUri,
+          // Uploading needs the attachments module (Fase 4). Saying so explicitly keeps
+          // the app from implying a picture is safely on the server when it is not.
+          photoUploaded: false,
+        }),
+      },
+      occurredAt,
     );
+
+    await this.applyLocalWithdrawal(input.animalId, occurredAt, milkWithdrawalDays, meatWithdrawalDays);
+
+    return { clientOperationId: entry.clientOperationId };
   }
+
+  async recordWeight(input: WeightInput): Promise<QueuedEvent> {
+    if (!input.animalId) throw new Error('El animal es obligatorio.');
+    if (!Number.isFinite(input.weightKg) || input.weightKg <= 0) {
+      throw new Error('El peso debe ser mayor que cero.');
+    }
+
+    const occurredAt = input.occurredAt ?? new Date().toISOString();
+
+    const entry = await this.outbox.enqueue(
+      'recordAnimalEvent',
+      {
+        animalId: input.animalId,
+        eventType: 'Weighing',
+        occurredAt,
+        recordedBy: 'field-app',
+        payloadJson: JSON.stringify({ weightKg: input.weightKg, notes: input.notes }),
+      },
+      occurredAt,
+    );
+
+    return { clientOperationId: entry.clientOperationId };
+  }
+
+  async recordGroupMove(input: GroupMoveInput): Promise<QueuedEvent> {
+    if (!input.animalId) throw new Error('El animal es obligatorio.');
+    if (!input.toGroupId) throw new Error('El lote de destino es obligatorio.');
+
+    const movedOn = input.movedOn ?? new Date().toISOString().slice(0, 10);
+
+    const entry = await this.outbox.enqueue('moveAnimal', {
+      animalId: input.animalId,
+      toGroupId: input.toGroupId,
+      fromGroupId: input.fromGroupId,
+      movedOn,
+    });
+
+    return { clientOperationId: entry.clientOperationId };
+  }
+
+  /**
+   * Registers an animal that exists in the paddock but not in the system, minting its
+   * UUID here (Art. 3) so the employee can weigh or treat it in the same offline session.
+   */
+  async registerAnimal(input: RegisterAnimalInput): Promise<QueuedAnimal> {
+    if (!input.speciesId) throw new Error('La especie es obligatoria.');
+
+    const animalId = newUuid();
+
+    const entry = await this.outbox.enqueue('createAnimal', {
+      id: animalId,
+      speciesId: input.speciesId,
+      sex: input.sex,
+      birthDate: input.birthDate,
+      breedId: input.breedId,
+      categoryId: input.categoryId,
+    });
+
+    return { clientOperationId: entry.clientOperationId, animalId };
+  }
+
+  /**
+   * Writes the withdrawal the phone can compute right now. The server recalculates from
+   * the medication master data and sends the authoritative period back on the next pull;
+   * until then this is what keeps non-sellable milk from being recorded as sellable.
+   */
+  private async applyLocalWithdrawal(
+    animalId: string,
+    occurredAt: string,
+    milkDays: number,
+    meatDays: number,
+  ): Promise<void> {
+    if (milkDays <= 0 && meatDays <= 0) return;
+
+    const target = milkDays > 0 && meatDays > 0 ? 'Both' : milkDays > 0 ? 'Milk' : 'Meat';
+    const startsAt = occurredAt.slice(0, 10);
+    const endsAt = addDays(startsAt, Math.max(milkDays, meatDays));
+
+    await this.database.write(async () => {
+      await this.database.get<WithdrawalPeriod>('withdrawal_periods').create((row) => {
+        // A local id keeps it distinct from the server's own row, which arrives later
+        // through the pull with its own identity.
+        row._raw.id = `local-${newUuid()}`;
+        row.animalId = animalId;
+        row.eventId = 'local';
+        row.target = target;
+        row.startsAt = startsAt;
+        row.endsAt = endsAt;
+        row.isDeleted = false;
+      });
+    });
+  }
+}
+
+function addDays(isoDate: string, days: number): string {
+  const date = new Date(`${isoDate}T00:00:00.000Z`);
+  date.setUTCDate(date.getUTCDate() + days);
+  return date.toISOString().slice(0, 10);
 }

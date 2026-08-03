@@ -49,7 +49,12 @@ public record SyncAnimalDto(
     Guid? FatherStrawId,
     DateTimeOffset CreatedAt,
     DateTimeOffset? UpdatedAt,
-    bool IsDeleted) : ISyncRow;
+    bool IsDeleted,
+    // The LWW baseline (ADR-0008): a device echoes this back as knownUpdatedAt on its
+    // next updateAnimal push, so the server can tell whether another write landed on
+    // the row after this device last saw it. Distinct from UpdatedAt, which is server
+    // processing time and would make conflict resolution depend on network luck.
+    DateTimeOffset? LastEditedAt) : ISyncRow;
 
 public record SyncAnimalIdentifierDto(
     Guid Id,
@@ -197,7 +202,7 @@ public class GetSyncPullQueryHandler(
             a => new SyncAnimalDto(
                 a.Id, a.Sex.ToString(), a.BirthDate, a.SpeciesId, a.BreedId, a.CategoryId,
                 a.MotherId, a.FatherAnimalId, a.FatherStrawId,
-                a.CreatedAt, a.UpdatedAt, a.DeletedAt != null),
+                a.CreatedAt, a.UpdatedAt, a.DeletedAt != null, a.LastEditedAt),
             cancellationToken);
 
         var identifiers = await ReadAsync(
@@ -399,6 +404,49 @@ public class GetSyncOperationsQueryHandler(IPeopleDbContext context)
                 o.ResultRef,
                 o.OccurredAt,
                 o.ReceivedAt))
+            .ToListAsync(cancellationToken);
+    }
+}
+
+/// <summary>The LWW conflict tray (ADR-0008): what an admin reviews to see fields two devices fought over.</summary>
+public record GetSyncConflictsQuery(string? EntityType = null) : IRequest<List<SyncConflictDto>>;
+
+public record SyncConflictDto(
+    Guid Id,
+    string EntityType,
+    Guid EntityId,
+    string FieldName,
+    string? ServerValue,
+    string? AttemptedValue,
+    string Resolution,
+    string? DeviceId,
+    DateTimeOffset DetectedAt);
+
+public class GetSyncConflictsQueryHandler(IPeopleDbContext context)
+    : IRequestHandler<GetSyncConflictsQuery, List<SyncConflictDto>>
+{
+    public async Task<List<SyncConflictDto>> Handle(GetSyncConflictsQuery request, CancellationToken cancellationToken)
+    {
+        var query = context.SyncConflicts.AsNoTracking();
+
+        if (!string.IsNullOrWhiteSpace(request.EntityType))
+        {
+            query = query.Where(c => c.EntityType == request.EntityType);
+        }
+
+        return await query
+            .OrderByDescending(c => c.DetectedAt)
+            .Take(100)
+            .Select(c => new SyncConflictDto(
+                c.Id,
+                c.EntityType,
+                c.EntityId,
+                c.FieldName,
+                c.ServerValue,
+                c.AttemptedValue,
+                c.Resolution,
+                c.DeviceId,
+                c.DetectedAt))
             .ToListAsync(cancellationToken);
     }
 }

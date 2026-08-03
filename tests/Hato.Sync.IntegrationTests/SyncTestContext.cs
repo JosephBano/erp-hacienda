@@ -161,6 +161,15 @@ public class SyncTestContext
         return body.GetProperty("id").GetGuid();
     }
 
+    public async Task<Guid> CreateBreedAsync(Guid speciesId, string name = "Raza")
+    {
+        var response = await Client.PostAsJsonAsync("/api/v1/breeds", new { speciesId, name = $"{name}-{Guid.NewGuid():N}" });
+        response.EnsureSuccessStatusCode();
+
+        var body = await response.Content.ReadFromJsonAsync<JsonElement>();
+        return body.GetProperty("id").GetGuid();
+    }
+
     public async Task<Guid> CreateAnimalAsync(Guid speciesId, string sex = "Female")
     {
         var response = await Client.PostAsJsonAsync("/api/v1/animals", new { speciesId, sex });

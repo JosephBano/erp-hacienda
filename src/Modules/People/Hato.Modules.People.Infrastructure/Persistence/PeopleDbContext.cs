@@ -17,6 +17,7 @@ public class PeopleDbContext(DbContextOptions<PeopleDbContext> options)
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
     public DbSet<SyncOperation> SyncOperations => Set<SyncOperation>();
+    public DbSet<SyncConflict> SyncConflicts => Set<SyncConflict>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

@@ -41,8 +41,21 @@ public static class AnimalsEndpoints
             await sender.Send(new DeleteAnimalCommand(id));
             return Results.NoContent();
         }).RequireAuthorization(policy => policy.RequirePermission(SystemPermissions.LivestockAnimalsWrite));
+
+        group.MapPut("/{id:guid}", async (Guid id, UpdateAnimalRequest request, ISender sender) =>
+        {
+            // A direct panel edit is synchronous and online: there is no offline window
+            // in which a stale read could have happened, so KnownUpdatedAt is omitted and
+            // the write always applies with no conflict to reconcile.
+            var command = new UpdateAnimalCommand(
+                id, request.BreedId, request.CategoryId, request.BirthDate, DateTimeOffset.UtcNow);
+            await sender.Send(command);
+            return Results.NoContent();
+        }).RequireAuthorization(policy => policy.RequirePermission(SystemPermissions.LivestockAnimalsWrite));
     }
 }
 
 public record AssignAnimalIdentifierRequest(
     Hato.Modules.Livestock.Domain.IdentifierType Type, string Value, DateOnly ValidFrom);
+
+public record UpdateAnimalRequest(Guid? BreedId, Guid? CategoryId, DateOnly? BirthDate);

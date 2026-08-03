@@ -197,8 +197,41 @@ oculto.
 > **Estado real**: el borrado lógico y el filtrado por permisos del pull ya están
 > implementados y probados de punta a punta (`Hato.Sync.IntegrationTests`). Sigue
 > pendiente: extender el borrado lógico a otras entidades sincronizables (grupos,
-> ítems de inventario) si aparece un caso de uso real que lo pida, y la bitácora de
-> conflictos LWW.
+> ítems de inventario) si aparece un caso de uso real que lo pida.
+
+### Conflictos LWW en entidades editables
+
+Casi todo el modelo es append-only (eventos, ordeño, partos) y ahí no hay conflicto de
+edición posible: dos dispositivos nunca compiten por el mismo campo porque cada registro
+es una fila nueva. La única entidad genuinamente editable es `Animal` (raza, categoría,
+fecha de nacimiento) — el ejemplo que ADR-0008 nombra explícitamente para la estrategia
+Last-Write-Wins.
+
+`Animal.LastEditedAt` guarda el momento declarado de la última edición aceptada — **no**
+`UpdatedAt` (tiempo de procesamiento del servidor). Esa distinción es la que hace que el
+resultado dependa de cuándo ocurrió la edición en el campo y no de qué tan rápido llegó
+la señal: un empleado que edita a las 6 AM y recupera señal al mediodía no debe perder
+frente a una edición hecha a las 7 AM que llegó primero sólo por el orden de los push.
+
+El push declara `knownUpdatedAt` — el `LastEditedAt` que ese dispositivo vio la última
+vez (`null` significa "vi que nunca se había editado", un valor legítimo, no "no sé").
+Cuando ese valor ya no coincide con el estado real de la fila, dos escrituras compitieron
+por el mismo campo: gana quien declare el `occurredAt` más tardío, sin importar el orden
+de llegada. Cada campo que realmente difiere entre lo que había y lo que el push
+perdedor quería queda escrito en `sync_conflicts` (`GET /api/v1/sync/conflicts`, permiso
+de administración) con el valor que quedó, el que se intentó y la resolución.
+
+Una edición directa desde el panel (`PUT /api/v1/animals/{id}`) no declara
+`knownUpdatedAt`: es síncrona y en línea, no existe ventana offline que pueda haber
+quedado obsoleta, así que se aplica siempre sin pasar por la detección de conflictos.
+
+> **Estado real**: implementado y probado de punta a punta para `Animal`
+> (`Hato.Sync.IntegrationTests`). La resolución es a nivel de fila completa (la edición
+> que gana se aplica a los tres campos juntos), no por campo individual con marcas de
+> tiempo independientes — coincide con lo que ADR-0008 describe ("basado en `updated_at`
+> reportado"), aunque el registro del conflicto sí detalla cada campo por separado.
+> Falta: extender el mismo patrón a otras entidades editables si aparece un caso de uso
+> real, y la pantalla del panel Angular que consuma este endpoint.
 
 ### Push
 
@@ -222,8 +255,6 @@ oculto.
 Una operación rechazada se conserva con su motivo y aparece en la bandeja de problemas del
 teléfono. No se borra nunca.
 
-> **Estado real**: los tombstones están implementados de punta a punta en el protocolo y en
-> el cliente, pero **ninguna operación de dominio asigna todavía `deleted_at`**, así que no
-> hay borrados lógicos que propagar. El filtrado del pull por permisos y la bitácora de
-> conflictos LWW siguen pendientes.
+> **Estado real**: los tombstones están implementados de punta a punta en el protocolo, el
+> borrado lógico y el cliente (ver "Borrado lógico" más arriba).
 

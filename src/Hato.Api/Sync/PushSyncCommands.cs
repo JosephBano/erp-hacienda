@@ -114,7 +114,7 @@ public class PushSyncBatchCommandHandler(
 
         try
         {
-            var resultRef = await ExecuteAsync(operation.OperationType, payloadJson, cancellationToken);
+            var resultRef = await ExecuteAsync(operation, payloadJson, deviceId, cancellationToken);
             record.MarkAccepted(resultRef);
             await peopleDb.SaveChangesAsync(cancellationToken);
 
@@ -189,9 +189,9 @@ public class PushSyncBatchCommandHandler(
     /// flow means adding a case here — and a push test for it (PLAN-FASE-3-4 §2.2).
     /// </summary>
     private async Task<string?> ExecuteAsync(
-        string operationType, string payloadJson, CancellationToken cancellationToken)
+        SyncPushOperationDto operation, string payloadJson, string? deviceId, CancellationToken cancellationToken)
     {
-        switch (operationType.ToLowerInvariant())
+        switch (operation.OperationType.ToLowerInvariant())
         {
             case "recordmilking":
                 {
@@ -239,8 +239,57 @@ public class PushSyncBatchCommandHandler(
                     return move.ToGroupId.ToString();
                 }
 
+            case "updateanimal":
+                {
+                    // The one editable-entity flow (ADR-0008): two devices editing the
+                    // same animal offline resolve by LWW, and every genuinely conflicting
+                    // field is written to the conflict log for the panel to review.
+                    var payload = Deserialize<UpdateAnimalPushPayload>(payloadJson, "actualización de animal");
+                    var command = new UpdateAnimalCommand(
+                        payload.AnimalId,
+                        payload.BreedId,
+                        payload.CategoryId,
+                        payload.BirthDate,
+                        operation.OccurredAt,
+                        CheckForConflicts: true,
+                        KnownUpdatedAt: payload.KnownUpdatedAt,
+                        ClientOperationId: operation.ClientOperationId,
+                        DeviceId: deviceId);
+
+                    var result = await sender.Send(command, cancellationToken);
+                    LogConflicts(result, operation.ClientOperationId, deviceId);
+                    return result.AnimalId.ToString();
+                }
+
             default:
-                throw new DomainException($"Tipo de operación no soportado: '{operationType}'.");
+                throw new DomainException($"Tipo de operación no soportado: '{operation.OperationType}'.");
+        }
+    }
+
+    /// <summary>
+    /// Writes one <see cref="SyncConflict"/> row per field that a genuine conflict window
+    /// touched. A record with nothing to reconcile (no offline window, or the incoming
+    /// values already matched what was stored) produces none.
+    /// </summary>
+    private void LogConflicts(UpdateAnimalResult result, Guid clientOperationId, string? deviceId)
+    {
+        if (result.Conflicts.Count == 0) return;
+
+        var resolution = result.ClientChangesApplied
+            ? SyncConflictResolution.ClientWon
+            : SyncConflictResolution.ServerWon;
+
+        foreach (var conflict in result.Conflicts)
+        {
+            peopleDb.SyncConflicts.Add(SyncConflict.Create(
+                "Animal",
+                result.AnimalId,
+                conflict.FieldName,
+                conflict.ServerValue,
+                conflict.AttemptedValue,
+                resolution,
+                clientOperationId,
+                deviceId));
         }
     }
 
@@ -273,3 +322,17 @@ public record MoveAnimalPayload(
     Guid ToGroupId,
     Guid? FromGroupId = null,
     DateOnly? MovedOn = null);
+
+/// <summary>
+/// <paramref name="KnownUpdatedAt"/> is the animal's edit moment
+/// (<see cref="Hato.Modules.Livestock.Domain.Animal.LastEditedAt"/>) as this device last
+/// saw it, normally read straight off its last pull of the row. Omitting it declares "this
+/// was never an offline edit" — an admin panel writing synchronously has no stale-read
+/// window to report.
+/// </summary>
+public record UpdateAnimalPushPayload(
+    Guid AnimalId,
+    Guid? BreedId,
+    Guid? CategoryId,
+    DateOnly? BirthDate,
+    DateTimeOffset? KnownUpdatedAt = null);

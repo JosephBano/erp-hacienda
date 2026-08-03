@@ -99,6 +99,10 @@
 | Tirón incremental | `SyncPull` | Obtención incremental de cambios desde la BD del servidor basada en cursor. |
 | Empuje de lote | `SyncPush` | Envío en lote de operaciones offline desde el móvil hacia el backend (`Accepted`, `Duplicate`, `Rejected`). |
 | Cursor de sincronización | `Cursor` | Marca de tiempo y UUID de desempate para sincronizar diferencialmente la información sin duplicados. |
+| Borrado lógico / lápida | `Tombstone` | Fila marcada `deleted_at` (Art. 1: nunca se borra físicamente) que el pull entrega una vez con `isDeleted: true` para que cada dispositivo la retire de su base local. |
+| Última escritura gana | `LWW` (*Last-Write-Wins*) | Estrategia de resolución para entidades editables (ADR-0008): entre dos ediciones concurrentes del mismo campo, gana la que declare el `occurredAt` más tardío — no la que llegue primero al servidor. |
+| Momento de última edición | `LastEditedAt` | Marca de tiempo declarada por el dispositivo, distinta de `UpdatedAt` (tiempo de procesamiento del servidor); es la que LWW compara para decidir quién gana. |
+| Bitácora de conflictos | `SyncConflict` | Registro inmutable de cada campo donde una edición se superpuso a otra ya aplicada: valor que quedó, valor que se intentó, y quién ganó. Auditable en el panel (`GET /api/v1/sync/conflicts`), nunca editable. |
 
 ## Legal Ecuador (referencias)
 

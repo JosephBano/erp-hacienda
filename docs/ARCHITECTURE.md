@@ -231,7 +231,8 @@ quedado obsoleta, así que se aplica siempre sin pasar por la detección de conf
 > tiempo independientes — coincide con lo que ADR-0008 describe ("basado en `updated_at`
 > reportado"), aunque el registro del conflicto sí detalla cada campo por separado.
 > Falta: extender el mismo patrón a otras entidades editables si aparece un caso de uso
-> real, y la pantalla del panel Angular que consuma este endpoint.
+> real. La pantalla del panel Angular que consume este endpoint (`/sync`, pestaña
+> "Conflictos LWW") ya existe.
 
 ### Push
 

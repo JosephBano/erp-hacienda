@@ -120,11 +120,13 @@ móvil, incluyendo días sin señal, sin pérdida ni duplicación de datos.
 > **Pendiente para cerrar (2026-08-03):** el piloto con empleados reales no ha ocurrido. Ya
 > resuelto desde la reapertura: borrado lógico real (`Animal.Delete()`, con invariante de
 > "no eliminar con historia" y filtro de query), filtrado del pull por permisos (una
-> colección sólo baja si el rol tiene el permiso correspondiente), y la bitácora de
+> colección sólo baja si el rol tiene el permiso correspondiente), la bitácora de
 > conflictos LWW (`Animal.LastEditedAt` + `GET /api/v1/sync/conflicts`, para la única
-> entidad genuinamente editable del modelo). Sigue faltando: pantallas de roles/auditoría/
-> conflictos en el panel Angular (el backend de la bandeja ya existe; falta la UI que la
-> consuma) y la subida de fotos (depende del módulo de adjuntos de la Fase 4).
+> entidad genuinamente editable del modelo), los endpoints de lectura de especies/razas/
+> categorías que faltaban para poder registrar un animal desde cualquier cliente, y las
+> pantallas del panel Angular que consumen todo lo anterior (alta de animal, roles y
+> permisos, bitácora de auditoría, bandeja de sincronización). Sigue faltando: la subida
+> de fotos (depende del módulo de adjuntos de la Fase 4).
 
 ---
 

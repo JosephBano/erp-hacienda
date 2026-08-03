@@ -22,8 +22,7 @@ public class SyncTimestampTests(SyncApiFactory factory)
         var animalId = await context.CreateAnimalAsync(speciesId);
         var after = DateTimeOffset.UtcNow.AddMinutes(1);
 
-        var pull = await context.PullAsync();
-        var animal = FindById(pull, "animals", animalId);
+        var animal = await context.FindAsync("animals", animalId);
 
         var createdAt = animal.GetProperty("createdAt").GetDateTimeOffset();
 
@@ -43,17 +42,17 @@ public class SyncTimestampTests(SyncApiFactory factory)
         await context.RemoveMemberAsync(groupId, animalId);
         var after = DateTimeOffset.UtcNow.AddMinutes(1);
 
-        var pull = await context.PullAsync();
-        var membership = FindByAnimal(pull, "groupMemberships", animalId);
+        var membership = await FindByAnimalAsync(context, "groupMemberships", animalId);
 
         var updatedAt = membership.GetProperty("updatedAt").GetDateTimeOffset();
 
         Assert.InRange(updatedAt, before, after);
     }
 
-    private static JsonElement FindByAnimal(JsonElement pull, string collection, Guid animalId)
+    private static async Task<JsonElement> FindByAnimalAsync(
+        SyncTestContext context, string collection, Guid animalId)
     {
-        foreach (var row in pull.GetProperty("collections").GetProperty(collection).EnumerateArray())
+        foreach (var row in await context.CollectAsync(collection))
         {
             if (row.GetProperty("animalId").GetGuid() == animalId)
             {

@@ -25,9 +25,11 @@ public class SyncPullCursorTests(SyncApiFactory factory)
 
         var animalId = await context.CreateAnimalAsync(speciesId);
 
-        var second = await context.PullAsync(since: cursor);
+        var second = await context.PullAsync(since: cursor, collections: "animals");
 
-        SyncTimestampTests.FindById(second, "animals", animalId);
+        Assert.Contains(
+            second.GetProperty("collections").GetProperty("animals").EnumerateArray(),
+            row => row.GetProperty("id").GetGuid() == animalId);
     }
 
     [Fact]
@@ -37,8 +39,10 @@ public class SyncPullCursorTests(SyncApiFactory factory)
         var speciesId = await context.CreateSpeciesAsync("Bovino");
         var animalId = await context.CreateAnimalAsync(speciesId);
 
-        var first = await context.PullAsync();
-        SyncTimestampTests.FindById(first, "animals", animalId);
+        var first = await context.PullAsync(collections: "animals", batchSize: 1000);
+        Assert.Contains(
+            first.GetProperty("collections").GetProperty("animals").EnumerateArray(),
+            row => row.GetProperty("id").GetGuid() == animalId);
         var cursor = first.GetProperty("cursor").GetString();
 
         var second = await context.PullAsync(since: cursor);
@@ -54,6 +58,8 @@ public class SyncPullCursorTests(SyncApiFactory factory)
         var context = await SyncTestContext.CreateAsync(factory, "cursor-tie");
         var speciesId = await context.CreateSpeciesAsync("Bovino");
 
+        var start = DateTimeOffset.UtcNow.ToString("O");
+
         var a = await context.CreateAnimalAsync(speciesId);
         var b = await context.CreateAnimalAsync(speciesId);
         var c = await context.CreateAnimalAsync(speciesId);
@@ -63,7 +69,7 @@ public class SyncPullCursorTests(SyncApiFactory factory)
         var instant = DateTimeOffset.UtcNow;
         await SetCreatedAtAsync(instant, a, b, c);
 
-        var seen = await DrainAsync(context, batchSize: 2);
+        var seen = await DrainAsync(context, batchSize: 2, from: start);
 
         Assert.Equal(1, seen.Count(id => id == a));
         Assert.Equal(1, seen.Count(id => id == b));
@@ -76,13 +82,15 @@ public class SyncPullCursorTests(SyncApiFactory factory)
         var context = await SyncTestContext.CreateAsync(factory, "cursor-page");
         var speciesId = await context.CreateSpeciesAsync("Bovino");
 
+        var start = DateTimeOffset.UtcNow.ToString("O");
+
         var created = new List<Guid>();
         for (var i = 0; i < 12; i++)
         {
             created.Add(await context.CreateAnimalAsync(speciesId));
         }
 
-        var seen = await DrainAsync(context, batchSize: 5);
+        var seen = await DrainAsync(context, batchSize: 5, from: start);
 
         foreach (var id in created)
         {
@@ -94,14 +102,14 @@ public class SyncPullCursorTests(SyncApiFactory factory)
     /// Pulls repeatedly, following the cursor, until the server reports no more data —
     /// exactly what the mobile client does — and returns every animal id it observed.
     /// </summary>
-    private static async Task<List<Guid>> DrainAsync(SyncTestContext context, int batchSize)
+    private static async Task<List<Guid>> DrainAsync(SyncTestContext context, int batchSize, string from)
     {
         var seen = new List<Guid>();
-        string? cursor = null;
+        var cursor = from;
 
-        for (var page = 0; page < 40; page++)
+        for (var page = 0; page < 60; page++)
         {
-            var pull = await context.PullAsync(since: cursor, batchSize: batchSize);
+            var pull = await context.PullAsync(since: cursor, collections: "animals", batchSize: batchSize);
 
             foreach (var row in pull.GetProperty("collections").GetProperty("animals").EnumerateArray())
             {

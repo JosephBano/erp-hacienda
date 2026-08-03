@@ -38,13 +38,30 @@ public class Animal : AuditableEntity
         CategoryId = categoryId;
     }
 
+    /// <summary>
+    /// <paramref name="id"/> lets the caller supply the identity instead of generating a
+    /// fresh one (Art. 3: the UUID is sovereign and can be minted on a phone with no
+    /// signal). Omitting it keeps the ordinary server-side behaviour.
+    /// </summary>
     public static Animal Register(
-        Guid speciesId, Sex sex, DateOnly? birthDate = null, Guid? breedId = null, Guid? categoryId = null)
+        Guid speciesId,
+        Sex sex,
+        DateOnly? birthDate = null,
+        Guid? breedId = null,
+        Guid? categoryId = null,
+        Guid? id = null)
     {
         if (speciesId == Guid.Empty)
             throw new DomainException("Un animal debe pertenecer a una especie.");
 
-        return new Animal(speciesId, sex, birthDate, breedId, categoryId);
+        var animal = new Animal(speciesId, sex, birthDate, breedId, categoryId);
+
+        if (id is { } requested && requested != Guid.Empty)
+        {
+            animal.Id = requested;
+        }
+
+        return animal;
     }
 
     /// <summary>

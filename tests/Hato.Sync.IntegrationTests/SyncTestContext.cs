@@ -148,6 +148,110 @@ public class SyncTestContext
         response.EnsureSuccessStatusCode();
     }
 
+    /// <summary>
+    /// Pushes a single operation and returns its per-operation result. Passing the same
+    /// <paramref name="clientOperationId"/> twice is how a double tap or a retry after a
+    /// dropped connection looks to the server.
+    /// </summary>
+    public async Task<JsonElement> PushAsync(
+        string operationType,
+        object payload,
+        Guid? clientOperationId = null,
+        DateTimeOffset? occurredAt = null,
+        string deviceId = "test-device")
+    {
+        var batch = await PushBatchAsync(deviceId, new[]
+        {
+            new
+            {
+                clientOperationId = clientOperationId ?? Guid.NewGuid(),
+                operationType,
+                occurredAt = occurredAt ?? DateTimeOffset.UtcNow,
+                payload,
+            },
+        });
+
+        return batch.GetProperty("results")[0];
+    }
+
+    public async Task<JsonElement> PushBatchAsync(string deviceId, object operations)
+    {
+        var response = await Client.PostAsJsonAsync("/api/v1/sync/push", new { deviceId, operations });
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadFromJsonAsync<JsonElement>();
+    }
+
+    /// <summary>The server-side operation log, which is what the problems tray reads.</summary>
+    public async Task<List<JsonElement>> GetSyncOperationsAsync(string? status = null)
+    {
+        var url = "/api/v1/sync/operations" + (status is null ? string.Empty : $"?status={status}");
+        var response = await Client.GetAsync(url);
+        response.EnsureSuccessStatusCode();
+
+        var body = await response.Content.ReadFromJsonAsync<JsonElement>();
+        return body.EnumerateArray().ToList();
+    }
+
+    /// <summary>
+    /// Every row of a collection, following the cursor across pages exactly as the mobile
+    /// client does. Tests must not assume one page holds everything: the suite shares one
+    /// database, so a neighbouring test can push the collection past any fixed page size.
+    /// </summary>
+    public async Task<List<JsonElement>> CollectAsync(string collection)
+    {
+        var rows = new List<JsonElement>();
+        string? cursor = null;
+
+        for (var page = 0; page < 200; page++)
+        {
+            var pull = await PullAsync(since: cursor, collections: collection, batchSize: 500);
+            rows.AddRange(pull.GetProperty("collections").GetProperty(collection).EnumerateArray());
+
+            if (!pull.GetProperty("hasMore").GetBoolean())
+            {
+                return rows;
+            }
+
+            cursor = pull.GetProperty("cursor").GetString();
+        }
+
+        throw new Xunit.Sdk.XunitException($"El pull de '{collection}' no convergió en 200 páginas.");
+    }
+
+    public async Task<HashSet<Guid>> CollectIdsAsync(string collection) =>
+        (await CollectAsync(collection)).Select(row => row.GetProperty("id").GetGuid()).ToHashSet();
+
+    /// <summary>All animals whose mother is <paramref name="damId"/>, read back through the pull.</summary>
+    public async Task<List<Guid>> FindOffspringOfAsync(Guid damId)
+    {
+        var offspring = new List<Guid>();
+
+        foreach (var row in await CollectAsync("animals"))
+        {
+            var mother = row.GetProperty("motherId");
+            if (mother.ValueKind != JsonValueKind.Null && mother.GetGuid() == damId)
+            {
+                offspring.Add(row.GetProperty("id").GetGuid());
+            }
+        }
+
+        return offspring;
+    }
+
+    /// <summary>The single row of <paramref name="collection"/> with that id, paging as needed.</summary>
+    public async Task<JsonElement> FindAsync(string collection, Guid id)
+    {
+        foreach (var row in await CollectAsync(collection))
+        {
+            if (row.GetProperty("id").GetGuid() == id)
+            {
+                return row;
+            }
+        }
+
+        throw new Xunit.Sdk.XunitException($"La colección '{collection}' no contiene el registro {id}.");
+    }
+
     public async Task<JsonElement> PullAsync(string? since = null, string? collections = null, int? batchSize = null)
     {
         var query = new List<string>();

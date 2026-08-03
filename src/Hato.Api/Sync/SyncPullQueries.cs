@@ -327,6 +327,8 @@ public record SyncOperationDto(
     string Status,
     string DeviceId,
     string? ErrorDetails,
+    string? ResultRef,
+    DateTimeOffset OccurredAt,
     DateTimeOffset ReceivedAt);
 
 public class GetSyncOperationsQueryHandler(IPeopleDbContext context)
@@ -352,6 +354,8 @@ public class GetSyncOperationsQueryHandler(IPeopleDbContext context)
                 o.Status.ToString(),
                 o.DeviceId ?? string.Empty,
                 o.ErrorDetails,
+                o.ResultRef,
+                o.OccurredAt,
                 o.ReceivedAt))
             .ToListAsync(cancellationToken);
     }

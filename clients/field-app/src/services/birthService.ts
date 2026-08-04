@@ -1,90 +1,94 @@
-import { SyncEngine } from './syncEngine';
+import { Database } from '@nozbe/watermelondb';
 
-export interface OffspringData {
-  sex: 'Male' | 'Female';
+import { Outbox } from './outbox';
+
+export type Sex = 'M' | 'F';
+
+export interface OffspringInput {
+  sex: Sex;
   farmTag?: string;
-  officialTag?: string;
-  breedId?: string;
   birthWeightKg?: number;
+  categoryId?: string;
 }
 
-export interface RecordBirthRequest {
-  motherId: string;
-  speciesId: string;
-  fatherAnimalId?: string;
-  fatherStrawId?: string;
+export interface RecordBirthInput {
+  damId: string;
+  offspring: OffspringInput[];
+  /** Dual father (ADR-0006): an animal or a straw, never both. */
+  sireAnimalId?: string;
+  sireStrawId?: string;
   birthDate?: string;
+  difficulty?: 'Normal' | 'Assisted' | 'Cesarean' | 'Dystocia';
+  bornDead?: number;
+  mummified?: number;
   notes?: string;
-  offsprings: OffspringData[];
 }
 
-export interface LocalBirthResult {
-  birthEventOperationId: string;
-  createdOffspringIds: string[];
-  motherId: string;
+export interface QueuedBirth {
+  clientOperationId: string;
+  damId: string;
   birthDate: string;
+  offspringCount: number;
 }
 
+/**
+ * Registers a birth from the paddock.
+ *
+ * The entire birth — dam, sire, every calf — travels as a single `recordBirth` operation.
+ * That is deliberate: the server routes it to the birthing command, which enrols each calf
+ * through the genealogy service. Splitting it into one animal registration per calf, as an
+ * earlier version did, loses the parentage without any error being raised, because a plain
+ * animal registration has nowhere to put a mother.
+ */
 export class BirthService {
-  constructor(private syncEngine: SyncEngine) {}
+  private readonly outbox: Outbox;
 
-  async recordBirth(request: RecordBirthRequest): Promise<LocalBirthResult> {
-    if (!request.motherId) {
-      throw new Error('La madre es obligatoria para el registro de parto.');
+  constructor(database: Database) {
+    this.outbox = new Outbox(database);
+  }
+
+  async recordBirth(input: RecordBirthInput): Promise<QueuedBirth> {
+    if (!input.damId) {
+      throw new Error('La madre es obligatoria para registrar un parto.');
     }
 
-    if (!request.speciesId) {
-      throw new Error('La especie es obligatoria.');
-    }
-
-    if (request.fatherAnimalId && request.fatherStrawId) {
-      throw new Error('El padre no puede ser un animal y una pajuela de IA simultáneamente.');
-    }
-
-    if (!request.offsprings || request.offsprings.length === 0) {
+    if (!input.offspring || input.offspring.length === 0) {
       throw new Error('Debe registrar al menos una cría en el parto.');
     }
 
-    const birthDate = request.birthDate || new Date().toISOString().split('T')[0];
-    const createdOffspringIds: string[] = [];
-
-    // 1. Register each offspring animal via createAnimal operation
-    for (const offspring of request.offsprings) {
-      const animalPayload = {
-        speciesId: request.speciesId,
-        sex: offspring.sex,
-        birthDate,
-        breedId: offspring.breedId,
-        motherId: request.motherId,
-        fatherAnimalId: request.fatherAnimalId,
-        fatherStrawId: request.fatherStrawId,
-      };
-
-      const animalOutbox = await this.syncEngine.enqueueOperation('createAnimal', animalPayload);
-      createdOffspringIds.push(animalOutbox.clientOperationId);
+    if (input.sireAnimalId && input.sireStrawId) {
+      throw new Error('El padre no puede ser un animal y una pajuela al mismo tiempo.');
     }
 
-    // 2. Register Birth event for mother referencing created offsprings
-    const birthEventPayload = {
-      animalId: request.motherId,
-      eventType: 'Birth',
-      occurredAt: new Date(birthDate).toISOString(),
-      recordedBy: 'field-user',
-      payloadJson: JSON.stringify({
-        offspringIds: createdOffspringIds,
-        fatherAnimalId: request.fatherAnimalId,
-        fatherStrawId: request.fatherStrawId,
-        notes: request.notes,
-      }),
-    };
+    const birthDate = input.birthDate ?? new Date().toISOString().slice(0, 10);
 
-    const birthOutbox = await this.syncEngine.enqueueOperation('recordAnimalEvent', birthEventPayload);
+    const entry = await this.outbox.enqueue(
+      'recordBirth',
+      {
+        damId: input.damId,
+        birthDate,
+        difficulty: input.difficulty ?? 'Normal',
+        bornAlive: input.offspring.length,
+        bornDead: input.bornDead ?? 0,
+        mummified: input.mummified ?? 0,
+        notes: input.notes,
+        sireAnimalId: input.sireAnimalId,
+        sireStrawId: input.sireStrawId,
+        offspring: input.offspring.map((calf) => ({
+          sex: calf.sex,
+          farmTag: calf.farmTag,
+          birthWeightKg: calf.birthWeightKg,
+          categoryId: calf.categoryId,
+        })),
+      },
+      new Date(`${birthDate}T00:00:00.000Z`).toISOString(),
+    );
 
     return {
-      birthEventOperationId: birthOutbox.clientOperationId,
-      createdOffspringIds,
-      motherId: request.motherId,
+      clientOperationId: entry.clientOperationId,
+      damId: input.damId,
       birthDate,
+      offspringCount: input.offspring.length,
     };
   }
 }

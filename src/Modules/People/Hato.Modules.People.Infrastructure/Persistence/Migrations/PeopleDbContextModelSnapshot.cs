@@ -302,6 +302,65 @@ namespace Hato.Modules.People.Infrastructure.Persistence.Migrations
                     b.ToTable("role_permissions", "people");
                 });
 
+            modelBuilder.Entity("Hato.Modules.People.Domain.SyncConflict", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("AttemptedValue")
+                        .HasColumnType("text")
+                        .HasColumnName("attempted_value");
+
+                    b.Property<Guid?>("ClientOperationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("client_operation_id");
+
+                    b.Property<DateTimeOffset>("DetectedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("detected_at");
+
+                    b.Property<string>("DeviceId")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("device_id");
+
+                    b.Property<Guid>("EntityId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("entity_id");
+
+                    b.Property<string>("EntityType")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("entity_type");
+
+                    b.Property<string>("FieldName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("field_name");
+
+                    b.Property<string>("Resolution")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("resolution");
+
+                    b.Property<string>("ServerValue")
+                        .HasColumnType("text")
+                        .HasColumnName("server_value");
+
+                    b.HasKey("Id")
+                        .HasName("p_k_sync_conflicts");
+
+                    b.HasIndex("EntityType", "EntityId")
+                        .HasDatabaseName("i_x_sync_conflicts_entity_type_entity_id");
+
+                    b.ToTable("sync_conflicts", "people");
+                });
+
             modelBuilder.Entity("Hato.Modules.People.Domain.SyncOperation", b =>
                 {
                     b.Property<Guid>("Id")

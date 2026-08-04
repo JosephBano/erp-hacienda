@@ -4,6 +4,14 @@ namespace Hato.Modules.People.Domain;
 
 public enum SyncOperationStatus
 {
+    /// <summary>
+    /// Claimed but not yet resolved. The row is written *before* the business command
+    /// runs so that the unique index on <c>client_operation_id</c> — not a prior SELECT —
+    /// is what rejects a concurrent retry of the same operation. An operation left in
+    /// this state means the server died mid-flight: it must surface in the problems tray,
+    /// never be replayed blindly.
+    /// </summary>
+    Processing,
     Accepted,
     Duplicate,
     Rejected
@@ -53,7 +61,7 @@ public class SyncOperation : Entity
         PayloadJson = payloadJson;
         OccurredAt = occurredAt;
         ReceivedAt = receivedAt;
-        Status = SyncOperationStatus.Accepted;
+        Status = SyncOperationStatus.Processing;
     }
 
     public void MarkAccepted(string? resultRef = null)

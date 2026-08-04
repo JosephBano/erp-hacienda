@@ -11,6 +11,12 @@ public static class SpeciesEndpoints
     {
         var group = app.MapGroup("/api/v1/species").WithTags("Species").RequireAuthorization();
 
+        group.MapGet("/", async (ISender sender) =>
+        {
+            var species = await sender.Send(new GetSpeciesQuery());
+            return Results.Ok(species);
+        });
+
         group.MapPost("/", async (CreateSpeciesCommand command, ISender sender) =>
         {
             var id = await sender.Send(command);

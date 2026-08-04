@@ -1,193 +1,224 @@
-import { SyncEngine } from './syncEngine';
+import { Database, Q } from '@nozbe/watermelondb';
+
+import { MilkYield, OutboxEntryModel, WithdrawalPeriod } from '../database/models';
+import { Outbox } from './outbox';
 
 export type MilkingShift = 'Morning' | 'Afternoon' | 'Evening';
 
-export interface LocalMilkYield {
-  id: string;
-  animalId: string;
+export interface RecordedYield {
+  clientOperationId: string;
+  animalId?: string;
+  groupId?: string;
   shift: MilkingShift;
   liters: number;
   date: string;
-  synced: boolean;
 }
 
-export interface LocalWithdrawal {
-  animalId: string;
-  target: 'Milk' | 'Meat' | 'Both';
-  startDate: string;
-  endDate: string;
-}
-
-export interface DailyMilkingSummary {
+export interface DailySummary {
   date: string;
   totalLiters: number;
   recordsCount: number;
-  yields: LocalMilkYield[];
+  yields: RecordedYield[];
 }
 
+export interface WithdrawalStatus {
+  isWithheld: boolean;
+  endsAt?: string;
+}
+
+const MILK_TARGETS = new Set(['Milk', 'Both']);
+
+/**
+ * The daily milking round, offline.
+ *
+ * The withdrawal check (Art. 19) is answered from the `withdrawal_periods` table the pull
+ * fills, not from a list the caller has to remember to load. That distinction is the whole
+ * point: at 5 AM in a paddock there is nobody to load it, and a block that only works
+ * online is not a block.
+ */
 export class MilkingService {
-  private static YIELDS_KEY = 'hato_local_milk_yields';
-  private static WITHDRAWALS_KEY = 'hato_local_withdrawals';
+  private readonly outbox: Outbox;
 
-  private localYields: LocalMilkYield[] = [];
-  private localWithdrawals: LocalWithdrawal[] = [];
-
-  constructor(private syncEngine: SyncEngine) {
-    this.loadStorage();
-  }
-
-  async recordGroupMilking(
-    groupId: string,
-    shift: MilkingShift,
-    totalLiters: number,
-    date: string = new Date().toISOString().split('T')[0]
-  ): Promise<LocalMilkYield> {
-    if (totalLiters < 0) {
-      throw new Error('El volumen de leche debe ser mayor o igual a cero.');
-    }
-
-    const payload = {
-      date,
-      shift,
-      groupId,
-      totalLiters,
-      recordedBy: 'field-user',
-    };
-
-    const outboxItem = await this.syncEngine.enqueueOperation('recordMilking', payload);
-
-    const record: LocalMilkYield = {
-      id: outboxItem.clientOperationId,
-      animalId: `group-${groupId}`,
-      shift,
-      liters: totalLiters,
-      date,
-      synced: false,
-    };
-
-    this.localYields.push(record);
-    this.persistStorage();
-    return record;
+  constructor(private readonly database: Database) {
+    this.outbox = new Outbox(database);
   }
 
   async recordIndividualYield(
     animalId: string,
     shift: MilkingShift,
     liters: number,
-    date: string = new Date().toISOString().split('T')[0]
-  ): Promise<LocalMilkYield> {
-    if (liters < 0) {
-      throw new Error('El volumen de leche debe ser mayor o igual a cero.');
+    date: string = todayIso(),
+  ): Promise<RecordedYield> {
+    assertVolume(liters);
+
+    const status = await this.withdrawalStatus(animalId, date);
+    if (status.isWithheld) {
+      throw new Error(
+        `La leche de este animal está en período de retiro hasta ${status.endsAt} y no es vendible.`,
+      );
     }
 
-    const withdrawalStatus = this.checkMilkWithdrawalStatus(animalId, date);
-    if (withdrawalStatus.isWithheld) {
-      throw new Error(`El animal tiene un período de retiro de leche activo hasta ${withdrawalStatus.endDate}. La leche no es vendible.`);
-    }
-
-    const payload = {
+    const entry = await this.outbox.enqueue('recordMilking', {
       date,
       shift,
       totalLiters: liters,
-      recordedBy: 'field-user',
       individualYields: [{ animalId, liters }],
-    };
+    });
 
-    const outboxItem = await this.syncEngine.enqueueOperation('recordMilking', payload);
-
-    const record: LocalMilkYield = {
-      id: outboxItem.clientOperationId,
+    return this.remember({
+      clientOperationId: entry.clientOperationId,
       animalId,
       shift,
       liters,
       date,
-      synced: false,
-    };
-
-    this.localYields.push(record);
-    this.persistStorage();
-    return record;
+    });
   }
 
-  checkMilkWithdrawalStatus(animalId: string, date: string = new Date().toISOString().split('T')[0]): { isWithheld: boolean; endDate?: string } {
-    const active = this.localWithdrawals.find(
-      (w) =>
-        w.animalId === animalId &&
-        (w.target === 'Milk' || w.target === 'Both') &&
-        w.startDate <= date &&
-        w.endDate >= date
+  async recordGroupMilking(
+    groupId: string,
+    shift: MilkingShift,
+    totalLiters: number,
+    date: string = todayIso(),
+  ): Promise<RecordedYield> {
+    assertVolume(totalLiters);
+
+    const entry = await this.outbox.enqueue('recordMilking', {
+      date,
+      shift,
+      groupId,
+      totalLiters,
+    });
+
+    return this.remember({
+      clientOperationId: entry.clientOperationId,
+      groupId,
+      shift,
+      liters: totalLiters,
+      date,
+    });
+  }
+
+  /** Whether this animal's milk is non-sellable on the given date. */
+  async withdrawalStatus(animalId: string, date: string = todayIso()): Promise<WithdrawalStatus> {
+    const periods = await this.database
+      .get<WithdrawalPeriod>('withdrawal_periods')
+      .query(Q.where('animal_id', animalId))
+      .fetch();
+
+    const active = periods.find(
+      (period) =>
+        MILK_TARGETS.has(period.target) &&
+        !period.isDeleted &&
+        period.startsAt <= date &&
+        period.endsAt >= date,
     );
 
-    if (active) {
-      return { isWithheld: true, endDate: active.endDate };
-    }
-    return { isWithheld: false };
+    return active ? { isWithheld: true, endsAt: active.endsAt } : { isWithheld: false };
   }
 
-  setLocalWithdrawals(withdrawals: LocalWithdrawal[]): void {
-    this.localWithdrawals = withdrawals;
-    if (typeof localStorage !== 'undefined') {
-      localStorage.setItem(MilkingService.WITHDRAWALS_KEY, JSON.stringify(withdrawals));
-    }
-  }
+  async dailySummary(date: string = todayIso()): Promise<DailySummary> {
+    const rows = await this.database
+      .get<MilkYield>('milk_yields')
+      .query(Q.where('date', date))
+      .fetch();
 
-  getDailyMilkingSummary(date: string = new Date().toISOString().split('T')[0]): DailyMilkingSummary {
-    const dayYields = this.localYields.filter((y) => y.date === date);
-    const totalLiters = dayYields.reduce((sum, y) => sum + y.liters, 0);
+    const yields = rows.map(toRecordedYield);
 
     return {
       date,
-      totalLiters,
-      recordsCount: dayYields.length,
-      yields: dayYields,
+      recordsCount: yields.length,
+      totalLiters: round2(yields.reduce((sum, entry) => sum + entry.liters, 0)),
+      yields,
     };
   }
 
-  updateTodayMilking(recordId: string, newLiters: number): void {
-    const today = new Date().toISOString().split('T')[0];
-    const record = this.localYields.find((y) => y.id === recordId);
+  /**
+   * Fixes a figure that has not left the phone. Once the server has it, Art. 1 applies:
+   * the correction is a new event, never an edit of the old one.
+   */
+  async correctTodayYield(clientOperationId: string, liters: number): Promise<void> {
+    assertVolume(liters);
 
-    if (!record) {
-      throw new Error('Registro de ordeño no encontrado.');
+    const [entry] = await this.database
+      .get<OutboxEntryModel>('sync_outbox')
+      .query(Q.where('client_operation_id', clientOperationId))
+      .fetch();
+
+    if (!entry) {
+      throw new Error('No se encontró el registro de ordeño.');
     }
 
-    if (record.date !== today) {
-      throw new Error('Solo se puede editar el ordeño del día en curso (Art. 1).');
+    if (entry.status !== 'pending') {
+      throw new Error(
+        'El registro ya fue sincronizado: una corrección debe registrarse como un evento nuevo.',
+      );
     }
 
-    if (record.synced) {
-      throw new Error('El registro ya fue sincronizado. Las correcciones requieren un nuevo evento.');
+    const [record] = await this.database
+      .get<MilkYield>('milk_yields')
+      .query(Q.where('client_operation_id', clientOperationId))
+      .fetch();
+
+    if (record && record.date !== todayIso()) {
+      throw new Error('Solo se puede corregir el ordeño del día en curso.');
     }
 
-    record.liters = newLiters;
-    this.persistStorage();
-  }
-
-  private persistStorage(): void {
-    if (typeof localStorage !== 'undefined') {
-      localStorage.setItem(MilkingService.YIELDS_KEY, JSON.stringify(this.localYields));
+    const payload = JSON.parse(entry.payloadJson) as Record<string, unknown>;
+    payload.totalLiters = liters;
+    if (Array.isArray(payload.individualYields) && payload.individualYields.length === 1) {
+      (payload.individualYields as Array<Record<string, unknown>>)[0].liters = liters;
     }
-  }
 
-  private loadStorage(): void {
-    if (typeof localStorage !== 'undefined') {
-      const rawY = localStorage.getItem(MilkingService.YIELDS_KEY);
-      if (rawY) {
-        try {
-          this.localYields = JSON.parse(rawY);
-        } catch {
-          this.localYields = [];
-        }
+    await this.database.write(async () => {
+      await entry.update((row) => {
+        row.payloadJson = JSON.stringify(payload);
+      });
+
+      if (record) {
+        await record.update((row) => {
+          row.liters = liters;
+        });
       }
-
-      const rawW = localStorage.getItem(MilkingService.WITHDRAWALS_KEY);
-      if (rawW) {
-        try {
-          this.localWithdrawals = JSON.parse(rawW);
-        } catch {
-          this.localWithdrawals = [];
-        }
-      }
-    }
+    });
   }
+
+  private async remember(record: RecordedYield): Promise<RecordedYield> {
+    await this.database.write(async () => {
+      await this.database.get<MilkYield>('milk_yields').create((row) => {
+        row.clientOperationId = record.clientOperationId;
+        row.animalId = record.animalId;
+        row.groupId = record.groupId;
+        row.shift = record.shift;
+        row.liters = record.liters;
+        row.date = record.date;
+      });
+    });
+
+    return record;
+  }
+}
+
+function assertVolume(liters: number): void {
+  if (!Number.isFinite(liters) || liters < 0) {
+    throw new Error('El volumen de leche debe ser mayor o igual a cero.');
+  }
+}
+
+function toRecordedYield(row: MilkYield): RecordedYield {
+  return {
+    clientOperationId: row.clientOperationId,
+    animalId: row.animalId,
+    groupId: row.groupId,
+    shift: row.shift as MilkingShift,
+    liters: row.liters,
+    date: row.date,
+  };
+}
+
+function todayIso(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function round2(value: number): number {
+  return Math.round(value * 100) / 100;
 }

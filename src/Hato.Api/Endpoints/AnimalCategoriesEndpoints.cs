@@ -11,6 +11,12 @@ public static class AnimalCategoriesEndpoints
     {
         var group = app.MapGroup("/api/v1/animal-categories").WithTags("AnimalCategories").RequireAuthorization();
 
+        group.MapGet("/", async (Guid? speciesId, ISender sender) =>
+        {
+            var categories = await sender.Send(new GetAnimalCategoriesQuery(speciesId));
+            return Results.Ok(categories);
+        });
+
         group.MapPost("/", async (CreateAnimalCategoryCommand command, ISender sender) =>
         {
             var id = await sender.Send(command);

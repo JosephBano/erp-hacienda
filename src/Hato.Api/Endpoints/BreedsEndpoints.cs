@@ -11,6 +11,12 @@ public static class BreedsEndpoints
     {
         var group = app.MapGroup("/api/v1/breeds").WithTags("Breeds").RequireAuthorization();
 
+        group.MapGet("/", async (Guid? speciesId, ISender sender) =>
+        {
+            var breeds = await sender.Send(new GetBreedsQuery(speciesId));
+            return Results.Ok(breeds);
+        });
+
         group.MapPost("/", async (CreateBreedCommand command, ISender sender) =>
         {
             var id = await sender.Send(command);

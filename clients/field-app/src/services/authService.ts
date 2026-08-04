@@ -1,145 +1,186 @@
+import * as Crypto from 'expo-crypto';
+import * as SecureStore from 'expo-secure-store';
+
+import { newUuid } from './identifiers';
+
+const SESSION_KEY = 'hato_session';
+const MIN_PIN_LENGTH = 4;
+
 export interface UserSession {
   userId: string;
   fullName: string;
   email: string;
-  role: string;
   token: string;
   refreshToken: string;
+  expiresAt: string;
+  roles: string[];
+  permissions: string[];
   pinHash?: string;
+  pinSalt?: string;
 }
 
-export interface LoginCredentials {
-  email: string;
-  password: string;
-}
-
+/**
+ * Session for a phone that spends its day out of range.
+ *
+ * The session lives in the device keystore (`expo-secure-store`), which is the only
+ * storage React Native actually has — an earlier version wrote to `localStorage`, a
+ * browser API that simply does not exist here, so nothing was ever persisted and every
+ * restart forced a login the employee could not perform without signal.
+ *
+ * The unlock PIN is stored as a salted SHA-256 digest. A 4-digit PIN is a small secret by
+ * nature; the salt at least means a stolen phone's hash cannot be matched against another
+ * employee's, and the digest means the PIN itself is never written down.
+ */
 export class AuthService {
-  private static STORAGE_KEY = 'hato_user_session';
-  private inMemorySession: UserSession | null = null;
-  private isOfflineMode = false;
+  private session: UserSession | null = null;
+  private offline = false;
 
-  async loginOnline(credentials: LoginCredentials, baseUrl: string): Promise<UserSession> {
-    try {
-      const response = await fetch(`${baseUrl}/api/v1/people/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(credentials),
-      });
+  constructor(private readonly baseUrl: string) {}
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Error de autenticación: ${response.status} - ${errorText}`);
-      }
-
-      const data = await response.json();
-      const session: UserSession = {
-        userId: data.userId || 'user-id-placeholder',
-        fullName: data.fullName || credentials.email.split('@')[0],
-        email: credentials.email,
-        role: data.role || 'registrar',
-        token: data.token,
-        refreshToken: data.refreshToken,
-      };
-
-      this.inMemorySession = session;
-      this.isOfflineMode = false;
-      await this.saveSessionToStorage(session);
-      return session;
-    } catch (error: any) {
-      // If network is unavailable, attempt offline fallback
-      const cached = await this.getCachedSession();
-      if (cached && cached.email.toLowerCase() === credentials.email.toLowerCase()) {
-        this.inMemorySession = cached;
-        this.isOfflineMode = true;
-        return cached;
-      }
-      throw error;
-    }
-  }
-
-  async setupOfflinePin(pin: string): Promise<void> {
-    if (!this.inMemorySession) {
-      throw new Error('Debe haber una sesión activa para configurar el PIN offline.');
-    }
-    const pinHash = await this.hashPin(pin);
-    this.inMemorySession.pinHash = pinHash;
-    await this.saveSessionToStorage(this.inMemorySession);
-  }
-
-  async unlockOfflineWithPin(pin: string): Promise<UserSession> {
-    const cached = await this.getCachedSession();
-    if (!cached || !cached.pinHash) {
-      throw new Error('No existe una sesión cacheada con PIN para acceso offline.');
-    }
-
-    const inputHash = await this.hashPin(pin);
-    if (inputHash !== cached.pinHash) {
-      throw new Error('PIN incorrecto.');
-    }
-
-    this.inMemorySession = cached;
-    this.isOfflineMode = true;
-    return cached;
-  }
-
-  async refreshAuthToken(baseUrl: string): Promise<string> {
-    if (!this.inMemorySession?.refreshToken) {
-      throw new Error('No hay refresh token disponible.');
-    }
-
-    const response = await fetch(`${baseUrl}/api/v1/people/auth/refresh`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ refreshToken: this.inMemorySession.refreshToken }),
-    });
-
-    if (!response.ok) {
-      throw new Error('No se pudo renovar la sesión.');
-    }
-
-    const data = await response.json();
-    this.inMemorySession.token = data.token;
-    this.inMemorySession.refreshToken = data.refreshToken;
-    await this.saveSessionToStorage(this.inMemorySession);
-    return data.token;
-  }
-
-  getCurrentSession(): UserSession | null {
-    return this.inMemorySession;
+  currentSession(): UserSession | null {
+    return this.session;
   }
 
   isOffline(): boolean {
-    return this.isOfflineMode;
+    return this.offline;
   }
 
-  private async saveSessionToStorage(session: UserSession): Promise<void> {
-    // In React Native Expo environment, SecureStore is used. Fallback to localStorage / mock storage.
-    if (typeof localStorage !== 'undefined') {
-      localStorage.setItem(AuthService.STORAGE_KEY, JSON.stringify(session));
+  token(): string | null {
+    return this.session?.token ?? null;
+  }
+
+  /** Loads whatever the keystore holds. Called on app start, before showing any screen. */
+  async restore(): Promise<UserSession | null> {
+    const raw = await SecureStore.getItemAsync(SESSION_KEY);
+    if (!raw) return null;
+
+    try {
+      this.session = JSON.parse(raw) as UserSession;
+    } catch {
+      // A corrupt entry must not brick the app; the employee logs in again.
+      await SecureStore.deleteItemAsync(SESSION_KEY);
+      return null;
+    }
+
+    return this.session;
+  }
+
+  async login(email: string, password: string): Promise<UserSession> {
+    const response = await fetch(`${this.baseUrl}/api/v1/people/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`No se pudo iniciar sesión (${response.status}).`);
+    }
+
+    const data = await response.json();
+    const existing = this.session;
+
+    this.session = {
+      userId: data.userId,
+      fullName: data.fullName,
+      email,
+      token: data.token,
+      refreshToken: data.refreshToken,
+      expiresAt: data.expiresAt,
+      roles: data.roles ?? [],
+      permissions: data.permissions ?? [],
+      // A re-login by the same employee keeps their PIN; a different one starts clean.
+      pinHash: existing?.email === email ? existing.pinHash : undefined,
+      pinSalt: existing?.email === email ? existing.pinSalt : undefined,
+    };
+
+    this.offline = false;
+    await this.persist();
+    return this.session;
+  }
+
+  async setPin(pin: string): Promise<void> {
+    if (!this.session) {
+      throw new Error('Debe haber una sesión activa para configurar el PIN.');
+    }
+
+    if (!/^\d+$/.test(pin) || pin.length < MIN_PIN_LENGTH) {
+      throw new Error(`El PIN debe tener al menos ${MIN_PIN_LENGTH} dígitos numéricos.`);
+    }
+
+    const salt = newUuid();
+    this.session.pinSalt = salt;
+    this.session.pinHash = await digest(pin, salt);
+    await this.persist();
+  }
+
+  /** Opens the cached session with no network at all. */
+  async unlockWithPin(pin: string): Promise<UserSession> {
+    const session = this.session ?? (await this.restore());
+
+    if (!session?.pinHash || !session.pinSalt) {
+      throw new Error('No hay una sesión guardada con PIN en este dispositivo.');
+    }
+
+    const candidate = await digest(pin, session.pinSalt);
+    if (candidate !== session.pinHash) {
+      throw new Error('PIN incorrecto.');
+    }
+
+    this.session = session;
+    this.offline = true;
+    return session;
+  }
+
+  /**
+   * Returns whether a usable token is now in hand. It reports rather than throws because
+   * the caller is the sync engine mid-batch, and a failed renewal is a reason to stop
+   * syncing, not an error to propagate through the queue.
+   */
+  async refresh(): Promise<boolean> {
+    if (!this.session?.refreshToken) return false;
+
+    try {
+      const response = await fetch(`${this.baseUrl}/api/v1/people/auth/refresh`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refreshToken: this.session.refreshToken }),
+      });
+
+      if (!response.ok) return false;
+
+      const data = await response.json();
+      this.session = {
+        ...this.session,
+        token: data.token,
+        refreshToken: data.refreshToken,
+        expiresAt: data.expiresAt ?? this.session.expiresAt,
+      };
+
+      this.offline = false;
+      await this.persist();
+      return true;
+    } catch {
+      return false;
     }
   }
 
-  private async getCachedSession(): Promise<UserSession | null> {
-    if (typeof localStorage !== 'undefined') {
-      const raw = localStorage.getItem(AuthService.STORAGE_KEY);
-      if (raw) {
-        try {
-          return JSON.parse(raw);
-        } catch {
-          return null;
-        }
-      }
-    }
-    return this.inMemorySession;
+  async logout(): Promise<void> {
+    this.session = null;
+    this.offline = false;
+    await SecureStore.deleteItemAsync(SESSION_KEY);
   }
 
-  private async hashPin(pin: string): Promise<string> {
-    // Simple fast hashing for test/demo compliance
-    let hash = 0;
-    for (let i = 0; i < pin.length; i++) {
-      hash = (hash << 5) - hash + pin.charCodeAt(i);
-      hash |= 0;
-    }
-    return hash.toString(16);
+  /** Test seam: lets a test assert what actually reached the keystore. */
+  async debugStoredSessionJson(): Promise<string | null> {
+    return SecureStore.getItemAsync(SESSION_KEY);
   }
+
+  private async persist(): Promise<void> {
+    if (!this.session) return;
+    await SecureStore.setItemAsync(SESSION_KEY, JSON.stringify(this.session));
+  }
+}
+
+async function digest(pin: string, salt: string): Promise<string> {
+  return Crypto.digestStringAsync(Crypto.CryptoDigestAlgorithm.SHA256, `${salt}:${pin}`);
 }

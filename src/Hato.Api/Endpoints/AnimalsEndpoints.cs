@@ -1,4 +1,6 @@
 using Hato.Modules.Livestock.Application.Animals;
+using Hato.Modules.People.Domain;
+using Hato.Modules.People.Infrastructure.Authorization;
 using MediatR;
 
 namespace Hato.Api.Endpoints;
@@ -33,8 +35,27 @@ public static class AnimalsEndpoints
             var identifierId = await sender.Send(command);
             return Results.Created($"/api/v1/animals/{id}/identifiers/{identifierId}", new { id = identifierId });
         });
+
+        group.MapDelete("/{id:guid}", async (Guid id, ISender sender) =>
+        {
+            await sender.Send(new DeleteAnimalCommand(id));
+            return Results.NoContent();
+        }).RequireAuthorization(policy => policy.RequirePermission(SystemPermissions.LivestockAnimalsWrite));
+
+        group.MapPut("/{id:guid}", async (Guid id, UpdateAnimalRequest request, ISender sender) =>
+        {
+            // A direct panel edit is synchronous and online: there is no offline window
+            // in which a stale read could have happened, so KnownUpdatedAt is omitted and
+            // the write always applies with no conflict to reconcile.
+            var command = new UpdateAnimalCommand(
+                id, request.BreedId, request.CategoryId, request.BirthDate, DateTimeOffset.UtcNow);
+            await sender.Send(command);
+            return Results.NoContent();
+        }).RequireAuthorization(policy => policy.RequirePermission(SystemPermissions.LivestockAnimalsWrite));
     }
 }
 
 public record AssignAnimalIdentifierRequest(
     Hato.Modules.Livestock.Domain.IdentifierType Type, string Value, DateOnly ValidFrom);
+
+public record UpdateAnimalRequest(Guid? BreedId, Guid? CategoryId, DateOnly? BirthDate);

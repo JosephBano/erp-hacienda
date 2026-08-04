@@ -1,0 +1,188 @@
+import { Database, Q } from '@nozbe/watermelondb';
+
+import { OutboxEntryModel } from '../database/models';
+import { newUuid } from './identifiers';
+
+export type OutboxStatus = 'pending' | 'synced' | 'rejected';
+
+export interface OutboxEntry {
+  clientOperationId: string;
+  operationType: string;
+  occurredAt: string;
+  payload: Record<string, unknown>;
+  status: OutboxStatus;
+  errorDetails?: string;
+  resultRef?: string;
+  attempts: number;
+  queuedAt: number;
+}
+
+export interface OutboxStats {
+  pending: number;
+  synced: number;
+  rejected: number;
+}
+
+/**
+ * Durable queue of everything this phone has recorded and the server has not yet
+ * confirmed.
+ *
+ * Every write the employee makes lands here first and only then, if there is signal, goes
+ * out. Nothing is ever removed: an accepted operation is marked `synced` and a refused one
+ * is marked `rejected` with the server's reason, so the problems tray always has something
+ * to show. Deleting a refused record would be the one failure mode this whole phase exists
+ * to prevent — a day of work disappearing with no trace.
+ */
+export class Outbox {
+  /**
+   * Keeps the queue order strict even when several records are saved inside the same
+   * millisecond, which is exactly what happens when an employee taps through a milking
+   * round quickly.
+   */
+  private static lastStamp = 0;
+
+  constructor(private readonly database: Database) {}
+
+  private get collection() {
+    return this.database.get<OutboxEntryModel>('sync_outbox');
+  }
+
+  async enqueue(
+    operationType: string,
+    payload: Record<string, unknown>,
+    occurredAt: string = new Date().toISOString(),
+  ): Promise<OutboxEntry> {
+    const clientOperationId = newUuid();
+    const stamp = Math.max(Date.now(), Outbox.lastStamp + 1);
+    Outbox.lastStamp = stamp;
+
+    await this.database.write(async () => {
+      await this.collection.create((entry) => {
+        entry.clientOperationId = clientOperationId;
+        entry.operationType = operationType;
+        entry.occurredAt = occurredAt;
+        entry.payloadJson = JSON.stringify(payload);
+        entry.status = 'pending';
+        entry.attempts = 0;
+        entry.queuedAt = stamp;
+      });
+    });
+
+    return {
+      clientOperationId,
+      operationType,
+      occurredAt,
+      payload,
+      status: 'pending',
+      attempts: 0,
+      queuedAt: stamp,
+    };
+  }
+
+  /** Oldest first, so a batch carries the day in the order it happened. */
+  async pending(limit?: number): Promise<OutboxEntry[]> {
+    const clauses: Q.Clause[] = [Q.where('status', 'pending'), Q.sortBy('queued_at', Q.asc)];
+    if (limit !== undefined) {
+      clauses.push(Q.take(limit));
+    }
+
+    const rows = await this.collection.query(...clauses).fetch();
+    return rows.map(toEntry);
+  }
+
+  async rejected(): Promise<OutboxEntry[]> {
+    const rows = await this.collection
+      .query(Q.where('status', 'rejected'), Q.sortBy('queued_at', Q.desc))
+      .fetch();
+
+    return rows.map(toEntry);
+  }
+
+  async all(): Promise<OutboxEntry[]> {
+    const rows = await this.collection.query(Q.sortBy('queued_at', Q.desc)).fetch();
+    return rows.map(toEntry);
+  }
+
+  async markSynced(clientOperationId: string, resultRef?: string): Promise<void> {
+    await this.update(clientOperationId, (entry) => {
+      entry.status = 'synced';
+      entry.resultRef = resultRef;
+      entry.errorDetails = undefined;
+    });
+  }
+
+  async markRejected(clientOperationId: string, errorDetails: string): Promise<void> {
+    await this.update(clientOperationId, (entry) => {
+      entry.status = 'rejected';
+      entry.errorDetails = errorDetails;
+    });
+  }
+
+  /**
+   * Records that a delivery attempt was made. Used by the sync engine's backoff, and
+   * visible in the problems tray so "this has failed 9 times" is something a human can
+   * notice rather than guess.
+   */
+  async recordAttempt(clientOperationIds: string[]): Promise<void> {
+    if (clientOperationIds.length === 0) return;
+
+    const rows = await this.collection
+      .query(Q.where('client_operation_id', Q.oneOf(clientOperationIds)))
+      .fetch();
+
+    await this.database.write(async () => {
+      await this.database.batch(
+        ...rows.map((row) => row.prepareUpdate((entry) => { entry.attempts += 1; })),
+      );
+    });
+  }
+
+  async stats(): Promise<OutboxStats> {
+    const [pending, synced, rejected] = await Promise.all([
+      this.collection.query(Q.where('status', 'pending')).fetchCount(),
+      this.collection.query(Q.where('status', 'synced')).fetchCount(),
+      this.collection.query(Q.where('status', 'rejected')).fetchCount(),
+    ]);
+
+    return { pending, synced, rejected };
+  }
+
+  private async update(
+    clientOperationId: string,
+    mutate: (entry: OutboxEntryModel) => void,
+  ): Promise<void> {
+    const [row] = await this.collection
+      .query(Q.where('client_operation_id', clientOperationId))
+      .fetch();
+
+    if (!row) return;
+
+    await this.database.write(async () => {
+      await row.update(mutate);
+    });
+  }
+}
+
+function toEntry(row: OutboxEntryModel): OutboxEntry {
+  return {
+    clientOperationId: row.clientOperationId,
+    operationType: row.operationType,
+    occurredAt: row.occurredAt,
+    payload: parsePayload(row.payloadJson),
+    status: row.status as OutboxStatus,
+    errorDetails: row.errorDetails,
+    resultRef: row.resultRef,
+    attempts: row.attempts,
+    queuedAt: row.queuedAt,
+  };
+}
+
+function parsePayload(raw: string): Record<string, unknown> {
+  try {
+    return JSON.parse(raw) as Record<string, unknown>;
+  } catch {
+    // A corrupt payload must not take the queue down; the entry stays visible with an
+    // empty body so a human can see something went wrong with it.
+    return {};
+  }
+}

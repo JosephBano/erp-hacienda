@@ -20,7 +20,9 @@ public record RecordBirthingCommand(
     Guid? PregnancyId = null,
     decimal? LitterWeight = null,
     string? Notes = null,
-    List<OffspringBirthInfo>? Offspring = null
+    List<OffspringBirthInfo>? Offspring = null,
+    Guid? SireAnimalId = null,
+    Guid? SireStrawId = null
 ) : IRequest<BirthingDto>;
 
 public class RecordBirthingCommandValidator : AbstractValidator<RecordBirthingCommand>
@@ -33,6 +35,11 @@ public class RecordBirthingCommandValidator : AbstractValidator<RecordBirthingCo
         RuleFor(x => x.BornDead).GreaterThanOrEqualTo(0);
         RuleFor(x => x.Mummified).GreaterThanOrEqualTo(0);
         RuleFor(x => (x.BornAlive + x.BornDead + x.Mummified)).GreaterThan(0).WithMessage("Total born count must be greater than zero.");
+
+        // Dual father (ADR-0006): the sire is an animal *or* a straw, never both.
+        RuleFor(x => x)
+            .Must(x => !(x.SireAnimalId.HasValue && x.SireStrawId.HasValue))
+            .WithMessage("El padre no puede ser un animal y una pajuela al mismo tiempo.");
     }
 }
 
@@ -57,10 +64,13 @@ public class RecordBirthingCommandHandler(IBreedingDbContext dbContext, IAnimalR
             pregnancy.MarkCompleted();
         }
 
-        // Try resolving sire / straw from the pregnancy -> service
-        Guid? sireAnimalId = null;
-        Guid? fatherStrawId = null;
-        if (pregnancy?.ServiceId is not null)
+        // The sire declared by whoever witnessed the birth wins: a field-recorded birth
+        // frequently has no pregnancy behind it (natural mating, nobody logged a service),
+        // and that person is the only source of the parentage there will ever be.
+        Guid? sireAnimalId = request.SireAnimalId;
+        Guid? fatherStrawId = request.SireStrawId;
+
+        if (sireAnimalId is null && fatherStrawId is null && pregnancy?.ServiceId is not null)
         {
             var service = await dbContext.BreedingServices.FirstOrDefaultAsync(s => s.Id == pregnancy.ServiceId.Value, cancellationToken);
             if (service is not null)

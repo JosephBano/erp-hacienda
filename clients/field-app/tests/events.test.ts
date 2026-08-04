@@ -1,59 +1,198 @@
-import { EventService } from '../src/services/eventService';
-import { SyncEngine } from '../src/services/syncEngine';
+import { Database } from '@nozbe/watermelondb';
+import LokiJSAdapter from '@nozbe/watermelondb/adapters/lokijs';
 
-describe('EventService Offline Tests', () => {
-  let syncEngine: SyncEngine;
-  let eventService: EventService;
+import { schema } from '../src/database/schema';
+import { migrations } from '../src/database/migrations';
+import { modelClasses } from '../src/database/models';
+import { Outbox } from '../src/services/outbox';
+import { EventService } from '../src/services/eventService';
+import { MilkingService } from '../src/services/milkingService';
+
+describe('EventService', () => {
+  let database: Database;
+  let outbox: Outbox;
+  let service: EventService;
 
   beforeEach(() => {
-    if (typeof localStorage !== 'undefined') {
-      localStorage.clear();
-    }
-    syncEngine = new SyncEngine();
-    eventService = new EventService(syncEngine);
-  });
-
-  test('recordTreatment enqueues event and calculates withdrawal days', async () => {
-    const event = await eventService.recordTreatment({
-      animalId: 'vaca-01',
-      medicationId: 'med-01',
-      medicationName: 'Antibiótico X',
-      dose: '10ml',
-      cost: 15.5,
-      milkWithdrawalDays: 5,
-      meatWithdrawalDays: 14,
+    const adapter = new LokiJSAdapter({
+      schema,
+      migrations,
+      useWebWorker: false,
+      useIncrementalIndexedDB: false,
+      dbName: `hato-events-${Math.random()}`,
     });
 
-    expect(event.animalId).toBe('vaca-01');
-    expect(event.milkWithdrawalDays).toBe(5);
-    expect(event.meatWithdrawalDays).toBe(14);
-    expect(syncEngine.getOutboxStats().pendingCount).toBe(1);
+    database = new Database({ adapter: adapter as never, modelClasses });
+    outbox = new Outbox(database);
+    service = new EventService(database);
   });
 
-  test('recordWeight validates positive weight and enqueues operation', async () => {
-    await expect(
-      eventService.recordWeight({ animalId: 'vaca-01', weightKg: -5 })
-    ).rejects.toThrow('El peso debe ser un número positivo.');
+  describe('treatments', () => {
+    it('queues the treatment as an animal event', async () => {
+      await service.recordTreatment({
+        animalId: 'cow-1',
+        medicationId: 'med-1',
+        medicationName: 'Oxitetraciclina',
+        dose: '10 ml',
+        milkWithdrawalDays: 5,
+      });
 
-    const event = await eventService.recordWeight({ animalId: 'vaca-01', weightKg: 450 });
-    expect(event.eventType).toBe('Weight');
-    expect(syncEngine.getOutboxStats().pendingCount).toBe(1);
+      const [entry] = await outbox.pending();
+
+      expect(entry.operationType).toBe('recordAnimalEvent');
+      expect(entry.payload).toMatchObject({ animalId: 'cow-1', eventType: 'Treatment' });
+    });
+
+    it('refuses a treatment with no medication', async () => {
+      await expect(
+        service.recordTreatment({
+          animalId: 'cow-1',
+          medicationId: '',
+          medicationName: '',
+          dose: '10 ml',
+        }),
+      ).rejects.toThrow(/medicamento/i);
+    });
+
+    /**
+     * The blocking rule has to bite immediately, offline. The employee treats a cow at
+     * dawn and milks her at dusk with no signal in between: if the withdrawal only
+     * appeared after a sync, that milk would be recorded as sellable.
+     */
+    it('applies the withdrawal locally so the same day\'s milking is already blocked', async () => {
+      await service.recordTreatment({
+        animalId: 'cow-treated',
+        medicationId: 'med-1',
+        medicationName: 'Oxitetraciclina',
+        dose: '10 ml',
+        milkWithdrawalDays: 5,
+      });
+
+      const milking = new MilkingService(database);
+      const status = await milking.withdrawalStatus('cow-treated');
+
+      expect(status.isWithheld).toBe(true);
+    });
+
+    it('does not withhold milk for a treatment with no milk withdrawal', async () => {
+      await service.recordTreatment({
+        animalId: 'cow-vitamins',
+        medicationId: 'med-2',
+        medicationName: 'Vitamina AD3E',
+        dose: '5 ml',
+        milkWithdrawalDays: 0,
+      });
+
+      const milking = new MilkingService(database);
+      expect((await milking.withdrawalStatus('cow-vitamins')).isWithheld).toBe(false);
+    });
+
+    it('computes the local withdrawal end from the treatment date', async () => {
+      await service.recordTreatment({
+        animalId: 'cow-treated',
+        medicationId: 'med-1',
+        medicationName: 'Oxitetraciclina',
+        dose: '10 ml',
+        milkWithdrawalDays: 3,
+        occurredAt: '2026-05-10T06:00:00.000Z',
+      });
+
+      const rows = await database.get('withdrawal_periods').query().fetch();
+
+      expect((rows[0] as any).startsAt).toBe('2026-05-10');
+      expect((rows[0] as any).endsAt).toBe('2026-05-13');
+    });
   });
 
-  test('searchAnimalLocal matches tag, name and untagged animals by UUID', () => {
-    const animals = [
-      { id: 'uuid-001', farmTag: 'F-10', name: 'Manchas' },
-      { id: 'uuid-002', officialTag: 'OFF-99' },
-      { id: 'uuid-003' }, // Untagged animal (Art. 3)
-    ];
+  describe('weighings', () => {
+    it('queues a weighing', async () => {
+      await service.recordWeight({ animalId: 'cow-1', weightKg: 420 });
 
-    expect(eventService.searchAnimalLocal(animals, 'F-10').length).toBe(1);
-    expect(eventService.searchAnimalLocal(animals, 'OFF-99').length).toBe(1);
-    expect(eventService.searchAnimalLocal(animals, 'uuid-003').length).toBe(1);
+      const [entry] = await outbox.pending();
+      expect(entry.payload).toMatchObject({ eventType: 'Weighing' });
+    });
+
+    it('refuses a weight that is zero or negative', async () => {
+      await expect(service.recordWeight({ animalId: 'cow-1', weightKg: 0 })).rejects.toThrow(
+        /peso/i,
+      );
+    });
   });
 
-  test('calculateLocalWithdrawalEndDate calculates projected date correctly', () => {
-    const endDate = eventService.calculateLocalWithdrawalEndDate('2026-08-01', 5);
-    expect(endDate).toBe('2026-08-06');
+  describe('moves', () => {
+    it('queues a move as the operation the server understands', async () => {
+      await service.recordGroupMove({
+        animalId: 'cow-1',
+        fromGroupId: 'group-a',
+        toGroupId: 'group-b',
+      });
+
+      const [entry] = await outbox.pending();
+
+      expect(entry.operationType).toBe('moveAnimal');
+      expect(entry.payload).toMatchObject({
+        animalId: 'cow-1',
+        fromGroupId: 'group-a',
+        toGroupId: 'group-b',
+      });
+    });
+
+    it('allows a first entry into a lot with no previous group', async () => {
+      await service.recordGroupMove({ animalId: 'cow-1', toGroupId: 'group-b' });
+
+      const [entry] = await outbox.pending();
+      expect(entry.payload.fromGroupId).toBeUndefined();
+    });
+
+    it('refuses a move with no destination', async () => {
+      await expect(
+        service.recordGroupMove({ animalId: 'cow-1', toGroupId: '' }),
+      ).rejects.toThrow(/destino/i);
+    });
+  });
+
+  describe('animal registration', () => {
+    /** Art. 3: the phone mints the identity, so events can reference it right away. */
+    it('gives the new animal an id the phone chose', async () => {
+      const animal = await service.registerAnimal({ speciesId: 'sp-1', sex: 'Female' });
+
+      const [entry] = await outbox.pending();
+
+      expect(entry.payload).toMatchObject({ id: animal.animalId });
+      expect(animal.animalId).toMatch(/^[0-9a-f-]{36}$/);
+    });
+
+    it('lets an event be recorded against an animal that has not synced yet', async () => {
+      const animal = await service.registerAnimal({ speciesId: 'sp-1', sex: 'Female' });
+
+      await service.recordWeight({ animalId: animal.animalId, weightKg: 38 });
+
+      const pending = await outbox.pending();
+      expect(pending).toHaveLength(2);
+      expect(pending[1].payload).toMatchObject({ animalId: animal.animalId });
+    });
+  });
+
+  describe('photos', () => {
+    /**
+     * The photo is kept as a local reference on the event. Uploading it needs the
+     * attachments module, which does not exist yet — so the app must not pretend the
+     * picture reached the server.
+     */
+    it('keeps the local photo reference on the queued event', async () => {
+      await service.recordTreatment({
+        animalId: 'cow-1',
+        medicationId: 'med-1',
+        medicationName: 'Oxitetraciclina',
+        dose: '10 ml',
+        photoUri: 'file:///local/photo.jpg',
+      });
+
+      const [entry] = await outbox.pending();
+      const details = JSON.parse(String(entry.payload.payloadJson));
+
+      expect(details.photoUri).toBe('file:///local/photo.jpg');
+      expect(details.photoUploaded).toBe(false);
+    });
   });
 });

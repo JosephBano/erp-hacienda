@@ -6,8 +6,13 @@ namespace Hato.Modules.People.UnitTests;
 
 public class SyncOperationTests
 {
+    /// <summary>
+    /// A freshly claimed operation has not run yet. Starting it as <c>Accepted</c> would
+    /// mean a server that crashes mid-push leaves behind rows claiming success for work
+    /// that never happened.
+    /// </summary>
     [Fact]
-    public void SyncOperation_Creation_SetsAcceptedStatus()
+    public void SyncOperation_Creation_StartsAsProcessing()
     {
         var clientOpId = Guid.NewGuid();
         var userId = Guid.NewGuid();
@@ -25,7 +30,7 @@ public class SyncOperationTests
         Assert.Equal(clientOpId, op.ClientOperationId);
         Assert.Equal(userId, op.UserId);
         Assert.Equal("device-1", op.DeviceId);
-        Assert.Equal(SyncOperationStatus.Accepted, op.Status);
+        Assert.Equal(SyncOperationStatus.Processing, op.Status);
     }
 
     [Fact]

@@ -66,6 +66,10 @@ namespace Hato.Modules.Livestock.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("father_straw_id");
 
+                    b.Property<DateTimeOffset?>("LastEditedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("last_edited_at");
+
                     b.Property<Guid?>("MotherId")
                         .HasColumnType("uuid")
                         .HasColumnName("mother_id");

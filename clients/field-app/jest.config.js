@@ -26,10 +26,6 @@ module.exports = {
       transformIgnorePatterns: [
         'node_modules/(?!(jest-)?react-native|@react-native|expo(nent)?|@expo|@nozbe|@testing-library)',
       ],
-      // The first test in each ui suite pays for LokiJSAdapter + RN Testing Library
-      // startup, which reliably exceeds Jest's 5000ms default on GitHub Actions'
-      // shared runners even though it's fast on a beefier local machine.
-      testTimeout: 20000,
     },
   ],
 };

@@ -1,26 +1,43 @@
 <div class="page-container">
   <div class="page-header">
     <div>
-      <h1 class="page-title">📡 Sincronización — Problemas y Conflictos</h1>
+      <h1 class="page-title">
+        <app-icon name="wifi" size="lg" />
+        Sincronización — Problemas y Conflictos
+      </h1>
       <p class="subtitle">Nada de lo que un dispositivo envía se pierde en silencio: lo que el servidor rechaza o resuelve por LWW queda aquí.</p>
     </div>
   </div>
 
   <div *ngIf="loadError" class="alert alert-danger">No se pudo cargar la bandeja de sincronización.</div>
 
-  <div class="tabs">
-    <button class="tab-button" [class.active]="activeTab === 'rejected'" (click)="activeTab = 'rejected'">
+  <div class="tabs" role="tablist">
+    <button
+      type="button"
+      class="tab-button"
+      role="tab"
+      [class.active]="activeTab === 'rejected'"
+      [attr.aria-selected]="activeTab === 'rejected'"
+      (click)="activeTab = 'rejected'">
+      <app-icon name="alert" size="sm" />
       Operaciones rechazadas
     </button>
-    <button class="tab-button" [class.active]="activeTab === 'conflicts'" (click)="activeTab = 'conflicts'">
+    <button
+      type="button"
+      class="tab-button"
+      role="tab"
+      [class.active]="activeTab === 'conflicts'"
+      [attr.aria-selected]="activeTab === 'conflicts'"
+      (click)="activeTab = 'conflicts'">
+      <app-icon name="shield" size="sm" />
       Conflictos LWW
     </button>
   </div>
 
   <div *ngIf="activeTab === 'rejected'">
     <div class="glass-card filter-toolbar">
-      <label class="form-label">Estado:</label>
-      <select class="form-select" [(ngModel)]="statusFilter" (ngModelChange)="loadOperations()">
+      <label class="form-label" for="sync-status">Estado:</label>
+      <select id="sync-status" class="form-select" [(ngModel)]="statusFilter" (ngModelChange)="loadOperations()">
         <option value="Rejected">Rechazadas</option>
         <option value="Accepted">Aceptadas</option>
         <option value="Duplicate">Duplicadas</option>
@@ -29,7 +46,7 @@
     </div>
 
     <div class="table-container glass-card mt-3">
-      <table>
+      <table class="responsive-table">
         <thead>
           <tr>
             <th>Recibida</th>
@@ -42,11 +59,11 @@
         </thead>
         <tbody>
           <tr *ngFor="let op of operations">
-            <td>{{ op.receivedAt | date: 'short' }}</td>
-            <td>{{ op.occurredAt | date: 'short' }}</td>
-            <td>{{ op.operationType }}</td>
-            <td>{{ op.deviceId }}</td>
-            <td>
+            <td data-label="Recibida">{{ op.receivedAt | date: 'short' }}</td>
+            <td data-label="Ocurrió">{{ op.occurredAt | date: 'short' }}</td>
+            <td data-label="Tipo">{{ op.operationType }}</td>
+            <td data-label="Dispositivo">{{ op.deviceId }}</td>
+            <td data-label="Estado">
               <span class="badge"
                 [class.badge-danger]="op.status === 'Rejected'"
                 [class.badge-success]="op.status === 'Accepted'"
@@ -54,10 +71,10 @@
                 {{ op.status }}
               </span>
             </td>
-            <td>{{ op.errorDetails || '—' }}</td>
+            <td data-label="Motivo">{{ op.errorDetails || '—' }}</td>
           </tr>
-          <tr *ngIf="operations.length === 0">
-            <td colspan="6" class="text-center py-4 text-muted">Ninguna operación en este estado.</td>
+          <tr *ngIf="operations.length === 0" class="empty-row">
+            <td colspan="6" data-label="Estado" class="text-center py-4 text-muted">Ninguna operación en este estado.</td>
           </tr>
         </tbody>
       </table>
@@ -66,7 +83,7 @@
 
   <div *ngIf="activeTab === 'conflicts'">
     <div class="table-container glass-card mt-3">
-      <table>
+      <table class="responsive-table">
         <thead>
           <tr>
             <th>Detectado</th>
@@ -80,20 +97,20 @@
         </thead>
         <tbody>
           <tr *ngFor="let c of conflicts">
-            <td>{{ c.detectedAt | date: 'short' }}</td>
-            <td>{{ c.entityType }} <span class="text-muted">#{{ c.entityId.slice(0, 8) }}</span></td>
-            <td>{{ c.fieldName }}</td>
-            <td>{{ c.serverValue || '—' }}</td>
-            <td>{{ c.attemptedValue || '—' }}</td>
-            <td>
+            <td data-label="Detectado">{{ c.detectedAt | date: 'short' }}</td>
+            <td data-label="Entidad">{{ c.entityType }} <span class="text-muted">#{{ c.entityId.slice(0, 8) }}</span></td>
+            <td data-label="Campo">{{ c.fieldName }}</td>
+            <td data-label="Valor final">{{ c.serverValue || '—' }}</td>
+            <td data-label="Valor intentado">{{ c.attemptedValue || '—' }}</td>
+            <td data-label="Resolución">
               <span class="badge" [class.badge-success]="c.resolution === 'ClientWon'" [class.badge-warning]="c.resolution === 'ServerWon'">
                 {{ c.resolution === 'ClientWon' ? 'Ganó el envío' : 'Se mantuvo el servidor' }}
               </span>
             </td>
-            <td>{{ c.deviceId || '—' }}</td>
+            <td data-label="Dispositivo">{{ c.deviceId || '—' }}</td>
           </tr>
-          <tr *ngIf="conflicts.length === 0">
-            <td colspan="7" class="text-center py-4 text-muted">Sin conflictos registrados.</td>
+          <tr *ngIf="conflicts.length === 0" class="empty-row">
+            <td colspan="7" data-label="Estado" class="text-center py-4 text-muted">Sin conflictos registrados.</td>
           </tr>
         </tbody>
       </table>

@@ -1,13 +1,14 @@
-import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Component, OnInit, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { ApiService, Animal } from '../../services/api.service';
+import { IconComponent } from '../../shared/icon/icon.component';
 
 @Component({
   selector: 'app-quick-event',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, IconComponent],
   templateUrl: './quick-event.component.html',
   styleUrls: ['./quick-event.component.css']
 })
@@ -22,33 +23,37 @@ export class QuickEventComponent implements OnInit {
   recordedBy = 'veterinario 1';
 
   // Event specific fields
-  weightKg = 450;
-  medicationName = 'Oxitetraciclina 20%';
-  dosage = '20 ml';
-  withdrawalDays = 7;
-  diseaseDiagnosis = 'Mastitis clínica leve';
-  notes = 'Aplicado vía intramuscular profunda.';
+  weightKg = 120;
+  medicationName = '';
+  dosage = '';
+  withdrawalDays = 0;
+  diseaseDiagnosis = '';
+  notes = '';
 
   successMessage = '';
   errorMessage = '';
+  loadError = false;
 
   ngOnInit(): void {
     this.api.getAnimals().subscribe({
       next: (data) => {
+        this.loadError = false;
         this.animals = data;
         if (data.length > 0) this.selectedAnimalId = data[0].id;
       },
       error: () => {
-        this.animals = [
-          { id: '1', farmTag: 'VACA-001', name: 'Mariposa', gender: 'Female', status: 'Active', isInWithdrawal: false },
-          { id: '2', farmTag: 'VACA-002', name: 'Estrella', gender: 'Female', status: 'Active', isInWithdrawal: false }
-        ];
-        this.selectedAnimalId = '1';
+        this.loadError = true;
+        this.animals = [];
+        this.selectedAnimalId = '';
+        this.errorMessage = 'No se pudo cargar el listado de animales. Intente nuevamente.';
       }
     });
   }
 
   saveEvent(): void {
+    this.successMessage = '';
+    this.errorMessage = '';
+
     if (!this.selectedAnimalId) {
       this.errorMessage = 'Debe seleccionar un animal.';
       return;
@@ -73,12 +78,11 @@ export class QuickEventComponent implements OnInit {
       milkWithdrawalDays
     }).subscribe({
       next: () => {
-        this.successMessage = '¡Evento inmutable registrado correctamente!';
+        this.successMessage = 'Evento inmutable registrado correctamente.';
         setTimeout(() => this.router.navigate(['/animals', this.selectedAnimalId]), 1500);
       },
       error: () => {
-        this.successMessage = '¡Evento registrado correctamente (Modo Demostración)!';
-        setTimeout(() => this.router.navigate(['/animals', this.selectedAnimalId]), 1500);
+        this.errorMessage = 'No se pudo registrar el evento. Revise la conexión e intente nuevamente.';
       }
     });
   }

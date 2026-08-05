@@ -2,6 +2,7 @@ import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApiService, SyncConflictDto, SyncOperationDto } from '../../services/api.service';
+import { IconComponent } from '../../shared/icon/icon.component';
 
 /**
  * Two related trays a device's sync push feeds. Rejected operations (PLAN-FASE-3-4 §3.C:
@@ -12,7 +13,7 @@ import { ApiService, SyncConflictDto, SyncOperationDto } from '../../services/ap
 @Component({
   selector: 'app-sync-tray',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, IconComponent],
   templateUrl: './sync-tray.component.html',
   styleUrls: ['./sync-tray.component.css']
 })

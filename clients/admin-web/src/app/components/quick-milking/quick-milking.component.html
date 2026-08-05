@@ -1,7 +1,10 @@
 <div class="page-container">
   <div class="page-header">
-    <h1 class="page-title">🥛 Registro Rápido de Ordeño Diario</h1>
-    <p class="subtitle">Ingreso rápido de producción por vaca o grupo para la sesión matutina/vespertina.</p>
+    <h1 class="page-title">
+      <app-icon name="milk" size="lg" />
+      Registro de ordeño diario
+    </h1>
+    <p class="subtitle">Ingreso de producción de leche por animal o grupo para cada sesión.</p>
   </div>
 
   <div *ngIf="successMessage" class="alert alert-success">
@@ -11,17 +14,16 @@
     {{ errorMessage }}
   </div>
 
-  <!-- Form Config Card -->
   <div class="glass-card form-card">
     <div class="form-grid">
       <div class="form-group">
-        <label class="form-label">Fecha de Ordeño:</label>
-        <input type="date" class="form-input" [(ngModel)]="sessionDate">
+        <label class="form-label" for="milking-date">Fecha de ordeño:</label>
+        <input id="milking-date" type="date" class="form-input" [(ngModel)]="sessionDate">
       </div>
 
       <div class="form-group">
-        <label class="form-label">Sesión de Ordeño:</label>
-        <select class="form-select" [(ngModel)]="sessionType">
+        <label class="form-label" for="milking-session">Sesión de ordeño:</label>
+        <select id="milking-session" class="form-select" [(ngModel)]="sessionType">
           <option value="Morning">Matutino (AM)</option>
           <option value="Afternoon">Vespertino (PM)</option>
           <option value="Night">Nocturno</option>
@@ -29,47 +31,50 @@
       </div>
 
       <div class="form-group">
-        <label class="form-label">Registrado Por:</label>
-        <input type="text" class="form-input" [(ngModel)]="recordedBy">
+        <label class="form-label" for="milking-recorder">Registrado por:</label>
+        <input id="milking-recorder" type="text" class="form-input" [(ngModel)]="recordedBy">
       </div>
     </div>
   </div>
 
-  <!-- Animals Production Input List -->
-  <div class="glass-card">
-    <h3>Litros Obtenidos por Vaca</h3>
-    <p class="subtitle text-sm mb-3">Las vacas bajo retiro antibiótico se resaltan para separación de baldes.</p>
+  <div class="glass-card" *ngIf="!loadError">
+    <h3>Litros obtenidos por animal</h3>
+    <p class="subtitle text-sm mb-3">Los animales bajo retiro sanitario se resaltan para separar la leche bloqueada.</p>
 
     <div class="table-container">
-      <table>
+      <table class="responsive-table">
         <thead>
           <tr>
             <th>Arete Finca</th>
-            <th>Nombre Vaca</th>
+            <th>Animal</th>
             <th>Estado Sanitario</th>
             <th>Litros Producidos (L)</th>
           </tr>
         </thead>
         <tbody>
           <tr *ngFor="let item of animals" [class.row-warning]="item.isInWithdrawal">
-            <td><strong>{{ item.farmTag }}</strong></td>
-            <td>{{ item.name }}</td>
-            <td>
+            <td data-label="Arete Finca"><strong>{{ item.farmTag }}</strong></td>
+            <td data-label="Animal">{{ item.name }}</td>
+            <td data-label="Estado Sanitario">
               <span *ngIf="item.isInWithdrawal" class="badge badge-danger">
-                🚫 LECHE EN RETIROS (NO MEZCLAR)
+                <app-icon name="alert" size="sm" />
+                Leche en retiro (no mezclar)
               </span>
               <span *ngIf="!item.isInWithdrawal" class="badge badge-success">
-                ✅ APTO COMERCIAL
+                <app-icon name="check" size="sm" />
+                Apto comercial
               </span>
             </td>
-            <td>
-              <input 
-                type="number" 
-                step="0.5" 
-                min="0" 
-                class="form-input input-number" 
-                [(ngModel)]="item.liters" 
-                placeholder="0.0">
+            <td data-label="Litros Producidos (L)">
+              <input
+                type="number"
+                step="0.5"
+                min="0"
+                class="form-input input-number"
+                [(ngModel)]="item.liters"
+                [attr.aria-label]="'Litros producidos por ' + item.name"
+                placeholder="0.0"
+              >
             </td>
           </tr>
         </tbody>
@@ -77,8 +82,9 @@
     </div>
 
     <div class="form-actions mt-4">
-      <button class="btn btn-primary btn-lg" (click)="saveMilkingSession()">
-        💾 Guardar Sesión de Ordeño Complete
+      <button type="button" class="btn btn-primary btn-lg" (click)="saveMilkingSession()">
+        <app-icon name="save" size="sm" />
+        Guardar sesión de ordeño completa
       </button>
     </div>
   </div>

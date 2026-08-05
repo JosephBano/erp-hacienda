@@ -1,12 +1,13 @@
-import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Component, OnInit, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { ApiService, SemenStraw, PregnancyDto, AlertDto, Animal } from '../../services/api.service';
+import { AlertDto, Animal, ApiService, PregnancyDto, SemenStraw } from '../../services/api.service';
+import { IconComponent } from '../../shared/icon/icon.component';
 
 @Component({
   selector: 'app-breeding-dashboard',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, IconComponent],
   templateUrl: './breeding-dashboard.component.html',
   styleUrls: ['./breeding-dashboard.component.css']
 })
@@ -56,13 +57,12 @@ export class BreedingDashboardComponent implements OnInit {
     pregnancyId: '',
     birthDate: new Date().toISOString().substring(0, 10),
     difficulty: 'Normal',
-    bornAlive: 1,
+    bornAlive: 0,
     bornDead: 0,
     mummified: 0,
-    litterWeight: 35.0,
+    litterWeight: 0,
     notes: '',
-    // Single-calf case (the common one for bovine): registering the calf itself is
-    // optional — leave farmTag blank to just log the litter counts.
+    // An identified offspring is optional; leave farmTag blank to record only litter totals.
     calfFarmTag: '',
     calfSex: 'F'
   };

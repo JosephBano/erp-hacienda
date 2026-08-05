@@ -1,38 +1,42 @@
 <div class="breeding-container">
-  <!-- Top Header -->
   <div class="header-section">
     <div>
-      <h1 class="page-title">🐄 Reproducción, Genética y Alertas</h1>
-      <p class="page-subtitle">Gestión de madres, inseminación artificial, partos y motor de alertas de finca</p>
+      <h1 class="page-title"><app-icon name="dna" size="lg" /> Reproducción, genética y alertas</h1>
+      <p class="page-subtitle">Gestión de madres, camadas, inseminación artificial, partos y alertas de la finca.</p>
     </div>
     <div class="header-actions">
-      <button class="btn btn-primary" (click)="refreshAlerts()">
-        <span>🔄 Evaluar Alertas</span>
+      <button type="button" class="btn btn-primary" (click)="refreshAlerts()" [disabled]="loading">
+        <app-icon name="file-text" size="sm" />
+        Evaluar Alertas
       </button>
     </div>
   </div>
 
-  <!-- Messages -->
-  <div *ngIf="successMessage" class="alert alert-success">
-    ✅ {{ successMessage }}
+  <div *ngIf="successMessage" class="alert alert-success" role="status">
+    <app-icon name="check" size="sm" />
+    {{ successMessage }}
   </div>
-  <div *ngIf="errorMessage" class="alert alert-error">
-    ❌ {{ errorMessage }}
+  <div *ngIf="errorMessage" class="alert alert-error" role="alert">
+    <app-icon name="alert" size="sm" />
+    {{ errorMessage }}
   </div>
 
-  <!-- Navigation Tabs -->
-  <div class="tabs-nav">
-    <button class="tab-btn" [class.active]="activeTab === 'alerts'" (click)="activeTab = 'alerts'">
-      🔔 Alertas Activas ({{ alerts.length }})
+  <div class="tabs-nav" role="tablist" aria-label="Secciones de reproducción">
+    <button type="button" role="tab" class="tab-btn" [class.active]="activeTab === 'alerts'" [attr.aria-selected]="activeTab === 'alerts'" (click)="activeTab = 'alerts'">
+      <app-icon name="alert" size="sm" />
+      Alertas Activas ({{ alerts.length }})
     </button>
-    <button class="tab-btn" [class.active]="activeTab === 'pregnancies'" (click)="activeTab = 'pregnancies'">
-      🤰 Gestaciones Activas ({{ pregnancies.length }})
+    <button type="button" role="tab" class="tab-btn" [class.active]="activeTab === 'pregnancies'" [attr.aria-selected]="activeTab === 'pregnancies'" (click)="activeTab = 'pregnancies'">
+      <app-icon name="calendar" size="sm" />
+      Gestaciones Activas ({{ pregnancies.length }})
     </button>
-    <button class="tab-btn" [class.active]="activeTab === 'service'" (click)="activeTab = 'service'">
-      💉 Nuevo Servicio / Parto
+    <button type="button" role="tab" class="tab-btn" [class.active]="activeTab === 'service'" [attr.aria-selected]="activeTab === 'service'" (click)="activeTab = 'service'">
+      <app-icon name="dna" size="sm" />
+      Nuevo Servicio / Parto
     </button>
-    <button class="tab-btn" [class.active]="activeTab === 'straws'" (click)="activeTab = 'straws'">
-      🧪 Catálogo de Pajuelas ({{ straws.length }})
+    <button type="button" role="tab" class="tab-btn" [class.active]="activeTab === 'straws'" [attr.aria-selected]="activeTab === 'straws'" (click)="activeTab = 'straws'">
+      <app-icon name="dna" size="sm" />
+      Catálogo de Pajuelas ({{ straws.length }})
     </button>
   </div>
 
@@ -40,7 +44,7 @@
   <div *ngIf="activeTab === 'alerts'" class="tab-content">
     <div class="alerts-grid">
       <div *ngIf="alerts.length === 0" class="empty-state">
-        <span class="empty-icon">🎉</span>
+        <app-icon class="empty-icon" name="check" size="xl" />
         <h3>No hay alertas activas</h3>
         <p>Todos los partos y períodos de retiro están bajo control.</p>
       </div>
@@ -65,7 +69,7 @@
   <!-- Tab 2: Gestaciones Activas -->
   <div *ngIf="activeTab === 'pregnancies'" class="tab-content">
     <div class="table-card">
-      <table class="data-table">
+      <table class="data-table responsive-table">
         <thead>
           <tr>
             <th>ID Madre</th>
@@ -76,15 +80,15 @@
           </tr>
         </thead>
         <tbody>
-          <tr *ngIf="pregnancies.length === 0">
-            <td colspan="5" class="text-center">No hay gestaciones activas registradas.</td>
+          <tr *ngIf="pregnancies.length === 0" class="empty-row">
+            <td colspan="5" data-label="Estado" class="text-center">No hay gestaciones activas registradas.</td>
           </tr>
           <tr *ngFor="let p of pregnancies">
-            <td><strong>{{ p.damId }}</strong></td>
-            <td>{{ p.confirmedAt }}</td>
-            <td><span class="highlight-date">📅 {{ p.expectedBirthDate }}</span></td>
-            <td><span class="badge badge-success">{{ p.status }}</span></td>
-            <td>{{ p.notes || '-' }}</td>
+            <td data-label="ID Madre"><strong>{{ p.damId }}</strong></td>
+            <td data-label="Fecha Confirmación">{{ p.confirmedAt }}</td>
+            <td data-label="Fecha Probable Parto"><span class="highlight-date"><app-icon name="calendar" size="sm" /> {{ p.expectedBirthDate }}</span></td>
+            <td data-label="Estado"><span class="badge badge-success">{{ p.status }}</span></td>
+            <td data-label="Notas">{{ p.notes || '-' }}</td>
           </tr>
         </tbody>
       </table>
@@ -95,10 +99,10 @@
   <div *ngIf="activeTab === 'service'" class="tab-content grid-2">
     <!-- Subform 1: Servicio Reproductivo -->
     <div class="form-card">
-      <h2>💉 Registrar Servicio (Monta / IA)</h2>
+      <h2><app-icon name="dna" size="sm" /> Registrar Servicio (Monta / IA)</h2>
       <form (ngSubmit)="submitService()">
         <div class="form-group">
-          <label>Vaca / Madre (Dam)</label>
+          <label>Animal / Madre (Dam)</label>
           <select [(ngModel)]="serviceForm.damId" name="damId" class="form-control" required>
             <option value="">-- Seleccionar Madre --</option>
             <option *ngFor="let a of animals" [value]="a.id">
@@ -126,9 +130,9 @@
         </div>
 
         <div *ngIf="serviceForm.serviceType === 'Natural'" class="form-group">
-          <label>Toro Semental (ID Animal)</label>
+          <label>Macho reproductor (ID Animal)</label>
           <select [(ngModel)]="serviceForm.sireAnimalId" name="sireAnimalId" class="form-control">
-            <option value="">-- Seleccionar Toro --</option>
+            <option value="">-- Seleccionar Reproductor --</option>
             <option *ngFor="let a of animals" [value]="a.id">
               {{ a.farmTag || a.officialTag || a.id }}
             </option>
@@ -146,6 +150,7 @@
         </div>
 
         <button type="submit" class="btn btn-primary btn-block" [disabled]="loading">
+          <app-icon name="save" size="sm" />
           Guardar Servicio
         </button>
       </form>
@@ -153,7 +158,7 @@
 
     <!-- Subform 2: Registro de Parto -->
     <div class="form-card">
-      <h2>👶 Registrar Parto / Camada</h2>
+      <h2><app-icon name="pig" size="sm" /> Registrar Parto / Camada</h2>
       <form (ngSubmit)="submitBirthing()">
         <div class="form-group">
           <label>Madre (Dam)</label>
@@ -197,7 +202,7 @@
 
         <div class="form-group" *ngIf="birthingForm.bornAlive > 0">
           <label>Arete de la Cría (opcional — déjalo vacío para solo registrar el conteo)</label>
-          <input type="text" [(ngModel)]="birthingForm.calfFarmTag" name="bCalfTag" placeholder="p.ej. TERNERA-045" class="form-control" />
+          <input type="text" [(ngModel)]="birthingForm.calfFarmTag" name="bCalfTag" placeholder="p.ej. CRIA-045" class="form-control" />
         </div>
 
         <div class="form-group" *ngIf="birthingForm.bornAlive > 0 && birthingForm.calfFarmTag">
@@ -209,6 +214,7 @@
         </div>
 
         <button type="submit" class="btn btn-success btn-block" [disabled]="loading">
+          <app-icon name="save" size="sm" />
           Guardar Parto
         </button>
       </form>
@@ -219,46 +225,50 @@
   <div *ngIf="activeTab === 'straws'" class="tab-content grid-2">
     <div class="table-card">
       <h2>Catálogo de Semen</h2>
-      <table class="data-table">
+      <table class="data-table responsive-table">
         <thead>
           <tr>
             <th>Código</th>
-            <th>Nombre Toro</th>
+            <th>Reproductor</th>
             <th>Proveedor</th>
             <th>Stock Actual</th>
           </tr>
         </thead>
         <tbody>
           <tr *ngFor="let s of straws">
-            <td><strong>{{ s.code }}</strong></td>
-            <td>{{ s.bullName }}</td>
-            <td>{{ s.supplierName || 'Interno' }}</td>
-            <td><span class="badge" [class.badge-success]="s.currentQuantity > 0" [class.badge-danger]="s.currentQuantity === 0">{{ s.currentQuantity }} / {{ s.initialQuantity }}</span></td>
+            <td data-label="Código"><strong>{{ s.code }}</strong></td>
+            <td data-label="Reproductor">{{ s.bullName }}</td>
+            <td data-label="Proveedor">{{ s.supplierName || 'Interno' }}</td>
+            <td data-label="Stock Actual"><span class="badge" [class.badge-success]="s.currentQuantity > 0" [class.badge-danger]="s.currentQuantity === 0">{{ s.currentQuantity }} / {{ s.initialQuantity }}</span></td>
+          </tr>
+          <tr *ngIf="straws.length === 0" class="empty-row">
+            <td colspan="4" data-label="Estado" class="text-center">No hay pajuelas registradas.</td>
           </tr>
         </tbody>
       </table>
     </div>
 
     <div class="form-card">
-      <h2>🧪 Registrar Nuevo Lote de Pajuelas</h2>
+      <h2><app-icon name="dna" size="sm" /> Registrar nuevo lote de pajuelas</h2>
       <form (ngSubmit)="submitStraw()">
         <div class="form-group">
           <label>Código de Lote / Pajuela</label>
-          <input type="text" [(ngModel)]="strawForm.code" name="stCode" placeholder="p.ej. HOL-2026-01" class="form-control" required />
+           <input type="text" [(ngModel)]="strawForm.code" name="stCode" placeholder="p.ej. DUROC-2026-01" class="form-control" required />
+
         </div>
         <div class="form-group">
-          <label>Nombre del Toro</label>
-          <input type="text" [(ngModel)]="strawForm.bullName" name="stBull" placeholder="p.ej. Kingboy Supreme" class="form-control" required />
+          <label>Nombre del Reproductor</label>
+          <input type="text" [(ngModel)]="strawForm.bullName" name="stBull" placeholder="p.ej. Duroc Atlas" class="form-control" required />
         </div>
         <div class="form-group">
           <label>Proveedor / Centro de IA</label>
-          <input type="text" [(ngModel)]="strawForm.supplierName" name="stSupp" placeholder="p.ej. Semex / Alta Genetics" class="form-control" />
+          <input type="text" [(ngModel)]="strawForm.supplierName" name="stSupp" placeholder="p.ej. Centro genético" class="form-control" />
         </div>
         <div class="form-group">
           <label>Cantidad Inicial</label>
           <input type="number" [(ngModel)]="strawForm.quantity" name="stQty" class="form-control" min="1" required />
         </div>
-        <button type="submit" class="btn btn-primary btn-block">Guardar Pajuela</button>
+        <button type="submit" class="btn btn-primary btn-block"><app-icon name="save" size="sm" /> Guardar Pajuela</button>
       </form>
     </div>
   </div>

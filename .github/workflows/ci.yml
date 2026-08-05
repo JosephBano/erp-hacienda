@@ -51,8 +51,13 @@ jobs:
           cache: 'npm'
           cache-dependency-path: clients/field-app/package.json
 
+      # --legacy-peer-deps is required because @nozbe/with-observables@1.6.0 still
+      # declares peer @types/react ^16||^17||^18 — the project is on React 19 since the
+      # SDK 51 -> 56 upgrade. The runtime types are structurally compatible (TS forwards
+      # them correctly); the warning is informational, not blocking. Documented in the
+      # PR body so reviewers know it's intentional.
       - name: Install dependencies
-        run: npm ci || npm install
+        run: npm ci --legacy-peer-deps || npm install --legacy-peer-deps
 
       - name: Typecheck
         run: npm run typecheck

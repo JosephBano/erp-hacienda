@@ -2,6 +2,7 @@ import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApiService, PermissionDto, RoleDto, UserDto } from '../../services/api.service';
+import { IconComponent } from '../../shared/icon/icon.component';
 
 /**
  * Roles, permissions and who has which role (ADR-0007). The backend and its API service
@@ -12,7 +13,7 @@ import { ApiService, PermissionDto, RoleDto, UserDto } from '../../services/api.
 @Component({
   selector: 'app-roles-management',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, IconComponent],
   templateUrl: './roles-management.component.html',
   styleUrls: ['./roles-management.component.css']
 })

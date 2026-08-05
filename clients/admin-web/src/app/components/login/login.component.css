@@ -3,6 +3,7 @@
   align-items: center;
   justify-content: center;
   min-height: 100vh;
+  padding: 1rem;
   background: #0f172a;
 }
 
@@ -10,7 +11,7 @@
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
-  width: 320px;
+  width: min(360px, calc(100vw - 2rem));
   padding: 2rem;
   border-radius: 12px;
   background: #ffffff;
@@ -20,15 +21,17 @@
 .login-brand {
   text-align: center;
   margin-bottom: 0.5rem;
+  color: #16a34a;
 }
 
-.brand-logo {
-  font-size: 2.5rem;
+.login-brand app-icon {
+  display: inline-flex;
 }
 
 .login-brand h1 {
   margin: 0.25rem 0 0;
   font-size: 1.25rem;
+  color: #0f172a;
 }
 
 .login-brand p {
@@ -44,21 +47,39 @@ label {
 }
 
 input {
-  padding: 0.5rem 0.65rem;
+  padding: 0.65rem 0.75rem;
   border: 1px solid #cbd5e1;
   border-radius: 6px;
-  font-size: 0.95rem;
+  font-size: 1rem;
+  min-height: 44px;
+  color: #0f172a;
+}
+
+input:focus {
+  outline: none;
+  border-color: #16a34a;
+  box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.2);
 }
 
 button {
   margin-top: 0.5rem;
-  padding: 0.6rem;
+  padding: 0.6rem 1rem;
   border: none;
   border-radius: 6px;
   background: #16a34a;
   color: white;
   font-weight: 600;
+  font-size: 1rem;
+  min-height: 44px;
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+button:hover:not(:disabled) {
+  background: #15803d;
 }
 
 button:disabled {

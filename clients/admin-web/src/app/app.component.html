@@ -1,77 +1,170 @@
 <router-outlet *ngIf="isLoginPage()"></router-outlet>
 
 <div class="app-layout" *ngIf="!isLoginPage()">
-  <!-- Sidebar Navigation -->
-  <aside class="sidebar">
+  <aside
+    class="sidebar"
+    [class.is-open]="drawerOpen()"
+    aria-label="Navegación principal"
+  >
     <div class="sidebar-brand">
-      <span class="brand-logo">🐄</span>
+      <span class="brand-logo" aria-hidden="true">
+        <app-icon name="pig" size="xl" />
+      </span>
       <span class="brand-title">HATO ERP</span>
     </div>
 
-    <nav class="sidebar-nav">
-      <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}" class="nav-item">
-        <span class="nav-icon">📊</span>
-        <span>Panel Principal</span>
+    <nav id="primary-navigation" class="sidebar-nav">
+      <a
+        routerLink="/"
+        routerLinkActive="active"
+        [routerLinkActiveOptions]="{ exact: true }"
+        class="nav-item"
+        aria-label="Panel principal"
+        title="Panel principal"
+        (click)="closeDrawer()"
+      >
+        <app-icon class="nav-icon" name="dashboard" />
+        <span class="nav-label">Panel Principal</span>
       </a>
 
-      <a routerLink="/animals" routerLinkActive="active" class="nav-item">
-        <span class="nav-icon">🐄</span>
-        <span>Inventario Ganado</span>
+      <a
+        routerLink="/animals"
+        routerLinkActive="active"
+        class="nav-item"
+        aria-label="Inventario de animales"
+        title="Inventario de animales"
+        (click)="closeDrawer()"
+      >
+        <app-icon class="nav-icon" name="pig" />
+        <span class="nav-label">Inventario de Animales</span>
       </a>
 
-      <a routerLink="/milking" routerLinkActive="active" class="nav-item">
-        <span class="nav-icon">🥛</span>
-        <span>Registro de Ordeño</span>
+      <a
+        routerLink="/milking"
+        routerLinkActive="active"
+        class="nav-item"
+        aria-label="Registro de ordeño"
+        title="Registro de ordeño"
+        (click)="closeDrawer()"
+      >
+        <app-icon class="nav-icon" name="milk" />
+        <span class="nav-label">Registro de Ordeño</span>
       </a>
 
-      <a routerLink="/events" routerLinkActive="active" class="nav-item">
-        <span class="nav-icon">⚡</span>
-        <span>Registro de Eventos</span>
+      <a
+        routerLink="/events"
+        routerLinkActive="active"
+        class="nav-item"
+        aria-label="Registro de eventos"
+        title="Registro de eventos"
+        (click)="closeDrawer()"
+      >
+        <app-icon class="nav-icon" name="file-text" />
+        <span class="nav-label">Registro de Eventos</span>
       </a>
 
-      <a routerLink="/breeding" routerLinkActive="active" class="nav-item">
-        <span class="nav-icon">🧬</span>
-        <span>Reproducción y Alertas</span>
+      <a
+        routerLink="/breeding"
+        routerLinkActive="active"
+        class="nav-item"
+        aria-label="Reproducción y alertas"
+        title="Reproducción y alertas"
+        (click)="closeDrawer()"
+      >
+        <app-icon class="nav-icon" name="dna" />
+        <span class="nav-label">Reproducción y Alertas</span>
       </a>
 
-      <div class="nav-section-label" *ngIf="auth.hasPermission('people.roles.manage') || auth.hasPermission('people.users.manage')">
+      <div
+        class="nav-section-label"
+        *ngIf="auth.hasPermission('people.roles.manage') || auth.hasPermission('people.users.manage')"
+      >
         Administración
       </div>
 
-      <a routerLink="/roles" routerLinkActive="active" class="nav-item" *ngIf="auth.hasPermission('people.roles.manage')">
-        <span class="nav-icon">🔐</span>
-        <span>Roles y Permisos</span>
+      <a
+        routerLink="/roles"
+        routerLinkActive="active"
+        class="nav-item"
+        aria-label="Roles y permisos"
+        title="Roles y permisos"
+        *ngIf="auth.hasPermission('people.roles.manage')"
+        (click)="closeDrawer()"
+      >
+        <app-icon class="nav-icon" name="lock" />
+        <span class="nav-label">Roles y Permisos</span>
       </a>
 
-      <a routerLink="/audit" routerLinkActive="active" class="nav-item" *ngIf="auth.hasPermission('people.users.manage')">
-        <span class="nav-icon">📜</span>
-        <span>Auditoría</span>
+      <a
+        routerLink="/audit"
+        routerLinkActive="active"
+        class="nav-item"
+        aria-label="Auditoría"
+        title="Auditoría"
+        *ngIf="auth.hasPermission('people.users.manage')"
+        (click)="closeDrawer()"
+      >
+        <app-icon class="nav-icon" name="file-text" />
+        <span class="nav-label">Auditoría</span>
       </a>
 
-      <a routerLink="/sync" routerLinkActive="active" class="nav-item" *ngIf="auth.hasPermission('people.users.manage')">
-        <span class="nav-icon">📡</span>
-        <span>Sincronización</span>
+      <a
+        routerLink="/sync"
+        routerLinkActive="active"
+        class="nav-item"
+        aria-label="Sincronización"
+        title="Sincronización"
+        *ngIf="auth.hasPermission('people.users.manage')"
+        (click)="closeDrawer()"
+      >
+        <app-icon class="nav-icon" name="wifi" />
+        <span class="nav-label">Sincronización</span>
       </a>
     </nav>
 
     <div class="sidebar-footer">
       <div class="user-badge">
-        <span class="user-avatar">👤</span>
+        <app-icon class="user-avatar" name="user" size="lg" />
         <div class="user-info">
           <span class="user-name">{{ auth.currentUser()?.fullName || 'Usuario' }}</span>
           <span class="user-role">{{ auth.currentUser()?.roles?.join(', ') || '' }}</span>
         </div>
       </div>
-      <button type="button" class="logout-button" (click)="logout()">Cerrar sesión</button>
+      <button type="button" class="logout-button" (click)="logout()">
+        <app-icon name="log-out" size="sm" />
+        <span class="logout-label">Cerrar sesión</span>
+      </button>
     </div>
   </aside>
 
-  <!-- Main Content Area -->
+  <button
+    *ngIf="drawerOpen()"
+    type="button"
+    class="sidebar-overlay"
+    aria-label="Cerrar menú principal"
+    (click)="closeDrawer()"
+  ></button>
+
   <main class="main-content">
     <header class="topbar">
+      <button
+        type="button"
+        class="menu-button"
+        aria-controls="primary-navigation"
+        [attr.aria-expanded]="drawerOpen()"
+        [attr.aria-label]="drawerOpen() ? 'Cerrar menú principal' : 'Abrir menú principal'"
+        (click)="toggleDrawer()"
+      >
+        @if (drawerOpen()) {
+          <app-icon name="close" />
+        } @else {
+          <app-icon name="menu" />
+        }
+      </button>
+
       <div class="topbar-status">
-        <span class="status-dot"></span>
-        <span>ERP Ganadero Online | Ecuador</span>
+        <span class="status-dot" aria-hidden="true"></span>
+        <span>Producción porcina · Ecuador</span>
       </div>
     </header>
 

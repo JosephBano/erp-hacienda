@@ -20,9 +20,10 @@ module.exports = {
     },
     {
       displayName: 'ui',
-      preset: 'react-native',
+      preset: '@react-native/jest-preset',
       testMatch: ['<rootDir>/tests/**/*.test.tsx'],
       setupFiles: ['<rootDir>/tests/setup/ui-setup.js'],
+      setupFilesAfterEach: ['<rootDir>/tests/setup/ui-setup-aftereach.js'],
       transformIgnorePatterns: [
         'node_modules/(?!(jest-)?react-native|@react-native|expo(nent)?|@expo|@nozbe|@testing-library)',
       ],

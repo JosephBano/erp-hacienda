@@ -2,7 +2,6 @@ import React from 'react';
 import { Database } from '@nozbe/watermelondb';
 import LokiJSAdapter from '@nozbe/watermelondb/adapters/lokijs';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
-import '@testing-library/react-native/extend-expect';
 
 import { schema } from '../src/database/schema';
 import { migrations } from '../src/database/migrations';
@@ -56,7 +55,7 @@ describe('SyncStatusScreen', () => {
     await outbox.enqueue('recordMilking', { totalLiters: 5 });
     await outbox.enqueue('recordMilking', { totalLiters: 7 });
 
-    render(<SyncStatusScreen engine={new SyncEngine(database, api)} outbox={outbox} />);
+    await render(<SyncStatusScreen engine={new SyncEngine(database, api)} outbox={outbox} />);
 
     await waitFor(() => {
       expect(screen.getByTestId('pending-count')).toHaveTextContent('2');
@@ -66,7 +65,7 @@ describe('SyncStatusScreen', () => {
   it('lists a refused record with the reason instead of dropping it', async () => {
     await outbox.enqueue('recordAnimalEvent', { animalId: 'ghost' });
 
-    render(<SyncStatusScreen engine={new SyncEngine(database, api)} outbox={outbox} />);
+    await render(<SyncStatusScreen engine={new SyncEngine(database, api)} outbox={outbox} />);
 
     fireEvent.press(screen.getByTestId('sync-now'));
 
@@ -82,7 +81,7 @@ describe('SyncStatusScreen', () => {
     await outbox.enqueue('recordMilking', { totalLiters: 5 });
     (global as any).__setNetworkConnected(false);
 
-    render(<SyncStatusScreen engine={new SyncEngine(database, api)} outbox={outbox} />);
+    await render(<SyncStatusScreen engine={new SyncEngine(database, api)} outbox={outbox} />);
 
     fireEvent.press(screen.getByTestId('sync-now'));
 

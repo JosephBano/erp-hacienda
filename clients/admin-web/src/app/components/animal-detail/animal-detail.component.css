@@ -48,19 +48,25 @@
 .tabs-container {
   display: flex;
   gap: 0.5rem;
-  border-bottom: 1px solid var(--border-color);
   padding-bottom: 0.5rem;
+  overflow-x: auto;
+  border-bottom: 1px solid var(--border-color);
 }
 
 .tab-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
   padding: 0.625rem 1.25rem;
   border-radius: var(--radius-md);
   border: none;
   background: transparent;
   color: var(--text-muted);
   font-weight: 600;
+  white-space: nowrap;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 .tab-btn.active {
@@ -100,9 +106,54 @@
 }
 
 code {
-  background: rgba(0, 0, 0, 0.3);
   padding: 0.2rem 0.5rem;
+  overflow-wrap: anywhere;
+  background: rgba(0, 0, 0, 0.3);
   border-radius: 4px;
-  font-family: monospace;
   color: #38bdf8;
+  font-family: monospace;
+}
+
+.withdrawal-alert h4 {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+@media (max-width: 768px) {
+  .header-main {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .badge-lg {
+    align-self: flex-start;
+    white-space: normal;
+  }
+
+  .info-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .tabs-container {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    overflow: visible;
+  }
+
+  .tab-btn {
+    min-height: 52px;
+    padding: 0.625rem;
+    white-space: normal;
+  }
+}
+
+@media (max-width: 480px) {
+  .info-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .page-title {
+    font-size: 1.5rem;
+  }
 }

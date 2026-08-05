@@ -4,6 +4,23 @@
   gap: 1.5rem;
 }
 
+.page-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+}
+
+.page-title app-icon {
+  color: var(--brand-primary);
+}
+
+.subtitle {
+  color: var(--text-muted);
+  font-size: 0.925rem;
+  margin: 0.25rem 0 0;
+}
+
 .form-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -26,11 +43,13 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  flex-wrap: wrap;
 }
 
 .inline-field .form-select,
 .inline-field .form-input {
-  flex: 1;
+  flex: 1 1 12rem;
+  min-width: 0;
 }
 
 .btn-link {
@@ -62,4 +81,44 @@
 .form-actions {
   display: flex;
   justify-content: flex-end;
+}
+
+.form-actions .btn {
+  width: auto;
+}
+
+@media (max-width: 768px) {
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .form-actions {
+    justify-content: stretch;
+  }
+
+  .form-actions .btn {
+    width: 100%;
+    min-height: var(--touch-target);
+  }
+
+  .page-title {
+    font-size: 1.4rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .inline-field {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .inline-field .form-select,
+  .inline-field .form-input {
+    flex: 1 1 auto;
+    width: 100%;
+  }
+
+  .btn-link {
+    align-self: flex-start;
+  }
 }

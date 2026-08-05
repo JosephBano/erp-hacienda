@@ -1,12 +1,13 @@
-import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Component, OnInit, inject } from '@angular/core';
 import { ActivatedRoute, RouterModule } from '@angular/router';
-import { ApiService, AnimalDetail, PedigreeDto, DamKpisDto } from '../../services/api.service';
+import { ApiService, AnimalDetail, DamKpisDto, PedigreeDto } from '../../services/api.service';
+import { IconComponent } from '../../shared/icon/icon.component';
 
 @Component({
   selector: 'app-animal-detail',
   standalone: true,
-  imports: [CommonModule, RouterModule],
+  imports: [CommonModule, RouterModule, IconComponent],
   templateUrl: './animal-detail.component.html',
   styleUrls: ['./animal-detail.component.css']
 })

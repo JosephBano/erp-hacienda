@@ -2,6 +2,7 @@ import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApiService, AuditLogDto, UserDto } from '../../services/api.service';
+import { IconComponent } from '../../shared/icon/icon.component';
 
 /**
  * Who registered what, and when (LOPDP transparency clause + Art. 4). The backend has
@@ -10,7 +11,7 @@ import { ApiService, AuditLogDto, UserDto } from '../../services/api.service';
 @Component({
   selector: 'app-audit-log',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, IconComponent],
   templateUrl: './audit-log.component.html',
   styleUrls: ['./audit-log.component.css']
 })

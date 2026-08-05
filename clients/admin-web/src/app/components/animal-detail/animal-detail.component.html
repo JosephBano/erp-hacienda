@@ -3,24 +3,27 @@
 </div>
 
 <div class="detail-container" *ngIf="animal">
-  <!-- Top Navigation & Title -->
   <div class="detail-header">
-    <a routerLink="/animals" class="btn btn-secondary btn-sm">← Volver al listado</a>
+    <a routerLink="/animals" class="btn btn-secondary btn-sm">
+      <app-icon name="arrow-left" size="sm" />
+      Volver al listado
+    </a>
     <div class="header-main">
       <div>
-        <h1 class="page-title">Ficha del Animal: {{ animal.name || animal.farmTag }}</h1>
-        <p class="subtitle">Identificación, historial de eventos, producción de leche y sanidad.</p>
+        <h1 class="page-title">Ficha del animal: {{ animal.name || animal.farmTag }}</h1>
+        <p class="subtitle">Identificación, historial, producción y estado sanitario.</p>
       </div>
       <span *ngIf="animal.isInWithdrawal" class="badge badge-danger badge-lg">
-        🚫 RETIRO ANTIBIÓTICO HASTA {{ animal.withdrawalUntil }}
+        <app-icon name="alert" size="sm" />
+        Retiro sanitario hasta {{ animal.withdrawalUntil }}
       </span>
       <span *ngIf="!animal.isInWithdrawal" class="badge badge-success badge-lg">
-        ✅ APTO PARA ORDEÑO / VENTA
+        <app-icon name="check" size="sm" />
+        Apto para producción / venta
       </span>
     </div>
   </div>
 
-  <!-- Summary Info Cards Grid -->
   <div class="info-grid">
     <div class="glass-card info-card">
       <span class="info-label">Arete Finca</span>
@@ -31,7 +34,7 @@
       <span class="info-value">{{ animal.officialTag || 'N/A' }}</span>
     </div>
     <div class="glass-card info-card">
-      <span class="info-label">Especie & Raza</span>
+      <span class="info-label">Especie y raza</span>
       <span class="info-value">{{ animal.speciesName }} / {{ animal.breedName }}</span>
     </div>
     <div class="glass-card info-card">
@@ -40,55 +43,84 @@
     </div>
   </div>
 
-  <!-- Navigation Tabs -->
-  <div class="tabs-container">
-    <button class="tab-btn" [class.active]="activeTab === 'events'" (click)="setTab('events')">
-      📜 Historial de Eventos ({{ animal.events.length }})
+  <div class="tabs-container" role="tablist" aria-label="Secciones de la ficha del animal">
+    <button
+      type="button"
+      role="tab"
+      class="tab-btn"
+      [class.active]="activeTab === 'events'"
+      [attr.aria-selected]="activeTab === 'events'"
+      (click)="setTab('events')"
+    >
+      <app-icon name="file-text" size="sm" />
+      Historial de eventos ({{ animal.events.length }})
     </button>
-    <button class="tab-btn" [class.active]="activeTab === 'milking'" (click)="setTab('milking')">
-      🥛 Ordeño y Producción ({{ animal.milkYields.length }})
+    <button
+      type="button"
+      role="tab"
+      class="tab-btn"
+      [class.active]="activeTab === 'milking'"
+      [attr.aria-selected]="activeTab === 'milking'"
+      (click)="setTab('milking')"
+    >
+      <app-icon name="milk" size="sm" />
+      Producción de Leche ({{ animal.milkYields.length }})
     </button>
-    <button class="tab-btn" [class.active]="activeTab === 'breeding'" (click)="setTab('breeding')">
-      🧬 Reproducción & Genealogía
+    <button
+      type="button"
+      role="tab"
+      class="tab-btn"
+      [class.active]="activeTab === 'breeding'"
+      [attr.aria-selected]="activeTab === 'breeding'"
+      (click)="setTab('breeding')"
+    >
+      <app-icon name="dna" size="sm" />
+      Reproducción y genealogía
     </button>
-    <button class="tab-btn" [class.active]="activeTab === 'withdrawals'" (click)="setTab('withdrawals')">
-      🛡️ Estado de Retiro Sanitario
+    <button
+      type="button"
+      role="tab"
+      class="tab-btn"
+      [class.active]="activeTab === 'withdrawals'"
+      [attr.aria-selected]="activeTab === 'withdrawals'"
+      (click)="setTab('withdrawals')"
+    >
+      <app-icon name="shield" size="sm" />
+      Estado de retiro sanitario
     </button>
   </div>
 
-  <!-- Tab Content: Events -->
-  <div class="tab-content glass-card" *ngIf="activeTab === 'events'">
-    <h3>Eventos Inmutables Registrados</h3>
+  <div class="tab-content glass-card" *ngIf="activeTab === 'events'" role="tabpanel">
+    <h3>Eventos inmutables registrados</h3>
     <div class="table-container mt-3">
-      <table>
+      <table class="responsive-table">
         <thead>
           <tr>
             <th>Fecha</th>
             <th>Tipo de Evento</th>
-            <th>Detalles Payload</th>
+            <th>Detalles</th>
             <th>Registrado por</th>
           </tr>
         </thead>
         <tbody>
           <tr *ngFor="let ev of animal.events">
-            <td>{{ ev.eventDate }}</td>
-            <td><span class="badge badge-info">{{ ev.eventType }}</span></td>
-            <td><code>{{ ev.detailsJson }}</code></td>
-            <td>{{ ev.recordedBy }}</td>
+            <td data-label="Fecha">{{ ev.eventDate }}</td>
+            <td data-label="Tipo de Evento"><span class="badge badge-info">{{ ev.eventType }}</span></td>
+            <td data-label="Detalles"><code>{{ ev.detailsJson }}</code></td>
+            <td data-label="Registrado por">{{ ev.recordedBy }}</td>
           </tr>
-          <tr *ngIf="animal.events.length === 0">
-            <td colspan="4" class="text-muted text-center py-3">No hay eventos registrados aún.</td>
+          <tr *ngIf="animal.events.length === 0" class="empty-row">
+            <td colspan="4" data-label="Estado" class="text-muted text-center py-3">No hay eventos registrados aún.</td>
           </tr>
         </tbody>
       </table>
     </div>
   </div>
 
-  <!-- Tab Content: Milking -->
-  <div class="tab-content glass-card" *ngIf="activeTab === 'milking'">
-    <h3>Historial de Producción de Leche</h3>
+  <div class="tab-content glass-card" *ngIf="activeTab === 'milking'" role="tabpanel">
+    <h3>Historial de producción de leche</h3>
     <div class="table-container mt-3">
-      <table>
+      <table class="responsive-table">
         <thead>
           <tr>
             <th>Fecha</th>
@@ -98,46 +130,43 @@
         </thead>
         <tbody>
           <tr *ngFor="let m of animal.milkYields">
-            <td>{{ m.date }}</td>
-            <td>{{ m.session === 'Morning' ? 'Matutino (AM)' : 'Vespertino (PM)' }}</td>
-            <td><strong>{{ m.liters }} L</strong></td>
+            <td data-label="Fecha">{{ m.date }}</td>
+            <td data-label="Sesión">{{ m.session === 'Morning' ? 'Matutino (AM)' : 'Vespertino (PM)' }}</td>
+            <td data-label="Litros Obtenidos"><strong>{{ m.liters }} L</strong></td>
           </tr>
-          <tr *ngIf="animal.milkYields.length === 0">
-            <td colspan="3" class="text-muted text-center py-3">Sin pesajes de leche registrados.</td>
+          <tr *ngIf="animal.milkYields.length === 0" class="empty-row">
+            <td colspan="3" data-label="Estado" class="text-muted text-center py-3">Sin registros de producción de leche.</td>
           </tr>
         </tbody>
       </table>
     </div>
   </div>
 
-  <!-- Tab Content: Breeding -->
-  <div class="tab-content glass-card" *ngIf="activeTab === 'breeding'">
-    <h3>Indicadores Reproductivos & Árbol Genealógico</h3>
+  <div class="tab-content glass-card" *ngIf="activeTab === 'breeding'" role="tabpanel">
+    <h3>Indicadores reproductivos y árbol genealógico</h3>
 
-    <!-- Dam KPIs Grid -->
     <div class="info-grid mt-3" *ngIf="damKpis">
       <div class="glass-card info-card">
-        <span class="info-label">Intervalo entre Partos (Promedio)</span>
+        <span class="info-label">Intervalo entre partos (promedio)</span>
         <span class="info-value">{{ damKpis.averageCalvingIntervalDays ? damKpis.averageCalvingIntervalDays + ' días' : 'Sin partos múltiples' }}</span>
       </div>
       <div class="glass-card info-card">
-        <span class="info-label">Días Abiertos</span>
+        <span class="info-label">Días abiertos</span>
         <span class="info-value">{{ damKpis.daysOpen !== null ? damKpis.daysOpen + ' días' : '-' }}</span>
       </div>
       <div class="glass-card info-card">
-        <span class="info-label">Servicios / Concepción</span>
+        <span class="info-label">Servicios / concepción</span>
         <span class="info-value">{{ damKpis.servicesPerConception }}</span>
       </div>
       <div class="glass-card info-card">
-        <span class="info-label">Nacidos Vivos Totales</span>
+        <span class="info-label">Nacidos vivos totales</span>
         <span class="info-value">{{ damKpis.totalOffspringAlive }} crías</span>
       </div>
     </div>
 
-    <!-- Pedigree Ancestors Table -->
-    <h4 class="mt-4">Ancestros Registrados (CTE Tree)</h4>
+    <h4 class="mt-4">Ancestros registrados</h4>
     <div class="table-container mt-2">
-      <table>
+      <table class="responsive-table">
         <thead>
           <tr>
             <th>Generación</th>
@@ -149,30 +178,29 @@
         </thead>
         <tbody>
           <tr *ngFor="let a of pedigree?.ancestors">
-            <td><strong>Gen {{ a.generationLevel }}</strong></td>
-            <td><span class="badge" [class.badge-info]="a.role === 'Mother'" [class.badge-success]="a.role === 'Father'">{{ a.role === 'Mother' ? 'Madre' : 'Padre' }}</span></td>
-            <td>{{ a.animalId }}</td>
-            <td>{{ a.farmTag || '-' }}</td>
-            <td>{{ a.fatherStrawBullName ? 'Pajuela: ' + a.fatherStrawBullName : (a.fatherAnimalId || '-') }}</td>
+            <td data-label="Generación"><strong>Gen {{ a.generationLevel }}</strong></td>
+            <td data-label="Rol"><span class="badge" [class.badge-info]="a.role === 'Mother'" [class.badge-success]="a.role === 'Father'">{{ a.role === 'Mother' ? 'Madre' : 'Padre' }}</span></td>
+            <td data-label="ID Ancestro">{{ a.animalId }}</td>
+            <td data-label="Arete Finca">{{ a.farmTag || '-' }}</td>
+            <td data-label="Padre (Semen/Animal)">{{ a.fatherStrawBullName ? 'Pajuela: ' + a.fatherStrawBullName : (a.fatherAnimalId || '-') }}</td>
           </tr>
-          <tr *ngIf="!pedigree?.ancestors || pedigree?.ancestors?.length === 0">
-            <td colspan="5" class="text-muted text-center py-3">No hay registros de genealogía de ancestros para este animal.</td>
+          <tr *ngIf="!pedigree?.ancestors || pedigree?.ancestors?.length === 0" class="empty-row">
+            <td colspan="5" data-label="Estado" class="text-muted text-center py-3">No hay ancestros registrados para este animal.</td>
           </tr>
         </tbody>
       </table>
     </div>
   </div>
 
-  <!-- Tab Content: Withdrawals -->
-  <div class="tab-content glass-card" *ngIf="activeTab === 'withdrawals'">
-    <h3>Control de Períodos de Retiro (Bloqueo Automático)</h3>
+  <div class="tab-content glass-card" *ngIf="activeTab === 'withdrawals'" role="tabpanel">
+    <h3>Control de períodos de retiro</h3>
     <div *ngIf="animal.isInWithdrawal" class="withdrawal-alert alert-danger">
-      <h4>🚫 VACA BAJO TRATAMIENTO DE MEDICAMENTOS</h4>
-      <p>La leche de este animal está <strong>estrictamente bloqueada</strong> para venta comercial hasta el día <strong>{{ animal.withdrawalUntil }}</strong> conforme al Artículo 19 de la Constitución del proyecto.</p>
+      <h4><app-icon name="alert" size="sm" /> ANIMAL BAJO TRATAMIENTO</h4>
+      <p>La producción o venta afectada por este período está <strong>estrictamente bloqueada</strong> hasta el <strong>{{ animal.withdrawalUntil }}</strong>, conforme al Artículo 19 de la Constitución del proyecto.</p>
     </div>
     <div *ngIf="!animal.isInWithdrawal" class="withdrawal-alert alert-success">
-      <h4>✅ ANIMAL APTO</h4>
-      <p>No registra ninguna sanción ni retiro sanitario activo. Producción libre para comercialización.</p>
+      <h4><app-icon name="check" size="sm" /> ANIMAL APTO</h4>
+      <p>No registra ningún período de retiro sanitario activo. Producción libre para comercialización.</p>
     </div>
   </div>
 </div>

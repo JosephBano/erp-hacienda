@@ -18,6 +18,12 @@
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#121824"
+      },
+      "package": "com.joemandev.hatofieldapp"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "a09317d2-0eec-42e9-ac50-45262cde28fc"
       }
     }
   }

@@ -59,3 +59,27 @@ jobs:
 
       - name: Run Tests
         run: npm test
+
+  admin-web-ci:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: clients/admin-web
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: clients/admin-web/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci || npm install
+
+      - name: Build (compile + typecheck + budget check)
+        run: npx ng build --configuration production
+
+      - name: Run unit tests
+        run: npx ng test --watch=false

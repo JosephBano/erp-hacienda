@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { ApiService, AnimalCategoryDto, BreedDto, SpeciesDto } from '../../services/api.service';
+import { IconComponent } from '../../shared/icon/icon.component';
 
 /**
  * Registers a new animal. Nothing on this screen existed before: `POST /api/v1/animals`
@@ -14,7 +15,7 @@ import { ApiService, AnimalCategoryDto, BreedDto, SpeciesDto } from '../../servi
 @Component({
   selector: 'app-animal-register',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, IconComponent],
   templateUrl: './animal-register.component.html',
   styleUrls: ['./animal-register.component.css']
 })

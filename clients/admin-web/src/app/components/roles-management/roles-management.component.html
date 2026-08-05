@@ -1,7 +1,10 @@
 <div class="page-container">
   <div class="page-header">
     <div>
-      <h1 class="page-title">🔐 Roles y Permisos</h1>
+      <h1 class="page-title">
+        <app-icon name="lock" size="lg" />
+        Roles y Permisos
+      </h1>
       <p class="subtitle">Roles configurables en base de datos (Art. 8) — no un enum compilado.</p>
     </div>
   </div>
@@ -12,7 +15,7 @@
 
   <!-- Existing roles -->
   <div class="table-container glass-card">
-    <table>
+    <table class="responsive-table">
       <thead>
         <tr>
           <th>Código</th>
@@ -24,20 +27,20 @@
       </thead>
       <tbody>
         <tr *ngFor="let role of roles">
-          <td><strong>{{ role.code }}</strong></td>
-          <td>{{ role.name }}</td>
-          <td>
+          <td data-label="Código"><strong>{{ role.code }}</strong></td>
+          <td data-label="Nombre">{{ role.name }}</td>
+          <td data-label="Tipo">
             <span class="badge" [class.badge-info]="role.isSystem" [class.badge-success]="!role.isSystem">
               {{ role.isSystem ? 'Sistema' : 'Personalizado' }}
             </span>
           </td>
-          <td>
+          <td data-label="Permisos">
             <span class="badge badge-info" *ngFor="let p of role.permissions" style="margin-right: 0.25rem;">
               {{ p.code }}
             </span>
             <span *ngIf="role.permissions.length === 0" class="text-muted">Sin permisos</span>
           </td>
-          <td>
+          <td data-label="Acción">
             <button
               class="btn btn-secondary btn-sm"
               *ngIf="!role.isSystem"
@@ -47,8 +50,8 @@
             <span *ngIf="role.isSystem" class="field-hint">— rol de sistema —</span>
           </td>
         </tr>
-        <tr *ngIf="roles.length === 0">
-          <td colspan="5" class="text-center py-4 text-muted">No hay roles todavía.</td>
+        <tr *ngIf="roles.length === 0" class="empty-row">
+          <td colspan="5" data-label="Estado" class="text-center py-4 text-muted">No hay roles todavía.</td>
         </tr>
       </tbody>
     </table>

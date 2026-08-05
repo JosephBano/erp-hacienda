@@ -2,11 +2,17 @@
   <div class="dashboard-header">
     <div>
       <h1 class="page-title">Panel de Control Gerencial</h1>
-      <p class="subtitle">Gestión integral de producción ganadera y alertas de retiros de leche/carne.</p>
+      <p class="subtitle">Seguimiento de animales, reproducción porcina y períodos de retiro.</p>
     </div>
     <div class="header-actions">
-      <a routerLink="/milking" class="btn btn-primary">🥛 Registrar Ordeño</a>
-      <a routerLink="/events" class="btn btn-secondary">⚡ Nuevo Evento</a>
+      <a routerLink="/milking" class="btn btn-primary">
+        <app-icon name="milk" size="sm" />
+        Registrar Ordeño
+      </a>
+      <a routerLink="/events" class="btn btn-secondary">
+        <app-icon name="file-text" size="sm" />
+        Nuevo Evento
+      </a>
     </div>
   </div>
 
@@ -14,54 +20,52 @@
     No se pudo cargar el panel desde el servidor. Intente de nuevo más tarde.
   </div>
 
-  <!-- KPI Metrics Grid -->
   <div class="metrics-grid" *ngIf="!loadError">
     <div class="glass-card kpi-card">
-      <div class="kpi-icon icon-emerald">🐄</div>
+      <div class="kpi-icon icon-emerald"><app-icon name="pig" size="lg" /></div>
       <div class="kpi-details">
         <span class="kpi-label">Total de Animales</span>
         <span class="kpi-value">{{ animalsCount }}</span>
-        <span class="kpi-subtext">Bovinos activos en hacienda</span>
+        <span class="kpi-subtext">Animales activos en la finca</span>
       </div>
     </div>
 
     <div class="glass-card kpi-card">
-      <div class="kpi-icon icon-cyan">🥛</div>
+      <div class="kpi-icon icon-cyan"><app-icon name="milk" size="lg" /></div>
       <div class="kpi-details">
-        <span class="kpi-label">Producción Hoy</span>
+        <span class="kpi-label">Producción de Leche Hoy</span>
         <span class="kpi-value">{{ todayMilkLiters }} L</span>
-        <span class="kpi-subtext">Sesiones AM/PM registradas</span>
+        <span class="kpi-subtext">Sesiones de ordeño registradas</span>
       </div>
     </div>
 
     <div class="glass-card kpi-card highlight-danger" [class.warning-glow]="withdrawalCount > 0">
-      <div class="kpi-icon icon-danger">🚫</div>
+      <div class="kpi-icon icon-danger"><app-icon name="alert" size="lg" /></div>
       <div class="kpi-details">
         <span class="kpi-label">Períodos de Retiro</span>
         <span class="kpi-value color-danger">{{ withdrawalCount }}</span>
-        <span class="kpi-subtext">Vacas en retiro antibiótico (Leche no vendible)</span>
+        <span class="kpi-subtext">Animales con retiro sanitario activo</span>
       </div>
     </div>
 
     <div class="glass-card kpi-card">
-      <div class="kpi-icon icon-amber">🌿</div>
+      <div class="kpi-icon icon-amber"><app-icon name="calendar" size="lg" /></div>
       <div class="kpi-details">
         <span class="kpi-label">Sesiones de Ordeño Hoy</span>
         <span class="kpi-value">{{ todaySessionsCount }}</span>
-        <span class="kpi-subtext">Registros AM/PM del día</span>
+        <span class="kpi-subtext">Registros del día</span>
       </div>
     </div>
   </div>
 
-  <!-- Recent Animals Section -->
   <div class="section-container" *ngIf="!loadError">
     <div class="section-header">
-      <h2>Ganado Reciente</h2>
-      <a routerLink="/animals" class="link-more">Ver todos los animales →</a>
+      <h2>Animales recientes</h2>
+      <a routerLink="/animals" class="link-more">Ver todos los animales</a>
     </div>
 
     <div class="table-container glass-card">
-      <table>
+      <table class="responsive-table">
         <thead>
           <tr>
             <th>Arete Finca</th>
@@ -75,21 +79,23 @@
         </thead>
         <tbody>
           <tr *ngFor="let animal of recentAnimals">
-            <td><strong>{{ animal.farmTag || 'S/A' }}</strong></td>
-            <td>{{ animal.officialTag || 'N/A' }}</td>
-            <td>{{ animal.name || 'Sin nombre' }}</td>
-            <td>{{ animal.breedName }} ({{ animal.speciesName }})</td>
-            <td>{{ animal.categoryName }}</td>
-            <td>
+            <td data-label="Arete Finca"><strong>{{ animal.farmTag || 'S/A' }}</strong></td>
+            <td data-label="Arete Oficial SIFAE">{{ animal.officialTag || 'N/A' }}</td>
+            <td data-label="Nombre">{{ animal.name || 'Sin nombre' }}</td>
+            <td data-label="Raza / Especie">{{ animal.breedName }} ({{ animal.speciesName }})</td>
+            <td data-label="Categoría">{{ animal.categoryName }}</td>
+            <td data-label="Estado Retiro">
               <span *ngIf="animal.isInWithdrawal" class="badge badge-danger">
-                🚫 RETIRO HASTA {{ animal.withdrawalUntil }}
+                <app-icon name="alert" size="sm" />
+                Retiro hasta {{ animal.withdrawalUntil }}
               </span>
               <span *ngIf="!animal.isInWithdrawal" class="badge badge-success">
-                ✅ APTO
+                <app-icon name="check" size="sm" />
+                Apto
               </span>
             </td>
-            <td>
-              <a [routerLink]="['/animals', animal.id]" class="btn btn-secondary btn-sm">Ver Ficha</a>
+            <td data-label="Acciones">
+              <a [routerLink]="['/animals', animal.id]" class="btn btn-secondary btn-sm">Ver ficha</a>
             </td>
           </tr>
         </tbody>

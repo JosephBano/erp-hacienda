@@ -33,7 +33,15 @@
   --radius-md: 12px;
   --radius-lg: 20px;
   --radius-full: 9999px;
-  
+
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+  --touch-target: 44px;
+
   --font-heading: 'Outfit', sans-serif;
   --font-body: 'Plus Jakarta Sans', sans-serif;
 }
@@ -44,13 +52,19 @@
   box-sizing: border-box;
 }
 
+html,
 body {
+  max-width: 100%;
+  overflow-x: clip;
+}
+
+body {
+  min-height: 100dvh;
   background-color: var(--bg-primary);
   color: var(--text-main);
   font-family: var(--font-body);
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
-  min-height: 100vh;
 }
 
 h1, h2, h3, h4, h5, h6 {
@@ -203,4 +217,98 @@ tr:hover td {
   outline: none;
   border-color: var(--brand-primary);
   box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
+}
+
+.btn:focus-visible,
+a:focus-visible,
+button:focus-visible,
+.form-input:focus-visible,
+.form-select:focus-visible,
+.form-textarea:focus-visible {
+  outline: 3px solid rgba(16, 185, 129, 0.55);
+  outline-offset: 2px;
+}
+
+@media (max-width: 768px) {
+  .glass-card {
+    padding: 1rem;
+  }
+
+  .responsive-table {
+    display: block;
+  }
+
+  .responsive-table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  .responsive-table tbody {
+    display: grid;
+    gap: 0.75rem;
+  }
+
+  .responsive-table tr {
+    display: block;
+    overflow: hidden;
+    background: rgba(15, 23, 42, 0.52);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+  }
+
+  .responsive-table td {
+    display: grid;
+    grid-template-columns: minmax(7rem, 38%) minmax(0, 1fr);
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem;
+    overflow-wrap: anywhere;
+    border-bottom: 1px solid var(--border-color);
+  }
+
+  .responsive-table td::before {
+    content: attr(data-label);
+    color: var(--text-subtle);
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .responsive-table .empty-row td {
+    display: block;
+  }
+
+  .responsive-table .empty-row td::before {
+    content: none;
+  }
+
+  .form-input,
+  .form-select,
+  .form-textarea {
+    min-height: var(--touch-target);
+    font-size: 1rem;
+  }
+}
+
+@media (hover: none) {
+  .glass-card:hover,
+  .btn:hover {
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
 }

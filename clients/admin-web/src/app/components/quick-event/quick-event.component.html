@@ -1,6 +1,9 @@
 <div class="page-container">
   <div class="page-header">
-    <h1 class="page-title">⚡ Registro Rápido de Evento Inmutable</h1>
+    <h1 class="page-title">
+      <app-icon name="file-text" size="lg" />
+      Registro de evento inmutable
+    </h1>
     <p class="subtitle">Tratamientos con retiro, pesajes, vacunas y diagnósticos sanitarios.</p>
   </div>
 
@@ -10,8 +13,8 @@
   <div class="glass-card form-card">
     <div class="form-grid">
       <div class="form-group">
-        <label class="form-label">Seleccionar Animal:</label>
-        <select class="form-select" [(ngModel)]="selectedAnimalId">
+        <label class="form-label" for="event-animal">Seleccionar animal:</label>
+        <select id="event-animal" class="form-select" [(ngModel)]="selectedAnimalId">
           <option *ngFor="let a of animals" [value]="a.id">
             {{ a.farmTag || 'Sin arete' }} — {{ a.name || 'Sin nombre' }}
           </option>
@@ -19,70 +22,70 @@
       </div>
 
       <div class="form-group">
-        <label class="form-label">Tipo de Evento:</label>
-        <select class="form-select" [(ngModel)]="eventType">
-          <option value="Treatment">💊 Tratamiento Medicamentoso (con Retiro)</option>
-          <option value="Weighing">⚖️ Pesaje / Peso Corporal</option>
-          <option value="Diagnosis">🩺 Diagnóstico Clínico / Enfermedad</option>
-          <option value="Vaccination">💉 Vacunación</option>
+        <label class="form-label" for="event-type">Tipo de evento:</label>
+        <select id="event-type" class="form-select" [(ngModel)]="eventType">
+          <option value="Treatment">Tratamiento medicamentoso (con retiro)</option>
+          <option value="Weighing">Pesaje / peso corporal</option>
+          <option value="Diagnosis">Diagnóstico clínico / enfermedad</option>
+          <option value="Vaccination">Vacunación</option>
         </select>
       </div>
 
       <div class="form-group">
-        <label class="form-label">Fecha del Evento:</label>
-        <input type="date" class="form-input" [(ngModel)]="eventDate">
+        <label class="form-label" for="event-date">Fecha del evento:</label>
+        <input id="event-date" type="date" class="form-input" [(ngModel)]="eventDate">
       </div>
 
       <div class="form-group">
-        <label class="form-label">Registrado Por:</label>
-        <input type="text" class="form-input" [(ngModel)]="recordedBy">
+        <label class="form-label" for="event-recorder">Registrado por:</label>
+        <input id="event-recorder" type="text" class="form-input" [(ngModel)]="recordedBy">
       </div>
     </div>
 
-    <!-- Dynamic Event Fields -->
     <div class="event-details-box mt-3" *ngIf="eventType === 'Treatment'">
-      <h4>Detalles del Tratamiento</h4>
+      <h4>Detalles del tratamiento</h4>
       <div class="form-grid mt-2">
         <div class="form-group">
-          <label class="form-label">Medicamento Administrado:</label>
-          <input type="text" class="form-input" [(ngModel)]="medicationName">
+          <label class="form-label" for="medication-name">Medicamento administrado:</label>
+          <input id="medication-name" type="text" class="form-input" [(ngModel)]="medicationName">
         </div>
         <div class="form-group">
-          <label class="form-label">Dosis:</label>
-          <input type="text" class="form-input" [(ngModel)]="dosage">
+          <label class="form-label" for="medication-dosage">Dosis:</label>
+          <input id="medication-dosage" type="text" class="form-input" [(ngModel)]="dosage">
         </div>
         <div class="form-group">
-          <label class="form-label">Días de Retiro Sanitario (Bloqueo):</label>
-          <input type="number" min="0" class="form-input" [(ngModel)]="withdrawalDays">
+          <label class="form-label" for="withdrawal-days">Días de retiro sanitario:</label>
+          <input id="withdrawal-days" type="number" min="0" class="form-input" [(ngModel)]="withdrawalDays">
           <span class="field-hint">Generará automáticamente el bloqueo de leche/carne.</span>
         </div>
       </div>
     </div>
 
     <div class="event-details-box mt-3" *ngIf="eventType === 'Weighing'">
-      <h4>Detalles del Pesaje</h4>
+      <h4>Detalles del pesaje</h4>
       <div class="form-group mt-2">
-        <label class="form-label">Peso Registrado (Kg):</label>
-        <input type="number" step="0.5" class="form-input" [(ngModel)]="weightKg">
+        <label class="form-label" for="weight-kg">Peso registrado (kg):</label>
+        <input id="weight-kg" type="number" step="0.5" class="form-input" [(ngModel)]="weightKg">
       </div>
     </div>
 
     <div class="event-details-box mt-3" *ngIf="eventType === 'Diagnosis'">
-      <h4>Detalles del Diagnóstico</h4>
+      <h4>Detalles del diagnóstico</h4>
       <div class="form-group mt-2">
-        <label class="form-label">Enfermedad / Síntoma:</label>
-        <input type="text" class="form-input" [(ngModel)]="diseaseDiagnosis">
+        <label class="form-label" for="diagnosis">Enfermedad / síntoma:</label>
+        <input id="diagnosis" type="text" class="form-input" [(ngModel)]="diseaseDiagnosis">
       </div>
     </div>
 
     <div class="form-group mt-3">
-      <label class="form-label">Notas Adicionales / Observaciones:</label>
-      <textarea class="form-textarea" rows="3" [(ngModel)]="notes"></textarea>
+      <label class="form-label" for="event-notes">Notas adicionales / observaciones:</label>
+      <textarea id="event-notes" class="form-textarea" rows="3" [(ngModel)]="notes"></textarea>
     </div>
 
     <div class="form-actions mt-4">
-      <button class="btn btn-primary btn-lg" (click)="saveEvent()">
-        💾 Guardar Evento Inmutable
+      <button type="button" class="btn btn-primary btn-lg" [disabled]="loadError" (click)="saveEvent()">
+        <app-icon name="save" size="sm" />
+        Guardar evento inmutable
       </button>
     </div>
   </div>

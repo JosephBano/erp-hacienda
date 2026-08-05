@@ -1,21 +1,22 @@
 <div class="login-page">
-  <form class="login-card" (ngSubmit)="submit()">
+  <form class="login-card" (ngSubmit)="submit()" novalidate>
     <div class="login-brand">
-      <span class="brand-logo">🐄</span>
+      <app-icon name="pig" size="xl" label="Logo de HATO ERP"></app-icon>
       <h1>HATO ERP</h1>
-      <p>Gestión ganadera integral</p>
+      <p>Gestión porcina y ganadera</p>
     </div>
 
     <label for="email">Correo electrónico</label>
-    <input id="email" name="email" type="email" [(ngModel)]="email" required autocomplete="username" />
+    <input id="email" name="email" type="email" [(ngModel)]="email" required autocomplete="username" inputmode="email" />
 
     <label for="password">Contraseña</label>
     <input id="password" name="password" type="password" [(ngModel)]="password" required autocomplete="current-password" />
 
-    <p class="error-message" *ngIf="errorMessage">{{ errorMessage }}</p>
+    <p class="error-message" role="alert" *ngIf="errorMessage">{{ errorMessage }}</p>
 
-    <button type="submit" [disabled]="isSubmitting">
-      {{ isSubmitting ? 'Ingresando…' : 'Ingresar' }}
+    <button type="submit" [disabled]="isSubmitting" [attr.aria-busy]="isSubmitting">
+      <app-icon *ngIf="!isSubmitting" name="user" size="md"></app-icon>
+      <span>{{ isSubmitting ? 'Ingresando…' : 'Ingresar' }}</span>
     </button>
   </form>
 </div>

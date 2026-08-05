@@ -20,7 +20,12 @@ import { SyncStatusScreen } from './screens/SyncStatusScreen';
 import { BigButton, Body, Screen, Title } from './ui/components';
 import { theme } from './ui/theme';
 
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://10.0.2.2:5000';
+// Reads the API URL from the EAS build profile's env (see eas.json), falling back to the
+// Android emulator's loopback alias for local dev with `expo start`. The URL is baked
+// into the JS bundle at build time — it is NOT runtime-configurable. That is on purpose
+// (ADR-0010): a runtime override would conflate bundle-misconfig with network-down and
+// would require designing a config-delivery channel we do not need yet.
+const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://10.0.2.2:5282';
 const DEVICE_ID = 'field-device';
 
 type Tab = 'home' | 'milking' | 'events' | 'birth' | 'editAnimal' | 'sync';

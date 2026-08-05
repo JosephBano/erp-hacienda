@@ -7,6 +7,13 @@ module.exports = function (api) {
 
   return {
     presets: ['babel-preset-expo'],
-    plugins: [['@babel/plugin-proposal-decorators', { legacy: true }]],
+    plugins: [
+      ['@babel/plugin-proposal-decorators', { legacy: true }],
+      // WatermelonDB 0.28 + TypeScript 6 require `declare` fields on decorated model
+      // properties (the decorator provides the runtime getter/setter, so the field must
+      // not be initialised as a class field). babel-preset-flow-strip-types strips TS,
+      // so we tell it to allow declare class fields.
+      ['@babel/plugin-transform-flow-strip-types', { allowDeclareFields: true }],
+    ],
   };
 };

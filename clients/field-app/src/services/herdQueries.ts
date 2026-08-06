@@ -58,10 +58,12 @@ export async function loadHerd(database: Database, date = todayIso()): Promise<H
   // The species table carries the `is_milkable` flag — see Art. 8. An animal whose
   // species has is_milkable=false (the default for newly synced species until the
   // operator opts them in from admin-web) is not eligible for milking registration.
+  // The model declares isMilkable as optional because WatermelonDB forbids default
+  // values on decorated fields, so we coalesce to false (fail-closed) at the boundary.
   const milkableBySpecies = new Map<string, boolean>();
   for (const species of speciesList) {
     if (!species.isDeleted) {
-      milkableBySpecies.set(species.id, species.isMilkable);
+      milkableBySpecies.set(species.id, species.isMilkable ?? false);
     }
   }
 

@@ -83,6 +83,45 @@ public class AnimalEventTests
     }
 
     [Fact]
+    public void Create_WithCauseId_Persists()
+    {
+        var causeId = Guid.NewGuid();
+
+        var evt = AnimalEvent.Create(
+            Guid.NewGuid(), EventType.Disposal, DateTimeOffset.UtcNow, "admin", "{}", causeId: causeId);
+
+        Assert.Equal(causeId, evt.CauseId);
+    }
+
+    [Fact]
+    public void Create_WithEmptyCauseId_Throws()
+    {
+        Assert.Throws<DomainException>(() =>
+            AnimalEvent.Create(
+                Guid.NewGuid(), EventType.Disposal, DateTimeOffset.UtcNow, "admin", "{}", causeId: Guid.Empty));
+    }
+
+    [Fact]
+    public void Create_WithoutCauseId_IsLegal()
+    {
+        var evt = AnimalEvent.Create(Guid.NewGuid(), EventType.Disposal, DateTimeOffset.UtcNow, "admin", "{}");
+
+        Assert.Null(evt.CauseId);
+    }
+
+    [Fact]
+    public void CreateForGroup_WithCauseId_Persists()
+    {
+        var causeId = Guid.NewGuid();
+
+        var evt = AnimalEvent.CreateForGroup(
+            Guid.NewGuid(), EventType.Disposal, DateTimeOffset.UtcNow, "admin", "{}",
+            affectedCount: 3, causeId: causeId);
+
+        Assert.Equal(causeId, evt.CauseId);
+    }
+
+    [Fact]
     public void WithdrawalPeriod_ActiveWindow_EvaluatesCorrectly()
     {
         var period = new WithdrawalPeriod(

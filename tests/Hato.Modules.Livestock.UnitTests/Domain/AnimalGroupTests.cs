@@ -87,4 +87,68 @@ public class AnimalGroupTests
 
         Assert.Throws<DomainException>(() => group.AddMember(Guid.NewGuid(), new DateOnly(2026, 1, 1)));
     }
+
+    [Fact]
+    public void Create_WithoutTrackingMode_DefaultsToIndividual()
+    {
+        var group = AnimalGroup.Create("Vacas Lecheras");
+
+        Assert.Equal(TrackingMode.Individual, group.TrackingMode);
+    }
+
+    [Fact]
+    public void Create_WithHeadcountMode_Persists()
+    {
+        var group = AnimalGroup.Create("Engorde 1", trackingMode: TrackingMode.Headcount);
+
+        Assert.Equal(TrackingMode.Headcount, group.TrackingMode);
+    }
+
+    [Fact]
+    public void CloseAllActiveMemberships_ClosesEveryActiveMember_AndReturnsTheirIds()
+    {
+        var group = AnimalGroup.Create("Engorde 1", trackingMode: TrackingMode.Headcount);
+        var joinedAt = new DateOnly(2026, 1, 1);
+        var closedAt = new DateOnly(2026, 6, 1);
+        var animalIds = new[] { Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid() };
+
+        foreach (var id in animalIds)
+        {
+            group.AddMember(id, joinedAt);
+        }
+
+        var returned = group.CloseAllActiveMemberships(closedAt);
+
+        Assert.Equal(animalIds.ToHashSet(), returned.ToHashSet());
+        Assert.All(group.Memberships, m => Assert.False(m.IsActive));
+        Assert.All(group.Memberships, m => Assert.Equal(closedAt, m.LeftAt));
+    }
+
+    [Fact]
+    public void CloseAllActiveMemberships_LeavesAlreadyClosedMembersUntouched()
+    {
+        var group = AnimalGroup.Create("Engorde 1", trackingMode: TrackingMode.Headcount);
+        var animalA = Guid.NewGuid();
+        var animalB = Guid.NewGuid();
+        var joinedAt = new DateOnly(2026, 1, 1);
+
+        group.AddMember(animalA, joinedAt);
+        group.AddMember(animalB, joinedAt);
+        group.RemoveMember(animalA, new DateOnly(2026, 3, 1));
+
+        var returned = group.CloseAllActiveMemberships(new DateOnly(2026, 6, 1));
+
+        Assert.Equal([animalB], returned);
+        Assert.Equal(new DateOnly(2026, 3, 1), group.Memberships.Single(m => m.AnimalId == animalA).LeftAt);
+    }
+
+    [Fact]
+    public void CloseAllActiveMemberships_OnGroupWithNothingActive_ReturnsEmpty()
+    {
+        var group = AnimalGroup.Create("Engorde 1", trackingMode: TrackingMode.Headcount);
+
+        var returned = group.CloseAllActiveMemberships(new DateOnly(2026, 6, 1));
+
+        Assert.Empty(returned);
+    }
 }

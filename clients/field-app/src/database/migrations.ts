@@ -123,5 +123,18 @@ export const migrations = schemaMigrations({
         }),
       ],
     },
+    {
+      toVersion: 6,
+      steps: [
+        // ADR-0015: a group by headcount knows how many members it has, not which ones.
+        // Existing local rows default to '' until the next pull overwrites them with the
+        // real value — the same fail-silent-then-corrected pattern toVersion 4 used for
+        // is_milkable.
+        addColumns({
+          table: 'animal_groups',
+          columns: [{ name: 'tracking_mode', type: 'string' }],
+        }),
+      ],
+    },
   ],
 });

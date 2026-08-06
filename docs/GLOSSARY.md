@@ -223,7 +223,7 @@
 | Corrección de campo | `FieldCorrection` | Arreglo de un error de dedo hecho desde el móvil. Dos caminos según dónde esté el registro (ADR-0017). |
 | Cancelación en bandeja | `OutboxCancellation` | La operación nunca salió del teléfono: se descarta la entrada del `SyncOutbox` y no hay nada que corregir, porque para el servidor nunca ocurrió. |
 | Evento de corrección | `CorrectionEvent` | El registro ya sincronizó: se emite un evento nuevo que referencia al original vía `RelatedEventId`. El pasado no se edita (Art. 1). |
-| Evento grupal | `GroupEvent` | `AnimalEvent` asociado a un `AnimalGroup` en vez de a un `Animal`. XOR: exactamente uno de los dos. Previsto en `DATA-MODEL.md` desde la Fase 1 y aún sin implementar. |
+| Evento grupal | `GroupEvent` | `AnimalEvent` asociado a un `AnimalGroup` en vez de a un `Animal`. XOR: exactamente uno de los dos. Previsto en `DATA-MODEL.md` desde la Fase 1; implementado en 3.5a.1 (ADR-0015) vía `AnimalEvent.CreateForGroup`. |
 
 ## Plataforma móvil — términos técnicos del field-app
 

@@ -7,13 +7,15 @@ namespace Hato.Modules.Livestock.Application.Events;
 
 public record AnimalEventDto(
     Guid Id,
-    Guid AnimalId,
+    Guid? AnimalId,
+    Guid? GroupId,
     EventType EventType,
     DateTimeOffset OccurredAt,
     string RecordedBy,
     decimal? Cost,
     string PayloadJson,
-    Guid? RelatedEventId);
+    Guid? RelatedEventId,
+    int? AffectedCount);
 
 public record WithdrawalPeriodDto(
     Guid Id,
@@ -42,12 +44,14 @@ public class GetAnimalEventsHandler(ILivestockDbContext dbContext)
         return events.Select(e => new AnimalEventDto(
             e.Id,
             e.AnimalId,
+            e.GroupId,
             e.EventType,
             e.OccurredAt,
             e.RecordedBy,
             e.Cost,
             e.PayloadJson,
-            e.RelatedEventId
+            e.RelatedEventId,
+            e.AffectedCount
         )).ToList();
     }
 }

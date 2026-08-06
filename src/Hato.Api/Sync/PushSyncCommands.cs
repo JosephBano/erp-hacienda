@@ -207,6 +207,13 @@ public class PushSyncBatchCommandHandler(
                     return id.ToString();
                 }
 
+            case "recordgroupevent":
+                {
+                    var command = Deserialize<RecordGroupEventCommand>(payloadJson, "evento de lote");
+                    var id = await sender.Send(command, cancellationToken);
+                    return id.ToString();
+                }
+
             case "createanimal":
                 {
                     var command = Deserialize<RegisterAnimalCommand>(payloadJson, "animal");

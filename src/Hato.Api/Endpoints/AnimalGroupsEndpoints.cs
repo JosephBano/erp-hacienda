@@ -1,4 +1,6 @@
 using Hato.Modules.Livestock.Application.AnimalGroups;
+using Hato.Modules.Livestock.Application.Events;
+using Hato.Modules.Livestock.Domain;
 using MediatR;
 
 namespace Hato.Api.Endpoints;
@@ -8,6 +10,28 @@ public static class AnimalGroupsEndpoints
     public static void MapAnimalGroupsEndpoints(this IEndpointRouteBuilder app)
     {
         var group = app.MapGroup("/api/v1/animal-groups").WithTags("AnimalGroups").RequireAuthorization();
+
+        group.MapPost("/{id:guid}/events", async (Guid id, RecordGroupEventRequest request, ISender sender) =>
+        {
+            var command = new RecordGroupEventCommand(
+                id, request.EventType, request.OccurredAt, request.RecordedBy,
+                request.PayloadJson, request.AffectedCount, request.Cost, request.RelatedEventId);
+
+            var eventId = await sender.Send(command);
+            return Results.Created($"/api/v1/animal-groups/{id}/events/{eventId}", new { id = eventId });
+        });
+
+        group.MapGet("/{id:guid}/events", async (Guid id, ISender sender) =>
+        {
+            var events = await sender.Send(new GetGroupEventsQuery(id));
+            return Results.Ok(events);
+        });
+
+        group.MapGet("/{id:guid}/live-head-count", async (Guid id, ISender sender) =>
+        {
+            var count = await sender.Send(new GetLiveHeadCountQuery(id));
+            return Results.Ok(new { liveHeadCount = count });
+        });
 
         group.MapPost("/", async (CreateAnimalGroupCommand command, ISender sender) =>
         {
@@ -42,3 +66,12 @@ public static class AnimalGroupsEndpoints
 }
 
 public record AddMemberRequest(Guid AnimalId, DateOnly JoinedAt);
+
+public record RecordGroupEventRequest(
+    EventType EventType,
+    DateTimeOffset OccurredAt,
+    string RecordedBy,
+    string PayloadJson,
+    int? AffectedCount = null,
+    decimal? Cost = null,
+    Guid? RelatedEventId = null);

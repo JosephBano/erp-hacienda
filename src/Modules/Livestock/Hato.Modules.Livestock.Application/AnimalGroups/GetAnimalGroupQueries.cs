@@ -1,4 +1,5 @@
 using Hato.Modules.Livestock.Application.Abstractions;
+using Hato.Modules.Livestock.Domain;
 using Hato.SharedKernel;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -13,6 +14,7 @@ public record AnimalGroupDto(
     string? Description,
     Guid? SpeciesId,
     bool IsActive,
+    TrackingMode TrackingMode,
     List<GroupMembershipDto> Memberships);
 
 public record GetAnimalGroupByIdQuery(Guid Id) : IRequest<AnimalGroupDto>;
@@ -37,6 +39,7 @@ public class GetAnimalGroupByIdHandler(ILivestockDbContext dbContext) : IRequest
             group.Description,
             group.SpeciesId,
             group.IsActive,
+            group.TrackingMode,
             group.Memberships.Select(m => new GroupMembershipDto(m.Id, m.AnimalId, m.JoinedAt, m.LeftAt, m.IsActive)).ToList());
     }
 }
@@ -61,6 +64,7 @@ public class GetAnimalGroupsHandler(ILivestockDbContext dbContext) : IRequestHan
             group.Description,
             group.SpeciesId,
             group.IsActive,
+            group.TrackingMode,
             group.Memberships.Select(m => new GroupMembershipDto(m.Id, m.AnimalId, m.JoinedAt, m.LeftAt, m.IsActive)).ToList()
         )).ToList();
     }

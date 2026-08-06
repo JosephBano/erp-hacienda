@@ -50,11 +50,21 @@ public class GetAnimalsHandler(ILivestockDbContext dbContext) : IRequestHandler<
 
         var disposedAnimalIds = (await dbContext.AnimalEvents
             .AsNoTracking()
-            .Where(e => animalIds.Contains(e.AnimalId) && e.EventType == EventType.Disposal)
-            .Select(e => e.AnimalId)
+            .Where(e => e.AnimalId != null && animalIds.Contains(e.AnimalId!.Value) && e.EventType == EventType.Disposal)
+            .Select(e => e.AnimalId!.Value)
             .Distinct()
             .ToListAsync(cancellationToken))
             .ToHashSet();
+
+        // A lot's cascade closure (ADR-0015 sec.7) disposes animals without an individual
+        // Disposal event ever being recorded against them — without this, "how many
+        // animals are alive" would keep counting ghosts from every fattening lot that
+        // already went to slaughter.
+        foreach (var animal in animals)
+        {
+            if (animal.DisposedAt is not null)
+                disposedAnimalIds.Add(animal.Id);
+        }
 
         return animals.Select(a =>
         {

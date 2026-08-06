@@ -72,6 +72,7 @@ public record SyncAnimalGroupDto(
     string? Description,
     Guid? SpeciesId,
     bool IsActive,
+    string TrackingMode,
     DateTimeOffset CreatedAt,
     DateTimeOffset? UpdatedAt,
     bool IsDeleted) : ISyncRow;
@@ -216,7 +217,7 @@ public class GetSyncPullQueryHandler(
         var groups = await ReadAsync(
             effective, "animalGroups", livestockDb.AnimalGroups, since, limit, frontier,
             g => new SyncAnimalGroupDto(
-                g.Id, g.Name, g.Description, g.SpeciesId, g.IsActive,
+                g.Id, g.Name, g.Description, g.SpeciesId, g.IsActive, g.TrackingMode.ToString(),
                 g.CreatedAt, g.UpdatedAt, g.DeletedAt != null),
             cancellationToken);
 

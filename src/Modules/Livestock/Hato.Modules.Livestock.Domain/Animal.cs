@@ -36,6 +36,16 @@ public class Animal : AuditableEntity
     /// </summary>
     public DateTimeOffset? LastEditedAt { get; private set; }
 
+    /// <summary>
+    /// Set when this animal's membership was closed by a <see cref="TrackingMode.Headcount"/>
+    /// group's cascade closure (ADR-0015 sec.7) — the lot it was last part of reached zero
+    /// head. Distinct from <see cref="AuditableEntity.DeletedAt"/>, which tombstones a
+    /// mis-registration: this animal really existed and really left, just "as part of this
+    /// lot; its individual fate beyond that is not known" — information degraded on
+    /// purpose, not a data-entry undo.
+    /// </summary>
+    public DateTimeOffset? DisposedAt { get; private set; }
+
     public IReadOnlyCollection<AnimalIdentifier> Identifiers => _identifiers.AsReadOnly();
 
     private Animal(Guid speciesId, Sex sex, DateOnly? birthDate, Guid? breedId, Guid? categoryId)
@@ -116,6 +126,21 @@ public class Animal : AuditableEntity
             throw new DomainException("El animal ya fue eliminado.");
 
         DeletedAt = DateTimeOffset.UtcNow;
+    }
+
+    /// <summary>
+    /// Closes this animal as part of a lot's cascade disposal (ADR-0015 sec.7) — called
+    /// once, by the group whose <c>Headcount</c> just reached zero, for every membership it
+    /// closed in the same operation. Never called to record an identified, individual
+    /// disposal (sale, death) — that is a plain <see cref="AnimalEvent"/> against this
+    /// animal's own id and does not touch this field.
+    /// </summary>
+    public void CloseViaLotDisposal(DateTimeOffset disposedAt)
+    {
+        if (DisposedAt is not null)
+            throw new DomainException("El animal ya fue dado de baja con alcance de lote.");
+
+        DisposedAt = disposedAt;
     }
 
     /// <summary>

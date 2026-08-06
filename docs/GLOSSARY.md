@@ -187,6 +187,14 @@
 | Mortalidad predestete | `PreWeaningMortality` | Crías muertas entre el parto y el destete, atribuibles a la madre. KPI **derivado**, no almacenado. |
 | Índice de madre | `MaternalIndex` | Puntaje compuesto y ordenable con **pesos configurables**, que combina KPIs derivados de eventos contables (mortalidad por causa, destetados, peso de camada) con las características conductuales genuinamente subjetivas. El aplastamiento **no** entra como característica: se cuenta desde los eventos de mortalidad con causa, que es objetivo. |
 
+### Navegación de campo
+
+| Término (ES) | Código (EN) | Definición |
+|---|---|---|
+| Árbol de actividades | `ActivityTree` | Mapa de lo que una persona hace **parada en el corral**, con el **sujeto** (animal / lote / parto) como primer nivel — el mismo XOR que `animal_events`. Distinto del plan de ramas, que enumera por módulo del backend: uno es cómo se usa, el otro cómo se construye. Se dibuja **antes** de escribir pantallas. |
+| Conteo de toques | `TapBudget` | Cantidad de toques que cuesta cada actividad del árbol, contada **sobre papel** antes de implementar. Estándar: **tres para lo normal, cuatro para lo raro**. Si la implementación excede lo dibujado, se corrige el flujo, no el número. |
+| Filtrado de actividades | `ActivityFiltering` | Qué ramas del árbol se muestran, según las capacidades de la finca (especies ordeñables, lotes por conteo) y los permisos del usuario. **Filtrado sobre un árbol único**, nunca un árbol por especie — eso sería el `if (especie == 'cerdo')` mudándose a la navegación (Art. 8). |
+
 ### Corrección de registros
 
 | Término (ES) | Código (EN) | Definición |

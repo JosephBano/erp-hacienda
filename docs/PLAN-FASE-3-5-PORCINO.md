@@ -21,7 +21,7 @@
 ## Índice
 
 1. [Por qué existe esta fase](#1-por-qué-existe-esta-fase)
-2. [Las dos decisiones que gobiernan el plan](#2-las-dos-decisiones-que-gobiernan-el-plan)
+2. [Las decisiones que gobiernan el plan](#2-las-decisiones-que-gobiernan-el-plan)
 3. [Bloque 3.5a — Captura (habilita el piloto)](#3-bloque-35a--captura-habilita-el-piloto)
 4. [Bloque 3.5b — Análisis y automatización](#4-bloque-35b--análisis-y-automatización)
 5. [ADRs de esta fase](#5-adrs-de-esta-fase)
@@ -63,7 +63,7 @@ con la comida**. Ese "si" es medible y tiene nombre: conversión alimenticia (§
 
 ---
 
-## 2. Las dos decisiones que gobiernan el plan
+## 2. Las decisiones que gobiernan el plan
 
 ### 2.1 El lote sabe cuántos, no cuáles (ADR-0015)
 
@@ -109,6 +109,70 @@ falso sin que nadie la usara— y que su retrospectiva dejó escrito en el `ROAD
 El cronograma de vacunación, mientras tanto, se lleva en papel unas semanas. Que es como se
 lleva hoy.
 
+### 2.3 El árbol de actividades: entregable **previo** a cualquier pantalla
+
+**Ninguna rama de este plan que toque el móvil empieza a escribir pantallas antes de que
+exista el árbol de actividades y estén contados los toques sobre papel.** Es una compuerta,
+no una recomendación.
+
+*Por qué:* hoy la app tiene cuatro caminos (ordeño, eventos, parto, sincronización). Este
+plan agrega pesaje muestral, mortalidad de lote, vacunación de lote, diagnóstico grupal,
+consumo de alimento en sacos, observación de características, clasificación por peso,
+corrección de registros y "lo que registré hoy". **Pasa de 4 a más de 15 actividades.** Si
+eso se resuelve agregando botones a la pantalla de inicio, la promesa de los tres toques se
+muere sin que nadie tome la decisión de matarla.
+
+Este plan enumera ramas **por módulo del backend**, que es como se construye. El árbol
+enumera **por lo que la persona hace parada en el corral**, que es como se usa. Los dos hacen
+falta y no son el mismo documento.
+
+**El primer nivel del árbol es el sujeto**, y eso no es una preferencia de UX: es el mismo
+XOR animal/grupo que el ADR-0015 metió en `animal_events`. Cuando la navegación y el modelo
+se ramifican igual, es señal de que el modelo está bien.
+
+```
+INICIO
+├── Un animal          (las 3 madres, el verraco)
+│   ├── tratamiento / vacuna
+│   ├── pesaje
+│   ├── observar característica        (ADR-0018)
+│   ├── mover de lote
+│   └── baja con causa
+├── Un lote            (engorde, por conteo)
+│   ├── alimento (sacos)               ← el más frecuente
+│   ├── pesaje muestral
+│   ├── vacunar / tratar el lote
+│   ├── "hay uno enfermo"              (diagnóstico grupal)
+│   ├── baja(s) con causa
+│   └── clasificar por peso            (episódico, alto impacto)
+├── Un parto
+│   ├── registrar camada (sexo + peso por cría)
+│   ├── observar conducta de la madre  (ADR-0018)
+│   └── destete
+├── Lo que registré hoy
+│   └── revisar / corregir             (ADR-0017)
+└── Pendientes de hoy                  (3.5b, cuando exista el cronograma)
+```
+
+Reglas para construirlo:
+
+1. **Se ordena por frecuencia real, no por importancia conceptual.** El alimento se registra
+   a diario y el parto es episódico, así que el alimento va más cerca aunque el parto "suene"
+   más importante. La frecuencia la dice el cliente, no nosotros.
+2. **Se cuenta cada actividad en toques sobre papel, antes de escribir una línea.** El
+   estándar ya fijado en 3.5a.0 aplica: **tres toques para lo normal, cuatro para lo raro**.
+   Si "el lote comió 3 sacos" da seis toques, se ve en el árbol y no en el piloto.
+3. **Se construye con el cliente, no para él.** Es la conversación más barata de todo el
+   proyecto y la que más retrabajo evita.
+4. **Lo que el árbol deja vacío es información.** Hoy Ordeño ocupa el lugar más visible de la
+   app y para esta finca está muerto (por eso 3.5a.9 lo esconde), mientras que "un lote" —el
+   sujeto de casi todo el trabajo diario— **no existe como rama**. Eso no se ve leyendo el
+   backlog; se ve dibujando el árbol.
+5. **Filtrado, no ramificado por especie.** Qué ramas se muestran depende de lo que la finca
+   tenga (especies ordeñables, lotes por conteo, permisos del usuario). Es filtrado sobre un
+   árbol único — jamás un árbol por especie, que sería el `if (especie == 'cerdo')` mudándose
+   a la navegación (Art. 8).
+
 ---
 
 ## 3. Bloque 3.5a — Captura (habilita el piloto)
@@ -118,6 +182,10 @@ lleva hoy.
 *Por qué primero:* son los defectos que el cliente reportó con el dedo puesto encima, **no
 necesitan ningún cambio de backend**, y cierran en días. Poner esto en sus manos rápido es
 lo que sostiene la conversación mientras se construye el resto.
+
+> **Esta rama es la excepción a la compuerta de §2.3**: son correcciones puntuales sobre
+> pantallas que ya existen, no navegación nueva. El árbol de actividades se dibuja **en
+> paralelo** a esta rama, para que esté listo cuando llegue 3.5a.7.
 
 Tareas:
 1. `assertVolume` (`milkingService.ts:247`) acepta hoy `liters >= 0`: **0 litros pasa**.
@@ -336,6 +404,11 @@ funciona sin red.
 *Por qué:* es la superficie de campo de todo lo construido en 3.5a.1. Sin ella, el lote por
 conteo existe sólo en el backend.
 
+> **Compuerta (§2.3): esta rama no arranca sin el árbol de actividades cerrado con el
+> cliente y los toques contados.** Es la rama que introduce el sujeto "lote", que hoy no
+> existe en la navegación — el lugar exacto donde una decisión apurada condena la app a ser
+> un menú de botones.
+
 Tareas:
 1. Pesaje muestral del lote: cuántos se pesaron y los pesos; el promedio lo calcula la app.
 2. Baja del lote con causa y cantidad.
@@ -349,7 +422,8 @@ Tareas:
 
 Pruebas: una prueba de "registro sin red" por pantalla (exigencia de `PLAN-FASE-3-4.md`
 §2.1 para React Native); el promedio calculado coincide con el enviado; la ficha refleja las
-bajas.
+bajas; **cada actividad del árbol se resuelve en los toques que se contaron en §2.3** —si la
+implementación excede lo dibujado, se corrige el flujo, no se relaja el número.
 
 ---
 
@@ -390,12 +464,20 @@ ventana se rechaza en el móvil.
 funciona; con 90 cerdos es un scroll infinito. **Esto bloquea el piloto**, aparte y antes
 del QR.
 
+> **Compuerta (§2.3): esta rama *implementa* el árbol de actividades.** Es donde el primer
+> nivel pasa a ser el sujeto (animal / lote / parto / lo de hoy) en vez de la lista plana
+> actual, y donde el filtrado por capacidades de la finca reemplaza a los caminos fijos.
+
 Tareas:
-1. Búsqueda por identificador y filtro por lote en el selector de animales.
-2. "Recientes": los últimos animales sobre los que este teléfono registró algo.
-3. **Ocultar Ordeño** cuando ninguna especie tiene `IsMilkable`. La bandera ya existe
+1. **Navegación según el árbol de §2.3**, con el sujeto como primer nivel y las ramas
+   ordenadas por la frecuencia que declaró el cliente. **Filtrado, no ramificado por
+   especie** (Art. 8).
+2. Búsqueda por identificador y filtro por lote en el selector de animales.
+3. "Recientes": los últimos animales sobre los que este teléfono registró algo.
+4. **Ocultar Ordeño** cuando ninguna especie tiene `IsMilkable`. La bandera ya existe
    (`Species.IsMilkable`); falta que la navegación la respete. Es la diferencia entre
-   software a medida y software de vacas con cerdos encima.
+   software a medida y software de vacas con cerdos encima. Es también el primer caso del
+   filtrado del punto 1, no una excepción aparte.
 4. Documentar el escaneo QR como el paso siguiente natural **cuando llegue el aretado** —no
    es trabajo de esta fase, y `AnimalIdentifier` ya lo soporta con tipo `RFID` (ADR-0006).
 
@@ -579,17 +661,21 @@ que la calificación de madres, y esa fue exactamente la observación que lo hiz
 | El cliente cambia de opinión sobre el aretado | — | No es riesgo: ADR-0015 hace que el aretado sea un cambio de bandera en cualquier momento. |
 | Las características se vuelven el vertedero de datos que debían estar tipados | Aparece una característica con unidad, o alguien pide "un número libre" | El guardarraíl es estructural: cuatro tipos de valor, sin unidad ni decimal libre, con un test que fija la invariante. La petición misma es la señal de que ese dato va al esquema (ADR-0018 §4). |
 | El catálogo de características se llena y nadie observa nada | Definiciones sin observaciones al cerrar la fase | Reducir a lo que demostró valor —probablemente sólo las advertencias visibles— y calcular el índice materno con KPIs derivados de eventos (condición de reversa del ADR-0018). |
+| La app se vuelve un menú de botones y muere la promesa de los 3 toques | Una actividad nueva se resuelve "agregando un botón al inicio" | La compuerta de §2.3: el árbol se dibuja y los toques se cuentan **antes** de escribir pantallas. De 4 actividades a más de 15 no se sobrevive improvisando la navegación. |
 
 ---
 
 ## 7. Lo que sólo el cliente puede responder
 
-Dos catálogos quedan **deliberadamente incompletos** porque su contenido es conocimiento de
-la finca, no decisión de diseño. Conviene llevarlos impresos a la próxima visita.
+Cuatro cosas quedan **deliberadamente incompletas** porque su contenido es conocimiento de
+la finca, no decisión de diseño. Conviene llevarlas impresas a la próxima visita.
 
-> Las respuestas de A y B **no bloquean nada**: son filas de catálogo (ADR-0018 y
-> `mortality_causes`), así que el sistema se construye sin ellas y se llenan cuando él las
-> dé. Preguntarlas temprano sirve para que la semilla inicial no sea inventada.
+> **A y B no bloquean nada**: son filas de catálogo (ADR-0018 y `mortality_causes`), así que
+> el sistema se construye sin ellas y se llenan cuando él las dé. Preguntarlas temprano sirve
+> para que la semilla inicial no sea inventada.
+>
+> **C sí bloquea**: sin las frecuencias no se cierra el árbol de actividades, y sin el árbol
+> no arranca 3.5a.7 (compuerta de §2.3).
 
 **A · Criterios de selección de futuras madres.** En la conversación mencionó el número de
 tetas y la postura de las patas, y dijo que había más que no quedaron anotados. La propuesta
@@ -608,7 +694,18 @@ diferir y es la que importa:
 - ¿Separa "aplastamiento" de "débil que no llegó a mamar"? Esa distinción es exactamente la
   que hace útil el índice de madres del §4.6.
 
-**C · Dos preguntas de manejo que quedaron abiertas:**
+**C · Frecuencia real de cada actividad**, que es lo que ordena el árbol de §2.3. Esta sí
+conviene resolverla temprano, porque es la única de las tres que **bloquea** una rama
+(3.5a.7 no arranca sin el árbol cerrado):
+
+- ¿Cuántas veces por semana registra alimento? ¿Y pesaje del lote?
+- ¿Qué hace **todos los días** sin falta, y qué hace una vez al mes?
+- Si tuviera que llegar a una sola cosa en un toque desde que abre la app, ¿cuál sería?
+
+La respuesta reordena el árbol. Lo más frecuente va más cerca, aunque conceptualmente "suene"
+menos importante que un parto.
+
+**D · Dos preguntas de manejo que quedaron abiertas:**
 
 - Los 24 días, ¿son siempre 24 o varían según cómo venga la camada? (El modelo lo trata como
   parámetro configurable por especie, no como constante.)

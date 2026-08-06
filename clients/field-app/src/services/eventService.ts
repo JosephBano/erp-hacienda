@@ -40,6 +40,21 @@ export interface RegisterAnimalInput {
   categoryId?: string;
 }
 
+/**
+ * A group event never names an animal (ADR-0015): "the lot ate 3 sacks" or "12 were
+ * sold" is the whole fact. `affectedCount` is required for `Disposal` — it is what the
+ * server's `LiveHeadCount` subtracts and what decides whether the lot closes — and
+ * optional for the rest (a sample weighing's size lives in `payload` instead).
+ */
+export interface GroupEventInput {
+  groupId: string;
+  eventType: 'Weighing' | 'Treatment' | 'Vaccination' | 'Diagnosis' | 'Disposal';
+  payload: Record<string, unknown>;
+  affectedCount?: number;
+  cost?: number;
+  occurredAt?: string;
+}
+
 export interface QueuedEvent {
   clientOperationId: string;
 }
@@ -112,6 +127,36 @@ export class EventService {
         occurredAt,
         recordedBy: 'field-app',
         payloadJson: JSON.stringify({ weightKg: input.weightKg, notes: input.notes }),
+      },
+      occurredAt,
+    );
+
+    return { clientOperationId: entry.clientOperationId };
+  }
+
+  /**
+   * Records an event whose subject is a lot by count, not an animal (ADR-0015). Used for
+   * sample weighings, group mortality/disposal, group diagnosis ("one of these is sick,
+   * unidentified") and group treatment/vaccination.
+   */
+  async recordGroupEvent(input: GroupEventInput): Promise<QueuedEvent> {
+    if (!input.groupId) throw new Error('El lote es obligatorio.');
+    if (input.eventType === 'Disposal' && !(input.affectedCount && input.affectedCount > 0)) {
+      throw new Error('Una baja de lote debe declarar cuántas cabezas incluye.');
+    }
+
+    const occurredAt = input.occurredAt ?? new Date().toISOString();
+
+    const entry = await this.outbox.enqueue(
+      'recordGroupEvent',
+      {
+        groupId: input.groupId,
+        eventType: input.eventType,
+        occurredAt,
+        recordedBy: 'field-app',
+        cost: input.cost,
+        affectedCount: input.affectedCount,
+        payloadJson: JSON.stringify(input.payload),
       },
       occurredAt,
     );

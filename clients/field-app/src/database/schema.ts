@@ -13,7 +13,7 @@ import { appSchema, tableSchema } from '@nozbe/watermelondb';
  * representable locally, otherwise a record deleted on the server would live on in the
  * employee's list forever.
  */
-export const SCHEMA_VERSION = 5;
+export const SCHEMA_VERSION = 6;
 
 export const schema = appSchema({
   version: SCHEMA_VERSION,
@@ -56,6 +56,10 @@ export const schema = appSchema({
         { name: 'description', type: 'string', isOptional: true },
         { name: 'species_id', type: 'string', isOptional: true },
         { name: 'is_active', type: 'boolean' },
+        // ADR-0015: Individual | Headcount. Evaluated locally (Art. 9) so the app can
+        // tell a field screen "this lot doesn't know which animal is which" without
+        // a round trip.
+        { name: 'tracking_mode', type: 'string' },
         { name: 'is_deleted', type: 'boolean' },
       ],
     }),

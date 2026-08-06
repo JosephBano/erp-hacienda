@@ -44,6 +44,7 @@ export class AnimalGroup extends Model {
   @text('description') description?: string;
   @text('species_id') speciesId?: string;
   @field('is_active') declare isActive: boolean;
+  @text('tracking_mode') declare trackingMode: string;
   @field('is_deleted') declare isDeleted: boolean;
 }
 

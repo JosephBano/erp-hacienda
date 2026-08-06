@@ -122,6 +122,20 @@ describe('MilkingService', () => {
   });
 
   /**
+   * PLAN §3.5a.0 #4 locked as a test, not as a comment: impossible values are blocked,
+   * improbable values pass through. The plausibility ceiling (a 1000-L cow) is NOT this
+   * layer's job — it lives in 3.5a.6 with per-species ranges — so a 1-L milking is a
+   * legitimate record here even though it is unusual. "Do not punish the operator"
+   * means the guardrail rejects the impossible and lets the questionable through; the
+   * questionable one is somebody else's problem, with a configurable knob.
+   */
+  it('locks the input guardrail: improbable values pass, only impossible ones are rejected', async () => {
+    // improbable (a 1-L milking): the service lets it through.
+    await service.recordIndividualYield('cow-1', 'Morning', 1, recordedBy);
+    expect(await outbox.pending()).toHaveLength(1);
+  });
+
+  /**
    * Art. 8 defense-in-depth: even if the UI is bypassed (a stale cached screen, a test
    * calling the service directly, an automated script) the service refuses to record a
    * milking for an animal whose species has `is_milkable = false`. Pigs stay pigs.

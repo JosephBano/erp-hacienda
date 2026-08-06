@@ -13,7 +13,7 @@ import { appSchema, tableSchema } from '@nozbe/watermelondb';
  * representable locally, otherwise a record deleted on the server would live on in the
  * employee's list forever.
  */
-export const SCHEMA_VERSION = 4;
+export const SCHEMA_VERSION = 5;
 
 export const schema = appSchema({
   version: SCHEMA_VERSION,
@@ -150,6 +150,20 @@ export const schema = appSchema({
       columns: [
         { name: 'key', type: 'string', isIndexed: true },
         { name: 'value', type: 'string' },
+      ],
+    }),
+    // ADR-0019: a per-module on/off flag owned by the product owner, not derived from any
+    // other data. Default visibility for a module whose row is absent is "shown" so a
+    // fresh install does not silently lose a surface; the seed that flips Production off
+    // for the pig pilot comes through the pull, not a migration.
+    tableSchema({
+      name: 'farm_modules',
+      columns: [
+        { name: 'key', type: 'string', isIndexed: true },
+        { name: 'enabled', type: 'boolean' },
+        { name: 'disabled_reason', type: 'string', isOptional: true },
+        { name: 'updated_at', type: 'number' },
+        { name: 'updated_by', type: 'string' },
       ],
     }),
   ],

@@ -8,15 +8,18 @@ import { BirthService } from './services/birthService';
 import { EventService } from './services/eventService';
 import { HttpSyncApi } from './services/syncApi';
 import { MilkingService } from './services/milkingService';
+import { ModuleVisibility } from './services/moduleVisibility';
 import { Outbox } from './services/outbox';
 import { SyncEngine } from './services/syncEngine';
 import { loadGroups, loadHerd, loadMedications } from './services/herdQueries';
 import { AnimalEditScreen } from './screens/AnimalEditScreen';
 import { BirthScreen } from './screens/BirthScreen';
 import { EventsScreen } from './screens/EventsScreen';
+import { HomeScreen } from './screens/HomeScreen';
 import { LoginScreen } from './screens/LoginScreen';
 import { MilkingScreen } from './screens/MilkingScreen';
 import { SyncStatusScreen } from './screens/SyncStatusScreen';
+import type { TabKey } from './screens/navigation';
 import { BigButton, Body, Screen, Title } from './ui/components';
 import { theme } from './ui/theme';
 
@@ -28,7 +31,7 @@ import { theme } from './ui/theme';
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://10.0.2.2:5282';
 const DEVICE_ID = 'field-device';
 
-type Tab = 'home' | 'milking' | 'events' | 'birth' | 'editAnimal' | 'sync';
+type Tab = TabKey;
 
 /**
  * Composition root of the field app.
@@ -66,20 +69,28 @@ export default function App() {
   const [herd, setHerd] = useState<Awaited<ReturnType<typeof loadHerd>>>([]);
   const [groups, setGroups] = useState<Awaited<ReturnType<typeof loadGroups>>>([]);
   const [medications, setMedications] = useState<Awaited<ReturnType<typeof loadMedications>>>([]);
+  // ADR-0019: the production module is on by default; the pull flips it off for the
+  // pig pilot. ModuleVisibility answers from the local DB with no network, so this is
+  // offline-safe by construction.
+  const [productionOn, setProductionOn] = useState(true);
+
+  const visibility = useMemo(() => new ModuleVisibility(database), [database]);
 
   const refresh = useCallback(async () => {
-    const [nextHerd, nextGroups, nextMedications, stats] = await Promise.all([
+    const [nextHerd, nextGroups, nextMedications, stats, productionVisible] = await Promise.all([
       loadHerd(database),
       loadGroups(database),
       loadMedications(database),
       outbox.stats(),
+      visibility.canShow('production'),
     ]);
 
     setHerd(nextHerd);
     setGroups(nextGroups);
     setMedications(nextMedications);
     setPending(stats.pending);
-  }, [database, outbox]);
+    setProductionOn(productionVisible);
+  }, [database, outbox, visibility]);
 
   useEffect(() => {
     void (async () => {
@@ -131,18 +142,21 @@ export default function App() {
 
       <View style={styles.content}>
         {tab === 'home' ? (
-          <Screen testID="home-screen">
-            <Title>{`Hola, ${auth.currentSession()?.fullName ?? ''}`}</Title>
-            <Body testID="home-pending">{`${pending} registro(s) sin enviar`}</Body>
-            <BigButton testID="go-milking" label="Ordeño" onPress={() => setTab('milking')} />
-            <BigButton testID="go-events" label="Eventos" tone="neutral" onPress={() => setTab('events')} />
-            <BigButton testID="go-birth" label="Parto" tone="neutral" onPress={() => setTab('birth')} />
-            <BigButton testID="go-edit-animal" label="Editar animal" tone="neutral" onPress={() => setTab('editAnimal')} />
-            <BigButton testID="go-sync" label="Sincronización" tone="neutral" onPress={() => setTab('sync')} />
-          </Screen>
+          <HomeScreen
+            userName={auth.currentSession()?.fullName ?? ''}
+            productionOn={productionOn}
+            pending={pending}
+            onSelectTab={(target) => setTab(target)}
+          />
         ) : null}
 
-        {tab === 'milking' ? (
+        {/*
+          Defense in depth: HomeScreen hides the entry, but if `tab === 'milking'` ever
+          ended up set while the module was off — a stale state across a sign-out, a
+          deep-link we have not built yet — we still do not render the screen. The data
+          path stays open (OutboxService is independent of this branch).
+        */}
+        {tab === 'milking' && productionOn ? (
           <MilkingScreen
             service={milking}
             candidates={herd}

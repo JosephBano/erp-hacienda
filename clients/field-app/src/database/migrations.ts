@@ -106,5 +106,22 @@ export const migrations = schemaMigrations({
         }),
       ],
     },
+    {
+      toVersion: 5,
+      steps: [
+        // ADR-0019: per-module visibility flag. The table starts empty — defaulting
+        // visibility to "shown" for any module without a row keeps the upgrade silent.
+        createTable({
+          name: 'farm_modules',
+          columns: [
+            { name: 'key', type: 'string', isIndexed: true },
+            { name: 'enabled', type: 'boolean' },
+            { name: 'disabled_reason', type: 'string', isOptional: true },
+            { name: 'updated_at', type: 'number' },
+            { name: 'updated_by', type: 'string' },
+          ],
+        }),
+      ],
+    },
   ],
 });

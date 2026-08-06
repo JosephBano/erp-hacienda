@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 
 import { theme } from '../ui/theme';
@@ -32,7 +32,12 @@ export interface MedicationOption {
   meatWithdrawalDays?: number;
 }
 
-type Mode = 'menu' | 'treatment' | 'weight' | 'move';
+/**
+ * The four states the screen can be in. 'menu' is the picker of activity types;
+ * the other three are the dedicated forms. Pre-selection from the activity tree
+ * (3.5a.9-B) lands directly in treatment/weight/move, skipping the menu.
+ */
+export type EventMode = 'menu' | 'treatment' | 'weight' | 'move';
 
 /** Treatments, weighings and lot moves — the three events recorded from the paddock. */
 export function EventsScreen({
@@ -41,14 +46,23 @@ export function EventsScreen({
   groups,
   medications,
   onRecorded,
+  initialAnimalId,
+  initialActivity,
 }: {
   service: EventService;
   animals: AnimalOption[];
   groups: GroupOption[];
   medications: MedicationOption[];
   onRecorded?: () => void;
+  /**
+   * Caller-supplied animal + activity to skip the picker steps. The activity tree
+   * (3.5a.9-B) hands these in so the operator does not re-pick what they already
+   * chose two screens ago. Undefined means: show the full menu (legacy path).
+   */
+  initialAnimalId?: string;
+  initialActivity?: 'treatment' | 'weight' | 'move';
 }) {
-  const [mode, setMode] = useState<Mode>('menu');
+  const [mode, setMode] = useState<EventMode>('menu');
   const [animal, setAnimal] = useState<AnimalOption | null>(null);
   const [medication, setMedication] = useState<MedicationOption | null>(null);
   const [dose, setDose] = useState('');
@@ -56,6 +70,26 @@ export function EventsScreen({
   const [error, setError] = useState<string | null>(null);
   const [confirmation, setConfirmation] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+
+  /**
+   * Pre-selection bridge. When the activity tree hands us an animal, we set it on
+   * mount so the picker is replaced by the form. When an activity is also handed
+   * in, the menu disappears too: the operator has already chosen, the form is what
+   * they want next.
+   */
+  useEffect(() => {
+    if (initialAnimalId) {
+      const match = animals.find((a) => a.animalId === initialAnimalId);
+      if (match) setAnimal(match);
+    }
+    if (initialActivity) {
+      setMode(initialActivity);
+    }
+    // We only want this to fire on mount; if the parent re-renders with new
+    // animals/initialAnimalId the user has already pressed "Volver" or recorded
+    // and a re-selection would be a surprise.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const reset = () => {
     setMode('menu');

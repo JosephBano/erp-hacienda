@@ -78,8 +78,12 @@ export default function App() {
   const [productionOn, setProductionOn] = useState(true);
   // 3.5a.9-B: state that lives at the App level so the activity tree can lean on it.
   // selectedAnimalId is set when the operator picks an animal in the picker screen;
-  // todayEntries drives "Lo que registré hoy".
+  // todayEntries drives "Lo que registré hoy". eventsInitialAnimalId and
+  // eventsInitialActivity let the activity tree (3.5a.9-B) skip both the animal
+  // picker and the activity menu when entering EventsScreen.
   const [selectedAnimalId, setSelectedAnimalId] = useState<string | null>(null);
+  const [eventsInitialAnimalId, setEventsInitialAnimalId] = useState<string | undefined>(undefined);
+  const [eventsInitialActivity, setEventsInitialActivity] = useState<'treatment' | 'weight' | 'move' | undefined>(undefined);
   const [todayEntries, setTodayEntries] = useState<
     { clientOperationId: string; operationType: string; occurredAt: string; status: 'pending' | 'synced' | 'rejected' | 'cancelled' }[]
   >([]);
@@ -172,6 +176,12 @@ export default function App() {
               if (route !== 'animal-subject') {
                 setSelectedAnimalId(null);
               }
+              // Pre-selection is one-shot. As soon as the operator leaves the events
+              // tab for any reason, the next arrival there should be a clean slate.
+              if (route !== 'events') {
+                setEventsInitialAnimalId(undefined);
+                setEventsInitialActivity(undefined);
+              }
             }}
           />
         ) : null}
@@ -183,12 +193,22 @@ export default function App() {
             selectedAnimalId={selectedAnimalId ?? undefined}
             onSelectAnimal={(animalId) => setSelectedAnimalId(animalId)}
             onClearSelection={() => setSelectedAnimalId(null)}
-            onActivity={(animalId, _activity) => {
-              // All animal activities for now route through EventsScreen. Pre-selection
-              // by id will arrive when EventsScreen learns to accept an `initialAnimalId`
-              // prop — for now the operator picks the animal once more from the picker,
-              // which keeps the existing UI untouched.
+            onActivity={(animalId, activity) => {
+              // All animal activities route through EventsScreen with both the animal
+              // and the activity pre-selected. Plan: the operator has already chosen
+              // subject + animal + activity on the activity tree; the form they reach
+              // here is the same one they would have reached by tapping through the
+              // menu — fewer steps, no behaviour change.
+              //
+              // 'disposal' is the only AnimalActivity that has no EventsScreen
+              // equivalent yet (3.5a.3 catalog has not landed). Tapping it does not
+              // navigate; the parent of AnimalSubjectScreen owns the stub messaging.
+              if (activity === 'disposal') {
+                return;
+              }
               setSelectedAnimalId(animalId);
+              setEventsInitialAnimalId(animalId);
+              setEventsInitialActivity(activity);
               setTab('events');
             }}
           />
@@ -227,6 +247,8 @@ export default function App() {
             groups={groups}
             medications={medications}
             onRecorded={refresh}
+            initialAnimalId={eventsInitialAnimalId}
+            initialActivity={eventsInitialActivity}
           />
         ) : null}
 
@@ -255,7 +277,17 @@ export default function App() {
 
       {tab !== 'home' ? (
         <View style={styles.footer}>
-          <BigButton testID="go-home" label="Inicio" tone="neutral" onPress={() => setTab('home')} />
+          <BigButton
+            testID="go-home"
+            label="Inicio"
+            tone="neutral"
+            onPress={() => {
+              setTab('home');
+              setSelectedAnimalId(null);
+              setEventsInitialAnimalId(undefined);
+              setEventsInitialActivity(undefined);
+            }}
+          />
         </View>
       ) : null}
     </SafeAreaView>

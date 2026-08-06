@@ -99,10 +99,26 @@
 | Tirón incremental | `SyncPull` | Obtención incremental de cambios desde la BD del servidor basada en cursor. |
 | Empuje de lote | `SyncPush` | Envío en lote de operaciones offline desde el móvil hacia el backend (`Accepted`, `Duplicate`, `Rejected`). |
 | Cursor de sincronización | `Cursor` | Marca de tiempo y UUID de desempate para sincronizar diferencialmente la información sin duplicados. |
-| Borrado lógico / lápida | `Tombstone` | Fila marcada `deleted_at` (Art. 1: nunca se borra físicamente) que el pull entrega una vez con `isDeleted: true` para que cada dispositivo la retire de su base local. |
+| Borrado lógico / lápida | `Tombstone` | Fila marcada `deleted_at` (Art. 1: nunca se borra físicamente) que el pull entrega una vez con `isDeleted: true` para que cada cliente la retire de su base local. |
 | Última escritura gana | `LWW` (*Last-Write-Wins*) | Estrategia de resolución para entidades editables (ADR-0008): entre dos ediciones concurrentes del mismo campo, gana la que declare el `occurredAt` más tardío — no la que llegue primero al servidor. |
 | Momento de última edición | `LastEditedAt` | Marca de tiempo declarada por el dispositivo, distinta de `UpdatedAt` (tiempo de procesamiento del servidor); es la que LWW compara para decidir quién gana. |
 | Bitácora de conflictos | `SyncConflict` | Registro inmutable de cada campo donde una edición se superpuso a otra ya aplicada: valor que quedó, valor que se intentó, y quién ganó. Auditable en el panel (`GET /api/v1/sync/conflicts`), nunca editable. |
+
+## Capacidades configurables por especie (Art. 8)
+
+| Término (ES) | Código (EN) | Definición |
+|---|---|---|
+| Especie ordeñable | `is_milkable` (`Species.IsMilkable`) | Bandera booleana por especie que indica si el field-app permite registrar ordeños para sus animales. **Configuración, no código**: agregar una especie nueva no requiere tocar el código de dominio. Default `false` (fail-closed) — una especie recién registrada no es ordeñable hasta que un operador la habilita explícitamente desde el panel. Ver `SpeciesConfiguration` (backend) y `services/herdQueries.loadHerd` (field-app). |
+| Especie con retiro de leche bloqueante | `WithdrawalTarget.Milk` / `WithdrawalTarget.Both` | La leche de un animal bajo período de retiro (medicamento o) no es vendible. Aplica al `MilkingSession` sin importar si la especie es ordeñable. |
+
+## Plataforma móvil — términos técnicos del field-app
+
+| Término (ES) | Código (EN) | Definición |
+|---|---|---|
+| Tabla espejo | `Mirror table` | Tabla WatermelonDB que solo recibe datos vía pull (animales, especies, productos, retiros). Nunca la fuente primaria de verdad — esa vive en el server. |
+| Tabla local | `Local table` | Tabla WatermelonDB que el device crea y sincroniza (outbox, milk_yields, sync_meta). El server confirma o rechaza. |
+| Cleartext por Tailscale | `network_security_config.xml` (Android) | Configuración que permite HTTP plano **solo** para `100.101.240.44` (IP Tailscale del backend de la laptop del desarrollador). Cualquier otro host sigue forzado a HTTPS. Existe porque Android 9+ bloquea cleartext por default; si el backend pasa a público, este archivo se elimina. |
+| Orden de plugins de Babel | `babel.config.js` | WatermelonDB usa `declare` en los modelos y requiere `@babel/plugin-transform-typescript` (con `allowDeclareFields: true`) **antes** de `@babel/plugin-proposal-decorators` y `@babel/plugin-transform-class-properties`. Si el orden está mal, sale con "Decorating class property failed". |
 
 ## Legal Ecuador (referencias)
 

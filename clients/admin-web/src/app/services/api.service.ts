@@ -26,6 +26,12 @@ export interface SpeciesDto {
   id: string;
   name: string;
   gestationDays?: number;
+  /**
+   * Whether the field app lets the employee record milking sessions for animals of this
+   * species. Defaults to false (fail-closed) on creation: a species the operator has not
+   * opted in cannot be milked. See `docs/GLOSSARY.md` for the Art. 8 rationale.
+   */
+  isMilkable: boolean;
 }
 
 export interface BreedDto {
@@ -264,7 +270,16 @@ export class ApiService {
     return this.http.get<SpeciesDto[]>(`${this.baseUrl}/species`);
   }
 
-  createSpecies(data: { name: string; gestationDays?: number }): Observable<{ id: string }> {
+  createSpecies(data: {
+    name: string;
+    gestationDays?: number;
+    /**
+     * Defaults to false on the backend if omitted. The field app's Milking screen
+     * disables animals whose species has `isMilkable=false`, and the MilkingService
+     * rejects the registration server-side too — see Art. 8 (config, not code).
+     */
+    isMilkable?: boolean;
+  }): Observable<{ id: string }> {
     return this.http.post<{ id: string }>(`${this.baseUrl}/species`, data);
   }
 

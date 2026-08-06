@@ -55,6 +55,13 @@
           <label class="form-label" for="reg-gestation">Días de gestación (opcional):</label>
           <input id="reg-gestation" type="number" min="1" class="form-input" [(ngModel)]="newSpeciesGestationDays" name="newSpeciesGestationDays">
         </div>
+        <div class="form-group form-group--checkbox">
+          <label class="form-label form-label--checkbox" for="reg-is-milkable">
+            <input id="reg-is-milkable" type="checkbox" [(ngModel)]="newSpeciesIsMilkable" name="newSpeciesIsMilkable">
+            <span>Habilitar ordeño en esta especie</span>
+          </label>
+          <small class="form-hint">Si está activo, el operario podrá registrar sesiones de ordeño para animales de esta especie desde el app de campo. Por defecto está desactivado (fail-closed).</small>
+        </div>
       </div>
       <div class="form-actions mt-2">
         <button type="button" class="btn btn-secondary" (click)="saveNewSpecies()">

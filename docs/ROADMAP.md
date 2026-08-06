@@ -161,7 +161,9 @@ Se ejecuta en dos bloques; **el piloto real arranca al cerrar 3.5a**:
   lechón y cohorte de lactancia · tratamientos con vía, motivo y dosis con unidad (Art. 10)
   · vacunación como evento propio · muerte con causa · alimento en sacos con conversión de
   unidades · rangos de plausibilidad configurables · corrección de registros desde el campo
-  (ADR-0017) · buscador de animales.
+  (ADR-0017) · buscador de animales · **Ordeño oculto por interruptor explícito** (ADR-0019):
+  el módulo no aplica a esta finca, se apaga desde el panel y **no se borra nada** — código,
+  pruebas, endpoints y datos quedan intactos hasta que el dueño lo encienda.
 - **3.5b — Análisis.** Plan sanitario configurable con alertas (ADR-0016) · estándares de
   alimentación · **conversión alimenticia (FCR) por lote** · **características observables
   del animal** (ADR-0018) · índice de madres · alertas destete–celo y retiro en carne.

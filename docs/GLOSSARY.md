@@ -193,7 +193,16 @@
 |---|---|---|
 | Árbol de actividades | `ActivityTree` | Mapa de lo que una persona hace **parada en el corral**, con el **sujeto** (animal / lote / parto) como primer nivel — el mismo XOR que `animal_events`. Distinto del plan de ramas, que enumera por módulo del backend: uno es cómo se usa, el otro cómo se construye. Se dibuja **antes** de escribir pantallas. |
 | Conteo de toques | `TapBudget` | Cantidad de toques que cuesta cada actividad del árbol, contada **sobre papel** antes de implementar. Estándar: **tres para lo normal, cuatro para lo raro**. Si la implementación excede lo dibujado, se corrige el flujo, no el número. |
-| Filtrado de actividades | `ActivityFiltering` | Qué ramas del árbol se muestran, según las capacidades de la finca (especies ordeñables, lotes por conteo) y los permisos del usuario. **Filtrado sobre un árbol único**, nunca un árbol por especie — eso sería el `if (especie == 'cerdo')` mudándose a la navegación (Art. 8). |
+| Filtrado de actividades | `ActivityFiltering` | Qué ramas del árbol se muestran: **módulo encendido** ∧ capacidades de la finca (especies ordeñables, lotes por conteo) ∧ permisos del usuario. **Filtrado sobre un árbol único**, nunca un árbol por especie — eso sería el `if (especie == 'cerdo')` mudándose a la navegación (Art. 8). |
+
+### Visibilidad de módulos (ADR-0019 — transversal)
+
+| Término (ES) | Código (EN) | Definición |
+|---|---|---|
+| Módulo de la finca | `FarmModule` | Interruptor **explícito** por módulo (`key`, `enabled`, `disabled_reason`), editable desde el panel sin deploy. Lo decide el dueño, no el catálogo de datos. |
+| Módulo oculto | — | Módulo apagado: su entrada desaparece de la navegación. **Nada se borra** — código, pruebas, endpoints y datos siguen intactos y en verde. Ocultar es decisión de producto, no permiso para dejar de mantener. |
+| Entrada vs. camino de los datos | — | Se oculta **la puerta de entrada**, jamás **la salida de lo ya registrado**: un teléfono con ordeños sin sincronizar debe poder subirlos aunque el módulo esté apagado. Es el único punto donde esta decisión puede perder datos en silencio. |
+| Capacidad de especie vs. visibilidad | `Species.IsMilkable` vs. `FarmModule` | Dos ejes distintos que estaban confundidos: `IsMilkable` es **verdad de dominio** (un cerdo no se ordeña nunca); la visibilidad es **decisión de producto** (esta finca no usa el módulo todavía). Se puede tener vacas ordeñables y el módulo apagado. |
 
 ### Corrección de registros
 

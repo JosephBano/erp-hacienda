@@ -168,10 +168,11 @@ Reglas para construirlo:
    app y para esta finca está muerto (por eso 3.5a.9 lo esconde), mientras que "un lote" —el
    sujeto de casi todo el trabajo diario— **no existe como rama**. Eso no se ve leyendo el
    backlog; se ve dibujando el árbol.
-5. **Filtrado, no ramificado por especie.** Qué ramas se muestran depende de lo que la finca
-   tenga (especies ordeñables, lotes por conteo, permisos del usuario). Es filtrado sobre un
-   árbol único — jamás un árbol por especie, que sería el `if (especie == 'cerdo')` mudándose
-   a la navegación (Art. 8).
+5. **Filtrado, no ramificado por especie.** Qué ramas se muestran sale de una conjunción:
+   **módulo encendido** (ADR-0019) ∧ capacidades de la finca (especies ordeñables, lotes por
+   conteo) ∧ permisos del usuario. Es filtrado sobre un árbol único — jamás un árbol por
+   especie, que sería el `if (especie == 'cerdo')` mudándose a la navegación (Art. 8).
+   El interruptor de módulo manda: si está apagado, se oculta y no se evalúa nada más.
 
 ---
 
@@ -204,6 +205,13 @@ envía.
 
 > El techo de litros (1000 L en una vaca) **no entra acá**: necesita rangos configurables
 > por especie y eso es backend. Va en 3.5a.6.
+
+> **Sí, se arregla Ordeño aunque 3.5a.9 lo vaya a apagar.** Son dos cosas distintas: el
+> módulo se oculta porque no aplica a esta finca (ADR-0019), no porque esté roto. Un módulo
+> se guarda **sano**, no averiado — el día que se encienda nadie va a recordar que arrastraba
+> un defecto conocido. Y el arreglo es de una línea (`liters > 0`), mientras que el trabajo
+> de fondo de esta rama —quitar y editar crías, el resumen previo— es el que el cliente
+> reportó y no tiene nada que ver con la leche.
 
 ---
 
@@ -474,15 +482,29 @@ Tareas:
    especie** (Art. 8).
 2. Búsqueda por identificador y filtro por lote en el selector de animales.
 3. "Recientes": los últimos animales sobre los que este teléfono registró algo.
-4. **Ocultar Ordeño** cuando ninguna especie tiene `IsMilkable`. La bandera ya existe
-   (`Species.IsMilkable`); falta que la navegación la respete. Es la diferencia entre
-   software a medida y software de vacas con cerdos encima. Es también el primer caso del
-   filtrado del punto 1, no una excepción aparte.
+4. **Ocultar Ordeño por interruptor explícito** (ADR-0019), no por visibilidad derivada.
+   `FarmModule { key, enabled, disabled_reason }`, editable desde el panel sin deploy. El
+   dueño lo apaga y lo enciende cuando él decida — **no** cuando el catálogo de especies
+   cambie. Si se derivara de `IsMilkable`, el día que alguien registre una vaca para leche de
+   la casa Ordeño reaparecería solo, sin que nadie lo hubiera decidido.
+   - **No se borra nada**: `Production`, `MilkingScreen`, `milkingService`, la pestaña de
+     `App.tsx:137`, los `quick-milking` de `admin-web`, los endpoints y **todas sus pruebas**
+     quedan compilando y en verde.
+   - **Se oculta la entrada, jamás el camino de los datos**: un teléfono puede tener ordeños
+     sin sincronizar en el outbox cuando el módulo se apaga, y esos registros **tienen que
+     seguir subiendo**.
+   - `Species.IsMilkable` **no se elimina**: es verdad de dominio (un cerdo no se ordeña
+     nunca) y sigue siendo uno de los filtros cuando el módulo esté encendido.
+   - Es una entrada más del filtrado del punto 1, evaluada **sin red** (Art. 9).
 4. Documentar el escaneo QR como el paso siguiente natural **cuando llegue el aretado** —no
    es trabajo de esta fase, y `AnimalIdentifier` ya lo soporta con tipo `RFID` (ADR-0006).
 
-Pruebas: búsqueda con 200 animales sembrados devuelve el correcto; filtro por lote; sin
-especies ordeñables la pantalla de ordeño no es alcanzable desde ninguna ruta.
+Pruebas: búsqueda con 200 animales sembrados devuelve el correcto; filtro por lote; **con el
+módulo apagado la pantalla de ordeño no es alcanzable desde ninguna ruta**; **con el módulo
+apagado, un ordeño que ya estaba en el outbox igual sincroniza** (la regla del ADR-0019 §4, y
+el único lugar donde esto se puede perder en silencio); encender el módulo lo devuelve sin
+tocar código; la pantalla que administra los módulos no puede ocultarse a sí misma; la
+navegación resuelve el interruptor **sin red**.
 
 ---
 
@@ -640,12 +662,17 @@ un lote en retiro de carne se rechaza**, no se advierte (mismo estándar que
 | [0016](adr/0016-plan-sanitario-configurable.md) | Un solo motor de cronograma por ancla + desfase + filtro | **escrito ahora**, implementado en 3.5b.1 |
 | [0017](adr/0017-correccion-de-registros-de-campo.md) | Dos caminos de corrección según dónde esté el registro | 3.5a.8 |
 | [0018](adr/0018-caracteristicas-observables-del-animal.md) | Un solo mecanismo para los juicios sobre un animal, con guardarraíl estructural | 3.5b.5 |
+| [0019](adr/0019-visibilidad-de-modulos.md) | Los módulos se ocultan por interruptor explícito y **nunca se borran** | 3.5a.9 |
 
-Los cuatro se mergean **antes** que su código (Art. 14).
+Los cinco se mergean **antes** que su código (Art. 14).
 
-El 0018 es el único **transversal a todas las especies**: nace del pivote porcino pero no le
-pertenece. "Este caballo patea" y "esta vaca se escapa del corral" usan el mismo mecanismo
-que la calificación de madres, y esa fue exactamente la observación que lo hizo existir.
+Dos son **transversales** y no pertenecen al pivote porcino aunque hayan nacido de él:
+
+- **0018** — "este caballo patea" y "esta vaca se escapa del corral" usan el mismo mecanismo
+  que la calificación de madres. Esa fue exactamente la observación que lo hizo existir.
+- **0019** — apagar Ordeño para esta finca es el primer uso, pero el mecanismo sirve para
+  cualquier módulo y cualquier cliente. Es lo que permite que un mismo producto sirva a
+  fincas distintas sin una rama de código por finca.
 
 ---
 
@@ -662,6 +689,8 @@ que la calificación de madres, y esa fue exactamente la observación que lo hiz
 | Las características se vuelven el vertedero de datos que debían estar tipados | Aparece una característica con unidad, o alguien pide "un número libre" | El guardarraíl es estructural: cuatro tipos de valor, sin unidad ni decimal libre, con un test que fija la invariante. La petición misma es la señal de que ese dato va al esquema (ADR-0018 §4). |
 | El catálogo de características se llena y nadie observa nada | Definiciones sin observaciones al cerrar la fase | Reducir a lo que demostró valor —probablemente sólo las advertencias visibles— y calcular el índice materno con KPIs derivados de eventos (condición de reversa del ADR-0018). |
 | La app se vuelve un menú de botones y muere la promesa de los 3 toques | Una actividad nueva se resuelve "agregando un botón al inicio" | La compuerta de §2.3: el árbol se dibuja y los toques se cuentan **antes** de escribir pantallas. De 4 actividades a más de 15 no se sobrevive improvisando la navegación. |
+| **Ordeño se pudre mientras está oculto** | Nadie lo ejercita a mano; un defecto no cubierto por pruebas vive ahí meses | Su suite sigue corriendo en CI igual que antes y en rojo bloquea el merge (Art. 12, ADR-0019 §7). Al reencenderlo se trata como feature que vuelve a producción —revisión y prueba manual—, no como un interruptor inocuo. |
+| Se pierden ordeños pendientes al apagar el módulo | Un teléfono con registros de leche sin sincronizar | ADR-0019 §4: se oculta la entrada, **nunca el camino de los datos**. Los endpoints siguen aceptando y el motor de sync siguen empujando lo que ya se registró. Cubierto por prueba en 3.5a.9. |
 
 ---
 

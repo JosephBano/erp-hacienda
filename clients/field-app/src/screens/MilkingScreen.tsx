@@ -2,7 +2,16 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { theme } from '../ui/theme';
-import { BigButton, Body, Card, Notice, NumberField, Screen, Title } from '../ui/components';
+import {
+  BigButton,
+  Body,
+  Card,
+  EmptyState,
+  Notice,
+  NumberField,
+  Screen,
+  Title,
+} from '../ui/components';
 import type { DailySummary, MilkingShift, MilkingService } from '../services/milkingService';
 
 export interface MilkingCandidate {
@@ -10,6 +19,8 @@ export interface MilkingCandidate {
   label: string;
   isWithheld: boolean;
   withheldUntil?: string;
+  /** Whether the animal's species has the milking flag set. Used to filter the picker. */
+  speciesIsMilkable: boolean;
 }
 
 /**
@@ -24,10 +35,13 @@ export interface MilkingCandidate {
 export function MilkingScreen({
   service,
   candidates,
+  recordedBy,
   onRecorded,
 }: {
   service: MilkingService;
   candidates: MilkingCandidate[];
+  /** Identity to stamp on the outbox payload; the server requires it non-empty. */
+  recordedBy: string;
   onRecorded?: () => void;
 }) {
   const [selected, setSelected] = useState<MilkingCandidate | null>(null);
@@ -53,7 +67,7 @@ export function MilkingScreen({
     setError(null);
 
     try {
-      await service.recordIndividualYield(selected.animalId, shift, value);
+      await service.recordIndividualYield(selected.animalId, shift, value, recordedBy);
       setSelected(null);
       setLiters('');
       await refreshSummary();
@@ -84,54 +98,65 @@ export function MilkingScreen({
 
       {error ? <Notice text={error} /> : null}
 
-      {selected ? (
-        <Card>
-          <Body>{selected.label}</Body>
-          {selected.isWithheld ? (
-            <Notice
-              tone="warning"
-              text={`Leche NO vendible: retiro activo hasta ${selected.withheldUntil}.`}
+      <View style={styles.body}>
+        {selected ? (
+          <Card>
+            <Body>{selected.label}</Body>
+            {selected.isWithheld ? (
+              <Notice
+                tone="warning"
+                text={`Leche NO vendible: retiro activo hasta ${selected.withheldUntil}.`}
+              />
+            ) : null}
+            <NumberField
+              label="Litros"
+              testID="liters-input"
+              value={liters}
+              onChangeText={setLiters}
+              placeholder="0.0"
             />
-          ) : null}
-          <NumberField
-            label="Litros"
-            testID="liters-input"
-            value={liters}
-            onChangeText={setLiters}
-            placeholder="0.0"
-          />
-          <BigButton testID="confirm-milking" label="Registrar" onPress={record} busy={busy} />
-          <BigButton
-            testID="cancel-milking"
-            label="Cancelar"
-            tone="neutral"
-            onPress={() => {
-              setSelected(null);
-              setError(null);
-            }}
-          />
-        </Card>
-      ) : (
-        <ScrollView testID="cow-list" contentContainerStyle={styles.list}>
-          {candidates.map((candidate) => (
+            <BigButton testID="confirm-milking" label="Registrar" onPress={record} busy={busy} />
             <BigButton
-              key={candidate.animalId}
-              testID={`cow-${candidate.animalId}`}
-              label={candidate.isWithheld ? `${candidate.label}  ⚠ RETIRO` : candidate.label}
-              tone={candidate.isWithheld ? 'danger' : 'neutral'}
-              hint={
-                candidate.isWithheld
-                  ? `Retiro activo hasta ${candidate.withheldUntil}. La leche no es vendible.`
-                  : undefined
-              }
+              testID="cancel-milking"
+              label="Cancelar"
+              tone="neutral"
               onPress={() => {
-                setSelected(candidate);
+                setSelected(null);
                 setError(null);
               }}
             />
-          ))}
-        </ScrollView>
-      )}
+          </Card>
+        ) : candidates.length === 0 ? (
+          <EmptyState
+            testID="cow-list-empty"
+            title="No hay animales ordeñables"
+            hint="El hato del dispositivo no tiene especies marcadas como ordeñables. Vaya a Inicio → Sincronización para traer las especies actualizadas, o pida al administrador que active la opción 'ordeñable' en la especie desde el panel web."
+          />
+        ) : (
+          <ScrollView testID="cow-list" contentContainerStyle={styles.list}>
+            {candidates.map((candidate) => (
+              <BigButton
+                key={candidate.animalId}
+                testID={`cow-${candidate.animalId}`}
+                label={candidate.isWithheld ? `${candidate.label}  ⚠ RETIRO` : candidate.label}
+                tone={candidate.isWithheld ? 'danger' : 'neutral'}
+                disabled={!candidate.speciesIsMilkable}
+                hint={
+                  candidate.isWithheld
+                    ? `Retiro activo hasta ${candidate.withheldUntil}. La leche no es vendible.`
+                    : !candidate.speciesIsMilkable
+                      ? 'Esta especie no está habilitada para ordeño.'
+                      : undefined
+                }
+                onPress={() => {
+                  setSelected(candidate);
+                  setError(null);
+                }}
+              />
+            ))}
+          </ScrollView>
+        )}
+      </View>
 
       <Card>
         <Text testID="daily-total" style={styles.total}>
@@ -165,6 +190,14 @@ const styles = StyleSheet.create({
     gap: theme.space.sm,
   },
   shiftItem: {
+    flex: 1,
+  },
+  /**
+   * Fills the remaining vertical space between the shift selector and the daily-total
+   * card, so the picker (or its empty state) actually claims the room the layout offers
+   * instead of collapsing to zero height and leaving a black void in the middle.
+   */
+  body: {
     flex: 1,
   },
   list: {

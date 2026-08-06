@@ -91,6 +91,7 @@ public record SyncSpeciesDto(
     Guid Id,
     string Name,
     int? GestationDays,
+    bool IsMilkable,
     DateTimeOffset CreatedAt,
     DateTimeOffset? UpdatedAt,
     bool IsDeleted) : ISyncRow;
@@ -229,7 +230,7 @@ public class GetSyncPullQueryHandler(
         var speciesList = await ReadAsync(
             effective, "species", livestockDb.Species, since, limit, frontier,
             s => new SyncSpeciesDto(
-                s.Id, s.Name, s.GestationDays, s.CreatedAt, s.UpdatedAt, s.DeletedAt != null),
+                s.Id, s.Name, s.GestationDays, s.IsMilkable, s.CreatedAt, s.UpdatedAt, s.DeletedAt != null),
             cancellationToken);
 
         var breeds = await ReadAsync(

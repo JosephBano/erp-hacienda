@@ -2,6 +2,7 @@ import React from 'react';
 import {
   ActivityIndicator,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -58,10 +59,71 @@ export function BigButton({
   );
 }
 
-export function Screen({ children, testID }: { children: React.ReactNode; testID?: string }) {
+export function Screen({
+  children,
+  testID,
+  scrollable = false,
+}: {
+  children: React.ReactNode;
+  testID?: string;
+  /**
+   * Wrap the screen in a ScrollView when the content is variable-height and may
+   * overflow on small phones (a 12-animal picker with a 64pt row each). Keep `false`
+   * for screens that own their own scrollers (MilkingScreen, EventsScreen) so nested
+   * scrollers do not show.
+   */
+  scrollable?: boolean;
+}) {
+  if (!scrollable) {
+    return (
+      <View testID={testID} style={styles.screen}>
+        {children}
+      </View>
+    );
+  }
+
   return (
-    <View testID={testID} style={styles.screen}>
+    <ScrollView
+      testID={testID}
+      style={styles.screenScroll}
+      contentContainerStyle={styles.screenScrollContent}
+    >
       {children}
+    </ScrollView>
+  );
+}
+
+/**
+ * A list with a guaranteed minimum height so an empty list still takes the room the
+ * employee expects — a screen where the picker collapses to zero is read as broken by
+ * the person holding the phone. The action, if provided, is the next reasonable step
+ * (usually "go to Sync"). Keeping the copy in Spanish matches the rest of the field UI.
+ */
+export function EmptyState({
+  title,
+  hint,
+  action,
+  testID,
+}: {
+  title: string;
+  hint?: string;
+  action?: { label: string; onPress: () => void };
+  testID?: string;
+}) {
+  return (
+    <View testID={testID} style={styles.empty}>
+      <Text style={styles.emptyTitle}>{title}</Text>
+      {hint ? <Text style={styles.emptyHint}>{hint}</Text> : null}
+      {action ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={action.label}
+          onPress={action.onPress}
+          style={({ pressed }) => [styles.emptyAction, { opacity: pressed ? 0.8 : 1 }]}
+        >
+          <Text style={styles.emptyActionLabel}>{action.label}</Text>
+        </Pressable>
+      ) : null}
     </View>
   );
 }
@@ -173,6 +235,15 @@ const styles = StyleSheet.create({
     padding: theme.space.md,
     gap: theme.space.md,
   },
+  screenScroll: {
+    flex: 1,
+    backgroundColor: theme.color.background,
+  },
+  screenScrollContent: {
+    flexGrow: 1,
+    padding: theme.space.md,
+    gap: theme.space.md,
+  },
   button: {
     minHeight: theme.touchTarget,
     borderRadius: theme.radius.lg,
@@ -227,5 +298,43 @@ const styles = StyleSheet.create({
     color: theme.color.text,
     fontSize: theme.font.body,
     paddingHorizontal: theme.space.md,
+  },
+  empty: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: theme.space.lg,
+    paddingVertical: theme.space.xl,
+    gap: theme.space.sm,
+    borderRadius: theme.radius.md,
+    borderWidth: 1,
+    borderColor: theme.color.border,
+    borderStyle: 'dashed',
+    backgroundColor: theme.color.surface,
+  },
+  emptyTitle: {
+    color: theme.color.text,
+    fontSize: theme.font.body,
+    fontWeight: '700',
+    textAlign: 'center',
+  },
+  emptyHint: {
+    color: theme.color.textMuted,
+    fontSize: theme.font.label,
+    textAlign: 'center',
+  },
+  emptyAction: {
+    marginTop: theme.space.sm,
+    minHeight: theme.touchTarget,
+    borderRadius: theme.radius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: theme.space.lg,
+    backgroundColor: theme.color.surfaceRaised,
+  },
+  emptyActionLabel: {
+    color: theme.color.text,
+    fontSize: theme.font.body,
+    fontWeight: '700',
   },
 });

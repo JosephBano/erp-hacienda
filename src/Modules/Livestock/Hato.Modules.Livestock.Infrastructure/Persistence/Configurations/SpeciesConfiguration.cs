@@ -11,6 +11,7 @@ public class SpeciesConfiguration : IEntityTypeConfiguration<Species>
         builder.ToTable("species");
         builder.HasKey(s => s.Id);
         builder.Property(s => s.Name).HasMaxLength(100).IsRequired();
+        builder.Property(s => s.IsMilkable).IsRequired().HasDefaultValue(false);
         builder.HasIndex(s => s.Name).IsUnique().HasFilter("deleted_at IS NULL");
     }
 }

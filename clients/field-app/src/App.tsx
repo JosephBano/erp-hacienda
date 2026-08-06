@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { SafeAreaView, StatusBar, StyleSheet, View } from 'react-native';
+import { Platform, SafeAreaView, StatusBar, StyleSheet, View } from 'react-native';
 
 import { createDatabase } from './database';
 import { AnimalEditService } from './services/animalEditService';
@@ -103,6 +103,7 @@ export default function App() {
   if (!ready) {
     return (
       <SafeAreaView style={styles.root}>
+        <StatusBar barStyle="light-content" backgroundColor={theme.color.background} translucent={false} />
         <Screen>
           <Title>HATO</Title>
           <Body muted>Abriendo la base local…</Body>
@@ -114,7 +115,7 @@ export default function App() {
   if (!authenticated) {
     return (
       <SafeAreaView style={styles.root}>
-        <StatusBar barStyle="light-content" />
+        <StatusBar barStyle="light-content" backgroundColor={theme.color.background} translucent={false} />
         <LoginScreen
           auth={auth}
           hasCachedSession={hasCachedSession}
@@ -126,7 +127,7 @@ export default function App() {
 
   return (
     <SafeAreaView style={styles.root}>
-      <StatusBar barStyle="light-content" />
+      <StatusBar barStyle="light-content" backgroundColor={theme.color.background} translucent={false} />
 
       <View style={styles.content}>
         {tab === 'home' ? (
@@ -142,7 +143,12 @@ export default function App() {
         ) : null}
 
         {tab === 'milking' ? (
-          <MilkingScreen service={milking} candidates={herd} onRecorded={refresh} />
+          <MilkingScreen
+            service={milking}
+            candidates={herd}
+            recordedBy={auth.currentSession()?.email ?? 'field-app'}
+            onRecorded={refresh}
+          />
         ) : null}
 
         {tab === 'events' ? (
@@ -180,6 +186,8 @@ export default function App() {
   );
 }
 
+const ANDROID_NAV_BAR_PADDING = 48;
+
 const styles = StyleSheet.create({
   root: {
     flex: 1,
@@ -188,7 +196,20 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
   },
+  /**
+   * Holds the "Inicio" / "Volver" button. On Android the system navigation bar (back /
+   * home / recent) overlays the bottom edge of the app on edge-to-edge devices, which on
+   * SDK 56 means a button placed at the very bottom is half-hidden behind the buttons.
+   * Adding `ANDROID_NAV_BAR_PADDING` on Android only keeps the button legible without
+   * paying that cost on iOS (where there is no system bar to dodge).
+   */
   footer: {
-    padding: theme.space.md,
+    paddingHorizontal: theme.space.md,
+    paddingTop: theme.space.md,
+    paddingBottom: Platform.select({
+      ios: theme.space.md,
+      android: theme.space.md + ANDROID_NAV_BAR_PADDING,
+      default: theme.space.md,
+    }),
   },
 });

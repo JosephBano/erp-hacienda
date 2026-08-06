@@ -92,5 +92,19 @@ export const migrations = schemaMigrations({
         }),
       ],
     },
+    {
+      toVersion: 4,
+      steps: [
+        // The milking screen now filters candidates by their species' `is_milkable` flag
+        // (Art. 8: species-level capability lives in the database). Defaulting the column
+        // to false on existing rows means an animal on a species that was unknown before
+        // this sync simply doesn't show up in Ordeño until the operator opts the species
+        // in from the admin-web panel — fail-closed, no surprise registrations.
+        addColumns({
+          table: 'species',
+          columns: [{ name: 'is_milkable', type: 'boolean' }],
+        }),
+      ],
+    },
   ],
 });

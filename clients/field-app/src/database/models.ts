@@ -63,6 +63,12 @@ export class Species extends Model {
 
   @text('name') declare name: string;
   @field('gestation_days') gestationDays?: number;
+  // Whether the field app should offer this species for milking registration. Art. 8:
+  // per-species capability lives in the DB. No JS-side default — WatermelonDB forbids
+  // default values on decorated fields, and the column itself has no SQL default,
+  // so a species row created without an explicit value reads back as undefined here;
+  // callers must coalesce to a fail-closed `false`.
+  @field('is_milkable') isMilkable?: boolean;
   @field('is_deleted') declare isDeleted: boolean;
 }
 

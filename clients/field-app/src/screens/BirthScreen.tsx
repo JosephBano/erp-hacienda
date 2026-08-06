@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 
 import { theme } from '../ui/theme';
-import { BigButton, Body, Card, Notice, Screen, Title } from '../ui/components';
+import { BigButton, Body, Card, EmptyState, Notice, Screen, Title } from '../ui/components';
 import type { BirthService, OffspringInput, Sex } from '../services/birthService';
 import type { AnimalOption } from './EventsScreen';
 
@@ -63,17 +63,27 @@ export function BirthScreen({
       {!dam ? (
         <>
           <Body muted>¿Qué madre parió?</Body>
-          <ScrollView testID="dam-list" contentContainerStyle={styles.list}>
-            {dams.map((option) => (
-              <BigButton
-                key={option.animalId}
-                testID={`dam-${option.animalId}`}
-                label={option.label}
-                tone="neutral"
-                onPress={() => setDam(option)}
+          <View style={styles.body}>
+            {dams.length === 0 ? (
+              <EmptyState
+                testID="dam-list-empty"
+                title="No hay hembras en el dispositivo"
+                hint="Vaya a Inicio → Sincronización para descargar el hato antes de registrar un parto."
               />
-            ))}
-          </ScrollView>
+            ) : (
+              <ScrollView testID="dam-list" contentContainerStyle={styles.list}>
+                {dams.map((option) => (
+                  <BigButton
+                    key={option.animalId}
+                    testID={`dam-${option.animalId}`}
+                    label={option.label}
+                    tone="neutral"
+                    onPress={() => setDam(option)}
+                  />
+                ))}
+              </ScrollView>
+            )}
+          </View>
         </>
       ) : (
         <>
@@ -131,6 +141,14 @@ export function BirthScreen({
 }
 
 const styles = StyleSheet.create({
+  /**
+   * Dam picker must occupy the room between the prompt and the screen footer instead of
+   * collapsing so that, with no animals on file, an empty state is the thing the
+   * employee reads — not a black void under "¿Qué madre parió?".
+   */
+  body: {
+    flex: 1,
+  },
   list: {
     gap: theme.space.sm,
     paddingBottom: theme.space.md,

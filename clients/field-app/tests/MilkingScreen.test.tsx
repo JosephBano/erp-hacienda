@@ -20,11 +20,11 @@ describe('MilkingScreen', () => {
   let service: MilkingService;
 
   const candidates = [
-    { animalId: 'cow-1', label: 'La Pinta', isWithheld: false },
-    { animalId: 'cow-2', label: 'La Negra', isWithheld: true, withheldUntil: '2999-12-31' },
+    { animalId: 'cow-1', label: 'La Pinta', isWithheld: false, speciesIsMilkable: true },
+    { animalId: 'cow-2', label: 'La Negra', isWithheld: true, withheldUntil: '2999-12-31', speciesIsMilkable: true },
   ];
 
-  beforeEach(() => {
+  beforeEach(async () => {
     const adapter = new LokiJSAdapter({
       schema,
       migrations,
@@ -37,6 +37,32 @@ describe('MilkingScreen', () => {
     outbox = new Outbox(database);
     service = new MilkingService(database);
 
+    // The service-level guard refuses milkings for animals whose species is not milkable
+    // (Art. 8). The screen lists the candidate but the service still needs the species
+    // row to be present in the local DB so the guard can resolve it.
+    await database.write(async () => {
+      await database.get('species').create((row: any) => {
+        row._raw.id = 'species-bovino';
+        row.name = 'Bovino';
+        row.isMilkable = true;
+        row.isDeleted = false;
+      });
+      await database.get('animals').create((row: any) => {
+        row._raw.id = 'cow-1';
+        row.sex = 'Female';
+        row.speciesId = 'species-bovino';
+        row.isDeleted = false;
+        row.serverCreatedAt = Date.now();
+      });
+      await database.get('animals').create((row: any) => {
+        row._raw.id = 'cow-2';
+        row.sex = 'Female';
+        row.speciesId = 'species-bovino';
+        row.isDeleted = false;
+        row.serverCreatedAt = Date.now();
+      });
+    });
+
     // There is no fetch in this test on purpose: nothing on this screen may depend on
     // reaching the server.
     global.fetch = jest.fn(() => {
@@ -44,8 +70,19 @@ describe('MilkingScreen', () => {
     }) as unknown as typeof fetch;
   });
 
+  /**
+   * Empty herds are the everyday state on first launch (no sync yet). The screen used
+   * to render a blank canvas here; now it shows the employee what to do next.
+   */
+  it('tells the employee to sync when there are no cows on file', async () => {
+    await render(<MilkingScreen service={service} candidates={[]} recordedBy="tester@hato" />);
+
+    expect(await screen.findByTestId('cow-list-empty')).toBeTruthy();
+    expect(screen.queryByTestId('cow-cow-1')).toBeNull();
+  });
+
   it('records a cow in three taps with no network', async () => {
-    await render(<MilkingScreen service={service} candidates={candidates} />);
+    await render(<MilkingScreen service={service} candidates={candidates} recordedBy="tester@hato" />);
 
     // 1 — choose the cow.
     fireEvent.press(screen.getByTestId('cow-cow-1'));
@@ -67,7 +104,7 @@ describe('MilkingScreen', () => {
   // test in the suite has rendered and torn down. Skipped for now; revisit alongside
   // the WatermelonDB / LokiJSAdapter cleanup-between-tests story for SDK 56.
   it.skip('marks a cow under withdrawal before she is even selected', async () => {
-    await render(<MilkingScreen service={service} candidates={candidates} />);
+    await render(<MilkingScreen service={service} candidates={candidates} recordedBy="tester@hato" />);
 
     expect(screen.getByTestId('cow-cow-2')).toHaveTextContent(/RETIRO/);
   });
@@ -85,7 +122,7 @@ describe('MilkingScreen', () => {
   // once the WatermelonDB / LokiJSAdapter cleanup-between-tests story is sorted out for
   // the SDK 56 stack.
   it.skip('shows the running total for the day', async () => {
-    await render(<MilkingScreen service={service} candidates={candidates} />);
+    await render(<MilkingScreen service={service} candidates={candidates} recordedBy="tester@hato" />);
 
     fireEvent.press(screen.getByTestId('cow-cow-1'));
     fireEvent.changeText(screen.getByTestId('liters-input'), '10');
@@ -109,7 +146,7 @@ describe('MilkingScreen', () => {
       });
     });
 
-    await render(<MilkingScreen service={service} candidates={candidates} />);
+    await render(<MilkingScreen service={service} candidates={candidates} recordedBy="tester@hato" />);
 
     fireEvent.press(screen.getByTestId('cow-cow-2'));
     fireEvent.changeText(screen.getByTestId('liters-input'), '9');

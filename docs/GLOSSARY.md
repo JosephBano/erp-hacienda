@@ -147,12 +147,24 @@
 | Forma de la dosis | `DoseKind` | `Absolute` (10 ml), `PerWeight` (1 ml / 10 kg, resuelta contra el último pesaje) o `PerHead` (1 dosis × 42 cabezas). En porcinos la dosis por peso es la norma, por la misma razón que la ración: un animal enfermo pesa menos. |
 | Dosis calculada vs. administrada | `CalculatedDose` / `AdministeredDose` | La que el sistema sugiere (estimada, si sale de un promedio muestral) y la que realmente salió del frasco. **Se guardan las dos**: su diferencia delata derrame, subdosificación o un muestreo de peso equivocado. |
 | Observación del tratamiento | `TreatmentNotes` | Texto libre donde vive lo que ningún esquema captura ("se aplicó en el cuello porque la pierna estaba lastimada"). La medida se estructura; la narrativa se libera. |
+| Aplicador vs. registrador | `AppliedBy` / `RecordedBy` | Distinción entre **quién aplicó** el tratamiento (puede ser veterinario, técnico o el propio operario) y **quién tipeó** el registro en el móvil (el operario de turno). Conviven como dos FK separadas — un mismo evento puede tenerlas iguales (yo me apliqué y registré) o distintas (el veterinario aplicó, el operario registró). Forzar la igualdad como default oculto pierde información sobre la cadena de responsabilidad. |
 | Plan sanitario / de manejo | `HealthPlan` | Cronograma configurable de vacunas, tratamientos y procedimientos, aplicable a un lote o a un individuo (ADR-0016). |
 | Ítem de plan | `HealthPlanItem` | Una línea del plan: qué se hace, anclado a qué (`nacimiento` \| `inicio de lote` \| `parto` \| `destete`), a cuántos días, con qué ventana de cumplimiento, y para qué especie/categoría/sexo. |
 | Ancla del plan | `PlanAnchor` | El hecho desde el cual se cuentan los días de un ítem. Que sea dato y no código es lo que permite que castración y preselección de madres vivan en el mismo motor que las vacunas. |
 | Ventana de cumplimiento | `ComplianceWindow` | Días de tolerancia alrededor de la fecha teórica antes de que el ítem cuente como vencido. |
 | Causa de muerte | `MortalityCause` | Catálogo configurable (aplastamiento, inanición, débil al nacer, diarrea, hernia, desconocida). Sin causa la mortalidad es un número que no permite decidir nada. |
 | Retiro en carne | `WithdrawalTarget.Meat` | Días post-tratamiento en que el animal **no puede ir a faena**. Ya existe en el enum y nunca se usó; en engorde porcino es el retiro que importa (Art. 19). |
+
+### Validación configurable (transversal)
+
+> Términos que aplican a **más de un dominio** y por eso viven aparte de las
+> secciones de especie (sanidad / producción / etc.). La característica
+> común: son **datos** que el sistema valida contra magnitudes plausibles, no
+> reglas fijas en código.
+
+| Término (ES) | Código (EN) | Definición |
+|---|---|---|
+| Rango de plausibilidad | `PlausibilityRange` | Catálogo configurable por **especie y categoría**: `plausible_min` / `plausible_max` (→ confirmación: *"¿es correcto?"*) y `absolute_min` / `absolute_max` (→ bloqueo: imposible de registrar). Aplica a magnitudes físicas (peso en kg, volumen en litros para ordeño). **Fail-open por diseño**: si no hay rango configurado para una combinación, el sistema acepta el valor — un rango olvidado no debe impedir registrar la realidad del campo. **Evaluado localmente en el móvil** (Art. 9): los rangos bajan vía pull. Distinto de `Species.IsMilkable` (fail-closed, default `false`) y de los permisos (ADR-0007, fail-closed por defecto) — esas son reglas de seguridad; los rangos de plausibilidad son reglas de captura. Ver `PLAN-FASE-3-5-PORCINO.md` §3.5a.6. |
 
 ### Alimentación
 

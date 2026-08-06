@@ -240,8 +240,11 @@ Tareas:
    cada lote ya faenado.
 6. Lectura consciente del modo: el estado individual de un animal en lote `Headcount` se
    responde como *indeterminado*, no como un booleano inventado. **En una sola función**,
-   no repartida por los llamadores. Los **agregados** ("cuántos animales vivos hay") se
-   resuelven por el cierre en cascada del punto 5, no por esta función.
+   no repartida por los llamadores. Propuesta de nombre (a fijar al implementar):
+   `ResolveIndividualState(animalId, asOf) → Alive | Indeterminate | Disposed`, alineada
+   con el término `IndeterminateIndividualState` del glosario. Los **agregados**
+   ("cuántos animales vivos hay") se resuelven por el cierre en cascada del punto 5, no
+   por esta función.
 7. Endpoints de eventos grupales + push de sync (`PushSyncCommands.cs` gana el caso
    `recordGroupEvent`).
 8. Migración EF Core + reflejo en `SyncPullQueries` y en el esquema local del móvil.
@@ -337,6 +340,12 @@ Tareas:
 Pruebas: baja individual con causa; baja grupal con causa; causa inexistente rechazada; la
 mortalidad predestete por madre se agrega correctamente sobre datos sembrados.
 
+> **Nota de tamaño.** Esta rama tiene sólo 3 tareas y podría fusionarse con `3.5a.2-A`
+> (catálogos de tratamiento) si al planificar la implementación se prefiere un solo PR.
+> La separación actual favorece títulos más legibles y diffs acotados; la decisión puede
+> revertirse sin costo cuando llegue el momento. Si se decide combinar, mover aquí las
+> tareas 1–3 de `3.5a.2-A` consume ambas ramas en un solo PR.
+
 ---
 
 ### 3.5a.4 · `feature/breeding-nursing-cohort` · **estructural**
@@ -399,6 +408,19 @@ Tareas:
 3. UI de confirmación: *"1000 L es mucho más de lo normal para este animal. ¿Es correcto?"*
    El dato improbable se puede registrar; el imposible no.
 4. Semilla con valores razonables para porcino y bovino, ajustables por el cliente.
+
+5. **Fail-open por diseño, no por descuido.** Una especie recién registrada o una
+   categoría nueva quedan sin rangos y **el sistema no bloquea nada**: registrar
+   un dato sin rango configurado es legal. El contraste con el resto del sistema
+   es deliberado: `Species.IsMilkable` default `false` (fail-closed, default
+   seguro porque una especie desconocida *no debe* ordeñarse) y los permisos
+   (ADR-0007) tienen "no-permitido por defecto". Acá el razonamiento es inverso:
+   un rango olvidado no puede impedir registrar la realidad del campo, porque el
+   daño de perder un registro real es peor que el ruido de aceptar un valor
+   sospechoso que el operario acaba de tipear. **Consecuencia operativa**: la
+   semilla del punto 4 debe existir desde el primer día de la rama, no semanas
+   después — sin semilla, la rama no detecta nada, que es exactamente el modo
+   fail-open.
 
 Pruebas: valor dentro de rango pasa sin fricción; valor improbable exige confirmación
 explícita; valor imposible se rechaza; **sin rangos configurados no se bloquea nada**

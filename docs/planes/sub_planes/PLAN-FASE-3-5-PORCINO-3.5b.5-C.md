@@ -1,6 +1,6 @@
 # PLAN-FASE-3-5-PORCINO-3.5b.5-C.md — Advertencias visibles y versionado de definiciones
 
-> **Sub-plan extraído de `PLAN-FASE-3-5-PORCINO.md` §3.5b.5.**
+> **Sub-plan extraído de `PLAN-FASE-3-5-PORCINO.md` sec.3.5b.5.**
 > Este archivo **es ejecutable de forma independiente** del macro plan y de sus
 > pares 3.5b.5-A (núcleo de AnimalTrait) y 3.5b.5-B (absorción de SelectionCriterion).
 > Depende de A mergeada. La dependencia con B es opcional pero útil: si B ya
@@ -8,17 +8,17 @@
 > seeded y se pueden mostrar de inmediato.
 
 - **Rama Git:** `feature/livestock-trait-alerts-and-versioning`
-- **ADR que la respalda:** [ADR-0018](../adr/0018-caracteristicas-observables-del-animal.md) §9 (versionado) + §6 (advertencias de campo).
+- **ADR que la respalda:** [ADR-0018](../adr/0018-caracteristicas-observables-del-animal.md) sec.9 (versionado) + sec.6 (advertencias de campo).
 - **Pares del split:**
   - [`3.5b.5-A`](./PLAN-FASE-3-5-PORCINO-3.5b.5-C.md) (rama `feature/livestock-animal-traits-core`): núcleo de AnimalTrait y TraitObservation — **requerido**.
   - [`3.5b.5-B`](./PLAN-FASE-3-5-PORCINO-3.5b.5-B.md) (rama `feature/livestock-selection-criterion-deprecation`): absorción de `SelectionCriterion` — **recomendada** (las semillas con alertas visibles vienen de B).
-- **Fuente original:** [`PLAN-FASE-3-5-PORCINO.md` §3.5b.5](../PLAN-FASE-3-5-PORCINO.md#45--featurelivestock-animal-traits--estructural-adr-0018)
+- **Fuente original:** [`PLAN-FASE-3-5-PORCINO.md` sec.3.5b.5](../PLAN-FASE-3-5-PORCINO.md#45--featurelivestock-animal-traits--estructural-adr-0018)
 
 ---
 
 ## Por qué existe esta sub-rama
 
-Esta sub-rama resuelve los dos puntos del macro plan §3.5b.5 que más **se
+Esta sub-rama resuelve los dos puntos del macro plan sec.3.5b.5 que más **se
 notan en el campo** y que menos se pueden hacer sin el núcleo:
 
 1. **Advertencias visibles.** Una característica marcada con `is_visible_as_alert
@@ -31,7 +31,7 @@ notan en el campo** y que menos se pueden hacer sin el núcleo:
    `[manso, normal, nervioso]` pasa a `[muy_manso, manso, normal, nervioso,
    muy_nervioso, agresivo]` mañana, y el sistema las trata como el mismo
    concepto, **un 3 viejo y un 3 nuevo dejan de significar lo mismo en
-   silencio**. El Art. 1 (historial inmutable) más el ADR-0018 §9 juntos
+   silencio**. El Art. 1 (historial inmutable) más el ADR-0018 sec.9 juntos
    dicen: una definición usada se **versiona**, no se edita.
 
 Estos dos puntos comparten un mismo blast radius (la **integridad** de las
@@ -42,13 +42,13 @@ reviewer encuentra el contrato completo en un solo PR.
 
 ## Decisiones tomadas en el macro plan y que aplican a esta sub-rama
 
-- §3.5b.5 punto 7: "Una definición usada se versiona, no se edita (ADR-0018
-  §9): si una escala 1–5 pasa a 1–10 con observaciones ya registradas, un 3
+- sec.3.5b.5 punto 7: "Una definición usada se versiona, no se edita (ADR-0018
+  sec.9): si una escala 1–5 pasa a 1–10 con observaciones ya registradas, un 3
   viejo y un 3 nuevo dejan de significar lo mismo, en silencio."
-- §3.5b.5 punto 6: "**Advertencias de campo**: `visible_como_advertencia`
+- sec.3.5b.5 punto 6: "**Advertencias de campo**: `visible_como_advertencia`
   muestra la característica en la ficha del animal en el móvil, antes de que
   alguien lo toque."
-- §3.5b.5 punto final de pruebas: "observación conserva su interpretación
+- sec.3.5b.5 punto final de pruebas: "observación conserva su interpretación
   tras versionarse la definición".
 - Glosario: `TraitAlert`, `CurrentDisposition` (que ya viene de A como derivado).
 
@@ -145,7 +145,7 @@ Adicional recomendado:
 
 ## Lo que NO incluye (queda para otras ramas)
 
-- El cálculo del `MaternalIndex` (§4.6) y sus pesos configurables. Esta sub-rama
+- El cálculo del `MaternalIndex` (sec.4.6) y sus pesos configurables. Esta sub-rama
   deja la materia prima (observaciones firmadas, alertas visibles, versiones
   preservadas); el cálculo es una vista derivada que vive aparte.
 - Las alertas de comportamiento adicionales ("se escapa del corral",

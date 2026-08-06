@@ -1,6 +1,6 @@
 # PLAN-FASE-3-5-PORCINO-3.5a.2-B.md — Lógica de dosis y series de tratamiento
 
-> **Sub-plan extraído de `PLAN-FASE-3-5-PORCINO.md` §3.5a.2.**
+> **Sub-plan extraído de `PLAN-FASE-3-5-PORCINO.md` sec.3.5a.2.**
 > Este archivo **es ejecutable de forma independiente** del macro plan y de sus
 > pares 3.5a.2-A (catálogos y payload) y 3.5a.2-C (UI de campo). El macro plan
 > sigue siendo la fuente de verdad para el resto del proyecto. Esta sub-rama
@@ -13,7 +13,7 @@
 - **Pares del split:**
   - [`3.5a.2-A`](./PLAN-FASE-3-5-PORCINO-3.5a.2-A.md) (rama `feature/livestock-treatment-catalog`): los catálogos `administration_routes`, `TreatmentReason`, el payload, `health_plan_item_id` nullable, y `applied_by` ≠ `recorded_by`. **Esta sub-rama requiere A mergeado.**
   - [`3.5a.2-C`](./PLAN-FASE-3-5-PORCINO-3.5a.2-C.md) (rama `feature/field-app-treatment-ui`): la pantalla de campo que consume lo definido aquí.
-- **Fuente original:** [`PLAN-FASE-3-5-PORCINO.md` §3.5a.2](../PLAN-FASE-3-5-PORCINO.md#35a2--featurelivestock-treatment-detail--estructural)
+- **Fuente original:** [`PLAN-FASE-3-5-PORCINO.md` sec.3.5a.2](../PLAN-FASE-3-5-PORCINO.md#35a2--featurelivestock-treatment-detail--estructural)
 
 ---
 
@@ -22,7 +22,7 @@
 Esta sub-rama existe porque el modelo de dosis del plan original tenía **tres
 problemas independientes** que el mismo PR intentaba resolver al mismo tiempo,
 y eso (a) violaba la regla "un PR = un propósito" del
-`PLAN-FASE-3-4.md` §1.3, y (b) mezclaba tres órdenes de magnitud de cambio:
+`PLAN-FASE-3-4.md` sec.1.3, y (b) mezclaba tres órdenes de magnitud de cambio:
 
 1. **Conceptual:** cómo se *expresa* una dosis en el nuevo modelo. Responder a
    "¿se dosifica por peso, por cabeza, o absoluto?" introduce un nuevo tipo en
@@ -41,10 +41,10 @@ escapan del ~1 semana de trabajo.
 
 ## Decisiones tomadas en el macro plan y que aplican a esta sub-rama
 
-- §3.5a.2 puntos 4–7 (las tres formas, calculada vs. administrada, dosis
+- sec.3.5a.2 puntos 4–7 (las tres formas, calculada vs. administrada, dosis
   opcional, observación libre): todo el contenido está aquí.
-- §3.5a.2 punto 9 (`TreatmentCourse`): también.
-- §3.5a.2 nota de tamaño: si la implementación de las tres formas cabe en un
+- sec.3.5a.2 punto 9 (`TreatmentCourse`): también.
+- sec.3.5a.2 nota de tamaño: si la implementación de las tres formas cabe en un
   PR, esta sub-rama se ejecuta tal cual; si no, partir en B-1 (las tres formas)
   y B-2 (`TreatmentCourse`) antes de mergear, anotándolo en `BACKLOG.md`.
 - **Calculada ≠ administrada se persiste sin corregir ninguna.** Si el sistema
@@ -161,7 +161,7 @@ Adicional recomendado:
 - La **UI de campo** y la separación tratamiento/vacunación en la app → va en
   [`3.5a.2-C`](./PLAN-FASE-3-5-PORCINO-3.5a.2-C.md).
 - Análisis del gap calculada vs. administrada — eso es la alerta de cobertura
-  del FCR (§3.5b.4 del macro plan, mucho más adelante). Acá **sólo** se guarda
+  del FCR (sec.3.5b.4 del macro plan, mucho más adelante). Acá **sólo** se guarda
   el dato; nadie lo lee todavía.
 
 ## Cómo probarlo
@@ -191,5 +191,5 @@ curl -X POST http://localhost:5000/api/v1/animals/.../events \
 |---|---|
 | El cálculo por peso produce cifras absurdas (decimal mal redondeado) | Suite de cálculo con tabla de pares pesaje × factor y comparación manual contra una hoja de cálculo. |
 | Se rechazan demasiados eventos por falta de pesaje | La app ofrece un fallback "Absolute" explícito antes de bloquear; documentado en 3.5a.2-C. |
-| `TreatmentCourse` rompe consumidores que asumen evento plano | Ver §3.5a.2-A punto 3 — `applied_by` ≠ `recorded_by` se modeló para no encadenar los cambios. Los consumidores que hoy leen `AnimalEvent` siguen funcionando; el `TreatmentCourse` expone una vista derivada. |
+| `TreatmentCourse` rompe consumidores que asumen evento plano | Ver sec.3.5a.2-A punto 3 — `applied_by` ≠ `recorded_by` se modeló para no encadenar los cambios. Los consumidores que hoy leen `AnimalEvent` siguen funcionando; el `TreatmentCourse` expone una vista derivada. |
 | Migración de legacy duplica filas | Test #10 explícito + idempotencia única en la columna `migrated_to_course_id`. |

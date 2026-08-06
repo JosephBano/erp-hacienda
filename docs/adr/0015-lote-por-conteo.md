@@ -59,7 +59,7 @@ identificable. `Headcount` declara que el lote sabe **cuántos** hay, no **cuál
 
 `AnimalEvent` pasa de `AnimalId` obligatorio a **exactamente uno** de `AnimalId` /
 `GroupId`, con CHECK en base de datos. Esto **no es un diseño nuevo**: `DATA-MODEL.md`
-§Núcleo 2 ya lo dibuja (`ANIMAL_GROUPS |o--o{ ANIMAL_EVENTS : "grupal"`) y ya dejó tomada
+sec.Núcleo 2 ya lo dibuja (`ANIMAL_GROUPS |o--o{ ANIMAL_EVENTS : "grupal"`) y ya dejó tomada
 la decisión de implementación — *"empezar simple (evento grupal + expansión en consulta)"*.
 Este ADR ejecuta esa decisión sin reabrirla: **el evento grupal no se materializa por
 animal**.

@@ -1,6 +1,6 @@
 # PLAN-FASE-3-5-PORCINO-3.5a.2-A.md — Catálogos, payload y forward-compat del tratamiento
 
-> **Sub-plan extraído de `PLAN-FASE-3-5-PORCINO.md` §3.5a.2.**
+> **Sub-plan extraído de `PLAN-FASE-3-5-PORCINO.md` sec.3.5a.2.**
 > Este archivo **es ejecutable de forma independiente** del macro plan y de sus
 > pares 3.5a.2-B (lógica de dosis y series) y 3.5a.2-C (UI de campo). El macro plan
 > sigue siendo la fuente de verdad para el resto del proyecto: toda decisión que
@@ -13,7 +13,7 @@
 - **Pares del split:**
   - [`3.5a.2-B`](./PLAN-FASE-3-5-PORCINO-3.5a.2-B.md) (rama `feature/livestock-treatment-dose-logic`): las tres formas de dosis, calculada vs. administrada, opcionalidad, observación libre y `TreatmentCourse`.
   - [`3.5a.2-C`](./PLAN-FASE-3-5-PORCINO-3.5a.2-C.md) (rama `feature/field-app-treatment-ui`): vacunación como camino separado y pantalla de campo con vía y motivo en la misma pasada.
-- **Fuente original:** [`PLAN-FASE-3-5-PORCINO.md` §3.5a.2](../PLAN-FASE-3-5-PORCINO.md#35a2--featurelivestock-treatment-detail--estructural)
+- **Fuente original:** [`PLAN-FASE-3-5-PORCINO.md` sec.3.5a.2](../PLAN-FASE-3-5-PORCINO.md#35a2--featurelivestock-treatment-detail--estructural)
 
 ---
 
@@ -52,7 +52,7 @@ recuperar tarde y el que menos depende del resto.
   declarar `health_plan_item_id`. Si el piloto corre un mes sin ese campo, los
   tratamientos que se registren **no se pueden enlazar retroactivamente** con su
   ítem de plan cuando el cronograma exista. Cuesta una línea hoy; es irrecuperable
-  mañana. ADR-0016 §"Condición de reversa" lo deja escrito.
+  mañana. ADR-0016 sec."Condición de reversa" lo deja escrito.
 
 ## Tareas
 
@@ -93,7 +93,7 @@ recuperar tarde y el que menos depende del resto.
    payload). El campo `dose` libre persiste por ahora para no romper registros
    pre-existentes (Art. 1); 3.5a.2-B lo depreca. `RecordedBy` cambia de
    `string` a FK a `users`, conservando un `recorded_by_label` para no perder
-   historia en datos legacy (mismo patrón que PLAN-FASE-3-4 §3.A "Bitácora").
+   historia en datos legacy (mismo patrón que PLAN-FASE-3-4 sec.3.A "Bitácora").
 6. **Catálogo en `admin-web`:** pantalla CRUD para `administration_routes` y
    `treatment_reasons` (alta, baja lógica, etiqueta visible). Permiso:
    `livestock.treatments.configure`.
@@ -169,5 +169,5 @@ psql -d hato -c "SELECT * FROM treatment_reasons;"
 |---|---|
 | `TreatmentReason` se codifica como `enum` en lugar de tabla | Test de arquitectura: un `enum` en `Livestock.Domain` que matchee los valores falla la compilación. |
 | `health_plan_item_id` se crea como FK antes de tiempo | Esta sub-rama crea la columna nullable sin FK; el constraint llega con 3.5b.1. |
-| Pérdida del dato `recorded_by` viejo (texto) al pasarlo a FK | `recorded_by_label` persiste paralelo (Plan Fase 3.4 §3.A "Bitácora"). |
+| Pérdida del dato `recorded_by` viejo (texto) al pasarlo a FK | `recorded_by_label` persiste paralelo (Plan Fase 3.4 sec.3.A "Bitácora"). |
 | Catálogo inflado en el bundle del móvil | Sólo las opciones activas (filter por `is_active`). Si pasa el umbral, se pasa a un endpoint bajo demanda — pero hoy no hace falta. |

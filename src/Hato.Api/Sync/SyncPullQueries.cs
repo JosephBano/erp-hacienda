@@ -154,7 +154,7 @@ public class GetSyncPullQueryHandler(
     public const int MaxBatchSize = 1000;
 
     /// <summary>
-    /// The permission a role needs to read each collection (PLAN-FASE-3-4 §3.A, pull task
+    /// The permission a role needs to read each collection (PLAN-FASE-3-4 sec.3.A, pull task
     /// 4: "el empleado solo baja lo que le corresponde"). Reference tables (species,
     /// breeds, categories) sit under the same permission as animals: they exist to
     /// support working with animals, so a role with no livestock access has no use for

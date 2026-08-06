@@ -131,7 +131,7 @@ móvil, incluyendo días sin señal, sin pérdida ni duplicación de datos.
 > podía disparar un conflicto LWW fuera de una prueba) y otra en `admin-web` que la
 > expone, los endpoints de lectura de especies/razas/categorías que faltaban para poder
 > registrar un animal desde cualquier cliente con su pantalla correspondiente, los 10
-> escenarios obligatorios de sincronización de PLAN-FASE-3-4 §2.2 (los últimos dos —
+> escenarios obligatorios de sincronización de PLAN-FASE-3-4 sec.2.2 (los últimos dos —
 > token expirado a mitad de push y corte de red a mitad de un lote — encontraron y
 > corrigieron un bug real en el cliente), la prueba de convergencia end-to-end con dos
 > dispositivos simulados, y las pantallas de roles/permisos (con edición), auditoría y

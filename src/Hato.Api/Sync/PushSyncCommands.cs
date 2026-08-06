@@ -186,7 +186,7 @@ public class PushSyncBatchCommandHandler(
 
     /// <summary>
     /// Routes an operation to the same command the web API would use. Adding a new field
-    /// flow means adding a case here — and a push test for it (PLAN-FASE-3-4 §2.2).
+    /// flow means adding a case here — and a push test for it (PLAN-FASE-3-4 sec.2.2).
     /// </summary>
     private async Task<string?> ExecuteAsync(
         SyncPushOperationDto operation, string payloadJson, string? deviceId, CancellationToken cancellationToken)

@@ -111,6 +111,108 @@
 | Especie ordeñable | `is_milkable` (`Species.IsMilkable`) | Bandera booleana por especie que indica si el field-app permite registrar ordeños para sus animales. **Configuración, no código**: agregar una especie nueva no requiere tocar el código de dominio. Default `false` (fail-closed) — una especie recién registrada no es ordeñable hasta que un operador la habilita explícitamente desde el panel. Ver `SpeciesConfiguration` (backend) y `services/herdQueries.loadHerd` (field-app). |
 | Especie con retiro de leche bloqueante | `WithdrawalTarget.Milk` / `WithdrawalTarget.Both` | La leche de un animal bajo período de retiro (medicamento o) no es vendible. Aplica al `MilkingSession` sin importar si la especie es ordeñable. |
 
+## Adaptación porcina (Fase 3.5)
+
+> Términos que entran con el pivote a porcinos. **Ninguno está implementado todavía**:
+> esta sección existe porque el Art. 20 exige que el término entre al glosario antes que
+> al código. Ver `PLAN-FASE-3-5-PORCINO.md` y los ADR-0015/0016/0017.
+
+### Lote, conteo y trazabilidad
+
+| Término (ES) | Código (EN) | Definición |
+|---|---|---|
+| Modo de seguimiento | `TrackingMode` | Cómo un `AnimalGroup` conoce a sus miembros: `Individual` (cada cabeza es un animal identificable) o `Headcount` (el lote sabe *cuántos* hay, no *cuáles*). Configuración del grupo, no de la especie. |
+| Lote por conteo | `HeadcountLot` | `AnimalGroup` en modo `Headcount`. Los eventos se registran **al lote**, no al animal. Es el modelo del engorde porcino antes del aretado (ADR-0015). |
+| Cabezas vivas | `LiveHeadCount` | Miembros activos del lote menos las bajas registradas al lote. Cantidad **derivada**, nunca un contador que se edita a mano. |
+| Estado individual indeterminado | `IndeterminateIndividualState` | Condición de un animal cuyo lote actual está en modo `Headcount`: el sistema sabe que entró al lote y no sabe si sigue vivo. Se declara explícitamente en las consultas; no se disimula. |
+| Cohorte de lactancia | `NursingCohort` | Conjunto de camadas nacidas en días consecutivos que se manejan juntas con sus madres. Su destete se calcula desde la **última** camada: `max(fecha_parto) + días_de_lactancia`. |
+| Clasificación por peso | `WeightSorting` | Reparto de una cohorte destetada en lotes de engorde por tamaño (pequeños / medianos / grandes). Es el momento en que termina la identificación individual. |
+| Pesaje muestral | `SampleWeighing` | Pesaje de una muestra del lote, no del total. Payload `{sample_count, avg_kg, min_kg, max_kg}`. Un promedio de 10 sobre 42 cabezas es un dato honesto; inventar 42 pesos no lo es. |
+| Diagnóstico grupal | `GroupDiagnosis` | *"En este lote hay uno enfermo."* Cantidad de cabezas afectadas y condición, **sin identificar cuál** — que es exactamente lo que el encargado sabe y lo que quiso decir. |
+| Disolución de lote | `LotDissolution` | Cierre en bloque de las membresías restantes cuando un lote por conteo llega a cero cabezas. Las bajas parciales no cierran a nadie; sólo bajan el conteo. |
+| Baja con alcance de lote | `LotScopedDisposal` | Baja de un animal cuyo destino individual nadie verificó: salió como parte de la disposición de su lote. Se muestra como tal en la ficha, nunca como una venta común. |
+| Aretado masivo | `BulkTagging` | Asignación de identificadores a los animales de un lote. Sobre animales ya mezclados **está prohibido**: elegir qué fila es qué cerdo es el dato sintético que el ADR-0015 existe para evitar. |
+| Cerda | `Sow` | Hembra porcina reproductora en producción. |
+| Futura madre / Cerda de reemplazo | `Gilt` | Hembra seleccionada como reproductora que aún no ha parido. |
+| Lechón | `Piglet` | Cría porcina hasta el destete. |
+| Cerdo de engorde | `Grower` / `Finisher` | Porcino en fase de crecimiento/terminación, destinado a faena. |
+
+### Sanidad, tratamientos y cronograma
+
+| Término (ES) | Código (EN) | Definición |
+|---|---|---|
+| Vía de administración | `AdministrationRoute` | Cómo se aplicó el producto: oral en agua, oral en alimento, intramuscular, subcutánea, tópica, intranasal, intrauterina. **Catálogo configurable** (Art. 8), no enum. |
+| Motivo del tratamiento | `TreatmentReason` | Por qué se aplicó: `Scheduled` (tocaba por cronograma), `Curative` (el animal está enfermo), `Preventive` (profilaxis fuera de cronograma). Distinguirlos es lo que separa "vacuna de calendario" de "vacuna porque se enfermó". |
+| Serie de tratamiento | `TreatmentCourse` | Tratamiento de varios días como **una** unidad con sus aplicaciones, no como N eventos sueltos e inconexos. |
+| Forma de la dosis | `DoseKind` | `Absolute` (10 ml), `PerWeight` (1 ml / 10 kg, resuelta contra el último pesaje) o `PerHead` (1 dosis × 42 cabezas). En porcinos la dosis por peso es la norma, por la misma razón que la ración: un animal enfermo pesa menos. |
+| Dosis calculada vs. administrada | `CalculatedDose` / `AdministeredDose` | La que el sistema sugiere (estimada, si sale de un promedio muestral) y la que realmente salió del frasco. **Se guardan las dos**: su diferencia delata derrame, subdosificación o un muestreo de peso equivocado. |
+| Observación del tratamiento | `TreatmentNotes` | Texto libre donde vive lo que ningún esquema captura ("se aplicó en el cuello porque la pierna estaba lastimada"). La medida se estructura; la narrativa se libera. |
+| Plan sanitario / de manejo | `HealthPlan` | Cronograma configurable de vacunas, tratamientos y procedimientos, aplicable a un lote o a un individuo (ADR-0016). |
+| Ítem de plan | `HealthPlanItem` | Una línea del plan: qué se hace, anclado a qué (`nacimiento` \| `inicio de lote` \| `parto` \| `destete`), a cuántos días, con qué ventana de cumplimiento, y para qué especie/categoría/sexo. |
+| Ancla del plan | `PlanAnchor` | El hecho desde el cual se cuentan los días de un ítem. Que sea dato y no código es lo que permite que castración y preselección de madres vivan en el mismo motor que las vacunas. |
+| Ventana de cumplimiento | `ComplianceWindow` | Días de tolerancia alrededor de la fecha teórica antes de que el ítem cuente como vencido. |
+| Causa de muerte | `MortalityCause` | Catálogo configurable (aplastamiento, inanición, débil al nacer, diarrea, hernia, desconocida). Sin causa la mortalidad es un número que no permite decidir nada. |
+| Retiro en carne | `WithdrawalTarget.Meat` | Días post-tratamiento en que el animal **no puede ir a faena**. Ya existe en el enum y nunca se usó; en engorde porcino es el retiro que importa (Art. 19). |
+
+### Alimentación
+
+| Término (ES) | Código (EN) | Definición |
+|---|---|---|
+| Etapa de alimento | `FeedStage` | Preiniciador, iniciador, crecimiento, engorde, gestación, lactancia. Clasifica un ítem de inventario de categoría `Feed`. |
+| Presentación | `PackagePresentation` | Cómo se compra un ítem (saco de 20 kg, saco de 40 kg). Distinta de la unidad base en que se consume. |
+| Conversión de unidad | `UnitConversion` | Factor entre presentación y unidad base (`saco40kg` → 40 `kg`). Evita el "bug del saco": comprar en sacos y consumir en kilos sin que los números mientan. |
+| Estándar de alimentación | `FeedingStandard` | Ración diaria esperada según peso y etapa: `{especie, etapa, peso_desde, peso_hasta, ración_kg_día}`. Es **dato configurable**, jamás un `if` por especie (Art. 8). |
+| Ración de cerda lactante | `LactatingSowRation` | Caso particular del estándar, expresado como `{base_kg, por_cría_kg, max_kg}` — p. ej. 2 kg + 0.5 kg por lechón, tope 9 kg. Tres números en una fila, no una fórmula compilada. |
+| Conversión alimenticia | `FeedConversionRatio` (FCR) | Kg de alimento consumido ÷ kg de peso ganado por el lote. **El indicador que decide si el engorde va bien.** Se calcula en kg; el costo en dinero es Fase 4. |
+
+### Características observables del animal (ADR-0018 — transversal a todas las especies)
+
+| Término (ES) | Código (EN) | Definición |
+|---|---|---|
+| Característica | `AnimalTrait` | Definición configurable de un **juicio** sobre un animal: "es mansa", "patea", "se escapa del corral", "tetas funcionales". Catálogo por especie o global; agregar una es un INSERT (Art. 8). |
+| Observación de característica | `TraitObservation` | Registro fechado y **firmado** del valor de una característica en un animal. Las características **se observan, no se asignan**: nunca son una columna editable sobre `Animal`. |
+| Tipo de característica | `TraitKind` | `Conductual` (patea, deja mamar), `Morfológica` (tetas funcionales, aplomos), `Manejo` (abre el pestillo, no entra a la manga). Determina qué la consume, no cómo se guarda. |
+| Tipo de valor | `TraitValueType` | Los **cuatro únicos** admitidos: `Booleano`, `EscalaOrdinal` (conjunto cerrado etiquetado), `ConteoAcotado` (mín/máx declarados), `TextoLibre`. **Sin unidad y sin decimal libre** — ver Guardarraíl. |
+| Guardarraíl de las características | — | Regla que impide que el mecanismo se vuelva el vertedero de datos que debían estar tipados: **¿dos personas competentes, con el animal delante, obtendrían el mismo número?** Sí → medición → esquema y eventos. No → juicio → característica. Se impone estructuralmente: sin campo de unidad ni decimal libre, `peso = 35.4 kg` es **inexpresable**. |
+| Disposición actual | `CurrentDisposition` | Resumen **derivado** de la serie de observaciones ("esta yegua es mansa"). Nunca almacenado, para que un cambio de conducta sea visible en vez de sobrescrito. |
+| Advertencia de campo | `TraitAlert` | Característica marcada como visible, que aparece en la ficha del animal en el móvil antes de que alguien lo toque (*"PATEA"*). Transfiere el conocimiento del empleado veterano al que recién entra. |
+| Contexto de la observación | `ObservationContext` | Referencia opcional al hecho durante el cual se observó (un parto, una jornada de manejo). Es lo que conserva el "en **este** parto" al generalizar. |
+
+### Selección y calificación de madres
+
+| Término (ES) | Código (EN) | Definición |
+|---|---|---|
+| Evaluación de futura madre | `GiltEvaluation` | Sesión en la que se capturan las características **morfológicas** de una hembra y se registra la decisión de pasarla a reproductora. No tiene catálogo propio: usa `AnimalTrait` (ADR-0018). |
+| Teta funcional | `FunctionalTeat` | Pezón apto para amamantar. Los invertidos o ciegos no cuentan, y por eso es un **juicio** —dos personas discrepan sobre cuáles cuentan— y no una medición: va como característica morfológica de tipo `ConteoAcotado`. |
+| Mortalidad predestete | `PreWeaningMortality` | Crías muertas entre el parto y el destete, atribuibles a la madre. KPI **derivado**, no almacenado. |
+| Índice de madre | `MaternalIndex` | Puntaje compuesto y ordenable con **pesos configurables**, que combina KPIs derivados de eventos contables (mortalidad por causa, destetados, peso de camada) con las características conductuales genuinamente subjetivas. El aplastamiento **no** entra como característica: se cuenta desde los eventos de mortalidad con causa, que es objetivo. |
+
+### Navegación de campo
+
+| Término (ES) | Código (EN) | Definición |
+|---|---|---|
+| Árbol de actividades | `ActivityTree` | Mapa de lo que una persona hace **parada en el corral**, con el **sujeto** (animal / lote / parto) como primer nivel — el mismo XOR que `animal_events`. Distinto del plan de ramas, que enumera por módulo del backend: uno es cómo se usa, el otro cómo se construye. Se dibuja **antes** de escribir pantallas. |
+| Conteo de toques | `TapBudget` | Cantidad de toques que cuesta cada actividad del árbol, contada **sobre papel** antes de implementar. Estándar: **tres para lo normal, cuatro para lo raro**. Si la implementación excede lo dibujado, se corrige el flujo, no el número. |
+| Filtrado de actividades | `ActivityFiltering` | Qué ramas del árbol se muestran: **módulo encendido** ∧ capacidades de la finca (especies ordeñables, lotes por conteo) ∧ permisos del usuario. **Filtrado sobre un árbol único**, nunca un árbol por especie — eso sería el `if (especie == 'cerdo')` mudándose a la navegación (Art. 8). |
+
+### Visibilidad de módulos (ADR-0019 — transversal)
+
+| Término (ES) | Código (EN) | Definición |
+|---|---|---|
+| Módulo de la finca | `FarmModule` | Interruptor **explícito** por módulo (`key`, `enabled`, `disabled_reason`), editable desde el panel sin deploy. Lo decide el dueño, no el catálogo de datos. |
+| Módulo oculto | — | Módulo apagado: su entrada desaparece de la navegación. **Nada se borra** — código, pruebas, endpoints y datos siguen intactos y en verde. Ocultar es decisión de producto, no permiso para dejar de mantener. |
+| Entrada vs. camino de los datos | — | Se oculta **la puerta de entrada**, jamás **la salida de lo ya registrado**: un teléfono con ordeños sin sincronizar debe poder subirlos aunque el módulo esté apagado. Es el único punto donde esta decisión puede perder datos en silencio. |
+| Capacidad de especie vs. visibilidad | `Species.IsMilkable` vs. `FarmModule` | Dos ejes distintos que estaban confundidos: `IsMilkable` es **verdad de dominio** (un cerdo no se ordeña nunca); la visibilidad es **decisión de producto** (esta finca no usa el módulo todavía). Se puede tener vacas ordeñables y el módulo apagado. |
+
+### Corrección de registros
+
+| Término (ES) | Código (EN) | Definición |
+|---|---|---|
+| Corrección de campo | `FieldCorrection` | Arreglo de un error de dedo hecho desde el móvil. Dos caminos según dónde esté el registro (ADR-0017). |
+| Cancelación en bandeja | `OutboxCancellation` | La operación nunca salió del teléfono: se descarta la entrada del `SyncOutbox` y no hay nada que corregir, porque para el servidor nunca ocurrió. |
+| Evento de corrección | `CorrectionEvent` | El registro ya sincronizó: se emite un evento nuevo que referencia al original vía `RelatedEventId`. El pasado no se edita (Art. 1). |
+| Evento grupal | `GroupEvent` | `AnimalEvent` asociado a un `AnimalGroup` en vez de a un `Animal`. XOR: exactamente uno de los dos. Previsto en `DATA-MODEL.md` desde la Fase 1 y aún sin implementar. |
+
 ## Plataforma móvil — términos técnicos del field-app
 
 | Término (ES) | Código (EN) | Definición |

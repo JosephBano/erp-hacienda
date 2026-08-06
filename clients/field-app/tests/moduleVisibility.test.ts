@@ -140,4 +140,25 @@ describe('ModuleVisibility', () => {
 
     await expect(visibility.canShow('production')).resolves.toBe(true);
   });
+
+  /**
+   * The in-app "Módulos del dispositivo" control flips the flag locally and persists
+   * across an immediate re-read. This is what proves "toggle on/off without redeploy"
+   * (PLAN 3.5a.9-A) end to end, on the data path that the operator will exercise.
+   */
+  it('setEnabled persists across a fresh canShow read', async () => {
+    await visibility.setEnabled('production', false);
+    expect((await database.get('farm_modules').query().fetch()).length).toBe(1);
+    await expect(visibility.canShow('production')).resolves.toBe(false);
+
+    await visibility.setEnabled('production', true);
+    await expect(visibility.canShow('production')).resolves.toBe(true);
+  });
+
+  it('setEnabled is a no-op when the value is already what was requested', async () => {
+    await seedModule('production', true);
+    await visibility.setEnabled('production', true);
+    // Single row, no extras — setting the same value twice does not duplicate.
+    expect((await database.get('farm_modules').query().fetch()).length).toBe(1);
+  });
 });

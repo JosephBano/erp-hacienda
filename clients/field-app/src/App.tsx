@@ -188,7 +188,14 @@ export default function App() {
           <AnimalEditScreen database={database} service={animalEdits} animals={herd} onQueued={refresh} />
         ) : null}
 
-        {tab === 'sync' ? <SyncStatusScreen engine={engine} outbox={outbox} /> : null}
+        {tab === 'sync' ? (
+          <SyncStatusScreen
+            engine={engine}
+            outbox={outbox}
+            visibility={visibility}
+            onModulesChanged={refresh}
+          />
+        ) : null}
       </View>
 
       {tab !== 'home' ? (

@@ -488,45 +488,66 @@ ventana se rechaza en el móvil.
 
 ---
 
-### 3.5a.9 · `feature/field-app-herd-navigation`
+### 3.5a.9 · `feature/field-app-herd-navigation` — **split en 3.5a.9-A y 3.5a.9-B**
+
+> **Esta sección se partió en dos sub-planes independientes** durante la revisión
+> del macro plan (#43). El bloque completo sigue acá para conservar el contexto de
+> *por qué* la navegación necesita rehacerse, pero el alcance ejecutable vive en los
+> sub-planes. Cada sub-rama tiene su compuerta, sus pruebas y su propio criterio de
+> salida.
 
 *Por qué:* `EventsScreen.tsx:113-124` pinta **un `BigButton` por animal**. Con 3 vacas
 funciona; con 90 cerdos es un scroll infinito. **Esto bloquea el piloto**, aparte y antes
-del QR.
+del QR. Y peor que el scroll: el día que la app sume las 15+ actividades del pivote
+porcino (pesaje muestral, mortalidad de lote, vacunación de lote, diagnóstico grupal,
+consumo en sacos, observación de características, clasificación por peso, corrección,
+etc.), la lista plana deja de tener jerarquía razonable y la promesa de los tres toques
+se muere sin que nadie tome la decisión de matarla.
 
-> **Compuerta (§2.3): esta rama *implementa* el árbol de actividades.** Es donde el primer
-> nivel pasa a ser el sujeto (animal / lote / parto / lo de hoy) en vez de la lista plana
-> actual, y donde el filtrado por capacidades de la finca reemplaza a los caminos fijos.
+#### Sub-ramas
 
-Tareas:
-1. **Navegación según el árbol de §2.3**, con el sujeto como primer nivel y las ramas
-   ordenadas por la frecuencia que declaró el cliente. **Filtrado, no ramificado por
-   especie** (Art. 8).
-2. Búsqueda por identificador y filtro por lote en el selector de animales.
-3. "Recientes": los últimos animales sobre los que este teléfono registró algo.
-4. **Ocultar Ordeño por interruptor explícito** (ADR-0019), no por visibilidad derivada.
-   `FarmModule { key, enabled, disabled_reason }`, editable desde el panel sin deploy. El
-   dueño lo apaga y lo enciende cuando él decida — **no** cuando el catálogo de especies
-   cambie. Si se derivara de `IsMilkable`, el día que alguien registre una vaca para leche de
-   la casa Ordeño reaparecería solo, sin que nadie lo hubiera decidido.
-   - **No se borra nada**: `Production`, `MilkingScreen`, `milkingService`, la pestaña de
-     `App.tsx:137`, los `quick-milking` de `admin-web`, los endpoints y **todas sus pruebas**
-     quedan compilando y en verde.
-   - **Se oculta la entrada, jamás el camino de los datos**: un teléfono puede tener ordeños
-     sin sincronizar en el outbox cuando el módulo se apaga, y esos registros **tienen que
-     seguir subiendo**.
-   - `Species.IsMilkable` **no se elimina**: es verdad de dominio (un cerdo no se ordeña
-     nunca) y sigue siendo uno de los filtros cuando el módulo esté encendido.
-   - Es una entrada más del filtrado del punto 1, evaluada **sin red** (Art. 9).
-4. Documentar el escaneo QR como el paso siguiente natural **cuando llegue el aretado** —no
-   es trabajo de esta fase, y `AnimalIdentifier` ya lo soporta con tipo `RFID` (ADR-0006).
+| Sub-rama | Alcance principal | ADR | Compuerta |
+|---|---|---|---|
+| [`3.5a.9-A`](./sub_planes/PLAN-FASE-3-5-PORCINO-3.5a.9-A.md) (rama `feature/field-app-module-visibility`) | Visibilidad de módulos por interruptor explícito (`FarmModule`) — apagar Ordeño para esta finca, sin borrar nada | [ADR-0019](../adr/0019-visibilidad-de-modulos.md) | Ninguna. Es transversal y testeable en aislamiento. |
+| [`3.5a.9-B`](./sub_planes/PLAN-FASE-3-5-PORCINO-3.5a.9-B.md) (rama `feature/field-app-activity-tree`) | Árbol de actividades con sujeto como primer nivel + selector con búsqueda, filtro por lote y "recientes" | — (se apoya en §2.3 y en ADR-0019) | **[Bloqueada por §2.3 y §7-C](#)** del macro plan: el árbol se dibuja y los toques se cuentan con el cliente **antes** de escribir pantallas. |
 
-Pruebas: búsqueda con 200 animales sembrados devuelve el correcto; filtro por lote; **con el
-módulo apagado la pantalla de ordeño no es alcanzable desde ninguna ruta**; **con el módulo
-apagado, un ordeño que ya estaba en el outbox igual sincroniza** (la regla del ADR-0019 §4, y
-el único lugar donde esto se puede perder en silencio); encender el módulo lo devuelve sin
-tocar código; la pantalla que administra los módulos no puede ocultarse a sí misma; la
-navegación resuelve el interruptor **sin red**.
+#### Decisiones que aplican a las dos sub-ramas
+
+- **Filtrado, no ramificación por especie** (Art. 8). El árbol es único y se filtra
+  por la conjunción `interruptor ∧ capacidades ∧ permisos`.
+- **Evaluación sin red** (Art. 9). Las capacidades y el flag de módulo vienen del
+  pull y se evalúan localmente.
+- **El orden de las actividades va por frecuencia declarada por el cliente**, no por
+  importancia conceptual. Sin la respuesta a §7-C, 3.5a.9-B no arranca; 3.5a.9-A sí.
+
+#### Resumen de tareas (distribuidas en los sub-planes)
+
+| # | Tarea | Sub-rama |
+|---|---|---|
+| 1 | Navegación según el árbol de §2.3, primer nivel = sujeto | 3.5a.9-B |
+| 2 | Búsqueda por identificador y filtro por lote en el selector de animales | 3.5a.9-B |
+| 3 | "Recientes": últimos animales sobre los que este teléfono registró algo | 3.5a.9-B |
+| 4 | Ocultar Ordeño por interruptor explícito (ADR-0019), `FarmModule { key, enabled, disabled_reason }` | 3.5a.9-A |
+| 4a | No se borra nada (Production, MilkingScreen, milkingService, quick-milking, endpoints, pruebas siguen) | 3.5a.9-A |
+| 4b | Se oculta la entrada, jamás el camino de los datos (outbox sigue empujando) | 3.5a.9-A |
+| 4c | `Species.IsMilkable` no se elimina: verdad de dominio y filtro cuando el módulo esté encendido | 3.5a.9-A |
+| 4d | Es una entrada más del filtrado del punto 1, evaluada sin red (Art. 9) | 3.5a.9-A |
+| 5 | Documentar el escaneo QR como paso siguiente natural del aretado (no es trabajo de esta fase) | 3.5a.9-B (tarea derivada, ticket en `BACKLOG.md`) |
+
+> **Bug histórico resuelto:** la lista original tenía dos puntos numerados `4`
+> (uno el interruptor, otro el QR). El segundo es el punto 5 de esta tabla; el
+> error tipográfico quedó en el merge de #41 y se corrige al mergear el split
+> porque esta sección se reemplaza por la tabla de arriba.
+
+#### Resumen de pruebas (distribuidas en los sub-planes)
+
+- **Búsqueda con 200 animales sembrados devuelve el correcto** → [3.5a.9-B](./sub_planes/PLAN-FASE-3-5-PORCINO-3.5a.9-B.md).
+- **Filtro por lote** → 3.5a.9-B.
+- **Módulo apagado: pantalla de ordeño no alcanzable desde ninguna ruta** → [3.5a.9-A](./sub_planes/PLAN-FASE-3-5-PORCINO-3.5a.9-A.md).
+- **Módulo apagado: ordeño en outbox sigue sincronizando** (regla del ADR-0019 §4, única pérdida silenciosa posible) → 3.5a.9-A.
+- **Encender el módulo lo devuelve sin tocar código** → 3.5a.9-A.
+- **Pantalla que administra los módulos no puede ocultarse a sí misma** → 3.5a.9-A.
+- **La navegación resuelve el interruptor sin red** → ambos (A provee el flag, B lo consume).
 
 ---
 
@@ -684,7 +705,7 @@ un lote en retiro de carne se rechaza**, no se advierte (mismo estándar que
 | [0016](../adr/0016-plan-sanitario-configurable.md) | Un solo motor de cronograma por ancla + desfase + filtro | **escrito ahora**, implementado en 3.5b.1 |
 | [0017](../adr/0017-correccion-de-registros-de-campo.md) | Dos caminos de corrección según dónde esté el registro | 3.5a.8 |
 | [0018](../adr/0018-caracteristicas-observables-del-animal.md) | Un solo mecanismo para los juicios sobre un animal, con guardarraíl estructural | 3.5b.5 |
-| [0019](../adr/0019-visibilidad-de-modulos.md) | Los módulos se ocultan por interruptor explícito y **nunca se borran** | 3.5a.9 |
+| [0019](../adr/0019-visibilidad-de-modulos.md) | Los módulos se ocultan por interruptor explícito y **nunca se borran** | [`3.5a.9-A`](./sub_planes/PLAN-FASE-3-5-PORCINO-3.5a.9-A.md) |
 
 Los cinco se mergean **antes** que su código (Art. 14).
 
@@ -712,7 +733,7 @@ Dos son **transversales** y no pertenecen al pivote porcino aunque hayan nacido 
 | El catálogo de características se llena y nadie observa nada | Definiciones sin observaciones al cerrar la fase | Reducir a lo que demostró valor —probablemente sólo las advertencias visibles— y calcular el índice materno con KPIs derivados de eventos (condición de reversa del ADR-0018). |
 | La app se vuelve un menú de botones y muere la promesa de los 3 toques | Una actividad nueva se resuelve "agregando un botón al inicio" | La compuerta de §2.3: el árbol se dibuja y los toques se cuentan **antes** de escribir pantallas. De 4 actividades a más de 15 no se sobrevive improvisando la navegación. |
 | **Ordeño se pudre mientras está oculto** | Nadie lo ejercita a mano; un defecto no cubierto por pruebas vive ahí meses | Su suite sigue corriendo en CI igual que antes y en rojo bloquea el merge (Art. 12, ADR-0019 §7). Al reencenderlo se trata como feature que vuelve a producción —revisión y prueba manual—, no como un interruptor inocuo. |
-| Se pierden ordeños pendientes al apagar el módulo | Un teléfono con registros de leche sin sincronizar | ADR-0019 §4: se oculta la entrada, **nunca el camino de los datos**. Los endpoints siguen aceptando y el motor de sync siguen empujando lo que ya se registró. Cubierto por prueba en 3.5a.9. |
+| Se pierden ordeños pendientes al apagar el módulo | Un teléfono con registros de leche sin sincronizar | ADR-0019 §4: se oculta la entrada, **nunca el camino de los datos**. Los endpoints siguen aceptando y el motor de sync siguen empujando lo que ya se registró. Cubierto por prueba en [`3.5a.9-A`](./sub_planes/PLAN-FASE-3-5-PORCINO-3.5a.9-A.md). |
 
 ---
 

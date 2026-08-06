@@ -1,5 +1,6 @@
 using FluentValidation;
 using Hato.Modules.Breeding.Application.Abstractions;
+using Hato.Modules.Breeding.Application.Cohorts;
 using Hato.Modules.Breeding.Application.CrossModule;
 using Hato.Modules.Breeding.Contracts;
 using Hato.Modules.Breeding.Infrastructure.Persistence;
@@ -37,6 +38,7 @@ public static class BreedingModule
 
         services.AddScoped<IActivePregnanciesReader, ActivePregnanciesReader>();
         services.AddScoped<IPendingPregnancyChecksReader, PendingPregnancyChecksReader>();
+        services.AddScoped<INursingCohortAssigner, NursingCohortAssigner>();
 
         services.AddMediatR(cfg =>
         {

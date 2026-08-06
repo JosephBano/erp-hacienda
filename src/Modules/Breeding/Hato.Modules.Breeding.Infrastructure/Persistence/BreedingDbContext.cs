@@ -16,6 +16,7 @@ public class BreedingDbContext(DbContextOptions<BreedingDbContext> options, IPub
     public DbSet<PregnancyCheck> PregnancyChecks => Set<PregnancyCheck>();
     public DbSet<Pregnancy> Pregnancies => Set<Pregnancy>();
     public DbSet<Birthing> Birthings => Set<Birthing>();
+    public DbSet<NursingCohort> NursingCohorts => Set<NursingCohort>();
 
     /// <summary>
     /// Publishes each aggregate's raised domain events after a successful save, then

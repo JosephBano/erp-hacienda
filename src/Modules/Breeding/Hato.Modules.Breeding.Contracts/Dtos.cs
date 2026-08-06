@@ -63,8 +63,20 @@ public record BirthingDto(
     string? Notes,
     DateTimeOffset CreatedAt,
     DateOnly? WeanedAt = null,
-    int? WeanedCount = null
+    int? WeanedCount = null,
+    Guid? NursingCohortId = null
 );
+
+public record NursingCohortDto(
+    Guid Id,
+    Guid SpeciesId,
+    DateOnly StartedAt,
+    DateOnly? ClosedAt,
+    DateOnly? WeanedAt,
+    int LitterCount,
+    int TotalBornAlive,
+    string? Notes,
+    DateTimeOffset CreatedAt);
 
 public record AncestorDto(
     Guid AnimalId,

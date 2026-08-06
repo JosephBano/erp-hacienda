@@ -54,4 +54,32 @@ public class BirthingTests
 
         Assert.Contains("Total born count must be greater than zero", ex.Message);
     }
+
+    [Fact]
+    public void Create_WithCohortId_StoresCohortMembership()
+    {
+        var damId = Guid.NewGuid();
+        var cohortId = Guid.NewGuid();
+
+        var birthing = Birthing.Create(
+            damId,
+            new DateOnly(2026, 8, 1),
+            BirthingDifficulty.Normal,
+            bornAlive: 11,
+            nursingCohortId: cohortId);
+
+        Assert.Equal(cohortId, birthing.NursingCohortId);
+    }
+
+    [Fact]
+    public void Create_WithoutCohortId_LeavesCohortNull()
+    {
+        var birthing = Birthing.Create(
+            Guid.NewGuid(),
+            new DateOnly(2026, 8, 1),
+            BirthingDifficulty.Normal,
+            bornAlive: 1);
+
+        Assert.Null(birthing.NursingCohortId);
+    }
 }

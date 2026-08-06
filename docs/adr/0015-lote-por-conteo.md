@@ -71,9 +71,21 @@ animal**.
 | `GroupWeighing` | `{sample_count, avg_kg, min_kg, max_kg}` | Se pesa una muestra, no las 42 cabezas. Un promedio de 10 declarado como promedio de 10 es honesto; 42 pesos inventados no. |
 | `GroupMortality` | `{count, cause_id}` | Murieron N. **No se elige un animal.** |
 | `GroupTreatment` / `GroupVaccination` | `{head_count, …}` | Se vacuna el lote entero. |
+| `GroupDiagnosis` | `{affected_count, condition, notes}` | *"En este lote hay uno enfermo."* |
 
 `EventType.Vaccination` ya existe en `EventEnums.cs` y la app nunca lo emitió — todo entra
 hoy como `Treatment` genérico. Pasa a usarse de verdad.
+
+`GroupDiagnosis` merece una nota, porque es el caso que parecía más difícil y resultó el más
+fácil. La preocupación inicial era: si hay un cerdo enfermo en un lote anónimo y hay que
+sacarlo para tratarlo, ¿cuál de las 42 filas es? Cualquier elección es inventada.
+
+Pero el cliente nunca pidió identificarlo. Su frase textual fue *"se pondría en este lote hay
+uno enfermo"*. No quiere saber cuál: quiere marcar que el lote tiene una cabeza con
+síntomas. Eso es un diagnóstico de sujeto grupal con `affected_count`, y si se trata, es un
+tratamiento de lote sobre 1 cabeza. **Cero conceptos nuevos y cero elección arbitraria.**
+Cuando el manejo se describe con las palabras de quien lo hace, el modelo sale más simple
+que el que uno imagina defendiéndose de casos hipotéticos.
 
 **4. Las cabezas vivas se derivan, no se editan.**
 
@@ -96,6 +108,22 @@ Toda consulta sobre el estado de un animal debe ser consciente del modo de su lo
 La respuesta correcta a "¿sigue vivo el animal X?" cuando X está en un lote por conteo es
 *"entró al lote; el lote registró 3 bajas sin identificar"*, no un `true` inventado ni un
 `false` prudente. Esta es la regla que impide que el compromiso se olvide.
+
+**7. El lote se cierra en bloque, y hasta entonces nadie se cierra individualmente.**
+
+Un lote de engorde se va a faena, y normalmente **por partes**: se venden 20 de 42 y el
+resto sale semanas después. Las bajas parciales **no cierran a ningún animal**: bajan el
+`LiveHeadCount` del lote, exactamente igual que una mortalidad. Preguntar cuáles 20 se
+fueron es la misma pregunta sin respuesta de siempre.
+
+Cuando el lote llega a cero, **la disposición final cierra todas las membresías restantes en
+bloque** y marca esos animales como dados de baja con alcance de lote — *"salió como parte
+de este lote; su destino individual no se conoce más allá de eso"*.
+
+Sin esta regla el modelo tiene una fuga: las filas de `Animal` nunca se cerrarían, y una
+consulta de "cuántos animales vivos tiene la finca" que cuente animales devolvería 42
+fantasmas por cada lote que ya se faenó. La consulta consciente del modo (punto 6) resuelve
+el estado *de un animal*, pero no los *agregados*; el cierre en cascada sí.
 
 ## Alternativas consideradas
 
@@ -121,6 +149,64 @@ La respuesta correcta a "¿sigue vivo el animal X?" cuando X está en un lote po
   Descartada: la misma finca tiene las 3 cerdas madres identificadas y los lechones de
   engorde anónimos, **en la misma especie**. La capacidad es del lote, no de la especie.
 
+## Qué pasa el día del aretado
+
+El cliente declaró su intención de comprar una máquina de aretes y etiquetas si el sistema
+demuestra resultados, y de volver ahí al plan original: historial por cerdo, no por lote.
+Conviene dejar escrito qué ocurre con lo construido, porque la respuesta no es obvia y
+porque **la transición tiene una trampa que es exactamente el error que este ADR existe para
+evitar**.
+
+### La trampa: no se aretan filas viejas ya mezcladas
+
+Si un lote lleva 60 días en modo `Headcount` y aparece la máquina de aretes, la tentación es
+recorrer las 42 filas anónimas y pegarle un arete a cada una. **Eso está prohibido.** Sería
+elegir arbitrariamente qué fila corresponde a qué cerdo físico — el mismo dato sintético que
+todo el diseño evita, resucitado en el momento de la transición y con aspecto de progreso.
+
+Las tres salidas, en orden de preferencia:
+
+- **Aretar al nacer, de las camadas nuevas en adelante.** Es la buena y no requiere nada
+  especial: el lechón recibe su `AnimalIdentifier` sobre la **misma fila** que ya se le crea
+  hoy al nacer, y esa fila lo acompaña toda la vida. El período `Headcount` sencillamente no
+  ocurre para esa camada. **Cero migración, cero pérdida, cero mentira.**
+- **Dejar que los lotes viejos terminen sin aretar.** Se van a faena como están. Su historial
+  queda tal como se registró: honesto y de granularidad de lote.
+- **Si de todos modos hay que aretar un lote ya mezclado**, no se reutilizan las filas: se
+  cierra el lote (disolución, punto 7) y se crean individuos nuevos cuyo linaje es *"de la
+  cohorte X, madre no determinable"*. Se pierde el vínculo al peso al nacer — que para ese
+  cerdo concreto **nunca fue recuperable**, sólo parecía estarlo.
+
+La conclusión práctica: **el aretado no es un cambio de código, es un cambio de práctica en
+el corral.** Aretar más temprano mueve la frontera de identidad hacia el nacimiento hasta
+hacerla desaparecer. El modelo ya lo soporta hoy.
+
+### Qué pasa con el código escrito ahora
+
+**Se conserva íntegro.** No es andamiaje: es capacidad. Cuatro razones concretas:
+
+1. **Los datos históricos existen para siempre** (Art. 1). Los eventos de sujeto grupal de
+   los primeros lotes no se pueden borrar, así que el código que sabe **leerlos** no puede
+   eliminarse nunca. Borrarlo dejaría ilegible el historial de la etapa que financió el
+   aretado.
+2. **La transición nunca es total ni instantánea.** Va a haber meses de convivencia entre
+   lotes viejos anónimos y camadas nuevas aretadas. El sistema tiene que manejar ambos a la
+   vez, que es justamente lo que `tracking_mode` por lote —y no por especie ni global—
+   permite sin ningún caso especial.
+3. **`Headcount` no es una capacidad porcina.** Sirve para pollos (que no se aretan nunca),
+   para lotes comprados a terceros que llegan sin identificación, para animales cuyo arete se
+   cayó y esperan reposición, y para cualquier especie que la finca agregue después. Es
+   configuración por lote, que es lo que el Art. 8 pide.
+4. **El aretado masivo se apoya en este modelo**, no lo reemplaza: el flujo "tomar un lote,
+   imprimir N etiquetas, asignar identificadores" parte de un lote por conteo y usa sus
+   membresías.
+
+Lo que sí cambia con el tiempo es el **uso**, no el código: las pantallas de registro por
+lote (pesaje muestral, mortalidad de lote) dejan de ser el camino principal y pasan a ser el
+camino de los casos sin identificar. Si con los años ningún lote nuevo naciera en modo
+`Headcount`, lo único razonable sería esconder el modo detrás de una opción avanzada al
+crear un lote — **sin tocar el modelo, las consultas ni los datos**.
+
 ## Consecuencias
 
 - **Positivas**:
@@ -129,10 +215,11 @@ La respuesta correcta a "¿sigue vivo el animal X?" cuando X está en un lote po
   + El dato que sí importa individualmente (peso al nacer, mortalidad predestete por madre)
     queda capturado con precisión real, porque se captura cuando la separación física
     existe.
-  + **La transición al aretado es un cambio de bandera**, sin migración de datos: el lote
-    pasa a `Individual`, los eventos vuelven a tener sujeto animal, y los animales que ya
-    existen reciben su `AnimalIdentifier` — que ADR-0006 ya modela con vigencia temporal,
-    justo para el caso de "arete que llega tarde".
+  + **La transición al aretado no requiere migración de datos ni reescritura**: aretando al
+    nacer, el identificador se adosa a la **misma fila** que ya se crea hoy, y el período
+    `Headcount` deja de existir para esa camada. `AnimalIdentifier` con vigencia temporal
+    (ADR-0006) ya está diseñado para el arete que llega tarde. Ver "Qué pasa el día del
+    aretado" arriba, incluida la trampa de aretar filas viejas ya mezcladas.
   + Ejecuta un diseño que ya estaba escrito en `DATA-MODEL.md` desde la Fase 1 y llevaba
     dos fases sin implementarse. El evento grupal también resuelve "vacunar todo el lote",
     que era una carencia independiente del pivote porcino.
@@ -152,8 +239,14 @@ La respuesta correcta a "¿sigue vivo el animal X?" cuando X está en un lote po
     por la decisión: es la realidad de la finca, que el modelo ahora refleja en vez de
     disimular.
 
-- **Condición de reversa**: cuando el aretado esté implementado y todos los lotes operen en
-  modo `Individual`, este ADR no se revierte — el modo `Headcount` queda como capacidad
-  disponible para lotes futuros que nazcan sin identificar. Se reabriría sólo si se
-  descubriera que la finca **nunca** vuelve a tener animales anónimos, en cuyo caso el modo
-  se marcaría obsoleto sin borrar los datos históricos que lo usaron (Art. 1).
+  − La disolución en cascada del punto 7 marca de baja animales cuyo destino individual
+    nadie verificó. Es información degradada a propósito, y hay que decirlo en la ficha del
+    animal ("baja con alcance de lote") en vez de mostrarlo como una venta común.
+
+- **Condición de reversa**: este ADR **no se revierte con el aretado**. El modo `Headcount`
+  queda como capacidad permanente por las cuatro razones de "Qué pasa el día del aretado", y
+  la primera es suficiente por sí sola: los eventos grupales ya registrados son historia
+  inmutable (Art. 1) y el código que los lee no puede eliminarse mientras existan — es decir,
+  nunca. Lo único que puede cambiar con los años es la **visibilidad** del modo al crear un
+  lote, si dejara de usarse para lotes nuevos. Sin tocar el modelo, las consultas ni los
+  datos.

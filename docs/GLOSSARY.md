@@ -128,6 +128,10 @@
 | Cohorte de lactancia | `NursingCohort` | Conjunto de camadas nacidas en días consecutivos que se manejan juntas con sus madres. Su destete se calcula desde la **última** camada: `max(fecha_parto) + días_de_lactancia`. |
 | Clasificación por peso | `WeightSorting` | Reparto de una cohorte destetada en lotes de engorde por tamaño (pequeños / medianos / grandes). Es el momento en que termina la identificación individual. |
 | Pesaje muestral | `SampleWeighing` | Pesaje de una muestra del lote, no del total. Payload `{sample_count, avg_kg, min_kg, max_kg}`. Un promedio de 10 sobre 42 cabezas es un dato honesto; inventar 42 pesos no lo es. |
+| Diagnóstico grupal | `GroupDiagnosis` | *"En este lote hay uno enfermo."* Cantidad de cabezas afectadas y condición, **sin identificar cuál** — que es exactamente lo que el encargado sabe y lo que quiso decir. |
+| Disolución de lote | `LotDissolution` | Cierre en bloque de las membresías restantes cuando un lote por conteo llega a cero cabezas. Las bajas parciales no cierran a nadie; sólo bajan el conteo. |
+| Baja con alcance de lote | `LotScopedDisposal` | Baja de un animal cuyo destino individual nadie verificó: salió como parte de la disposición de su lote. Se muestra como tal en la ficha, nunca como una venta común. |
+| Aretado masivo | `BulkTagging` | Asignación de identificadores a los animales de un lote. Sobre animales ya mezclados **está prohibido**: elegir qué fila es qué cerdo es el dato sintético que el ADR-0015 existe para evitar. |
 | Cerda | `Sow` | Hembra porcina reproductora en producción. |
 | Futura madre / Cerda de reemplazo | `Gilt` | Hembra seleccionada como reproductora que aún no ha parido. |
 | Lechón | `Piglet` | Cría porcina hasta el destete. |
@@ -140,6 +144,9 @@
 | Vía de administración | `AdministrationRoute` | Cómo se aplicó el producto: oral en agua, oral en alimento, intramuscular, subcutánea, tópica, intranasal, intrauterina. **Catálogo configurable** (Art. 8), no enum. |
 | Motivo del tratamiento | `TreatmentReason` | Por qué se aplicó: `Scheduled` (tocaba por cronograma), `Curative` (el animal está enfermo), `Preventive` (profilaxis fuera de cronograma). Distinguirlos es lo que separa "vacuna de calendario" de "vacuna porque se enfermó". |
 | Serie de tratamiento | `TreatmentCourse` | Tratamiento de varios días como **una** unidad con sus aplicaciones, no como N eventos sueltos e inconexos. |
+| Forma de la dosis | `DoseKind` | `Absolute` (10 ml), `PerWeight` (1 ml / 10 kg, resuelta contra el último pesaje) o `PerHead` (1 dosis × 42 cabezas). En porcinos la dosis por peso es la norma, por la misma razón que la ración: un animal enfermo pesa menos. |
+| Dosis calculada vs. administrada | `CalculatedDose` / `AdministeredDose` | La que el sistema sugiere (estimada, si sale de un promedio muestral) y la que realmente salió del frasco. **Se guardan las dos**: su diferencia delata derrame, subdosificación o un muestreo de peso equivocado. |
+| Observación del tratamiento | `TreatmentNotes` | Texto libre donde vive lo que ningún esquema captura ("se aplicó en el cuello porque la pierna estaba lastimada"). La medida se estructura; la narrativa se libera. |
 | Plan sanitario / de manejo | `HealthPlan` | Cronograma configurable de vacunas, tratamientos y procedimientos, aplicable a un lote o a un individuo (ADR-0016). |
 | Ítem de plan | `HealthPlanItem` | Una línea del plan: qué se hace, anclado a qué (`nacimiento` \| `inicio de lote` \| `parto` \| `destete`), a cuántos días, con qué ventana de cumplimiento, y para qué especie/categoría/sexo. |
 | Ancla del plan | `PlanAnchor` | El hecho desde el cual se cuentan los días de un ítem. Que sea dato y no código es lo que permite que castración y preselección de madres vivan en el mismo motor que las vacunas. |

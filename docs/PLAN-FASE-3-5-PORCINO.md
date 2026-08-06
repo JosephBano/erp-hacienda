@@ -77,7 +77,20 @@ azar. La alternativa —dejar que el sistema asigne— produce datos sintéticos
 indistinguibles de los reales, y el costo no se paga hoy sino en Fase 6, cuando ya nadie
 puede saber qué dato era cierto.
 
-El día del aretado es **un cambio de bandera, sin migración**.
+**El día del aretado nada de esto se tira.** Es la pregunta que conviene tener contestada
+antes de escribir la primera línea, y el ADR-0015 le dedica una sección entera. En corto:
+
+- **No se elimina código.** Los eventos grupales ya registrados son historia inmutable
+  (Art. 1), así que el código que los lee no puede borrarse mientras existan — es decir,
+  nunca. Además `Headcount` no es una capacidad porcina: sirve para pollos, para lotes
+  comprados sin identificación y para animales cuyo arete se cayó.
+- **La transición no es de código sino de práctica**: aretar al nacer adosa el identificador
+  a la **misma fila** que ya se crea hoy, y el período anónimo simplemente no ocurre para esa
+  camada. Cero migración.
+- **La trampa a no pisar**: aretar las filas viejas de un lote ya mezclado sería elegir
+  arbitrariamente qué fila es qué cerdo — el mismo dato sintético que todo esto evita,
+  resucitado en la transición y con aspecto de progreso. Los lotes ya mezclados terminan sin
+  aretar.
 
 ### 2.2 Captura primero, análisis después
 
@@ -137,19 +150,30 @@ Tareas:
    dominio, para que un consumidor que asuma `AnimalId` no nulo falle al escribir y no en
    silencio al leer. Hoy `AnimalEvent.cs:58` exige `animalId != Guid.Empty`.
 3. Tipos nuevos: `GroupWeighing` `{sample_count, avg_kg, min_kg, max_kg}`, `GroupMortality`
-   `{count, cause_id}`. `EventType.Vaccination` —que existe en `EventEnums.cs` y **nunca se
-   emitió**— pasa a usarse de verdad.
+   `{count, cause_id}` y `GroupDiagnosis` `{affected_count, condition, notes}` — este último
+   es el *"en este lote hay uno enfermo"* que pidió el cliente, **sin identificar cuál**, que
+   es exactamente lo que él quiso decir. `EventType.Vaccination` —que existe en
+   `EventEnums.cs` y **nunca se emitió**— pasa a usarse de verdad.
 4. `LiveHeadCount` como consulta derivada (membresías activas − bajas del lote). **Nunca un
    contador editable.**
-5. Lectura consciente del modo: el estado individual de un animal en lote `Headcount` se
+5. **Cierre en cascada del lote** (ADR-0015 §7). Las bajas parciales —se venden 20 de 42, que
+   es como se faena de verdad— **no cierran a ningún animal**: bajan el conteo. Cuando el
+   lote llega a cero, la disposición final cierra todas las membresías restantes en bloque y
+   marca esos animales de baja **con alcance de lote**. Sin esto el modelo tiene una fuga:
+   las filas nunca se cerrarían y un conteo de animales vivos devolvería 42 fantasmas por
+   cada lote ya faenado.
+6. Lectura consciente del modo: el estado individual de un animal en lote `Headcount` se
    responde como *indeterminado*, no como un booleano inventado. **En una sola función**,
-   no repartida por los llamadores.
-6. Endpoints de eventos grupales + push de sync (`PushSyncCommands.cs` gana el caso
+   no repartida por los llamadores. Los **agregados** ("cuántos animales vivos hay") se
+   resuelven por el cierre en cascada del punto 5, no por esta función.
+7. Endpoints de eventos grupales + push de sync (`PushSyncCommands.cs` gana el caso
    `recordGroupEvent`).
-7. Migración EF Core + reflejo en `SyncPullQueries` y en el esquema local del móvil.
+8. Migración EF Core + reflejo en `SyncPullQueries` y en el esquema local del móvil.
 
 Pruebas: evento sin animal ni grupo rechazado; evento con ambos rechazado; el CHECK de BD
 se verifica en integración, no sólo el dominio; `LiveHeadCount` tras altas, bajas y salidas;
+**baja parcial no cierra ninguna fila de `Animal`**; **al llegar a cero cabezas se cierran
+todas las membresías restantes y el conteo global de animales vivos no deja fantasmas**;
 push duplicado de un evento grupal → un registro (exigencia de `PLAN-FASE-3-4.md` §2.2);
 migración corre desde cero.
 
@@ -161,24 +185,63 @@ migración corre desde cero.
 ("toda cantidad física lleva su unidad explícita"). Y no se distingue una vacuna de
 calendario de un tratamiento por enfermedad, que es el punto 1 del cliente.
 
+**El choque con la Constitución es aparente, y la salida es medida exacta + observación.**
+La trampa está en asumir que estructurar la dosis significa hacerle elegir la unidad al
+operario. **La unidad no es del operario: es del producto.** Un frasco de oxitetraciclina se
+dosifica en ml, siempre. Si el ítem de inventario declara su unidad, la app pide **un número
+y nada más**: hoy el operario tipea `"10 ml"` en un campo de texto, mañana toca `10` en un
+teclado numérico. Es *menos* trabajo, no más. El Art. 10 y la regla de los tres toques
+apuntan al mismo lado; el texto libre era lo peor de ambos mundos.
+
 Tareas:
 1. Catálogo `administration_routes` (Art. 8): oral en agua, oral en alimento, IM, SC,
    tópica, intranasal, intrauterina. Semilla inicial, ampliable desde el panel.
 2. `TreatmentReason` ∈ {`Scheduled`, `Curative`, `Preventive`}.
-3. Payload de tratamiento: `dose` + **`dose_unit`**, `route_id`, `reason`, `batch_id` (lote
-   de inventario consumido), `applied_by` distinto de `recorded_by`.
-4. **`health_plan_item_id` nullable desde ya.** El cronograma se implementa en 3.5b, pero
+3. Payload de tratamiento: `route_id`, `reason`, `batch_id` (lote de inventario consumido),
+   `applied_by` distinto de `recorded_by`.
+4. **La dosis tiene tres formas, no una.** En porcinos se dosifica por peso mucho más que en
+   bovinos —y por la misma razón por la que el cliente alimenta por peso: un cerdo enfermo
+   pesa menos y le corresponde menos.
+
+   | Forma | Ejemplo | Cómo se resuelve |
+   |---|---|---|
+   | Absoluta | 10 ml a este animal | El operario da el número; la unidad la pone el producto. |
+   | **Por peso** | 1 ml / 10 kg | Se resuelve contra el último pesaje del animal. |
+   | Por cabeza | 1 dosis × 42 cabezas | Vacunación de lote. |
+
+5. **Se guardan la dosis calculada y la administrada, no una sola.** En un lote por conteo la
+   dosis por peso se calcula contra el promedio muestral: 42 cabezas × 35 kg × 1 ml/10 kg =
+   147 ml. Eso es una estimación con incertidumbre real. Lo que salió del frasco es exacto.
+   **La diferencia entre ambas es información**: si el sistema sugirió 147 ml y se
+   administraron 200, alguien derramó, alguien subdosificó, o el muestreo de peso está mal.
+   Ninguna de las tres se puede detectar hoy, y sale de guardar dos números en vez de uno.
+   Es además lo que hace que el descuento de inventario deje de ser una adivinanza.
+6. **La dosis es opcional; si está, lleva unidad.** Cuando el operario genuinamente no sabe
+   la cantidad ("le puse lo que quedaba en el frasco"), un campo obligatorio produce un
+   número inventado — y un `5 ml` falso es peor que un texto honesto, porque nadie puede
+   distinguirlo después de un `5 ml` real. El Art. 10 exige que **toda cantidad lleve
+   unidad**; no exige que toda aplicación tenga cantidad. Ante la duda gana el Art. 1, que
+   protege la integridad del historial.
+7. **Campo de observación libre en todo tratamiento.** No es un cajón de sastre: es donde
+   vive lo que ningún esquema captura — *"se aplicó en el cuello porque la pierna estaba
+   lastimada"*, *"medio frasco aproximadamente, se movió mucho"*. La medida se estructura;
+   la narrativa se libera.
+8. **`health_plan_item_id` nullable desde ya.** El cronograma se implementa en 3.5b, pero
    si el piloto corre un mes sin este campo, esos tratamientos **no se pueden enlazar
    retroactivamente** y nadie podrá decir después si aquella vacuna fue de calendario o por
    enfermedad. Cuesta nada hoy, es irrecuperable mañana (ADR-0016).
-5. `TreatmentCourse`: un tratamiento de 3 días es **una** serie con sus aplicaciones, no
+9. `TreatmentCourse`: un tratamiento de 3 días es **una** serie con sus aplicaciones, no
    tres eventos sueltos e inconexos.
-6. Vacunación como camino propio en la app, separado de tratamiento.
-7. Pantalla de campo: vía y motivo en la misma pasada, sin sumar toques al caso normal.
+10. Vacunación como camino propio en la app, separado de tratamiento.
+11. Pantalla de campo: vía y motivo en la misma pasada, sin sumar toques al caso normal.
 
-Pruebas: dosis sin unidad rechazada; ruta inexistente rechazada; serie de 3 días produce
-una serie con 3 aplicaciones y un solo período de retiro correctamente fechado; el retiro
-sigue calculándose igual que antes (no regresión de Art. 19).
+Pruebas: dosis con valor y **sin** unidad rechazada; dosis ausente **aceptada** (con o sin
+observación); dosis por peso resuelta contra el último pesaje, y rechazada si el animal no
+tiene ninguno; dosis por peso sobre un lote usa el promedio muestral y queda marcada como
+estimada; calculada ≠ administrada se persiste sin corregir ninguna de las dos; ruta
+inexistente rechazada; serie de 3 días produce una serie con 3 aplicaciones y un solo
+período de retiro correctamente fechado; el retiro sigue calculándose igual que antes (no
+regresión de Art. 19).
 
 ---
 
@@ -277,9 +340,12 @@ Tareas:
 1. Pesaje muestral del lote: cuántos se pesaron y los pesos; el promedio lo calcula la app.
 2. Baja del lote con causa y cantidad.
 3. Vacunación/tratamiento de lote completo, con las cabezas tratadas.
-4. Consumo de alimento del lote en sacos.
-5. Ficha del lote: cabezas vivas, peso promedio del último muestreo, última vacunación,
-   alimento del período.
+4. **"En este lote hay uno enfermo"**: diagnóstico grupal con cantidad de cabezas afectadas y
+   observación, sin identificar cuál. Es literalmente lo que el cliente describió, y si
+   después se trata, es un tratamiento de lote sobre 1 cabeza.
+5. Consumo de alimento del lote en sacos.
+6. Ficha del lote: cabezas vivas, peso promedio del último muestreo, última vacunación,
+   cabezas marcadas como enfermas, alimento del período.
 
 Pruebas: una prueba de "registro sin red" por pantalla (exigencia de `PLAN-FASE-3-4.md`
 §2.1 para React Native); el promedio calculado coincide con el enviado; la ficha refleja las

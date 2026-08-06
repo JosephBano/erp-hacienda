@@ -278,8 +278,15 @@ mezclan y desde ahí **nadie sabe cuál es cuál** hasta la faena. El modelo del
 - `nursing_cohorts` agrupa las camadas nacidas en días consecutivos que se manejan juntas.
   Su destete se calcula desde la **última** camada (`max(birth_date) + días_de_lactancia`),
   no camada por camada — así lo maneja la finca.
-- El aretado futuro es **un cambio de bandera a `individual`, sin migración de datos**: los
-  animales ya existen y `animal_identifiers` (ADR-0006) ya modela el arete que llega tarde.
+- Las bajas parciales del lote **no cierran ninguna fila de `animals`** (bajan el conteo);
+  al llegar a cero cabezas, la **disolución** cierra las membresías restantes en bloque y
+  marca esos animales de baja con alcance de lote. Sin esto, un conteo de animales vivos
+  devolvería fantasmas por cada lote ya faenado.
+- El aretado futuro **no requiere migración**: aretando al nacer, el identificador se adosa a
+  la misma fila que ya se crea hoy y el período anónimo no ocurre para esa camada
+  (`animal_identifiers` con vigencia temporal, ADR-0006). **Aretar filas de un lote ya
+  mezclado está prohibido** — sería elegir arbitrariamente qué fila es qué cerdo, el mismo
+  dato sintético que este núcleo evita. Esos lotes terminan sin aretar.
 
 ### Pesajes: la muestra se declara como muestra
 
@@ -308,8 +315,30 @@ compilada**. Es el ejemplo canónico del Art. 8 en este núcleo.
 El payload de tratamiento del Núcleo 2 se completa con `route_id`, `reason`
 (`scheduled` | `curative` | `preventive`), `health_plan_item_id` (qué ítem del cronograma
 satisface), `batch_id` (lote de inventario consumido), `applied_by` distinto de
-`recorded_by`, y **`dose` + `dose_unit`**: hoy la dosis es texto libre en el cliente
+`recorded_by`, y **la dosis estructurada**: hoy es texto libre en el cliente
 (`eventService.ts`), lo que incumple el Art. 10.
+
+La dosis tiene **tres formas** (`dose_kind`), porque en porcinos se dosifica por peso mucho
+más que en bovinos —y por la misma razón que la ración: un animal enfermo pesa menos y le
+corresponde menos:
+
+| Forma | Campos | Resolución |
+|---|---|---|
+| `absolute` | `dose_value`, `dose_unit` | Directa. |
+| `per_weight` | `dose_value`, `dose_unit`, `per_kg` | Contra el último pesaje; en un lote, contra el promedio muestral (queda marcada como estimada). |
+| `per_head` | `dose_value`, `dose_unit`, `head_count` | Vacunación de lote. |
+
+Se guardan **la dosis calculada y la administrada**. La diferencia es información: si el
+sistema sugirió 147 ml y salieron 200 del frasco, hubo derrame, subdosificación o un
+muestreo de peso equivocado — y es lo que convierte el descuento de inventario en un dato
+verificable en vez de una adivinanza.
+
+La dosis es **opcional**; si está, lleva unidad. Cuando el operario no sabe la cantidad
+("le puse lo que quedaba"), un campo obligatorio produce un número inventado, y un `5 ml`
+falso es peor que un texto honesto porque nadie lo distingue después de uno real. El Art. 10
+exige que toda cantidad lleve unidad, no que toda aplicación tenga cantidad; ante la duda
+gana el Art. 1. El campo de **observación libre** acompaña siempre: la medida se estructura,
+la narrativa se libera.
 
 ### KPIs derivados, no almacenados
 

@@ -170,4 +170,27 @@ describe('BirthScreen — calf management', () => {
     expect(screen.queryByTestId('offspring-count')).toBeNull();
     expect(recordBirth).not.toHaveBeenCalled();
   });
+
+  /**
+   * PLAN §3.5a.0 #3: a summary the employee can glance at before confirming — mother,
+   * father, count by sex, the list. Confirming is one extra tap IF anything looks off;
+   * the inline summary is the review, not a separate screen.
+   *
+   * Pinned here: a litter of 3M + 2F is shown as 'M: 3 · F: 2', not just as 'Crías: 5',
+   * because the sex split is what the operator audits at a glance — nobody counts five
+   * buttons to figure out how many were males.
+   */
+  it('shows the litter broken down by sex on the summary', async () => {
+    await render(<BirthScreen service={buildService()} dams={[{ animalId: 'dam-1', label: 'La Pinta' }]} sires={[]} />);
+
+    await pickDam();
+    await tapAdd('male');
+    await tapAdd('male');
+    await tapAdd('male');
+    await tapAdd('female');
+    await tapAdd('female');
+
+    expect(screen.getByText(/M: 3/)).toBeTruthy();
+    expect(screen.getByText(/F: 2/)).toBeTruthy();
+  });
 });

@@ -108,6 +108,11 @@ export function BirthScreen({
             <Body>{`Madre: ${dam.label}`}</Body>
             <Body muted>{sire ? `Padre: ${sire.label}` : 'Padre: sin registrar'}</Body>
             <Body testID="offspring-count">{`Crías: ${offspring.length}`}</Body>
+            {offspring.length > 0 ? (
+              <Body testID="offspring-breakdown" muted>
+                {`M: ${offspring.filter((c) => c.sex === 'M').length} · F: ${offspring.filter((c) => c.sex === 'F').length}`}
+              </Body>
+            ) : null}
           </Card>
 
           <View style={styles.row}>

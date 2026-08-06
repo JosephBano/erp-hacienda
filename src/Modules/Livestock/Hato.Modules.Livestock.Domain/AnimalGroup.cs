@@ -14,25 +14,29 @@ public class AnimalGroup : AuditableEntity
     public string? Description { get; private set; }
     public Guid? SpeciesId { get; private set; }
     public bool IsActive { get; private set; }
+    public TrackingMode TrackingMode { get; private set; }
 
     public IReadOnlyCollection<GroupMembership> Memberships => _memberships.AsReadOnly();
 
     private AnimalGroup() { Name = null!; }
 
-    private AnimalGroup(string name, string? description, Guid? speciesId)
+    private AnimalGroup(string name, string? description, Guid? speciesId, TrackingMode trackingMode)
     {
         Name = name;
         Description = description;
         SpeciesId = speciesId;
         IsActive = true;
+        TrackingMode = trackingMode;
     }
 
-    public static AnimalGroup Create(string name, string? description = null, Guid? speciesId = null)
+    public static AnimalGroup Create(
+        string name, string? description = null, Guid? speciesId = null,
+        TrackingMode trackingMode = TrackingMode.Individual)
     {
         if (string.IsNullOrWhiteSpace(name))
             throw new DomainException("El nombre del grupo no puede estar vacío.");
 
-        return new AnimalGroup(name.Trim(), description?.Trim(), speciesId);
+        return new AnimalGroup(name.Trim(), description?.Trim(), speciesId, trackingMode);
     }
 
     public void Update(string name, string? description = null, Guid? speciesId = null)
@@ -71,5 +75,26 @@ public class AnimalGroup : AuditableEntity
             throw new DomainException("El animal no es un miembro activo de este grupo.");
 
         activeMembership.Close(leftAt);
+    }
+
+    /// <summary>
+    /// The cascade closure of ADR-0015 sec.7: when a <see cref="TrackingMode.Headcount"/>
+    /// lot's disposition reaches zero, every remaining active membership closes at once,
+    /// in bulk — never one animal chosen out of the anonymous rest. Returns the animal ids
+    /// that were closed, so the caller can mark each one disposed with lot scope. A no-op
+    /// on a group with nothing active is legal: the caller decides whether that is
+    /// noteworthy.
+    /// </summary>
+    public IReadOnlyList<Guid> CloseAllActiveMemberships(DateOnly closedAt)
+    {
+        var active = _memberships.Where(m => m.IsActive).ToList();
+        var animalIds = active.Select(m => m.AnimalId).ToList();
+
+        foreach (var membership in active)
+        {
+            membership.Close(closedAt);
+        }
+
+        return animalIds;
     }
 }

@@ -12,6 +12,7 @@ public class AnimalGroupConfiguration : IEntityTypeConfiguration<AnimalGroup>
         builder.HasKey(g => g.Id);
         builder.Property(g => g.Name).HasMaxLength(100).IsRequired();
         builder.Property(g => g.Description).HasMaxLength(500);
+        builder.Property(g => g.TrackingMode).HasConversion<string>().HasMaxLength(20).IsRequired();
 
         builder.HasOne<Species>().WithMany().HasForeignKey(g => g.SpeciesId).OnDelete(DeleteBehavior.Restrict);
 

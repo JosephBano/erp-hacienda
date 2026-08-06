@@ -42,6 +42,13 @@ public static class AnimalsEndpoints
             return Results.NoContent();
         }).RequireAuthorization(policy => policy.RequirePermission(SystemPermissions.LivestockAnimalsWrite));
 
+        group.MapGet("/{id:guid}/individual-state", async (Guid id, DateOnly? asOf, ISender sender) =>
+        {
+            var state = await sender.Send(
+                new ResolveIndividualStateQuery(id, asOf ?? DateOnly.FromDateTime(DateTime.UtcNow)));
+            return Results.Ok(new { state = state.ToString() });
+        });
+
         group.MapPut("/{id:guid}", async (Guid id, UpdateAnimalRequest request, ISender sender) =>
         {
             // A direct panel edit is synchronous and online: there is no offline window

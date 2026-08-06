@@ -141,6 +141,16 @@ export class SyncMeta extends Model {
   @text('value') declare value: string;
 }
 
+export class FarmModule extends Model {
+  static table = 'farm_modules';
+
+  @text('key') declare key: string;
+  @field('enabled') declare enabled: boolean;
+  @text('disabled_reason') disabledReason?: string;
+  @field('updated_at') declare updatedAt: number;
+  @text('updated_by') declare updatedBy: string;
+}
+
 export const modelClasses = [
   Animal,
   AnimalIdentifier,
@@ -154,4 +164,5 @@ export const modelClasses = [
   OutboxEntryModel,
   MilkYield,
   SyncMeta,
+  FarmModule,
 ];

@@ -176,7 +176,7 @@ describe('SyncEngine', () => {
     });
 
     /**
-     * Scenario 10 of PLAN-FASE-3-4 §2.2, literally: the cut happens *mid* push, after
+     * Scenario 10 of PLAN-FASE-3-4 sec.2.2, literally: the cut happens *mid* push, after
      * some batches already landed — not before the first one. The employee's first three
      * records must not be re-sent (and thus not risk becoming duplicates) just because
      * the fourth one hit a dead connection.
@@ -365,7 +365,7 @@ describe('SyncEngine', () => {
       expect((animals[0] as any).sex).toBe('Male');
     });
 
-    /** Scenario 5 of PLAN-FASE-3-4 §2.2: a logical delete has to reach the phone. */
+    /** Scenario 5 of PLAN-FASE-3-4 sec.2.2: a logical delete has to reach the phone. */
     it('removes a record the server marked as deleted', async () => {
       const row = {
         id: 'an-doomed',

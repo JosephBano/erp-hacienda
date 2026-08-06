@@ -1,6 +1,6 @@
 # PLAN-FASE-3-5-PORCINO-3.5a.9-A.md — Visibilidad de módulos por interruptor explícito
 
-> **Sub-plan extraído de `PLAN-FASE-3-5-PORCINO.md` §3.5a.9.**
+> **Sub-plan extraído de `PLAN-FASE-3-5-PORCINO.md` sec.3.5a.9.**
 > Este archivo **es ejecutable de forma independiente** del macro plan y de su par
 > 3.5a.9-B. El macro plan sigue siendo la fuente de verdad para el resto del proyecto:
 > toda decisión que aplique a varias ramas vive allá. Acá viven sólo las decisiones y
@@ -9,11 +9,11 @@
 - **Rama Git:** `feature/field-app-module-visibility`
 - **ADR que la respalda:** [ADR-0019](../adr/0019-visibilidad-de-modulos.md)
 - **Par de split:** [PLAN-FASE-3-5-PORCINO-3.5a.9-B.md](./PLAN-FASE-3-5-PORCINO-3.5a.9-B.md) (navegación por árbol de actividades)
-- **Fuente original:** [`PLAN-FASE-3-5-PORCINO.md` §3.5a.9](../PLAN-FASE-3-5-PORCINO.md#35a9--featurefield-app-herd-navigation)
+- **Fuente original:** [`PLAN-FASE-3-5-PORCINO.md` sec.3.5a.9](../PLAN-FASE-3-5-PORCINO.md#35a9--featurefield-app-herd-navigation)
 - **Compuerta:** ninguna (no depende del árbol de actividades cerrado con el cliente).
   Esto es deliberado: el interruptor es un cambio de producto pequeño, transversal y
   testeable en aislamiento; el árbol de actividades es UX-estructural y bloqueado por
-  la conversación con el cliente (§2.3 y §7-C del macro plan).
+  la conversación con el cliente (sec.2.3 y sec.7-C del macro plan).
 
 ---
 
@@ -34,17 +34,17 @@ se reabre acá.
 
 ## Decisiones tomadas en el macro plan que aplican a esta sub-rama
 
-- Sección §2.3 del macro plan: el árbol de actividades de campo se filtra por
+- Sección sec.2.3 del macro plan: el árbol de actividades de campo se filtra por
   **interruptor de módulo ∧ capacidades de la finca ∧ permisos del usuario**. Esta
   sub-rama introduce el primer término de la conjunción. El término "capacidades" lo
   evalúa [3.5a.9-B](./PLAN-FASE-3-5-PORCINO-3.5a.9-B.md); "permisos" ya existe vía
   ADR-0007.
-- Sección §7 "Lo que sólo el cliente puede responder" del macro plan: el dueño decide
+- Sección sec.7 "Lo que sólo el cliente puede responder" del macro plan: el dueño decide
   cuándo apagar y encender cada módulo. El sistema no pregunta.
 
 ## Tareas
 
-1. **Tabla `farm_modules`** con la forma exacta del ADR-0019 §1:
+1. **Tabla `farm_modules`** con la forma exacta del ADR-0019 sec.1:
    `{ key, enabled, disabled_reason?, updated_at, updated_by }`. Catálogo semilla con
    todos los módulos actuales (`Production`, `Livestock`, `Inventory`, `Breeding`,
    `Tasks`, `People`).
@@ -79,7 +79,7 @@ promesas del ADR-0019 que este plan hereda:
 1. **Outbox no se interrumpe.** Sembrar un teléfono con un ordeño pendiente en el
    outbox y `farm_modules.production.enabled = false`. Verificar que el próximo push
    (con módulo apagado) sube el ordeño sin error. Esta es la pérdida silenciosa que
-   el ADR-0019 §4 prohíbe.
+   el ADR-0019 sec.4 prohíbe.
 2. **Pantalla no alcanzable.** Con el módulo apagado, intentar llegar a
    `MilkingScreen` por cada ruta existente en `field-app` (menú, deep-link,
    selector post-escaneo). Todas rechazan sin red.
@@ -87,7 +87,7 @@ promesas del ADR-0019 que este plan hereda:
    = true`, forzar un pull, abrir la app, verificar que la entrada y la pantalla
    vuelven a estar disponibles.
 4. **CI no se rompe.** Después del cambio, la suite de Ordeño (lo que existe hoy)
-   sigue corriendo y verde. Si se rompiera, el guardarraíl del ADR-0019 §7 falló.
+   sigue corriendo y verde. Si se rompiera, el guardarraíl del ADR-0019 sec.7 falló.
 5. **Autoadministración imposible.** Intentar apagar `admin-web` desde su propia
    UI. La pantalla debe rechazar o no permitirlo.
 
@@ -136,6 +136,6 @@ psql -d hato -c "UPDATE farm_modules SET enabled=false, disabled_reason='no apli
 | Riesgo | Mitigación |
 |---|---|
 | La navegación consulta red para el flag | El pull baja el flag, se evalúa local (Art. 9). |
-| Alguien borra el módulo Production para "limpiar" | ADR-0019 §3 (no se borra) + CI existente que cubre el camino oculto bloquea el merge si falla. |
+| Alguien borra el módulo Production para "limpiar" | ADR-0019 sec.3 (no se borra) + CI existente que cubre el camino oculto bloquea el merge si falla. |
 | Pantalla admin-web se oculta a sí misma en un descuido | Test específico obligatorio (punto 5 de Pruebas). |
 | Pérdida de ordeños en outbox al apagar | Test específico obligatorio (punto 1 de Pruebas). |

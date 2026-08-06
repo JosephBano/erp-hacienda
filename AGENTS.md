@@ -88,7 +88,7 @@ archivo es ruido.
 - **El resto de los documentos vive en la raíz de `docs/`**, en `MAYÚSCULAS.md`. No se crean
   subcarpetas nuevas sin una razón que se pueda escribir en una línea.
 - Al mover o renombrar un documento, **arreglá las referencias en el mismo commit**. Ojo con
-  las citas en prosa desde el código (`PLAN-FASE-3-4 §2.2` aparece en ~14 archivos de
+  las citas en prosa desde el código (`PLAN-FASE-3-4 sec.2.2` aparece en ~14 archivos de
   `src/`, `tests/` y `clients/`): son por nombre, no por ruta, así que mover no las rompe
   pero **renombrar sí**.
 

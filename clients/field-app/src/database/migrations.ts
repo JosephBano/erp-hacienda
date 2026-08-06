@@ -1,7 +1,7 @@
 import { schemaMigrations, createTable, addColumns } from '@nozbe/watermelondb/Schema/migrations';
 
 /**
- * Versioned local migrations (PLAN-FASE-3-4 §3.B).
+ * Versioned local migrations (PLAN-FASE-3-4 sec.3.B).
  *
  * A phone in the field cannot be wiped and re-seeded to pick up a schema change: it may
  * be carrying a week of unsynced records. Every schema bump therefore needs a migration

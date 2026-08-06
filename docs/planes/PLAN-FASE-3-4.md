@@ -94,14 +94,14 @@ docs(adr): accept ADR-0007 on the permission model
 git push -u origin feature/people-permissions
 gh pr create --base develop --title "feat(people): permisos finos en base de datos"
 ```
-El cuerpo del PR lleva **siempre** estas cuatro secciones (`AGENTS.md` §5):
+El cuerpo del PR lleva **siempre** estas cuatro secciones (`AGENTS.md` sec.5):
 1. **Propósito** — qué problema de la finca resuelve.
 2. **Decisiones** — lo que elegiste y lo que descartaste (enlaza el ADR si existe).
 3. **Cómo probarlo manualmente** — comandos/pasos copiables.
 4. **Qué NO incluye** — el alcance que dejaste fuera a propósito (y dónde quedó anotado).
 
 **Paso 9 — Revisión y merge.** CI verde es requisito, no logro (Art. 12). Autorrevisión
-con la checklist de §1.2, o `/code-review` si quieres una segunda pasada. Merge a
+con la checklist de sec.1.2, o `/code-review` si quieres una segunda pasada. Merge a
 `develop` por PR (nunca push directo), y luego:
 ```bash
 git switch develop && git pull
@@ -119,7 +119,7 @@ un PR = un propósito; lo que ves de paso se anota, no se arregla).
 - [ ] ¿Los módulos se hablan solo por `Contracts` o eventos MediatR? (Art. 6)
 - [ ] ¿Términos nuevos agregados a `GLOSSARY.md`? (Art. 20)
 - [ ] ¿Migración nueva (no editada) y reproducible desde cero? (Art. 15)
-- [ ] ¿Ninguna dependencia NuGet/npm nueva sin ADR aprobado? (`AGENTS.md` §2)
+- [ ] ¿Ninguna dependencia NuGet/npm nueva sin ADR aprobado? (`AGENTS.md` sec.2)
 - [ ] ¿Ningún secreto, contraseña o clave de firma en el diff?
 - [ ] ¿Las pruebas cubren los caminos de error, no solo el feliz?
 - [ ] ¿Si la feature toca registro de campo, sigue funcionando sin red? (Art. 9)
@@ -132,7 +132,7 @@ empieza el bloque siguiente hasta que el anterior esté mergeado, en verde y pro
 
 Cuando una feature se alarga más de ~1 semana de trabajo real, **pártela** y anota el resto
 en `BACKLOG.md`. Cuando una fase pasa de ~3 meses sin uso real, **recorta alcance**
-(Art. 11); en §6 están marcadas cuáles features son sacrificables.
+(Art. 11); en sec.6 están marcadas cuáles features son sacrificables.
 
 ---
 
@@ -200,7 +200,7 @@ descubren cuando faltan datos. Por eso, además de lo anterior:
 | Cierre de Fase 4 | **≥ 280** pruebas | ≥ 90 (`field-app` + `admin-web`) |
 
 Los números son indicativos de *cobertura de comportamiento*, no una meta a inflar con
-pruebas triviales. La regla dura sigue siendo la de §2.1: caminos de error cubiertos.
+pruebas triviales. La regla dura sigue siendo la de sec.2.1: caminos de error cubiertos.
 
 ### 2.5 Refuerzos de CI a introducir
 
@@ -211,7 +211,7 @@ Se agregan como parte de la primera rama de cada fase:
 - **Fase 3, en `feature/field-app-scaffolding`:** job de CI para `clients/field-app`
   (typecheck + lint + jest) y para `clients/admin-web` si aún no existe.
 - **Fase 4, en `feature/accounting-core`:** job que falla si algún asiento de las suites
-  queda descuadrado (ya cubierto por §2.3, pero visible como check propio en el PR).
+  queda descuadrado (ya cubierto por sec.2.3, pero visible como check propio en el PR).
 
 ---
 
@@ -253,7 +253,7 @@ Admin" ya existente sigue verde, semilla idempotente.
 
 #### `feature/people-audit-trail` — bitácora de quién registró qué
 
-*Por qué:* requisito del roadmap y de la LOPDP (`LEGAL-ECUADOR.md` §5): la app registra
+*Por qué:* requisito del roadmap y de la LOPDP (`LEGAL-ECUADOR.md` sec.5): la app registra
 actividad de empleados. Hoy `RecordedBy` es texto libre.
 
 Tareas:
@@ -286,7 +286,7 @@ Tareas:
 5. Colecciones de la v1: `animals`, `animal_identifiers`, `animal_groups`,
    `group_memberships`, `species/breeds/categories`, `medications/items`, `alerts`.
 
-Pruebas: los 4 escenarios de pull de §2.2 + filtrado por permisos + cursor estable ante
+Pruebas: los 4 escenarios de pull de sec.2.2 + filtrado por permisos + cursor estable ante
 escrituras concurrentes.
 
 #### `feature/sync-protocol-push` — el lado de escritura · **estructural**
@@ -305,7 +305,7 @@ Tareas:
 5. Reglas de negocio idénticas a las de la API normal: el push **no** es una puerta trasera
    que salta validaciones ni el bloqueo por retiro.
 
-Pruebas: **los 10 escenarios de §2.2 son obligatorios en esta rama.** Es el único punto del
+Pruebas: **los 10 escenarios de sec.2.2 son obligatorios en esta rama.** Es el único punto del
 plan donde exijo que las pruebas se escriban antes de mirar siquiera la firma del endpoint.
 
 ### Hito 3.A ✅ — antes de seguir
@@ -462,7 +462,7 @@ con monedas distintas prohibida, `double` prohibido por prueba de arquitectura.
 3. Invariante de dominio: **todo asiento cuadra**, y no se puede postear en período cerrado.
 4. Asientos **inmutables**: correcciones por asiento de reversión (Art. 1).
 5. Semilla de un plan de cuentas base agropecuario, revisable con el contador.
-6. Check de CI de asientos descuadrados (§2.5).
+6. Check de CI de asientos descuadrados (sec.2.5).
 
 Pruebas: asiento descuadrado rechazado, período cerrado rechaza, reversión genera el
 espejo correcto, plan de cuentas jerárquico consulta saldos por rama.
@@ -471,7 +471,7 @@ espejo correcto, plan de cuentas jerárquico consulta saldos por rama.
 
 1. `cost_centers` configurables (lechería, porcinos, quesería…), asignables a grupos.
 2. Prorrateo de costos de grupo por **animal-día** a partir de `group_memberships`
-   (`ARCHITECTURE.md` §4) — nunca costos por animal individual en la captura.
+   (`ARCHITECTURE.md` sec.4) — nunca costos por animal individual en la captura.
 3. Consulta de costo por animal, por grupo y por centro en un rango.
 
 Pruebas: prorrateo con altas y bajas a mitad de mes, animal en dos grupos en el mismo mes,
@@ -504,7 +504,7 @@ calidad, asiento cuadrado generado.
 #### `feature/sales-animals` — venta de animales
 
 1. Venta que **genera la baja** del animal como evento (nunca borrado, Art. 1).
-2. Adjunto de guía de movilización obligatorio o justificado (`LEGAL-ECUADOR.md` §1).
+2. Adjunto de guía de movilización obligatorio o justificado (`LEGAL-ECUADOR.md` sec.1).
 3. Bloqueo por retiro de carne.
 4. Baja de membresías de grupo y cierre de lactancia si aplica.
 
@@ -541,7 +541,7 @@ reintento que no duplica comprobantes, anulación. **Ninguna prueba llama a la A
 2. Margen por línea de negocio y costo por animal-día en el período.
 3. Exportación CSV/Excel (formato acordado **con el contador antes de codificar**).
 
-Pruebas: **golden test de mes contable** (§2.3), export con separadores y decimales
+Pruebas: **golden test de mes contable** (sec.2.3), export con separadores y decimales
 correctos, período sin movimientos no rompe.
 
 #### `feature/admin-web-finance` — el panel de dinero
@@ -554,7 +554,7 @@ Pruebas: servicios con lógica cubiertos, componentes con render + interacción 
 
 #### `docs/fase-4-cierre` — retrospectiva
 
-`ROADMAP.md` con fecha y retrospectiva, `LEGAL-ECUADOR.md` §3 con fecha de verificación
+`ROADMAP.md` con fecha y retrospectiva, `LEGAL-ECUADOR.md` sec.3 con fecha de verificación
 real con el contador, `ARCHITECTURE.md` actualizado, `BACKLOG.md` depurado.
 
 **Cierre de Fase 4 = un mes contable real cerrado y un reporte que el contador acepta usar.**

@@ -1,18 +1,18 @@
 # PLAN-FASE-3-5-PORCINO-3.5a.2-C.md — Vacunación como camino separado y UI de campo
 
-> **Sub-plan extraído de `PLAN-FASE-3-5-PORCINO.md` §3.5a.2.**
+> **Sub-plan extraído de `PLAN-FASE-3-5-PORCINO.md` sec.3.5a.2.**
 > Este archivo **es ejecutable de forma independiente** del macro plan y de sus
 > pares 3.5a.2-A (catálogos y payload) y 3.5a.2-B (lógica de dosis y series).
 > Depende de ambas mergeadas.
 
 - **Rama Git:** `feature/field-app-treatment-ui`
 - **ADRs que la respaldan:** ninguno nuevo (la separación tratamiento/vacunación
-  es una decisión de UX respaldada por `PLAN-FASE-3-4` §1 y el principio de los
+  es una decisión de UX respaldada por `PLAN-FASE-3-4` sec.1 y el principio de los
   tres toques).
 - **Pares del split:**
   - [`3.5a.2-A`](./PLAN-FASE-3-5-PORCINO-3.5a.2-A.md) (rama `feature/livestock-treatment-catalog`): catálogos y payload — **requerido**.
   - [`3.5a.2-B`](./PLAN-FASE-3-5-PORCINO-3.5a.2-B.md) (rama `feature/livestock-treatment-dose-logic`): lógica de dosis y `TreatmentCourse` — **requerido**.
-- **Fuente original:** [`PLAN-FASE-3-5-PORCINO.md` §3.5a.2](../PLAN-FASE-3-5-PORCINO.md#35a2--featurelivestock-treatment-detail--estructural)
+- **Fuente original:** [`PLAN-FASE-3-5-PORCINO.md` sec.3.5a.2](../PLAN-FASE-3-5-PORCINO.md#35a2--featurelivestock-treatment-detail--estructural)
 
 ---
 
@@ -43,7 +43,7 @@ justifica la menor frecuencia.
 ## Decisiones tomadas en el macro plan y que aplican a esta sub-rama
 
 - **Tres toques para lo normal, cuatro para lo raro** — la regla del macro
-  plan §2.3 se aplica literal en esta sub-rama: el camino "vacunar" debe
+  plan sec.2.3 se aplica literal en esta sub-rama: el camino "vacunar" debe
   resolverse en tres toques, el "tratar un animal enfermo" en cuatro.
 - **Pantalla de campo: vía y motivo en la misma pasada, sin sumar toques al
   caso normal.** Si la pantalla de tratamiento pide vía y motivo en una pasada

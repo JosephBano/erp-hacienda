@@ -6,7 +6,7 @@ using Xunit;
 namespace Hato.Sync.IntegrationTests;
 
 /// <summary>
-/// The mandatory push scenarios of PLAN-FASE-3-4 §2.2. This is the file the plan says to
+/// The mandatory push scenarios of PLAN-FASE-3-4 sec.2.2. This is the file the plan says to
 /// write before looking at the endpoint signature, because push is where farm records get
 /// duplicated or quietly dropped.
 /// </summary>

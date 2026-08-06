@@ -164,7 +164,7 @@
 
 | Término (ES) | Código (EN) | Definición |
 |---|---|---|
-| Rango de plausibilidad | `PlausibilityRange` | Catálogo configurable por **especie y categoría**: `plausible_min` / `plausible_max` (→ confirmación: *"¿es correcto?"*) y `absolute_min` / `absolute_max` (→ bloqueo: imposible de registrar). Aplica a magnitudes físicas (peso en kg, volumen en litros para ordeño). **Fail-open por diseño**: si no hay rango configurado para una combinación, el sistema acepta el valor — un rango olvidado no debe impedir registrar la realidad del campo. **Evaluado localmente en el móvil** (Art. 9): los rangos bajan vía pull. Distinto de `Species.IsMilkable` (fail-closed, default `false`) y de los permisos (ADR-0007, fail-closed por defecto) — esas son reglas de seguridad; los rangos de plausibilidad son reglas de captura. Ver `PLAN-FASE-3-5-PORCINO.md` §3.5a.6. |
+| Rango de plausibilidad | `PlausibilityRange` | Catálogo configurable por **especie y categoría**: `plausible_min` / `plausible_max` (→ confirmación: *"¿es correcto?"*) y `absolute_min` / `absolute_max` (→ bloqueo: imposible de registrar). Aplica a magnitudes físicas (peso en kg, volumen en litros para ordeño). **Fail-open por diseño**: si no hay rango configurado para una combinación, el sistema acepta el valor — un rango olvidado no debe impedir registrar la realidad del campo. **Evaluado localmente en el móvil** (Art. 9): los rangos bajan vía pull. Distinto de `Species.IsMilkable` (fail-closed, default `false`) y de los permisos (ADR-0007, fail-closed por defecto) — esas son reglas de seguridad; los rangos de plausibilidad son reglas de captura. Ver `PLAN-FASE-3-5-PORCINO.md` sec.3.5a.6. |
 
 ### Alimentación
 

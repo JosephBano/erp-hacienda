@@ -7,7 +7,7 @@
 > Constitución, gana la Constitución.
 >
 > **El protocolo de trabajo no se repite acá.** Los 9 pasos del ciclo de una feature, el
-> nivel de exigencia en pruebas y el formato de PR están en `PLAN-FASE-3-4.md` §1 y §2, y
+> nivel de exigencia en pruebas y el formato de PR están en `PLAN-FASE-3-4.md` sec.1 y sec.2, y
 > aplican idénticos. Este documento sólo agrega lo específico de la Fase 3.5.
 >
 > **Estado de partida (2026-08-05):** `develop` en `2e8b5d4`. 6 módulos (Livestock,
@@ -59,7 +59,7 @@ de la que sale todo lo demás):
    en proporción a su peso.
 
 El cliente declaró además que **implementará el aretado si el sistema demuestra resultados
-con la comida**. Ese "si" es medible y tiene nombre: conversión alimenticia (§4.4).
+con la comida**. Ese "si" es medible y tiene nombre: conversión alimenticia (sec.4.4).
 
 ---
 
@@ -184,7 +184,7 @@ Reglas para construirlo:
 necesitan ningún cambio de backend**, y cierran en días. Poner esto en sus manos rápido es
 lo que sostiene la conversación mientras se construye el resto.
 
-> **Esta rama es la excepción a la compuerta de §2.3**: son correcciones puntuales sobre
+> **Esta rama es la excepción a la compuerta de sec.2.3**: son correcciones puntuales sobre
 > pantallas que ya existen, no navegación nueva. El árbol de actividades se dibuja **en
 > paralelo** a esta rama, para que esté listo cuando llegue 3.5a.7.
 
@@ -217,7 +217,7 @@ envía.
 
 ### 3.5a.1 · `feature/livestock-group-events` · **estructural** (ADR-0015)
 
-*Por qué:* sin sujeto grupal no existe el lote por conteo, y `DATA-MODEL.md` §Núcleo 2 lo
+*Por qué:* sin sujeto grupal no existe el lote por conteo, y `DATA-MODEL.md` sec.Núcleo 2 lo
 tenía dibujado desde la Fase 1 sin construir.
 
 Tareas:
@@ -232,7 +232,7 @@ Tareas:
    `EventEnums.cs` y **nunca se emitió**— pasa a usarse de verdad.
 4. `LiveHeadCount` como consulta derivada (membresías activas − bajas del lote). **Nunca un
    contador editable.**
-5. **Cierre en cascada del lote** (ADR-0015 §7). Las bajas parciales —se venden 20 de 42, que
+5. **Cierre en cascada del lote** (ADR-0015 sec.7). Las bajas parciales —se venden 20 de 42, que
    es como se faena de verdad— **no cierran a ningún animal**: bajan el conteo. Cuando el
    lote llega a cero, la disposición final cierra todas las membresías restantes en bloque y
    marca esos animales de baja **con alcance de lote**. Sin esto el modelo tiene una fuga:
@@ -253,7 +253,7 @@ Pruebas: evento sin animal ni grupo rechazado; evento con ambos rechazado; el CH
 se verifica en integración, no sólo el dominio; `LiveHeadCount` tras altas, bajas y salidas;
 **baja parcial no cierra ninguna fila de `Animal`**; **al llegar a cero cabezas se cierran
 todas las membresías restantes y el conteo global de animales vivos no deja fantasmas**;
-push duplicado de un evento grupal → un registro (exigencia de `PLAN-FASE-3-4.md` §2.2);
+push duplicado de un evento grupal → un registro (exigencia de `PLAN-FASE-3-4.md` sec.2.2);
 migración corre desde cero.
 
 ---
@@ -262,7 +262,7 @@ migración corre desde cero.
 
 > **Esta sección se partió en tres sub-ramas ejecutables** porque la rama original
 > de 11 tareas violaba la regla "un PR = un propósito" del
-> [`PLAN-FASE-3-4.md` §1.3](../planes/PLAN-FASE-3-4.md). El contexto y la motivación
+> [`PLAN-FASE-3-4.md` sec.1.3](../planes/PLAN-FASE-3-4.md). El contexto y la motivación
 > comunes se conservan acá; cada sub-rama vive en su propio archivo y puede ser
 > implementada por personas distintas.
 
@@ -325,11 +325,11 @@ apuntan al mismo lado; el texto libre era lo peor de ambos mundos.
 
 *Por qué:* sin causa, la mortalidad es un número que no permite decidir nada. Con causa,
 distingue "madre que aplasta" de "madre con mala leche" — que es el juicio que el cliente
-hace hoy a ojo y que el §4.6 va a necesitar.
+hace hoy a ojo y que el sec.4.6 va a necesitar.
 
 Tareas:
 1. Catálogo `mortality_causes` (Art. 8): aplastamiento, inanición, débil al nacer, diarrea,
-   hernia, desconocida. Ampliable desde el panel — la lista final la da el cliente (§7).
+   hernia, desconocida. Ampliable desde el panel — la lista final la da el cliente (sec.7).
 2. `DisposalType.Death` gana `cause_id`, y `GroupMortality` lo lleva también.
 3. Registro de baja de lechón desde el móvil, con la madre resuelta automáticamente
    mientras la cría siga en su cohorte de lactancia.
@@ -372,7 +372,7 @@ pierde).
 
 ### 3.5a.5 · `feature/inventory-unit-conversions`
 
-*Por qué:* `DATA-MODEL.md` §Núcleo 3 anticipó el "bug del saco" y **nunca se implementó**:
+*Por qué:* `DATA-MODEL.md` sec.Núcleo 3 anticipó el "bug del saco" y **nunca se implementó**:
 `InventoryItem` tiene una sola `Unit` y no existe tabla de conversiones. El engorde lo
 vuelve bloqueante — se compra en sacos y se consume en kilos.
 
@@ -431,7 +431,7 @@ funciona sin red.
 *Por qué:* es la superficie de campo de todo lo construido en 3.5a.1. Sin ella, el lote por
 conteo existe sólo en el backend.
 
-> **Compuerta (§2.3): esta rama no arranca sin el árbol de actividades cerrado con el
+> **Compuerta (sec.2.3): esta rama no arranca sin el árbol de actividades cerrado con el
 > cliente y los toques contados.** Es la rama que introduce el sujeto "lote", que hoy no
 > existe en la navegación — el lugar exacto donde una decisión apurada condena la app a ser
 > un menú de botones.
@@ -448,8 +448,8 @@ Tareas:
    cabezas marcadas como enfermas, alimento del período.
 
 Pruebas: una prueba de "registro sin red" por pantalla (exigencia de `PLAN-FASE-3-4.md`
-§2.1 para React Native); el promedio calculado coincide con el enviado; la ficha refleja las
-bajas; **cada actividad del árbol se resuelve en los toques que se contaron en §2.3** —si la
+sec.2.1 para React Native); el promedio calculado coincide con el enviado; la ficha refleja las
+bajas; **cada actividad del árbol se resuelve en los toques que se contaron en sec.2.3** —si la
 implementación excede lo dibujado, se corrige el flujo, no se relaja el número.
 
 ---
@@ -506,7 +506,7 @@ se muere sin que nadie tome la decisión de matarla.
 | Sub-rama | Alcance principal | ADR | Compuerta |
 |---|---|---|---|
 | [`3.5a.9-A`](./sub_planes/PLAN-FASE-3-5-PORCINO-3.5a.9-A.md) (rama `feature/field-app-module-visibility`) | Visibilidad de módulos por interruptor explícito (`FarmModule`) — apagar Ordeño para esta finca, sin borrar nada | [ADR-0019](../adr/0019-visibilidad-de-modulos.md) | Ninguna. Es transversal y testeable en aislamiento. |
-| [`3.5a.9-B`](./sub_planes/PLAN-FASE-3-5-PORCINO-3.5a.9-B.md) (rama `feature/field-app-activity-tree`) | Árbol de actividades con sujeto como primer nivel + selector con búsqueda, filtro por lote y "recientes" | — (se apoya en §2.3 y en ADR-0019) | **[Bloqueada por §2.3 y §7-C](#)** del macro plan: el árbol se dibuja y los toques se cuentan con el cliente **antes** de escribir pantallas. |
+| [`3.5a.9-B`](./sub_planes/PLAN-FASE-3-5-PORCINO-3.5a.9-B.md) (rama `feature/field-app-activity-tree`) | Árbol de actividades con sujeto como primer nivel + selector con búsqueda, filtro por lote y "recientes" | — (se apoya en sec.2.3 y en ADR-0019) | **[Bloqueada por sec.2.3 y sec.7-C](#)** del macro plan: el árbol se dibuja y los toques se cuentan con el cliente **antes** de escribir pantallas. |
 
 #### Decisiones que aplican a las dos sub-ramas
 
@@ -515,13 +515,13 @@ se muere sin que nadie tome la decisión de matarla.
 - **Evaluación sin red** (Art. 9). Las capacidades y el flag de módulo vienen del
   pull y se evalúan localmente.
 - **El orden de las actividades va por frecuencia declarada por el cliente**, no por
-  importancia conceptual. Sin la respuesta a §7-C, 3.5a.9-B no arranca; 3.5a.9-A sí.
+  importancia conceptual. Sin la respuesta a sec.7-C, 3.5a.9-B no arranca; 3.5a.9-A sí.
 
 #### Resumen de tareas (distribuidas en los sub-planes)
 
 | # | Tarea | Sub-rama |
 |---|---|---|
-| 1 | Navegación según el árbol de §2.3, primer nivel = sujeto | 3.5a.9-B |
+| 1 | Navegación según el árbol de sec.2.3, primer nivel = sujeto | 3.5a.9-B |
 | 2 | Búsqueda por identificador y filtro por lote en el selector de animales | 3.5a.9-B |
 | 3 | "Recientes": últimos animales sobre los que este teléfono registró algo | 3.5a.9-B |
 | 4 | Ocultar Ordeño por interruptor explícito (ADR-0019), `FarmModule { key, enabled, disabled_reason }` | 3.5a.9-A |
@@ -541,7 +541,7 @@ se muere sin que nadie tome la decisión de matarla.
 - **Búsqueda con 200 animales sembrados devuelve el correcto** → [3.5a.9-B](./sub_planes/PLAN-FASE-3-5-PORCINO-3.5a.9-B.md).
 - **Filtro por lote** → 3.5a.9-B.
 - **Módulo apagado: pantalla de ordeño no alcanzable desde ninguna ruta** → [3.5a.9-A](./sub_planes/PLAN-FASE-3-5-PORCINO-3.5a.9-A.md).
-- **Módulo apagado: ordeño en outbox sigue sincronizando** (regla del ADR-0019 §4, única pérdida silenciosa posible) → 3.5a.9-A.
+- **Módulo apagado: ordeño en outbox sigue sincronizando** (regla del ADR-0019 sec.4, única pérdida silenciosa posible) → 3.5a.9-A.
 - **Encender el módulo lo devuelve sin tocar código** → 3.5a.9-A.
 - **Pantalla que administra los módulos no puede ocultarse a sí misma** → 3.5a.9-A.
 - **La navegación resuelve el interruptor sin red** → ambos (A provee el flag, B lo consume).
@@ -644,9 +644,9 @@ sobre un animal. **Dos ramas planificadas se vuelven una, y más chica.**
 | 2 | "Se observan, no se asignan": nunca columna editable en `Animal`; `CurrentDisposition` derivado | A |
 | 3 | `contexto` opcional apuntando al hecho durante el cual se observó | A |
 | 4 | Cuatro tipos de valor y nada más (Booleano, EscalaOrdinal, ConteoAcotado, TextoLibre). Sin unidad y sin decimal libre (guardarraíl estructural) | A |
-| 5 | Absorbe `SelectionCriterion` y drena `MaternalBehaviorAssessment`; semillas del §7-A (tetas, aplomos, hernia, temperamento, etc.) | B |
+| 5 | Absorbe `SelectionCriterion` y drena `MaternalBehaviorAssessment`; semillas del sec.7-A (tetas, aplomos, hernia, temperamento, etc.) | B |
 | 6 | `visible_como_advertencia` muestra la característica en la ficha del animal en el móvil antes de que alguien lo toque | C |
-| 7 | "Una definición usada se versiona, no se edita" (ADR-0018 §9): si la escala cambia, las observaciones viejas se interpretan con la versión que tenían al observarse | C |
+| 7 | "Una definición usada se versiona, no se edita" (ADR-0018 sec.9): si la escala cambia, las observaciones viejas se interpretan con la versión que tenían al observarse | C |
 
 #### Resumen de pruebas distribuidas
 
@@ -660,7 +660,7 @@ sobre un animal. **Dos ramas planificadas se vuelven una, y más chica.**
 - **Drenaje exacto e idempotente de `SelectionCriterion`** → [B](./sub_planes/PLAN-FASE-3-5-PORCINO-3.5b.5-B.md).
 - **`MaternalBehaviorAssessment` queda vacía y se elimina** → B.
 - **Sesión → `gilt_evaluation` context preservado** → B.
-- **Regresión del `MaternalIndex` (§4.6): lee lo drenado, no se pisa** → B.
+- **Regresión del `MaternalIndex` (sec.4.6): lee lo drenado, no se pisa** → B.
 - **Versionado por clonado (transaccional, no edición)** → [C](./sub_planes/PLAN-FASE-3-5-PORCINO-3.5b.5-C.md).
 - **Atomicidad y concurrencia del versionado** → C.
 - **Interpretación preservada tras versionado** (la prueba más importante del ADR-0018) → C.
@@ -672,11 +672,11 @@ sobre un animal. **Dos ramas planificadas se vuelven una, y más chica.**
 Ahora **consumidor** de 4.5, no dueño de su propia tabla de conductas.
 
 - **Derivada de eventos contables** (calculada, **no almacenada**, coherente con
-  `DATA-MODEL.md` §Núcleo 4): nacidos vivos/muertos/momias, peso promedio de camada al nacer,
+  `DATA-MODEL.md` sec.Núcleo 4): nacidos vivos/muertos/momias, peso promedio de camada al nacer,
   **mortalidad predestete 0–24 d por madre**, destetados por parto, intervalo destete–celo.
 - **Características conductuales** de 4.5, sólo las genuinamente subjetivas.
 
-> **El criterio del ADR-0018 §3 corrigió este diseño.** El aplastamiento de crías estaba
+> **El criterio del ADR-0018 sec.3 corrigió este diseño.** El aplastamiento de crías estaba
 > planificado como ítem de calificación conductual, pero dos personas **sí** coinciden en
 > cuántos lechones aparecieron aplastados: es una **medición**, o sea un evento de mortalidad
 > con causa, que ya se captura en 3.5a.3. Y "esta cerda es torpe con las crías" ni siquiera
@@ -702,7 +702,7 @@ el índice no lee ninguna característica que duplique un evento contable.
 
 Pruebas: alerta de celo en la ventana correcta tras el destete; **intento de disposición de
 un lote en retiro de carne se rechaza**, no se advierte (mismo estándar que
-`PLAN-FASE-3-4.md` §2.3 exige para leche).
+`PLAN-FASE-3-4.md` sec.2.3 exige para leche).
 
 ---
 
@@ -738,11 +738,11 @@ Dos son **transversales** y no pertenecen al pivote porcino aunque hayan nacido 
 | Las validaciones de plausibilidad estorban | El operario pide "quitá eso" | Los rangos son configurables por el cliente: se ensanchan, no se eliminan. Nada bloquea si no hay rango configurado. |
 | Se cuela alcance de Fase 4 | Aparece "costo" o "precio" en un ticket de 3.5 | El FCR y todo lo demás va **en kg**. La plata es Fase 4. |
 | El cliente cambia de opinión sobre el aretado | — | No es riesgo: ADR-0015 hace que el aretado sea un cambio de bandera en cualquier momento. |
-| Las características se vuelven el vertedero de datos que debían estar tipados | Aparece una característica con unidad, o alguien pide "un número libre" | El guardarraíl es estructural: cuatro tipos de valor, sin unidad ni decimal libre, con un test que fija la invariante. La petición misma es la señal de que ese dato va al esquema (ADR-0018 §4). |
+| Las características se vuelven el vertedero de datos que debían estar tipados | Aparece una característica con unidad, o alguien pide "un número libre" | El guardarraíl es estructural: cuatro tipos de valor, sin unidad ni decimal libre, con un test que fija la invariante. La petición misma es la señal de que ese dato va al esquema (ADR-0018 sec.4). |
 | El catálogo de características se llena y nadie observa nada | Definiciones sin observaciones al cerrar la fase | Reducir a lo que demostró valor —probablemente sólo las advertencias visibles— y calcular el índice materno con KPIs derivados de eventos (condición de reversa del ADR-0018). |
-| La app se vuelve un menú de botones y muere la promesa de los 3 toques | Una actividad nueva se resuelve "agregando un botón al inicio" | La compuerta de §2.3: el árbol se dibuja y los toques se cuentan **antes** de escribir pantallas. De 4 actividades a más de 15 no se sobrevive improvisando la navegación. |
-| **Ordeño se pudre mientras está oculto** | Nadie lo ejercita a mano; un defecto no cubierto por pruebas vive ahí meses | Su suite sigue corriendo en CI igual que antes y en rojo bloquea el merge (Art. 12, ADR-0019 §7). Al reencenderlo se trata como feature que vuelve a producción —revisión y prueba manual—, no como un interruptor inocuo. |
-| Se pierden ordeños pendientes al apagar el módulo | Un teléfono con registros de leche sin sincronizar | ADR-0019 §4: se oculta la entrada, **nunca el camino de los datos**. Los endpoints siguen aceptando y el motor de sync siguen empujando lo que ya se registró. Cubierto por prueba en [`3.5a.9-A`](./sub_planes/PLAN-FASE-3-5-PORCINO-3.5a.9-A.md). |
+| La app se vuelve un menú de botones y muere la promesa de los 3 toques | Una actividad nueva se resuelve "agregando un botón al inicio" | La compuerta de sec.2.3: el árbol se dibuja y los toques se cuentan **antes** de escribir pantallas. De 4 actividades a más de 15 no se sobrevive improvisando la navegación. |
+| **Ordeño se pudre mientras está oculto** | Nadie lo ejercita a mano; un defecto no cubierto por pruebas vive ahí meses | Su suite sigue corriendo en CI igual que antes y en rojo bloquea el merge (Art. 12, ADR-0019 sec.7). Al reencenderlo se trata como feature que vuelve a producción —revisión y prueba manual—, no como un interruptor inocuo. |
+| Se pierden ordeños pendientes al apagar el módulo | Un teléfono con registros de leche sin sincronizar | ADR-0019 sec.4: se oculta la entrada, **nunca el camino de los datos**. Los endpoints siguen aceptando y el motor de sync siguen empujando lo que ya se registró. Cubierto por prueba en [`3.5a.9-A`](./sub_planes/PLAN-FASE-3-5-PORCINO-3.5a.9-A.md). |
 
 ---
 
@@ -756,11 +756,11 @@ la finca, no decisión de diseño. Conviene llevarlas impresas a la próxima vis
 > para que la semilla inicial no sea inventada.
 >
 > **C sí bloquea**: sin las frecuencias no se cierra el árbol de actividades, y sin el árbol
-> no arranca 3.5a.7 (compuerta de §2.3).
+> no arranca 3.5a.7 (compuerta de sec.2.3).
 
 **A · Criterios de selección de futuras madres.** En la conversación mencionó el número de
 tetas y la postura de las patas, y dijo que había más que no quedaron anotados. La propuesta
-del §4.5 es un punto de partida, no una lista cerrada:
+del sec.4.5 es un punto de partida, no una lista cerrada:
 
 - ¿Cuántas tetas funcionales exige como mínimo? ¿Descarta por asimetría?
 - ¿Qué mira exactamente en los aplomos, y cómo lo puntúa hoy (bien/regular/mal, o más fino)?
@@ -768,14 +768,14 @@ del §4.5 es un punto de partida, no una lista cerrada:
 - ¿Qué descarta de inmediato, sin discusión?
 - ¿Mira el tamaño de la camada de la que salió la hembra?
 
-**B · Causas de muerte de lechón.** La lista del §3.5a.3 es la estándar; la suya puede
+**B · Causas de muerte de lechón.** La lista del sec.3.5a.3 es la estándar; la suya puede
 diferir y es la que importa:
 
 - ¿Qué causas distingue en la práctica cuando muere un lechón?
 - ¿Separa "aplastamiento" de "débil que no llegó a mamar"? Esa distinción es exactamente la
-  que hace útil el índice de madres del §4.6.
+  que hace útil el índice de madres del sec.4.6.
 
-**C · Frecuencia real de cada actividad**, que es lo que ordena el árbol de §2.3. Esta sí
+**C · Frecuencia real de cada actividad**, que es lo que ordena el árbol de sec.2.3. Esta sí
 conviene resolverla temprano, porque es la única de las tres que **bloquea** una rama
 (3.5a.7 no arranca sin el árbol cerrado):
 

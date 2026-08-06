@@ -59,7 +59,7 @@
 
 - **Consumo de agua por lote.** No lo pidió nadie; se anota porque en porcinos una caída de
   consumo de agua precede a la de alimento como señal de enfermedad. **Disparador:** que la
-  alerta de divergencia de consumo de alimento (§4.4 del plan) resulte demasiado tardía en
+  alerta de divergencia de consumo de alimento (sec.4.4 del plan) resulte demasiado tardía en
   el piloto.
 
 - **Ambiente del corral (temperatura, humedad).** Requiere sensores que no existen en la

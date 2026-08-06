@@ -50,7 +50,7 @@ ahí aplican los filtros que ya existían — entre ellos `IsMilkable`, que **no
 sigue siendo verdad de dominio y sigue impidiendo que alguien registre un ordeño de una
 cerda.
 
-Es una entrada más del filtrado que el `PLAN-FASE-3-5-PORCINO.md` §2.3 ya define para el
+Es una entrada más del filtrado que el `PLAN-FASE-3-5-PORCINO.md` sec.2.3 ya define para el
 árbol de actividades. No es un mecanismo paralelo.
 
 **3. No se borra absolutamente nada.**
@@ -130,7 +130,7 @@ Ocultar es una decisión de producto, no un permiso para dejar de mantener.
     ahí hasta que se encienda. **Mitigación**: al reencenderlo, tratarlo como una feature que
     vuelve a producción —revisión y prueba manual— y no como un interruptor inocuo.
   − Una conjunción más en cada decisión de visibilidad. **Mitigación**: se resuelve en el
-    mismo lugar donde §2.3 ya filtra el árbol de actividades; no se reparte por los
+    mismo lugar donde sec.2.3 ya filtra el árbol de actividades; no se reparte por los
     llamadores.
   − El código de un módulo apagado sigue pesando en el bundle del móvil. Se acepta: es
     pequeño frente al costo de borrarlo y tener que reescribirlo.

@@ -1,18 +1,18 @@
 # PLAN-FASE-3-5-PORCINO-3.5a.9-B.md — Árbol de actividades y navegación de campo
 
-> **Sub-plan extraído de `PLAN-FASE-3-5-PORCINO.md` §3.5a.9.**
+> **Sub-plan extraído de `PLAN-FASE-3-5-PORCINO.md` sec.3.5a.9.**
 > Este archivo **es ejecutable de forma independiente** del macro plan y de su par
 > 3.5a.9-A. El macro plan sigue siendo la fuente de verdad para el resto del proyecto:
 > toda decisión que aplique a varias ramas vive allá. Acá viven sólo las decisiones y
 > el alcance de esta sub-rama.
 
 - **Rama Git:** `feature/field-app-activity-tree`
-- **ADR que la respalda:** ninguno directo (vive en el macro plan §2.3 y se apoya en
+- **ADR que la respalda:** ninguno directo (vive en el macro plan sec.2.3 y se apoya en
   las consecuencias del ADR-0019 para visibilidad — implementado en
   [3.5a.9-A](./PLAN-FASE-3-5-PORCINO-3.5a.9-A.md)).
 - **Par de split:** [PLAN-FASE-3-5-PORCINO-3.5a.9-A.md](./PLAN-FASE-3-5-PORCINO-3.5a.9-A.md) (visibilidad de módulos por interruptor explícito)
-- **Fuente original:** [`PLAN-FASE-3-5-PORCINO.md` §3.5a.9](../PLAN-FASE-3-5-PORCINO.md#35a9--featurefield-app-herd-navigation)
-- **Compuerta:** §2.3 y §7-C del macro plan: **el árbol sólo se implementa cuando
+- **Fuente original:** [`PLAN-FASE-3-5-PORCINO.md` sec.3.5a.9](../PLAN-FASE-3-5-PORCINO.md#35a9--featurefield-app-herd-navigation)
+- **Compuerta:** sec.2.3 y sec.7-C del macro plan: **el árbol sólo se implementa cuando
   esté dibujado y los toques contados** con el cliente. Sin esa conversación este
   PR no arranca. Es deliberado y es la promesa de los tres toques para 15+
   actividades.
@@ -30,22 +30,22 @@ menú de inicio deja de tener una jerarquía razonable y la promesa de los tres
 toques se muere sin que nadie tome la decisión de matarla.
 
 La forma de evitarlo no es agregar botones: es **dibujar el árbol primero y contar
-los toques sobre papel**. Esta sub-rama implementa el árbol de §2.3 del macro
+los toques sobre papel**. Esta sub-rama implementa el árbol de sec.2.3 del macro
 plan, con el sujeto (animal / lote / parto / lo de hoy) como primer nivel — el
 mismo XOR que `animal_events` representa en el backend (ADR-0015).
 
 ## Decisiones tomadas en el macro plan que aplican a esta sub-rama
 
-- §2.3 "el árbol de actividades" (macro plan). Es **la fuente** de esta sub-rama.
-- §2.3 "Filtrado, no ramificado por especie" (macro plan). El árbol es único; el
-  filtrado lo provee la conjunción del ADR-0019 §2.
-- §7-C "Frecuencia real de cada actividad" (macro plan). Sin esa respuesta esta
+- sec.2.3 "el árbol de actividades" (macro plan). Es **la fuente** de esta sub-rama.
+- sec.2.3 "Filtrado, no ramificado por especie" (macro plan). El árbol es único; el
+  filtrado lo provee la conjunción del ADR-0019 sec.2.
+- sec.7-C "Frecuencia real de cada actividad" (macro plan). Sin esa respuesta esta
   sub-rama no arranca: el árbol se ordena por frecuencia, no por importancia
   conceptual.
 
 ## Decisión de diseño que el macro plan deja abierta y se cierra acá
 
-El árbol del §2.3 se construye **antes** de la pantalla, lo que obliga a fijar dos
+El árbol del sec.2.3 se construye **antes** de la pantalla, lo que obliga a fijar dos
 cosas en este sub-plan:
 
 1. **Forma del árbol en código.** Una sola constante exportada
@@ -66,7 +66,7 @@ sub-plan antes de mergear el código, no después.
 
 ## Tareas
 
-1. **Migrar `ACTIVITY_TREE`** desde el árbol textual del §2.3 a un árbol en código
+1. **Migrar `ACTIVITY_TREE`** desde el árbol textual del sec.2.3 a un árbol en código
    con la forma del punto anterior. Las cuatro ramas del primer nivel (sujeto) son
    `UnAnimal`, `UnLote`, `UnParto`, `HoyPendientes`. Las actividades de cada rama
    van en el segundo nivel, ordenadas **por frecuencia declarada por el cliente**,
@@ -88,7 +88,7 @@ sub-plan antes de mergear el código, no después.
    `cancelled` tras 3.5a.8). Esto generaliza lo que el resumen de leche ya hace.
    Si 3.5a.8 no está mergeado, esta tarea se implementa igual y se conecta al
    existir.
-6. **Cada actividad del árbol se resuelve en los toques que se contaron en §2.3**
+6. **Cada actividad del árbol se resuelve en los toques que se contaron en sec.2.3**
    del macro plan. Si la implementación excede lo dibujado, se corrige el flujo,
    no se relaja el número. La métrica se valida por una suite de "recuento de
    toques" que dispara un fallo si una ruta suma más toques que el `TapBudget`
@@ -97,7 +97,7 @@ sub-plan antes de mergear el código, no después.
 
 ### Tarea derivada: documentación del escaneo QR (cuando llegue el aretado)
 
-Cuando el aretado ocurra (ADR-0015 §"Qué pasa el aretado"), `AnimalIdentifier` ya
+Cuando el aretado ocurra (ADR-0015 sec."Qué pasa el aretado"), `AnimalIdentifier` ya
 lo soporta con tipo `RFID` (ADR-0006). El escaneo QR es entonces un atajo al
 selector de animales con un input distinto: **no es trabajo de esta fase**, sólo se
 deja documentado en `BACKLOG.md` como evolución natural del selector de animales

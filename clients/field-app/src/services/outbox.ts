@@ -103,6 +103,26 @@ export class Outbox {
     return rows.map(toEntry);
   }
 
+  /**
+   * Lists every entry created on the current calendar day (local timezone), newest
+   * first, regardless of sync status. Drives the "Lo que registré hoy" screen
+   * (3.5a.9-B): the operator wants to see "what did I do today, and where does each
+   * record stand?" — including the ones already in the office and the ones the
+   * server refused. Local-midnight is the right boundary because that is what an
+   * employee means by "today"; UTC midnight would silently cut records from the
+   * evening of one day into the morning of the next.
+   */
+  async today(): Promise<OutboxEntry[]> {
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+    const cutoff = startOfToday.getTime();
+
+    const rows = await this.collection
+      .query(Q.where('queued_at', Q.gte(cutoff)), Q.sortBy('queued_at', Q.desc))
+      .fetch();
+    return rows.map(toEntry);
+  }
+
   async markSynced(clientOperationId: string, resultRef?: string): Promise<void> {
     await this.update(clientOperationId, (entry) => {
       entry.status = 'synced';

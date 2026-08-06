@@ -12,13 +12,16 @@ import { ModuleVisibility } from './services/moduleVisibility';
 import { Outbox } from './services/outbox';
 import { SyncEngine } from './services/syncEngine';
 import { loadGroups, loadHerd, loadMedications } from './services/herdQueries';
+import { ActivitiesHub } from './screens/ActivitiesHub';
 import { AnimalEditScreen } from './screens/AnimalEditScreen';
+import { AnimalSubjectScreen } from './screens/AnimalSubjectScreen';
 import { BirthScreen } from './screens/BirthScreen';
 import { EventsScreen } from './screens/EventsScreen';
 import { HomeScreen } from './screens/HomeScreen';
 import { LoginScreen } from './screens/LoginScreen';
 import { MilkingScreen } from './screens/MilkingScreen';
 import { SyncStatusScreen } from './screens/SyncStatusScreen';
+import { TodayScreen } from './screens/TodayScreen';
 import type { TabKey } from './screens/navigation';
 import { BigButton, Body, Screen, Title } from './ui/components';
 import { theme } from './ui/theme';
@@ -73,16 +76,24 @@ export default function App() {
   // pig pilot. ModuleVisibility answers from the local DB with no network, so this is
   // offline-safe by construction.
   const [productionOn, setProductionOn] = useState(true);
+  // 3.5a.9-B: state that lives at the App level so the activity tree can lean on it.
+  // selectedAnimalId is set when the operator picks an animal in the picker screen;
+  // todayEntries drives "Lo que registré hoy".
+  const [selectedAnimalId, setSelectedAnimalId] = useState<string | null>(null);
+  const [todayEntries, setTodayEntries] = useState<
+    { clientOperationId: string; operationType: string; occurredAt: string; status: 'pending' | 'synced' | 'rejected' | 'cancelled' }[]
+  >([]);
 
   const visibility = useMemo(() => new ModuleVisibility(database), [database]);
 
   const refresh = useCallback(async () => {
-    const [nextHerd, nextGroups, nextMedications, stats, productionVisible] = await Promise.all([
+    const [nextHerd, nextGroups, nextMedications, stats, productionVisible, today] = await Promise.all([
       loadHerd(database),
       loadGroups(database),
       loadMedications(database),
       outbox.stats(),
       visibility.canShow('production'),
+      outbox.today(),
     ]);
 
     setHerd(nextHerd);
@@ -90,6 +101,14 @@ export default function App() {
     setMedications(nextMedications);
     setPending(stats.pending);
     setProductionOn(productionVisible);
+    setTodayEntries(
+      today.map((entry) => ({
+        clientOperationId: entry.clientOperationId,
+        operationType: entry.operationType,
+        occurredAt: entry.occurredAt,
+        status: entry.status as 'pending' | 'synced' | 'rejected' | 'cancelled',
+      })),
+    );
   }, [database, outbox, visibility]);
 
   useEffect(() => {
@@ -142,11 +161,47 @@ export default function App() {
 
       <View style={styles.content}>
         {tab === 'home' ? (
-          <HomeScreen
-            userName={auth.currentSession()?.fullName ?? ''}
-            productionOn={productionOn}
+          <ActivitiesHub
             pending={pending}
-            onSelectTab={(target) => setTab(target)}
+            onSelect={(route) => {
+              // ActivitiesHub's routes map 1:1 to the existing TabKey vocabulary, with
+              // the two new subjects (animal-subject, today) declared in navigation.ts.
+              // Module visibility continues to gate MilkingScreen at the render level,
+              // not here: the route exists in the nav vocabulary regardless of state.
+              setTab(route as Tab);
+              if (route !== 'animal-subject') {
+                setSelectedAnimalId(null);
+              }
+            }}
+          />
+        ) : null}
+
+        {tab === 'animal-subject' ? (
+          <AnimalSubjectScreen
+            animals={herd.map((member) => ({ animalId: member.animalId, label: member.label }))}
+            recentIds={[]}
+            selectedAnimalId={selectedAnimalId ?? undefined}
+            onSelectAnimal={(animalId) => setSelectedAnimalId(animalId)}
+            onClearSelection={() => setSelectedAnimalId(null)}
+            onActivity={(animalId, _activity) => {
+              // All animal activities for now route through EventsScreen. Pre-selection
+              // by id will arrive when EventsScreen learns to accept an `initialAnimalId`
+              // prop — for now the operator picks the animal once more from the picker,
+              // which keeps the existing UI untouched.
+              setSelectedAnimalId(animalId);
+              setTab('events');
+            }}
+          />
+        ) : null}
+
+        {tab === 'today' ? (
+          <TodayScreen
+            entries={todayEntries}
+            onSelectEntry={() => {
+              // 3.5a.8 (corrections) is a separate concern; for now the tap is a no-op
+              // so the row renders correctly and the contract with the future screen is
+              // already in place.
+            }}
           />
         ) : null}
 

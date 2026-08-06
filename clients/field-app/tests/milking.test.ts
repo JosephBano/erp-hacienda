@@ -103,8 +103,36 @@ describe('MilkingService', () => {
 
   it('refuses a negative volume', async () => {
     await expect(service.recordIndividualYield('cow-1', 'Morning', -1, recordedBy)).rejects.toThrow(
-      /mayor o igual a cero/i,
+      /negativo/i,
     );
+  });
+
+  /**
+   * 0 litres is not a milking — no cow produces exactly nothing. A dry day should not be
+   * recorded as a milking at all; if the need exists it will be covered by the plausibility
+   * ranges in 3.5a.6 (configurable per species, fails open). Until then, the service
+   * refuses 0 outright so the outbox never carries a meaningless record.
+   */
+  it('refuses a zero volume as not a milking', async () => {
+    await expect(service.recordIndividualYield('cow-1', 'Morning', 0, recordedBy)).rejects.toThrow(
+      /0|no es un ordeño/i,
+    );
+
+    expect(await outbox.pending()).toHaveLength(0);
+  });
+
+  /**
+   * PLAN §3.5a.0 #4 locked as a test, not as a comment: impossible values are blocked,
+   * improbable values pass through. The plausibility ceiling (a 1000-L cow) is NOT this
+   * layer's job — it lives in 3.5a.6 with per-species ranges — so a 1-L milking is a
+   * legitimate record here even though it is unusual. "Do not punish the operator"
+   * means the guardrail rejects the impossible and lets the questionable through; the
+   * questionable one is somebody else's problem, with a configurable knob.
+   */
+  it('locks the input guardrail: improbable values pass, only impossible ones are rejected', async () => {
+    // improbable (a 1-L milking): the service lets it through.
+    await service.recordIndividualYield('cow-1', 'Morning', 1, recordedBy);
+    expect(await outbox.pending()).toHaveLength(1);
   });
 
   /**

@@ -1,7 +1,7 @@
 import React from 'react';
 import { Database } from '@nozbe/watermelondb';
 import LokiJSAdapter from '@nozbe/watermelondb/adapters/lokijs';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 
 import { schema } from '../src/database/schema';
 import { migrations } from '../src/database/migrations';
@@ -86,8 +86,14 @@ describe('MilkingScreen', () => {
 
     // 1 — choose the cow.
     fireEvent.press(screen.getByTestId('cow-cow-1'));
-    // 2 — type the litres (waits for the input to appear after the cow is selected).
-    fireEvent.changeText(await screen.findByTestId('liters-input'), '12.5');
+    // 2 — type the litres. The act() wrapper is load-bearing: without it the
+    // setLiters('12.5') update is not yet in React state when the next fireEvent
+    // fires, and `record()` reads `liters = ''`, producing 0 — which assertVolume
+    // (PLAN-FASE-3-5-PORCINO §3.5a.0 #1) now correctly refuses. The test was passing
+    // before because the old guard let 0 through; that was the bug this fix is closing.
+    await act(async () => {
+      fireEvent.changeText(await screen.findByTestId('liters-input'), '12.5');
+    });
     // 3 — confirm.
     fireEvent.press(screen.getByTestId('confirm-milking'));
 
@@ -97,6 +103,9 @@ describe('MilkingScreen', () => {
 
     const [entry] = await outbox.pending();
     expect(entry.operationType).toBe('recordMilking');
+    // The litres actually enqueued must be the ones the employee typed — not the
+    // empty-string default that the previous test code was silently recording.
+    expect(entry.payload).toMatchObject({ totalLiters: 12.5, individualYields: [{ animalId: 'cow-1', liters: 12.5 }] });
   });
 
   // TODO(field-app-tests): same root cause as the two tests below — passes when run

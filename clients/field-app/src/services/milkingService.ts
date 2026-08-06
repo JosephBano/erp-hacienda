@@ -3,6 +3,26 @@ import { Database, Q } from '@nozbe/watermelondb';
 import { MilkYield, OutboxEntryModel, Species, WithdrawalPeriod } from '../database/models';
 import { Outbox } from './outbox';
 
+/**
+ * The 5 AM flow runs with one hand, gloves on, often no signal. It has to be fast and
+ * forgiving. Two layers protect it:
+ *
+ *   1. **Here (this file).** Blocking-and-lenient: impossible inputs are rejected
+ *      before they touch the outbox; improbable ones pass. The reasoning lives in
+ *      `assertVolume` and its siblings below. Locked by the
+ *      'locks the input guardrail' test in `tests/milking.test.ts`.
+ *   2. **3.5a.6 (later).** Plausibility ranges per species, configurable from the
+ *      web panel, fail-open when unset. Those are *warnings*, not blocks: the
+ *      operator may confirm an unusual figure.
+ *
+ * The rule both layers obey (PLAN-FASE-3-5-PORCINO §3.5a.0 #4):
+ *
+ *   "3 taps for the normal, 4 for the rare. Do not punish the operator:
+ *    confirm the improbable, block only the impossible."
+ *
+ * If a future change loosens a block or tightens a confirmation, this comment is
+ * the rule it has to justify itself against.
+ */
 export type MilkingShift = 'Morning' | 'Afternoon' | 'Evening';
 
 export interface RecordedYield {
@@ -243,9 +263,34 @@ export class MilkingService {
   }
 }
 
+/**
+ * 3-toque input guard for the milking round (see PLAN-FASE-3-5-PORCINO §3.5a.0 #4):
+ *
+ *   - `NaN` / `Infinity`              → rejected. A missing or absurd value is a typo.
+ *   - `liters < 0`                    → rejected. The sanity floor.
+ *   - `liters === 0`                  → rejected. 0 is not a milking; no cow produces
+ *                                       exactly nothing. Recording it would litter the
+ *                                       outbox with meaningless rows and muddy the
+ *                                       plausibility work planned for 3.5a.6.
+ *   - `liters > 0`                    → accepted. The plausibility ceiling (a 1000-L cow)
+ *                                       is NOT this layer's job; it belongs to the
+ *                                       configurable per-species ranges.
+ *
+ * The error message explains the rule rather than restating it, so an employee who reads
+ * it understands *why* their input was rejected and not just that it was.
+ */
 function assertVolume(liters: number): void {
-  if (!Number.isFinite(liters) || liters < 0) {
-    throw new Error('El volumen de leche debe ser mayor o igual a cero.');
+  if (!Number.isFinite(liters)) {
+    throw new Error('El volumen de leche no es un número válido.');
+  }
+  if (liters < 0) {
+    throw new Error('El volumen de leche no puede ser negativo.');
+  }
+  if (liters === 0) {
+    throw new Error(
+      '0 litros no es un ordeño: ninguna vaca ordeñada produce exactamente cero. ' +
+        'Si la vaca no se ordeñó hoy, no registre ordeño.',
+    );
   }
 }
 

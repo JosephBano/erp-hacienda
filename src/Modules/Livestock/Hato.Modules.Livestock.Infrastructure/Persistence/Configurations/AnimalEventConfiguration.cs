@@ -32,9 +32,11 @@ public class AnimalEventConfiguration : IEntityTypeConfiguration<AnimalEvent>
         builder.Property(e => e.AnimalId).IsRequired(false);
         builder.Property(e => e.GroupId).IsRequired(false);
         builder.Property(e => e.AffectedCount).IsRequired(false);
+        builder.Property(e => e.CauseId).IsRequired(false);
 
         builder.HasOne<Animal>().WithMany().HasForeignKey(e => e.AnimalId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne<AnimalGroup>().WithMany().HasForeignKey(e => e.GroupId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne<MortalityCause>().WithMany().HasForeignKey(e => e.CauseId).OnDelete(DeleteBehavior.Restrict);
 
         builder.HasIndex(e => new { e.AnimalId, e.OccurredAt });
         builder.HasIndex(e => new { e.GroupId, e.OccurredAt });

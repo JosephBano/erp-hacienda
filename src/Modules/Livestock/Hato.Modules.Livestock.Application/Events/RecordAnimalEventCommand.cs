@@ -16,7 +16,8 @@ public record RecordAnimalEventCommand(
     decimal? Cost = null,
     int? MilkWithdrawalDays = null,
     int? MeatWithdrawalDays = null,
-    Guid? RelatedEventId = null) : IRequest<Guid>;
+    Guid? RelatedEventId = null,
+    Guid? CauseId = null) : IRequest<Guid>;
 
 public class RecordAnimalEventValidator : AbstractValidator<RecordAnimalEventCommand>
 {
@@ -38,6 +39,14 @@ public class RecordAnimalEventHandler(ILivestockDbContext dbContext)
         if (!animalExists)
             throw new DomainException($"El animal con ID '{request.AnimalId}' no existe.");
 
+        if (request.CauseId is { } causeId)
+        {
+            var causeIsValid = await dbContext.MortalityCauses
+                .AnyAsync(c => c.Id == causeId && c.IsActive, cancellationToken);
+            if (!causeIsValid)
+                throw new DomainException($"La causa de mortalidad con ID '{causeId}' no existe o está inactiva.");
+        }
+
         // Dates in UTC in persistence (AGENTS.md rule 6): Npgsql only accepts
         // DateTimeOffset with Offset=0 for 'timestamp with time zone', so a client
         // submitting a local Ecuador offset must be normalized here, once, rather than
@@ -51,7 +60,8 @@ public class RecordAnimalEventHandler(ILivestockDbContext dbContext)
             request.RecordedBy,
             request.PayloadJson,
             request.Cost,
-            request.RelatedEventId);
+            request.RelatedEventId,
+            causeId: request.CauseId);
 
         dbContext.AnimalEvents.Add(animalEvent);
 

@@ -15,7 +15,8 @@ public record AnimalEventDto(
     decimal? Cost,
     string PayloadJson,
     Guid? RelatedEventId,
-    int? AffectedCount);
+    int? AffectedCount,
+    Guid? CauseId);
 
 public record WithdrawalPeriodDto(
     Guid Id,
@@ -51,7 +52,8 @@ public class GetAnimalEventsHandler(ILivestockDbContext dbContext)
             e.Cost,
             e.PayloadJson,
             e.RelatedEventId,
-            e.AffectedCount
+            e.AffectedCount,
+            e.CauseId
         )).ToList();
     }
 }

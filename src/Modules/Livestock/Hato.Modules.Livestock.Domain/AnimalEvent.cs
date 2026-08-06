@@ -33,6 +33,15 @@ public class AnimalEvent : AuditableEntity
     /// </summary>
     public int? AffectedCount { get; private set; }
 
+    /// <summary>
+    /// Which <see cref="MortalityCause"/> this event declares — set on a disposal that is
+    /// a death, individual or group (ADR-0015: "DisposalType.Death gana cause_id, y
+    /// GroupMortality lo lleva también"). Optional: a sale or an unwitnessed disposal
+    /// legitimately carries none. Referential validity (the row exists and is active) is
+    /// an Application-layer check, not a domain invariant — the domain has no database.
+    /// </summary>
+    public Guid? CauseId { get; private set; }
+
     private AnimalEvent()
     {
         RecordedByLabel = null!;
@@ -49,7 +58,8 @@ public class AnimalEvent : AuditableEntity
         string payloadJson,
         decimal? cost,
         Guid? relatedEventId,
-        int? affectedCount)
+        int? affectedCount,
+        Guid? causeId)
     {
         AnimalId = animalId;
         GroupId = groupId;
@@ -61,6 +71,7 @@ public class AnimalEvent : AuditableEntity
         Cost = cost;
         RelatedEventId = relatedEventId;
         AffectedCount = affectedCount;
+        CauseId = causeId;
     }
 
     /// <summary>Records an event whose subject is a single, identifiable animal.</summary>
@@ -72,14 +83,15 @@ public class AnimalEvent : AuditableEntity
         string payloadJson,
         decimal? cost = null,
         Guid? relatedEventId = null,
-        Guid? recordedById = null)
+        Guid? recordedById = null,
+        Guid? causeId = null)
     {
         if (animalId == Guid.Empty)
             throw new DomainException("Un evento individual debe estar asociado a un animal.");
 
         return CreateInternal(
             animalId, null, eventType, occurredAt, recordedBy, payloadJson,
-            cost, relatedEventId, recordedById, affectedCount: null);
+            cost, relatedEventId, recordedById, affectedCount: null, causeId);
     }
 
     /// <summary>
@@ -98,14 +110,15 @@ public class AnimalEvent : AuditableEntity
         int? affectedCount = null,
         decimal? cost = null,
         Guid? relatedEventId = null,
-        Guid? recordedById = null)
+        Guid? recordedById = null,
+        Guid? causeId = null)
     {
         if (groupId == Guid.Empty)
             throw new DomainException("Un evento grupal debe estar asociado a un lote.");
 
         return CreateInternal(
             null, groupId, eventType, occurredAt, recordedBy, payloadJson,
-            cost, relatedEventId, recordedById, affectedCount);
+            cost, relatedEventId, recordedById, affectedCount, causeId);
     }
 
     private static AnimalEvent CreateInternal(
@@ -118,7 +131,8 @@ public class AnimalEvent : AuditableEntity
         decimal? cost,
         Guid? relatedEventId,
         Guid? recordedById,
-        int? affectedCount)
+        int? affectedCount,
+        Guid? causeId)
     {
         if (string.IsNullOrWhiteSpace(recordedBy))
             throw new DomainException("El autor del registro no puede estar vacío.");
@@ -132,6 +146,9 @@ public class AnimalEvent : AuditableEntity
         if (affectedCount is <= 0)
             throw new DomainException("La cantidad de cabezas afectadas debe ser mayor a cero.");
 
+        if (causeId == Guid.Empty)
+            throw new DomainException("La causa, si se declara, debe ser válida.");
+
         return new AnimalEvent(
             animalId,
             groupId,
@@ -142,6 +159,7 @@ public class AnimalEvent : AuditableEntity
             payloadJson.Trim(),
             cost,
             relatedEventId,
-            affectedCount);
+            affectedCount,
+            causeId);
     }
 }

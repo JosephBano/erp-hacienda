@@ -35,7 +35,8 @@ public record SyncCollectionsDto(
     List<SyncBreedDto> Breeds,
     List<SyncCategoryDto> AnimalCategories,
     List<SyncInventoryItemDto> InventoryItems,
-    List<SyncWithdrawalPeriodDto> WithdrawalPeriods);
+    List<SyncWithdrawalPeriodDto> WithdrawalPeriods,
+    List<SyncMortalityCauseDto> MortalityCauses);
 
 public record SyncAnimalDto(
     Guid Id,
@@ -139,6 +140,18 @@ public record SyncWithdrawalPeriodDto(
     DateTimeOffset? UpdatedAt,
     bool IsDeleted) : ISyncRow;
 
+/// <summary>
+/// The mortality causes catalog (Art. 8, 3.5a.3), so "baja con causa" can offer the list
+/// offline instead of blocking on a round trip the field may not have.
+/// </summary>
+public record SyncMortalityCauseDto(
+    Guid Id,
+    string Name,
+    bool IsActive,
+    DateTimeOffset CreatedAt,
+    DateTimeOffset? UpdatedAt,
+    bool IsDeleted) : ISyncRow;
+
 public record GetSyncPullQuery(
     string? Since = null,
     string? Collections = null,
@@ -173,6 +186,7 @@ public class GetSyncPullQueryHandler(
             ["animalCategories"] = SystemPermissions.LivestockAnimalsRead,
             ["withdrawalPeriods"] = SystemPermissions.LivestockAnimalsRead,
             ["inventoryItems"] = SystemPermissions.InventoryItemsRead,
+            ["mortalityCauses"] = SystemPermissions.LivestockAnimalsRead,
         };
 
     public async Task<SyncPullResponseDto> Handle(GetSyncPullQuery request, CancellationToken cancellationToken)
@@ -260,9 +274,15 @@ public class GetSyncPullQueryHandler(
                 w.CreatedAt, w.UpdatedAt, w.DeletedAt != null),
             cancellationToken);
 
+        var mortalityCauses = await ReadAsync(
+            effective, "mortalityCauses", livestockDb.MortalityCauses, since, limit, frontier,
+            c => new SyncMortalityCauseDto(
+                c.Id, c.Name, c.IsActive, c.CreatedAt, c.UpdatedAt, c.DeletedAt != null),
+            cancellationToken);
+
         var collections = new SyncCollectionsDto(
             animals, identifiers, groups, memberships,
-            speciesList, breeds, categories, items, withdrawals);
+            speciesList, breeds, categories, items, withdrawals, mortalityCauses);
 
         return new SyncPullResponseDto(frontier.Next.Format(), frontier.HasMore, collections);
     }

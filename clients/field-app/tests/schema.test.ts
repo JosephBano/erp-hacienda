@@ -24,6 +24,7 @@ describe('local schema', () => {
         'milk_yields',
         'sync_meta',
         'farm_modules',
+        'mortality_causes',
       ]),
     );
   });

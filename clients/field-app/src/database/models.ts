@@ -152,6 +152,14 @@ export class FarmModule extends Model {
   @text('updated_by') declare updatedBy: string;
 }
 
+export class MortalityCause extends Model {
+  static table = 'mortality_causes';
+
+  @text('name') declare name: string;
+  @field('is_active') declare isActive: boolean;
+  @field('is_deleted') declare isDeleted: boolean;
+}
+
 export const modelClasses = [
   Animal,
   AnimalIdentifier,
@@ -166,4 +174,5 @@ export const modelClasses = [
   MilkYield,
   SyncMeta,
   FarmModule,
+  MortalityCause,
 ];

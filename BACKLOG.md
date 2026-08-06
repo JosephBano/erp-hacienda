@@ -65,6 +65,18 @@
   `SyncPullQueries.cs` y su entrada en `TABLE_BY_COLLECTION`.
 - **Disparador**: arranque de 3.5a.7 (`feature/field-app-lot-registration`).
 
+### [docs] `mortality_causes` sin pantalla de administración en admin-web (3.5a.3)
+
+- **Archivos**: `src/Hato.Api/Endpoints/MortalityCausesEndpoints.cs` (backend completo:
+  crear, listar, desactivar) — ningún componente Angular lo consume todavía.
+  Same situation as `Breed`/`AnimalCategory`: ninguno de los catálogos de referencia
+  tiene hoy una pantalla de administración dedicada en `admin-web`.
+- **Trabajo a hacer**: cuando se construya una pantalla genérica de catálogos (o una
+  específica), agregar `mortality_causes` a esa pantalla.
+- **Disparador**: cuando el cliente pida ajustar la lista de causas (sec.7-B del plan
+  dice que su lista puede diferir de la semilla estándar) y editarla vía API directa
+  deje de ser suficiente.
+
 ## Reglas para este archivo
 
 - Cada ítem lleva un prefijo `[categoría]` (cosmético / tests / deuda / docs / ops).

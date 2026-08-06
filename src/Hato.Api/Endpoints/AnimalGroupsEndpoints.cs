@@ -15,7 +15,8 @@ public static class AnimalGroupsEndpoints
         {
             var command = new RecordGroupEventCommand(
                 id, request.EventType, request.OccurredAt, request.RecordedBy,
-                request.PayloadJson, request.AffectedCount, request.Cost, request.RelatedEventId);
+                request.PayloadJson, request.AffectedCount, request.Cost, request.RelatedEventId,
+                request.CauseId);
 
             var eventId = await sender.Send(command);
             return Results.Created($"/api/v1/animal-groups/{id}/events/{eventId}", new { id = eventId });
@@ -74,4 +75,5 @@ public record RecordGroupEventRequest(
     string PayloadJson,
     int? AffectedCount = null,
     decimal? Cost = null,
-    Guid? RelatedEventId = null);
+    Guid? RelatedEventId = null,
+    Guid? CauseId = null);

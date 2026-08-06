@@ -21,6 +21,7 @@ public interface ILivestockDbContext
     DbSet<Domain.GroupMembership> GroupMemberships { get; }
     DbSet<Domain.AnimalEvent> AnimalEvents { get; }
     DbSet<Domain.WithdrawalPeriod> WithdrawalPeriods { get; }
+    DbSet<Domain.MortalityCause> MortalityCauses { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken);
 }

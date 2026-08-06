@@ -20,7 +20,8 @@ public static class AnimalEventsEndpoints
                 request.Cost,
                 request.MilkWithdrawalDays,
                 request.MeatWithdrawalDays,
-                request.RelatedEventId);
+                request.RelatedEventId,
+                request.CauseId);
 
             var eventId = await sender.Send(command);
             return Results.Created($"/api/v1/animals/{animalId}/events/{eventId}", new { id = eventId });
@@ -49,4 +50,5 @@ public record RecordAnimalEventRequest(
     decimal? Cost = null,
     int? MilkWithdrawalDays = null,
     int? MeatWithdrawalDays = null,
-    Guid? RelatedEventId = null);
+    Guid? RelatedEventId = null,
+    Guid? CauseId = null);

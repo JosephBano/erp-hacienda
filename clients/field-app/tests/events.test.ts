@@ -158,6 +158,33 @@ describe('EventService', () => {
     });
   });
 
+  describe('disposals', () => {
+    it('queues a disposal with its cause as a top-level field', async () => {
+      await service.recordDisposal({ animalId: 'piglet-1', causeId: 'cause-1' });
+
+      const [entry] = await outbox.pending();
+
+      expect(entry.operationType).toBe('recordAnimalEvent');
+      expect(entry.payload).toMatchObject({
+        animalId: 'piglet-1',
+        eventType: 'Disposal',
+        causeId: 'cause-1',
+      });
+    });
+
+    it('refuses a disposal with no cause', async () => {
+      await expect(
+        service.recordDisposal({ animalId: 'piglet-1', causeId: '' }),
+      ).rejects.toThrow(/causa/i);
+    });
+
+    it('refuses a disposal with no animal', async () => {
+      await expect(
+        service.recordDisposal({ animalId: '', causeId: 'cause-1' }),
+      ).rejects.toThrow(/animal/i);
+    });
+  });
+
   describe('moves', () => {
     it('queues a move as the operation the server understands', async () => {
       await service.recordGroupMove({

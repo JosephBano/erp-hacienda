@@ -7,6 +7,7 @@ import {
   AnimalIdentifier,
   Breed,
   InventoryItem,
+  MortalityCause,
   Species,
   WithdrawalPeriod,
 } from '../database/models';
@@ -22,6 +23,7 @@ export interface HerdMember {
   breedId?: string;
   categoryId?: string;
   birthDate?: string;
+  motherId?: string;
 }
 
 /**
@@ -80,6 +82,7 @@ export async function loadHerd(database: Database, date = todayIso()): Promise<H
       breedId: animal.breedId,
       categoryId: animal.categoryId,
       birthDate: animal.birthDate,
+      motherId: animal.motherId,
     }))
     .sort((a, b) => a.label.localeCompare(b.label));
 }
@@ -120,6 +123,16 @@ export async function loadMedications(database: Database) {
   return items
     .filter((item) => !item.isDeleted && /medic/i.test(item.category))
     .map((item) => ({ itemId: item.id, name: item.name }))
+    .sort((a, b) => a.name.localeCompare(b.name));
+}
+
+/** The mortality causes catalog (3.5a.3), for the "baja con causa" picker. */
+export async function loadMortalityCauses(database: Database) {
+  const causes = await database.get<MortalityCause>('mortality_causes').query().fetch();
+
+  return causes
+    .filter((cause) => !cause.isDeleted && cause.isActive)
+    .map((cause) => ({ causeId: cause.id, name: cause.name }))
     .sort((a, b) => a.name.localeCompare(b.name));
 }
 

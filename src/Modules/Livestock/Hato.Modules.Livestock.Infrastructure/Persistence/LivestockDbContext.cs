@@ -22,6 +22,7 @@ public class LivestockDbContext(DbContextOptions<LivestockDbContext> options)
     public DbSet<GroupMembership> GroupMemberships => Set<GroupMembership>();
     public DbSet<AnimalEvent> AnimalEvents => Set<AnimalEvent>();
     public DbSet<WithdrawalPeriod> WithdrawalPeriods => Set<WithdrawalPeriod>();
+    public DbSet<MortalityCause> MortalityCauses => Set<MortalityCause>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

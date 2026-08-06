@@ -315,6 +315,7 @@ const TABLE_BY_COLLECTION: Record<string, string> = {
   animalCategories: 'animal_categories',
   inventoryItems: 'inventory_items',
   withdrawalPeriods: 'withdrawal_periods',
+  mortalityCauses: 'mortality_causes',
 };
 
 /**

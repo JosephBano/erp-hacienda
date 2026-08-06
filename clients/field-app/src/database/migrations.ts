@@ -136,5 +136,20 @@ export const migrations = schemaMigrations({
         }),
       ],
     },
+    {
+      toVersion: 7,
+      steps: [
+        // 3.5a.3: mortality causes catalog, pulled down so the disposal form works
+        // offline the same way the medication and lot pickers already do.
+        createTable({
+          name: 'mortality_causes',
+          columns: [
+            { name: 'name', type: 'string' },
+            { name: 'is_active', type: 'boolean' },
+            { name: 'is_deleted', type: 'boolean' },
+          ],
+        }),
+      ],
+    },
   ],
 });

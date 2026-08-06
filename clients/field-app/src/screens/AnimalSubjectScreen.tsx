@@ -42,9 +42,8 @@ interface AnimalSubjectScreenProps {
  *
  * Reachable activities:
  *  - treatment, weight, move → EventsScreen (existing flow).
- *  - disposal                  → stub for 3.5a.3 (mortality causes). Renders a Notice
- *                                saying the cause catalogue is pending so the operator
- *                                is not stranded on a non-action.
+ *  - disposal                  → routes to EventsScreen like the rest, now that the
+ *                                mortality causes catalogue (3.5a.3) exists.
  */
 export function AnimalSubjectScreen({
   animals,
@@ -93,10 +92,10 @@ export function AnimalSubjectScreen({
           onPress={() => onActivity(selectedAnimalId, 'move')}
         />
         <BigButton
-          testID="activity-disposal-stub"
-          label="Baja con causa — pendiente del catálogo"
+          testID="activity-disposal"
+          label="Baja con causa"
           tone="neutral"
-          disabled
+          onPress={() => onActivity(selectedAnimalId, 'disposal')}
         />
         <BigButton testID="back-to-animal-picker" label="Elegir otro animal" tone="neutral" onPress={onClearSelection} />
       </Screen>

@@ -24,6 +24,13 @@ export interface WeightInput {
   notes?: string;
 }
 
+export interface DisposalInput {
+  animalId: string;
+  causeId: string;
+  notes?: string;
+  occurredAt?: string;
+}
+
 export interface GroupMoveInput {
   animalId: string;
   toGroupId: string;
@@ -157,6 +164,34 @@ export class EventService {
         cost: input.cost,
         affectedCount: input.affectedCount,
         payloadJson: JSON.stringify(input.payload),
+      },
+      occurredAt,
+    );
+
+    return { clientOperationId: entry.clientOperationId };
+  }
+
+  /**
+   * "Baja con causa" for a single, identified animal (3.5a.3) — the piglet is still
+   * within its lactation cohort, still a real row with a real mother, so this is a plain
+   * animal-subject event, not a group one. The mother is resolved by the caller from the
+   * already-synced herd (Animal.motherId), not looked up here.
+   */
+  async recordDisposal(input: DisposalInput): Promise<QueuedEvent> {
+    if (!input.animalId) throw new Error('El animal es obligatorio.');
+    if (!input.causeId) throw new Error('La causa de mortalidad es obligatoria.');
+
+    const occurredAt = input.occurredAt ?? new Date().toISOString();
+
+    const entry = await this.outbox.enqueue(
+      'recordAnimalEvent',
+      {
+        animalId: input.animalId,
+        eventType: 'Disposal',
+        occurredAt,
+        recordedBy: 'field-app',
+        causeId: input.causeId,
+        payloadJson: JSON.stringify({ notes: input.notes }),
       },
       occurredAt,
     );

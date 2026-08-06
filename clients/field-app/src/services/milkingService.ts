@@ -243,9 +243,34 @@ export class MilkingService {
   }
 }
 
+/**
+ * 3-toque input guard for the milking round (see PLAN-FASE-3-5-PORCINO §3.5a.0 #4):
+ *
+ *   - `NaN` / `Infinity`              → rejected. A missing or absurd value is a typo.
+ *   - `liters < 0`                    → rejected. The sanity floor.
+ *   - `liters === 0`                  → rejected. 0 is not a milking; no cow produces
+ *                                       exactly nothing. Recording it would litter the
+ *                                       outbox with meaningless rows and muddy the
+ *                                       plausibility work planned for 3.5a.6.
+ *   - `liters > 0`                    → accepted. The plausibility ceiling (a 1000-L cow)
+ *                                       is NOT this layer's job; it belongs to the
+ *                                       configurable per-species ranges.
+ *
+ * The error message explains the rule rather than restating it, so an employee who reads
+ * it understands *why* their input was rejected and not just that it was.
+ */
 function assertVolume(liters: number): void {
-  if (!Number.isFinite(liters) || liters < 0) {
-    throw new Error('El volumen de leche debe ser mayor o igual a cero.');
+  if (!Number.isFinite(liters)) {
+    throw new Error('El volumen de leche no es un número válido.');
+  }
+  if (liters < 0) {
+    throw new Error('El volumen de leche no puede ser negativo.');
+  }
+  if (liters === 0) {
+    throw new Error(
+      '0 litros no es un ordeño: ninguna vaca ordeñada produce exactamente cero. ' +
+        'Si la vaca no se ordeñó hoy, no registre ordeño.',
+    );
   }
 }
 

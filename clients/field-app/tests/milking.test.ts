@@ -103,8 +103,22 @@ describe('MilkingService', () => {
 
   it('refuses a negative volume', async () => {
     await expect(service.recordIndividualYield('cow-1', 'Morning', -1, recordedBy)).rejects.toThrow(
-      /mayor o igual a cero/i,
+      /negativo/i,
     );
+  });
+
+  /**
+   * 0 litres is not a milking — no cow produces exactly nothing. A dry day should not be
+   * recorded as a milking at all; if the need exists it will be covered by the plausibility
+   * ranges in 3.5a.6 (configurable per species, fails open). Until then, the service
+   * refuses 0 outright so the outbox never carries a meaningless record.
+   */
+  it('refuses a zero volume as not a milking', async () => {
+    await expect(service.recordIndividualYield('cow-1', 'Morning', 0, recordedBy)).rejects.toThrow(
+      /0|no es un ordeño/i,
+    );
+
+    expect(await outbox.pending()).toHaveLength(0);
   });
 
   /**

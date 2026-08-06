@@ -12,7 +12,8 @@
       "backgroundColor": "#121824"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.joemandev.hatofieldapp"
     },
     "android": {
       "adaptiveIcon": {

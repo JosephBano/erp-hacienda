@@ -46,7 +46,7 @@ describe('AnimalEditScreen', () => {
       });
     });
 
-    animals = [{ animalId: 'animal-1', label: 'La Pinta', sex: 'Female', isWithheld: false, speciesId: 'species-1' }];
+    animals = [{ animalId: 'animal-1', label: 'La Pinta', sex: 'Female', isWithheld: false, speciesId: 'species-1', speciesIsMilkable: true }];
   });
 
   // Smoke test that survives the SDK 51 -> 56 upgrade. The three interaction-heavy tests
@@ -58,6 +58,17 @@ describe('AnimalEditScreen', () => {
 
     // The list is the first thing the screen shows; no interactions required.
     expect(await screen.findByTestId('edit-animal-animal-1')).toBeTruthy();
+  });
+
+  /**
+   * First-launch state: the herd has never been pulled. The old screen left the middle
+   * blank, which reads as broken; the new screen tells the user where to go.
+   */
+  it('points the employee to Sync when there are no animals to edit', async () => {
+    await render(<AnimalEditScreen database={database} service={service} animals={[]} />);
+
+    expect(await screen.findByTestId('edit-animal-empty')).toBeTruthy();
+    expect(screen.queryByTestId('edit-animal-animal-1')).toBeNull();
   });
 
   // TODO(field-app-tests): re-enable after the SDK 51 -> 56 upgrade settles.

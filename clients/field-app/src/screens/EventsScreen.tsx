@@ -2,7 +2,17 @@ import React, { useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 
 import { theme } from '../ui/theme';
-import { BigButton, Body, Card, Notice, NumberField, Screen, TextField, Title } from '../ui/components';
+import {
+  BigButton,
+  Body,
+  Card,
+  EmptyState,
+  Notice,
+  NumberField,
+  Screen,
+  TextField,
+  Title,
+} from '../ui/components';
 import type { EventService } from '../services/eventService';
 
 export interface AnimalOption {
@@ -91,114 +101,140 @@ export function EventsScreen({
 
       {error ? <Notice text={error} /> : null}
 
-      {!animal ? (
-        <ScrollView testID="animal-list" contentContainerStyle={styles.list}>
-          {animals.map((option) => (
-            <BigButton
-              key={option.animalId}
-              testID={`animal-${option.animalId}`}
-              label={option.label}
-              tone="neutral"
-              onPress={() => setAnimal(option)}
+      <View style={styles.body}>
+        {!animal ? (
+          animals.length === 0 ? (
+            <EmptyState
+              testID="events-animal-empty"
+              title="No hay animales en el dispositivo"
+              hint="Vaya a Inicio → Sincronización para descargar el hato antes de registrar eventos."
             />
-          ))}
-        </ScrollView>
-      ) : (
-        <Card>
-          <Body>{animal.label}</Body>
+          ) : (
+            <ScrollView testID="animal-list" contentContainerStyle={styles.list}>
+              {animals.map((option) => (
+                <BigButton
+                  key={option.animalId}
+                  testID={`animal-${option.animalId}`}
+                  label={option.label}
+                  tone="neutral"
+                  onPress={() => setAnimal(option)}
+                />
+              ))}
+            </ScrollView>
+          )
+        ) : (
+          <ScrollView contentContainerStyle={styles.bodyScroll}>
+            <Card>
+              <Body>{animal.label}</Body>
 
-          {mode === 'treatment' ? (
-            <View style={styles.list}>
-              {!medication ? (
-                medications.map((option) => (
-                  <BigButton
-                    key={option.itemId}
-                    testID={`medication-${option.itemId}`}
-                    label={option.name}
-                    tone="neutral"
-                    onPress={() => setMedication(option)}
-                  />
-                ))
-              ) : (
+              {mode === 'treatment' ? (
+                <View style={styles.listInner}>
+                  {!medication ? (
+                    medications.length === 0 ? (
+                      <Body muted>
+                        No hay medicamentos en el inventario. Agregue medicamentos desde el panel
+                        y sincronice para poder registrar tratamientos.
+                      </Body>
+                    ) : (
+                      medications.map((option) => (
+                        <BigButton
+                          key={option.itemId}
+                          testID={`medication-${option.itemId}`}
+                          label={option.name}
+                          tone="neutral"
+                          onPress={() => setMedication(option)}
+                        />
+                      ))
+                    )
+                  ) : (
+                    <>
+                      <Body muted>{medication.name}</Body>
+                      {medication.milkWithdrawalDays ? (
+                        <Notice
+                          tone="warning"
+                          text={`Al registrar, la leche queda no vendible por ${medication.milkWithdrawalDays} día(s).`}
+                        />
+                      ) : null}
+                      <TextField label="Dosis" testID="dose-input" value={dose} onChangeText={setDose} />
+                      <BigButton
+                        testID="confirm-treatment"
+                        label="Registrar tratamiento"
+                        busy={busy}
+                        onPress={() =>
+                          run(
+                            () =>
+                              service.recordTreatment({
+                                animalId: animal.animalId,
+                                medicationId: medication.itemId,
+                                medicationName: medication.name,
+                                dose,
+                                milkWithdrawalDays: medication.milkWithdrawalDays,
+                                meatWithdrawalDays: medication.meatWithdrawalDays,
+                              }),
+                            'Tratamiento registrado.',
+                          )
+                        }
+                      />
+                    </>
+                  )}
+                </View>
+              ) : null}
+
+              {mode === 'weight' ? (
                 <>
-                  <Body muted>{medication.name}</Body>
-                  {medication.milkWithdrawalDays ? (
-                    <Notice
-                      tone="warning"
-                      text={`Al registrar, la leche queda no vendible por ${medication.milkWithdrawalDays} día(s).`}
-                    />
-                  ) : null}
-                  <TextField label="Dosis" testID="dose-input" value={dose} onChangeText={setDose} />
+                  <NumberField label="Peso (kg)" testID="weight-input" value={weight} onChangeText={setWeight} />
                   <BigButton
-                    testID="confirm-treatment"
-                    label="Registrar tratamiento"
+                    testID="confirm-weight"
+                    label="Registrar pesaje"
                     busy={busy}
                     onPress={() =>
                       run(
                         () =>
-                          service.recordTreatment({
+                          service.recordWeight({
                             animalId: animal.animalId,
-                            medicationId: medication.itemId,
-                            medicationName: medication.name,
-                            dose,
-                            milkWithdrawalDays: medication.milkWithdrawalDays,
-                            meatWithdrawalDays: medication.meatWithdrawalDays,
+                            weightKg: Number(weight.replace(',', '.')),
                           }),
-                        'Tratamiento registrado.',
+                        'Pesaje registrado.',
                       )
                     }
                   />
                 </>
-              )}
-            </View>
-          ) : null}
+              ) : null}
 
-          {mode === 'weight' ? (
-            <>
-              <NumberField label="Peso (kg)" testID="weight-input" value={weight} onChangeText={setWeight} />
-              <BigButton
-                testID="confirm-weight"
-                label="Registrar pesaje"
-                busy={busy}
-                onPress={() =>
-                  run(
-                    () =>
-                      service.recordWeight({
-                        animalId: animal.animalId,
-                        weightKg: Number(weight.replace(',', '.')),
-                      }),
-                    'Pesaje registrado.',
-                  )
-                }
-              />
-            </>
-          ) : null}
-
-          {mode === 'move' ? (
-            <View style={styles.list}>
-              {groups.map((group) => (
-                <BigButton
-                  key={group.groupId}
-                  testID={`group-${group.groupId}`}
-                  label={`Mover a ${group.label}`}
-                  tone="neutral"
-                  busy={busy}
-                  onPress={() =>
-                    run(
-                      () =>
-                        service.recordGroupMove({
-                          animalId: animal.animalId,
-                          toGroupId: group.groupId,
-                        }),
-                      'Movimiento registrado.',
-                    )
-                  }
-                />
-              ))}
-            </View>
-          ) : null}
-        </Card>
-      )}
+              {mode === 'move' ? (
+                <View style={styles.listInner}>
+                  {groups.length === 0 ? (
+                    <Body muted>
+                      No hay lotes configurados. Cree lotes desde el panel y sincronice para poder
+                      registrar movimientos de lote.
+                    </Body>
+                  ) : (
+                    groups.map((group) => (
+                      <BigButton
+                        key={group.groupId}
+                        testID={`group-${group.groupId}`}
+                        label={`Mover a ${group.label}`}
+                        tone="neutral"
+                        busy={busy}
+                        onPress={() =>
+                          run(
+                            () =>
+                              service.recordGroupMove({
+                                animalId: animal.animalId,
+                                toGroupId: group.groupId,
+                              }),
+                            'Movimiento registrado.',
+                          )
+                        }
+                      />
+                    ))
+                  )}
+                </View>
+              ) : null}
+            </Card>
+          </ScrollView>
+        )}
+      </View>
 
       <BigButton testID="cancel-event" label="Volver" tone="neutral" onPress={reset} />
     </Screen>
@@ -206,8 +242,21 @@ export function EventsScreen({
 }
 
 const styles = StyleSheet.create({
+  /**
+   * Soaks up the empty middle so the picker (or "no animals") area takes the space the
+   * user expects, instead of leaving a black void between the title and the Volver button.
+   */
+  body: {
+    flex: 1,
+  },
+  bodyScroll: {
+    flexGrow: 1,
+  },
   list: {
     gap: theme.space.sm,
     paddingBottom: theme.space.md,
+  },
+  listInner: {
+    gap: theme.space.sm,
   },
 });

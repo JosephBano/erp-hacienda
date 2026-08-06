@@ -13,7 +13,7 @@ import { appSchema, tableSchema } from '@nozbe/watermelondb';
  * representable locally, otherwise a record deleted on the server would live on in the
  * employee's list forever.
  */
-export const SCHEMA_VERSION = 3;
+export const SCHEMA_VERSION = 4;
 
 export const schema = appSchema({
   version: SCHEMA_VERSION,
@@ -75,6 +75,7 @@ export const schema = appSchema({
       columns: [
         { name: 'name', type: 'string' },
         { name: 'gestation_days', type: 'number', isOptional: true },
+        { name: 'is_milkable', type: 'boolean' },
         { name: 'is_deleted', type: 'boolean' },
       ],
     }),

@@ -1,8 +1,17 @@
 import React, { useEffect, useState } from 'react';
-import { ScrollView, StyleSheet } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
 
 import { theme } from '../ui/theme';
-import { BigButton, Body, Card, Notice, Screen, TextField, Title } from '../ui/components';
+import {
+  BigButton,
+  Body,
+  Card,
+  EmptyState,
+  Notice,
+  Screen,
+  TextField,
+  Title,
+} from '../ui/components';
 import type { AnimalEditService } from '../services/animalEditService';
 import type { Database } from '@nozbe/watermelondb';
 import { loadBreeds, loadCategories, type HerdMember } from '../services/herdQueries';
@@ -88,20 +97,30 @@ export function AnimalEditScreen({
       <Screen testID="animal-edit-screen">
         <Title>Editar animal</Title>
         {confirmation ? <Notice tone="warning" text={confirmation} /> : null}
-        <ScrollView testID="edit-animal-list" contentContainerStyle={styles.list}>
-          {animals.map((animal) => (
-            <BigButton
-              key={animal.animalId}
-              testID={`edit-animal-${animal.animalId}`}
-              label={animal.label}
-              tone="neutral"
-              onPress={() => {
-                setSelected(animal);
-                setConfirmation(null);
-              }}
+        <View style={styles.body}>
+          {animals.length === 0 ? (
+            <EmptyState
+              testID="edit-animal-empty"
+              title="No hay animales en el dispositivo"
+              hint="Vaya a Inicio → Sincronización para descargar el hato antes de editar animales."
             />
-          ))}
-        </ScrollView>
+          ) : (
+            <ScrollView testID="edit-animal-list" contentContainerStyle={styles.list}>
+              {animals.map((animal) => (
+                <BigButton
+                  key={animal.animalId}
+                  testID={`edit-animal-${animal.animalId}`}
+                  label={animal.label}
+                  tone="neutral"
+                  onPress={() => {
+                    setSelected(animal);
+                    setConfirmation(null);
+                  }}
+                />
+              ))}
+            </ScrollView>
+          )}
+        </View>
       </Screen>
     );
   }
@@ -112,57 +131,78 @@ export function AnimalEditScreen({
 
       {error ? <Notice text={error} /> : null}
 
-      <Card>
-        <Body>{selected.label}</Body>
+      <View style={styles.body}>
+        <ScrollView contentContainerStyle={styles.bodyScroll}>
+          <Card>
+            <Body>{selected.label}</Body>
 
-        <Body muted>Raza</Body>
-        <ScrollView testID="edit-breed-list" contentContainerStyle={styles.list}>
-          <BigButton
-            testID="edit-breed-none"
-            label="— Sin especificar —"
-            tone={breedId === '' ? 'primary' : 'neutral'}
-            onPress={() => setBreedId('')}
-          />
-          {breeds.map((breed) => (
-            <BigButton
-              key={breed.breedId}
-              testID={`edit-breed-${breed.breedId}`}
-              label={breed.label}
-              tone={breedId === breed.breedId ? 'primary' : 'neutral'}
-              onPress={() => setBreedId(breed.breedId)}
+            <Body muted>Raza</Body>
+            <View style={styles.list}>
+              <BigButton
+                testID="edit-breed-none"
+                label="— Sin especificar —"
+                tone={breedId === '' ? 'primary' : 'neutral'}
+                onPress={() => setBreedId('')}
+              />
+              {breeds.map((breed) => (
+                <BigButton
+                  key={breed.breedId}
+                  testID={`edit-breed-${breed.breedId}`}
+                  label={breed.label}
+                  tone={breedId === breed.breedId ? 'primary' : 'neutral'}
+                  onPress={() => setBreedId(breed.breedId)}
+                />
+              ))}
+            </View>
+
+            <Body muted>Categoría</Body>
+            <View style={styles.list}>
+              <BigButton
+                testID="edit-category-none"
+                label="— Sin especificar —"
+                tone={categoryId === '' ? 'primary' : 'neutral'}
+                onPress={() => setCategoryId('')}
+              />
+              {categories.map((category) => (
+                <BigButton
+                  key={category.categoryId}
+                  testID={`edit-category-${category.categoryId}`}
+                  label={category.label}
+                  tone={categoryId === category.categoryId ? 'primary' : 'neutral'}
+                  onPress={() => setCategoryId(category.categoryId)}
+                />
+              ))}
+            </View>
+
+            <TextField
+              label="Fecha de nacimiento (AAAA-MM-DD)"
+              testID="edit-birthdate"
+              value={birthDate}
+              onChangeText={setBirthDate}
             />
-          ))}
+
+            <BigButton testID="confirm-edit-animal" label="Guardar cambios" busy={busy} onPress={submit} />
+            <BigButton testID="cancel-edit-animal" label="Cancelar" tone="neutral" onPress={reset} />
+          </Card>
         </ScrollView>
-
-        <Body muted>Categoría</Body>
-        <ScrollView testID="edit-category-list" contentContainerStyle={styles.list}>
-          <BigButton
-            testID="edit-category-none"
-            label="— Sin especificar —"
-            tone={categoryId === '' ? 'primary' : 'neutral'}
-            onPress={() => setCategoryId('')}
-          />
-          {categories.map((category) => (
-            <BigButton
-              key={category.categoryId}
-              testID={`edit-category-${category.categoryId}`}
-              label={category.label}
-              tone={categoryId === category.categoryId ? 'primary' : 'neutral'}
-              onPress={() => setCategoryId(category.categoryId)}
-            />
-          ))}
-        </ScrollView>
-
-        <TextField label="Fecha de nacimiento (AAAA-MM-DD)" testID="edit-birthdate" value={birthDate} onChangeText={setBirthDate} />
-
-        <BigButton testID="confirm-edit-animal" label="Guardar cambios" busy={busy} onPress={submit} />
-        <BigButton testID="cancel-edit-animal" label="Cancelar" tone="neutral" onPress={reset} />
-      </Card>
+      </View>
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
+  /**
+   * The edit card is taller than most screens — the breed/category pickers alone are
+   * three rows of 64pt each. Without flex:1 here, the card can render off-screen with no
+   * obvious way back. Together with the ScrollView it always lands the confirm button
+   * somewhere reachable with a swipe.
+   */
+  body: {
+    flex: 1,
+  },
+  bodyScroll: {
+    flexGrow: 1,
+  },
   list: {
     gap: theme.space.sm,
     paddingVertical: theme.space.xs,

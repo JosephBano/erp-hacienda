@@ -244,14 +244,21 @@ export class SyncEngine {
         });
       });
 
-      const batch = operations.filter(Boolean) as any[];
-      if (batch.length === 0) continue;
+      // The local array is called `ops` (not `batch`) because WatermelonDB exposes a
+      // method `database.batch(...)` for executing prepared operations. Naming our
+      // local variable `batch` produced a `ReferenceError: Property 'batch' doesn't
+      // exist` at runtime when the for-of loop continued past the database.write()
+      // call — the inner WatermelonDB method's closure was shadowing our variable
+      // in the bundle Metro produced. Renaming sidesteps it without changing the
+      // public API.
+      const ops = operations.filter(Boolean) as any[];
+      if (ops.length === 0) continue;
 
       await this.database.write(async () => {
-        await this.database.batch(...batch);
+        await this.database.batch(...ops);
       });
 
-      applied += batch.length;
+      applied += ops.length;
     }
 
     return applied;

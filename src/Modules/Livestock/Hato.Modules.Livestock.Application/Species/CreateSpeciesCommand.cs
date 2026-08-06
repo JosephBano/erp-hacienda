@@ -3,13 +3,18 @@ using MediatR;
 
 namespace Hato.Modules.Livestock.Application.Species;
 
-public record CreateSpeciesCommand(string Name, int? GestationDays) : IRequest<Guid>;
+public record CreateSpeciesCommand(string Name, int? GestationDays, bool IsMilkable = false) : IRequest<Guid>;
 
 public class CreateSpeciesHandler(ILivestockDbContext dbContext) : IRequestHandler<CreateSpeciesCommand, Guid>
 {
     public async Task<Guid> Handle(CreateSpeciesCommand request, CancellationToken cancellationToken)
     {
-        var species = Hato.Modules.Livestock.Domain.Species.Create(request.Name, request.GestationDays);
+        // Art. 8: species-level capability lives in the database. The flag defaults to
+        // false (fail-closed) so a forgotten species never silently allows milk recording.
+        var species = Hato.Modules.Livestock.Domain.Species.Create(
+            request.Name,
+            request.GestationDays,
+            request.IsMilkable);
 
         dbContext.Species.Add(species);
         await dbContext.SaveChangesAsync(cancellationToken);

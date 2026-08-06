@@ -37,6 +37,12 @@ export class AnimalRegisterComponent implements OnInit {
   showNewSpeciesForm = false;
   newSpeciesName = '';
   newSpeciesGestationDays: number | null = null;
+  /**
+   * Whether the new species allows milking registrations from the field app. Defaults to
+   * false on the backend (fail-closed); the operator opts in explicitly here, and the
+   * change flows down on the next sync pull. See `Species.IsMilkable` and Art. 8.
+   */
+  newSpeciesIsMilkable = false;
 
   showNewBreedForm = false;
   newBreedName = '';
@@ -87,11 +93,13 @@ export class AnimalRegisterComponent implements OnInit {
 
     this.api.createSpecies({
       name: this.newSpeciesName.trim(),
-      gestationDays: this.newSpeciesGestationDays ?? undefined
+      gestationDays: this.newSpeciesGestationDays ?? undefined,
+      isMilkable: this.newSpeciesIsMilkable
     }).subscribe({
       next: (result) => {
         this.newSpeciesName = '';
         this.newSpeciesGestationDays = null;
+        this.newSpeciesIsMilkable = false;
         this.showNewSpeciesForm = false;
         this.errorMessage = '';
         this.api.getSpecies().subscribe({

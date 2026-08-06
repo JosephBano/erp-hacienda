@@ -7,6 +7,7 @@ import {
   AnimalIdentifier,
   Breed,
   InventoryItem,
+  Species,
   WithdrawalPeriod,
 } from '../database/models';
 
@@ -17,6 +18,7 @@ export interface HerdMember {
   isWithheld: boolean;
   withheldUntil?: string;
   speciesId: string;
+  speciesIsMilkable: boolean;
   breedId?: string;
   categoryId?: string;
   birthDate?: string;
@@ -30,10 +32,11 @@ export interface HerdMember {
  * to display is an animal the employee cannot record against.
  */
 export async function loadHerd(database: Database, date = todayIso()): Promise<HerdMember[]> {
-  const [animals, identifiers, withdrawals] = await Promise.all([
+  const [animals, identifiers, withdrawals, speciesList] = await Promise.all([
     database.get<Animal>('animals').query().fetch(),
     database.get<AnimalIdentifier>('animal_identifiers').query(Q.where('is_active', true)).fetch(),
     database.get<WithdrawalPeriod>('withdrawal_periods').query().fetch(),
+    database.get<Species>('species').query().fetch(),
   ]);
 
   const tagByAnimal = new Map<string, string>();
@@ -52,6 +55,18 @@ export async function loadHerd(database: Database, date = todayIso()): Promise<H
     }
   }
 
+  // The species table carries the `is_milkable` flag — see Art. 8. An animal whose
+  // species has is_milkable=false (the default for newly synced species until the
+  // operator opts them in from admin-web) is not eligible for milking registration.
+  // The model declares isMilkable as optional because WatermelonDB forbids default
+  // values on decorated fields, so we coalesce to false (fail-closed) at the boundary.
+  const milkableBySpecies = new Map<string, boolean>();
+  for (const species of speciesList) {
+    if (!species.isDeleted) {
+      milkableBySpecies.set(species.id, species.isMilkable ?? false);
+    }
+  }
+
   return animals
     .filter((animal) => !animal.isDeleted)
     .map((animal) => ({
@@ -61,6 +76,7 @@ export async function loadHerd(database: Database, date = todayIso()): Promise<H
       isWithheld: milkBlockByAnimal.has(animal.id),
       withheldUntil: milkBlockByAnimal.get(animal.id),
       speciesId: animal.speciesId,
+      speciesIsMilkable: milkableBySpecies.get(animal.speciesId) ?? false,
       breedId: animal.breedId,
       categoryId: animal.categoryId,
       birthDate: animal.birthDate,

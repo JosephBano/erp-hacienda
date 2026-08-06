@@ -1,6 +1,6 @@
 import { Database, Q } from '@nozbe/watermelondb';
 
-import { MilkYield, OutboxEntryModel, WithdrawalPeriod } from '../database/models';
+import { MilkYield, OutboxEntryModel, Species, WithdrawalPeriod } from '../database/models';
 import { Outbox } from './outbox';
 
 export type MilkingShift = 'Morning' | 'Afternoon' | 'Evening';
@@ -47,9 +47,15 @@ export class MilkingService {
     animalId: string,
     shift: MilkingShift,
     liters: number,
+    recordedBy: string,
     date: string = todayIso(),
   ): Promise<RecordedYield> {
     assertVolume(liters);
+
+    // Defense-in-depth: the UI disables non-milkable species, but if the picker is
+    // bypassed (older cached UI, automated test, a script) the service still rejects.
+    // Art. 8: capability is configured per-species, not per-animal.
+    await this.assertSpeciesIsMilkable(animalId);
 
     const status = await this.withdrawalStatus(animalId, date);
     if (status.isWithheld) {
@@ -61,6 +67,7 @@ export class MilkingService {
     const entry = await this.outbox.enqueue('recordMilking', {
       date,
       shift,
+      recordedBy,
       totalLiters: liters,
       individualYields: [{ animalId, liters }],
     });
@@ -78,6 +85,7 @@ export class MilkingService {
     groupId: string,
     shift: MilkingShift,
     totalLiters: number,
+    recordedBy: string,
     date: string = todayIso(),
   ): Promise<RecordedYield> {
     assertVolume(totalLiters);
@@ -85,6 +93,7 @@ export class MilkingService {
     const entry = await this.outbox.enqueue('recordMilking', {
       date,
       shift,
+      recordedBy,
       groupId,
       totalLiters,
     });
@@ -195,6 +204,42 @@ export class MilkingService {
     });
 
     return record;
+  }
+
+  /**
+   * Service-level guard: refuses a milking registration for an animal whose species
+   * is flagged `is_milkable = false` (Art. 8: per-species capability, not per-animal).
+   * The MilkingScreen already disables non-milkable rows, but if the UI is bypassed
+   * (an old cached session, an automated test, a direct service call) this check
+   * still rejects the operation with the same wording the UI would have used.
+   */
+  private async assertSpeciesIsMilkable(animalId: string): Promise<void> {
+    let speciesId: string | undefined;
+    try {
+      const animal = await this.database.get('animals').find(animalId);
+      speciesId = (animal as { speciesId?: string }).speciesId;
+    } catch {
+      throw new Error('No se encontró el animal en este dispositivo.');
+    }
+
+    if (!speciesId) {
+      throw new Error('El animal no tiene especie asociada. Sincronice para descargar el catálogo.');
+    }
+
+    let species: Species | undefined;
+    try {
+      species = await this.database.get<Species>('species').find(speciesId);
+    } catch {
+      throw new Error(
+        'No se encontró la especie del animal. Sincronice para descargar el catálogo antes de registrar ordeños.',
+      );
+    }
+
+    if (!species.isMilkable) {
+      throw new Error(
+        `La especie "${species.name}" no está habilitada para ordeño. Pida al administrador que active esta opción en el panel web.`,
+      );
+    }
   }
 }
 

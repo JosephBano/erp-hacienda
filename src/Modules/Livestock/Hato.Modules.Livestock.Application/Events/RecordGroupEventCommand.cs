@@ -21,8 +21,7 @@ public record RecordGroupEventCommand(
     string PayloadJson,
     int? AffectedCount = null,
     decimal? Cost = null,
-    Guid? RelatedEventId = null,
-    Guid? CauseId = null) : IRequest<Guid>;
+    Guid? RelatedEventId = null) : IRequest<Guid>;
 
 public class RecordGroupEventValidator : AbstractValidator<RecordGroupEventCommand>
 {
@@ -55,18 +54,9 @@ public class RecordGroupEventHandler(ILivestockDbContext dbContext)
         if (!group.IsActive)
             throw new DomainException("No se pueden registrar eventos sobre un lote inactivo.");
 
-        if (request.CauseId is { } causeId)
-        {
-            var causeIsValid = await dbContext.MortalityCauses
-                .AnyAsync(c => c.Id == causeId && c.IsActive, cancellationToken);
-            if (!causeIsValid)
-                throw new DomainException($"La causa de mortalidad con ID '{causeId}' no existe o está inactiva.");
-        }
-
         var animalEvent = AnimalEvent.CreateForGroup(
             request.GroupId, request.EventType, request.OccurredAt, request.RecordedBy,
-            request.PayloadJson, request.AffectedCount, request.Cost, request.RelatedEventId,
-            causeId: request.CauseId);
+            request.PayloadJson, request.AffectedCount, request.Cost, request.RelatedEventId);
 
         dbContext.AnimalEvents.Add(animalEvent);
 

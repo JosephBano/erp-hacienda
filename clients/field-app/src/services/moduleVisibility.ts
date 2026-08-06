@@ -46,4 +46,46 @@ export class ModuleVisibility {
 
     return rows[0].enabled;
   }
+
+  /**
+   * Writes the on/off row for `key`. Used by the in-app "Módulos del dispositivo"
+   * control on SyncStatusScreen so the operator can toggle a module without waiting
+   * for the next pull — the constraint the plan spells out as "encender/apagar no
+   * requiere un deploy". Idempotent: setting the existing value does not duplicate
+   * the row. The row is created on first use so a phone that has never received a
+   * pull can still be configured locally.
+   */
+  async setEnabled(key: ModuleKey, enabled: boolean, updatedBy: string = 'field-app'): Promise<void> {
+    const rows = await this.database
+      .get<FarmModule>('farm_modules')
+      .query(Q.where('key', key))
+      .fetch();
+
+    if (rows.length === 0) {
+      await this.database.write(async () => {
+        await this.database.get<FarmModule>('farm_modules').create((row) => {
+          row.key = key;
+          row.enabled = enabled;
+          row.disabledReason = enabled ? '' : 'apagado desde el teléfono';
+          row.updatedAt = Date.now();
+          row.updatedBy = updatedBy;
+        });
+      });
+      return;
+    }
+
+    const existing = rows[0];
+    if (existing.enabled === enabled) {
+      return;
+    }
+
+    await this.database.write(async () => {
+      await existing.update((row) => {
+        row.enabled = enabled;
+        row.disabledReason = enabled ? '' : 'apagado desde el teléfono';
+        row.updatedAt = Date.now();
+        row.updatedBy = updatedBy;
+      });
+    });
+  }
 }

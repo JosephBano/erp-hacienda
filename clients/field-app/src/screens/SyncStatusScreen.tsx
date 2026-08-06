@@ -5,6 +5,8 @@ import { theme } from '../ui/theme';
 import { BigButton, Body, Card, Notice, Screen, Title } from '../ui/components';
 import type { Outbox, OutboxEntry, OutboxStats } from '../services/outbox';
 import type { SyncEngine, SyncResult } from '../services/syncEngine';
+import type { ModuleKey, ModuleVisibility } from '../services/moduleVisibility';
+import { ModuleToggle } from './ModuleToggle';
 
 /**
  * Sync status written for the person carrying the phone, not for the developer.
@@ -16,19 +18,42 @@ import type { SyncEngine, SyncResult } from '../services/syncEngine';
 export function SyncStatusScreen({
   engine,
   outbox,
+  visibility,
+  onModulesChanged,
 }: {
   engine: SyncEngine;
   outbox: Outbox;
+  visibility: ModuleVisibility;
+  onModulesChanged?: () => void;
 }) {
   const [stats, setStats] = useState<OutboxStats | null>(null);
   const [rejected, setRejected] = useState<OutboxEntry[]>([]);
   const [result, setResult] = useState<SyncResult | null>(null);
   const [busy, setBusy] = useState(false);
+  const [moduleFlags, setModuleFlags] = useState<Record<ModuleKey, boolean>>({
+    production: true,
+    livestock: true,
+    inventory: true,
+    breeding: true,
+    tasks: true,
+    people: true,
+  });
+  const [pendingConfirm, setPendingConfirm] = useState<{ key: ModuleKey; wasEnabled: boolean } | null>(null);
+  const [moduleError, setModuleError] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     setStats(await outbox.stats());
     setRejected(await outbox.rejected());
-  }, [outbox]);
+    const flags = {
+      production: await visibility.canShow('production'),
+      livestock: await visibility.canShow('livestock'),
+      inventory: await visibility.canShow('inventory'),
+      breeding: await visibility.canShow('breeding'),
+      tasks: await visibility.canShow('tasks'),
+      people: await visibility.canShow('people'),
+    };
+    setModuleFlags(flags);
+  }, [outbox, visibility]);
 
   useEffect(() => {
     void refresh();
@@ -41,6 +66,34 @@ export function SyncStatusScreen({
     } finally {
       await refresh();
       setBusy(false);
+    }
+  };
+
+  const onToggleModule = (key: ModuleKey, nextEnabled: boolean) => {
+    setModuleError(null);
+    if (!nextEnabled) {
+      // Disable is the destructive direction: the only way to undo a local disable is
+      // an admin-web visit. Pause and ask before committing.
+      setPendingConfirm({ key, wasEnabled: moduleFlags[key] });
+      return;
+    }
+    void enableNow(key, true);
+  };
+
+  const enableNow = async (key: ModuleKey, enabled: boolean) => {
+    await visibility.setEnabled(key, enabled);
+    await refresh();
+    onModulesChanged?.();
+  };
+
+  const confirmDisable = async () => {
+    if (!pendingConfirm) return;
+    const { key } = pendingConfirm;
+    setPendingConfirm(null);
+    try {
+      await enableNow(key, false);
+    } catch (caught) {
+      setModuleError((caught as Error).message);
     }
   };
 
@@ -91,6 +144,26 @@ export function SyncStatusScreen({
           ))}
         </ScrollView>
       )}
+
+      <Title>Módulos del dispositivo</Title>
+      <Body muted>Los cambios se aplican de inmediato al próximo refresh.</Body>
+      {moduleError ? <Notice text={moduleError} /> : null}
+      <ModuleToggle
+        moduleKey="production"
+        label="Ordeño"
+        enabled={moduleFlags.production}
+        onChange={onToggleModule}
+      />
+
+      {pendingConfirm ? (
+        <Card>
+          <Body>
+            Apagar Ordeño en el teléfono solo se puede revertir desde el panel admin. ¿Continuar?
+          </Body>
+          <BigButton testID="confirm-disable-production" label="Sí, apagar" tone="danger" onPress={confirmDisable} />
+          <BigButton testID="cancel-disable-production" label="Cancelar" tone="neutral" onPress={() => setPendingConfirm(null)} />
+        </Card>
+      ) : null}
     </Screen>
   );
 }

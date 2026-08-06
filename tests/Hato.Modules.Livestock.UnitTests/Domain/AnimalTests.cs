@@ -76,4 +76,75 @@ public class AnimalTests
         Assert.Throws<DomainException>(
             () => animal.AssignIdentifier(IdentifierType.FarmTag, " ", new DateOnly(2026, 1, 1)));
     }
+
+    /// <summary>
+    /// Undoes a mis-registration (a double-tap in the field, a typo in the species).
+    /// Art. 1 is honored because this never removes the row — it sets DeletedAt, which
+    /// is what turns it into a tombstone the sync pull propagates to every device.
+    /// </summary>
+    [Fact]
+    public void Delete_MarksTheAnimalAsDeletedWithoutClearingItsData()
+    {
+        var animal = Animal.Register(SpeciesId, Sex.Female, breedId: Guid.NewGuid());
+
+        animal.Delete();
+
+        Assert.True(animal.IsDeleted);
+        Assert.NotNull(animal.DeletedAt);
+        Assert.Equal(SpeciesId, animal.SpeciesId);
+    }
+
+    [Fact]
+    public void Delete_CalledTwice_Throws()
+    {
+        var animal = Animal.Register(SpeciesId, Sex.Female);
+        animal.Delete();
+
+        Assert.Throws<DomainException>(() => animal.Delete());
+    }
+
+    /// <summary>
+    /// Corrections to mutable fields (a breed guessed wrong at registration, a birth date
+    /// learned later). <see cref="Animal.LastEditedAt"/> is set from the caller's declared
+    /// moment, not the server clock — it is what the LWW conflict resolver in
+    /// Application compares against, and using the server's processing time instead would
+    /// make the outcome depend on network luck rather than which edit actually happened
+    /// later in the field.
+    /// </summary>
+    [Fact]
+    public void Update_SetsEditableFieldsAndTheDeclaredEditMoment()
+    {
+        var animal = Animal.Register(SpeciesId, Sex.Female);
+        var breedId = Guid.NewGuid();
+        var categoryId = Guid.NewGuid();
+        var birthDate = new DateOnly(2026, 1, 1);
+        var editedAt = new DateTimeOffset(2026, 5, 1, 6, 0, 0, TimeSpan.Zero);
+
+        animal.Update(breedId, categoryId, birthDate, editedAt);
+
+        Assert.Equal(breedId, animal.BreedId);
+        Assert.Equal(categoryId, animal.CategoryId);
+        Assert.Equal(birthDate, animal.BirthDate);
+        Assert.Equal(editedAt, animal.LastEditedAt);
+    }
+
+    [Fact]
+    public void Update_CanClearAPreviouslySetField()
+    {
+        var animal = Animal.Register(SpeciesId, Sex.Female, breedId: Guid.NewGuid());
+
+        animal.Update(breedId: null, categoryId: null, birthDate: null, DateTimeOffset.UtcNow);
+
+        Assert.Null(animal.BreedId);
+    }
+
+    [Fact]
+    public void Update_OnADeletedAnimal_Throws()
+    {
+        var animal = Animal.Register(SpeciesId, Sex.Female);
+        animal.Delete();
+
+        Assert.Throws<DomainException>(
+            () => animal.Update(Guid.NewGuid(), null, null, DateTimeOffset.UtcNow));
+    }
 }

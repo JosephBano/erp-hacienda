@@ -1,13 +1,14 @@
-import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Component, OnInit, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
-import { ApiService, Animal } from '../../services/api.service';
+import { ApiService } from '../../services/api.service';
+import { IconComponent } from '../../shared/icon/icon.component';
 
 @Component({
   selector: 'app-quick-milking',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, IconComponent],
   templateUrl: './quick-milking.component.html',
   styleUrls: ['./quick-milking.component.css']
 })
@@ -17,15 +18,17 @@ export class QuickMilkingComponent implements OnInit {
 
   sessionDate = new Date().toISOString().split('T')[0];
   sessionType = 'Morning';
-  recordedBy = 'ordeñador 1';
-  
+  recordedBy = 'operario 1';
+
   animals: { animalId: string; farmTag: string; name: string; liters: number; isInWithdrawal: boolean }[] = [];
   successMessage = '';
   errorMessage = '';
+  loadError = false;
 
   ngOnInit(): void {
     this.api.getAnimals().subscribe({
       next: (data) => {
+        this.loadError = false;
         const females = data.filter(a => a.gender === 'Female' || !a.gender);
         this.animals = females.map(a => ({
           animalId: a.id,
@@ -36,23 +39,23 @@ export class QuickMilkingComponent implements OnInit {
         }));
       },
       error: () => {
-        // Fallback demo data
-        this.animals = [
-          { animalId: '1', farmTag: 'VACA-001', name: 'Mariposa', liters: 14.5, isInWithdrawal: true },
-          { animalId: '2', farmTag: 'VACA-002', name: 'Estrella', liters: 12.0, isInWithdrawal: false },
-          { animalId: '3', farmTag: 'VACA-003', name: 'Luna', liters: 15.0, isInWithdrawal: false }
-        ];
+        this.loadError = true;
+        this.animals = [];
+        this.errorMessage = 'No se pudo cargar el listado de animales. Intente nuevamente.';
       }
     });
   }
 
   saveMilkingSession(): void {
+    this.successMessage = '';
+    this.errorMessage = '';
+
     const validYields = this.animals
       .filter(a => a.liters > 0)
       .map(a => ({ animalId: a.animalId, liters: a.liters }));
 
     if (validYields.length === 0) {
-      this.errorMessage = 'Por favor ingrese al menos la producción en litros para una vaca.';
+      this.errorMessage = 'Ingrese la producción en litros para al menos un animal.';
       return;
     }
 
@@ -63,12 +66,11 @@ export class QuickMilkingComponent implements OnInit {
       yields: validYields
     }).subscribe({
       next: () => {
-        this.successMessage = '¡Sesión de ordeño registrada exitosamente en el sistema!';
+        this.successMessage = 'Sesión de ordeño registrada exitosamente.';
         setTimeout(() => this.router.navigate(['/']), 1500);
       },
       error: () => {
-        this.successMessage = '¡Sesión de ordeño registrada exitosamente (Modo Demostración)!';
-        setTimeout(() => this.router.navigate(['/']), 1500);
+        this.errorMessage = 'No se pudo registrar la sesión de ordeño. Revise la conexión e intente nuevamente.';
       }
     });
   }

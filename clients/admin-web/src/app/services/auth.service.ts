@@ -12,7 +12,8 @@ export interface LoginResult {
   expiresAt: string;
   userId: string;
   fullName: string;
-  role: string;
+  roles: string[];
+  permissions: string[];
 }
 
 // sessionStorage, not localStorage: an XSS payload can still read it, but the token
@@ -53,6 +54,11 @@ export class AuthService {
 
   isAuthenticated(): boolean {
     return !!this.getToken();
+  }
+
+  /** Admin's role already carries every permission code via the RBAC seed — same convention the backend uses. */
+  hasPermission(code: string): boolean {
+    return this.currentUser()?.permissions?.includes(code) ?? false;
   }
 
   private readStoredUser(): LoginResult | null {

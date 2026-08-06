@@ -19,7 +19,25 @@ node_modules/
 dist/
 .angular/
 
+# Expo / React Native (field-app, fase 3+)
+.expo/
+.expo-shared/
+
+# Builds nativos generados por `expo prebuild` y EAS local
+android/
+ios/
+*.apk
+*.aab
+*.app
+
+# Configuración local de builds nativos (paths, keystores)
+local.properties
+
 # Entorno local
 .env
 .env.local
+.env*.local
 .claude/settings.local.json*
+
+# Capturas de pantalla de revisión de UI, no parte del repo
+img-no-save/

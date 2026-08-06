@@ -3,6 +3,8 @@ using Hato.Modules.Breeding.Application.Abstractions;
 using Hato.Modules.Breeding.Contracts;
 using Hato.Modules.Breeding.Domain;
 using Hato.Modules.Breeding.Domain.Enums;
+using Hato.Modules.Livestock.Contracts;
+using Hato.SharedKernel;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
@@ -13,7 +15,10 @@ public record RecordPregnancyCheckCommand(
     DateOnly CheckDate,
     CheckMethod Method,
     CheckResult Result,
-    int GestationDays = 283, // Parameterized gestation days by species
+    // Null = resolve from the dam's Species.GestationDays (Art. 8: gestation length is
+    // DB configuration per species, never a hardcoded constant). Only set explicitly to
+    // override a specific check.
+    int? GestationDays = null,
     string? CheckedBy = null,
     string? Notes = null
 ) : IRequest<PregnancyCheckDto>;
@@ -24,11 +29,11 @@ public class RecordPregnancyCheckCommandValidator : AbstractValidator<RecordPreg
     {
         RuleFor(x => x.ServiceId).NotEmpty();
         RuleFor(x => x.CheckDate).NotEmpty();
-        RuleFor(x => x.GestationDays).GreaterThan(0);
+        RuleFor(x => x.GestationDays).GreaterThan(0).When(x => x.GestationDays.HasValue);
     }
 }
 
-public class RecordPregnancyCheckCommandHandler(IBreedingDbContext dbContext)
+public class RecordPregnancyCheckCommandHandler(IBreedingDbContext dbContext, IAnimalSpeciesReader speciesReader)
     : IRequestHandler<RecordPregnancyCheckCommand, PregnancyCheckDto>
 {
     public async Task<PregnancyCheckDto> Handle(RecordPregnancyCheckCommand request, CancellationToken cancellationToken)
@@ -50,11 +55,16 @@ public class RecordPregnancyCheckCommandHandler(IBreedingDbContext dbContext)
 
         if (request.Result == CheckResult.Positive)
         {
+            var gestationDays = request.GestationDays
+                ?? await speciesReader.GetGestationDaysAsync(service.DamId, cancellationToken)
+                ?? throw new DomainException(
+                    "La especie de la madre no tiene configurados los días de gestación. Configure 'GestationDays' en Especies antes de registrar la preñez.");
+
             var pregnancy = Pregnancy.Start(
                 service.DamId,
                 service.Id,
                 service.ServiceDate,
-                request.GestationDays,
+                gestationDays,
                 request.CheckDate,
                 request.Notes
             );

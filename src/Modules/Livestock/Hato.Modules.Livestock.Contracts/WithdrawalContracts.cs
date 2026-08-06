@@ -18,4 +18,13 @@ public interface IWithdrawalPeriodsReader
     Task<IReadOnlyList<ActiveWithdrawalDto>> GetActiveAsOfAsync(DateOnly date, CancellationToken cancellationToken);
 
     Task<bool> HasActiveWithdrawalAsync(Guid animalId, DateOnly date, WithdrawalTargetKind target, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Among the animals currently active in <paramref name="groupId"/>, returns the ones
+    /// under an active withdrawal on <paramref name="date"/> for <paramref name="target"/>.
+    /// Used to block group/tank milking sessions the same way individual sessions are
+    /// blocked (Art. 19) — a group total pools milk from every member, so one withheld
+    /// animal in the group is enough to withhold the whole session.
+    /// </summary>
+    Task<IReadOnlyList<Guid>> GetWithdrawnAnimalIdsInGroupAsync(Guid groupId, DateOnly date, WithdrawalTargetKind target, CancellationToken cancellationToken);
 }

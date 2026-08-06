@@ -34,3 +34,14 @@ public interface IAnimalRegistrationService
 {
     Task<Guid> RegisterOffspringAsync(RegisterOffspringRequest request, CancellationToken cancellationToken);
 }
+
+/// <summary>
+/// Public read port for Breeding to resolve species-specific gestation length (bovine
+/// ~283 days, porcine ~114 days — a DB-configured parameter per Art. 8, never a constant
+/// or an if/switch in domain code).
+/// </summary>
+public interface IAnimalSpeciesReader
+{
+    /// <summary>Null if the animal doesn't exist or its species has no configured gestation length.</summary>
+    Task<int?> GetGestationDaysAsync(Guid animalId, CancellationToken cancellationToken);
+}

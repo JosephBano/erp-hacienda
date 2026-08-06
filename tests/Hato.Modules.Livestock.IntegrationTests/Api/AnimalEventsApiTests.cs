@@ -59,5 +59,45 @@ public class AnimalEventsApiTests(HatoApiFactory factory) : IClassFixture<HatoAp
         Assert.True(withdrawals[0].IsActive);
     }
 
+    [Fact]
+    public async Task RecordTreatmentEvent_WithNonUtcOffset_UsesUtcDateForWithdrawalStart()
+    {
+        var speciesResponse = await _client.PostAsJsonAsync("/api/v1/species", new { name = $"Bovino-UTC-{Guid.NewGuid()}", gestationDays = 283 });
+        var speciesId = (await speciesResponse.Content.ReadFromJsonAsync<CreatedId>())!.Id;
+
+        var animalResponse = await _client.PostAsJsonAsync("/api/v1/animals", new
+        {
+            speciesId,
+            sex = Sex.Female,
+            birthDate = (DateOnly?)null,
+            breedId = (Guid?)null,
+            categoryId = (Guid?)null,
+        });
+        var animalId = (await animalResponse.Content.ReadFromJsonAsync<CreatedId>())!.Id;
+
+        // 23:00 in Ecuador (UTC-05:00) on 2026-08-01 is already 2026-08-02 in UTC.
+        // The withdrawal period must start on the UTC date, not the local wall-clock date.
+        var occurredAt = new DateTimeOffset(2026, 8, 1, 23, 0, 0, TimeSpan.FromHours(-5));
+        var expectedUtcDate = DateOnly.FromDateTime(occurredAt.UtcDateTime);
+
+        var recordResponse = await _client.PostAsJsonAsync($"/api/v1/animals/{animalId}/events", new
+        {
+            eventType = EventType.Treatment,
+            occurredAt,
+            recordedBy = "mayordomo",
+            payloadJson = "{\"medicine\": \"Oxitetraciclina\"}",
+            milkWithdrawalDays = 7
+        });
+        recordResponse.EnsureSuccessStatusCode();
+
+        var withdrawalResponse = await _client.GetAsync($"/api/v1/animals/{animalId}/withdrawal-periods");
+        withdrawalResponse.EnsureSuccessStatusCode();
+        var withdrawals = await withdrawalResponse.Content.ReadFromJsonAsync<List<WithdrawalPeriodDto>>();
+
+        Assert.NotNull(withdrawals);
+        Assert.Single(withdrawals!);
+        Assert.Equal(expectedUtcDate, withdrawals[0].StartsAt);
+    }
+
     private sealed record CreatedId(Guid Id);
 }

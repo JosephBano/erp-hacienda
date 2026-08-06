@@ -40,10 +40,13 @@ public class GroupFeedConsumptionConfiguration : IEntityTypeConfiguration<GroupF
         builder.ToTable("group_feed_consumptions");
         builder.HasKey(c => c.Id);
 
-        builder.Property(c => c.RecordedBy).HasMaxLength(100).IsRequired();
+        builder.Property(c => c.RecordedByLabel).HasMaxLength(100).IsRequired();
+        builder.Property(c => c.RecordedById).IsRequired(false);
+        builder.Ignore(c => c.RecordedBy);
         builder.Property(c => c.Notes).HasMaxLength(500);
 
         builder.HasOne<InventoryItem>().WithMany().HasForeignKey(c => c.InventoryItemId).OnDelete(DeleteBehavior.Restrict);
         builder.HasIndex(c => new { c.GroupId, c.ConsumedAt });
+        builder.HasIndex(c => c.RecordedById);
     }
 }

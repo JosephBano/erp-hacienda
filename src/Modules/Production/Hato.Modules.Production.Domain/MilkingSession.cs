@@ -23,28 +23,45 @@ public class MilkingSession : AuditableEntity
     public MilkingShift Shift { get; private set; }
     public Guid? GroupId { get; private set; }
     public decimal TotalLiters { get; private set; }
-    public string RecordedBy { get; private set; }
+    public Guid? RecordedById { get; private set; }
+    public string RecordedByLabel { get; private set; }
+    public string RecordedBy => RecordedByLabel;
     public string? Notes { get; private set; }
 
     public IReadOnlyCollection<MilkYield> Yields => _yields.AsReadOnly();
 
     private MilkingSession()
     {
-        RecordedBy = null!;
+        RecordedByLabel = null!;
     }
 
-    private MilkingSession(DateOnly date, MilkingShift shift, Guid? groupId, decimal totalLiters, string recordedBy, string? notes)
+    private MilkingSession(
+        DateOnly date,
+        MilkingShift shift,
+        Guid? groupId,
+        decimal totalLiters,
+        string recordedByLabel,
+        Guid? recordedById,
+        string? notes)
     {
         Date = date;
         Shift = shift;
         GroupId = groupId;
         TotalLiters = totalLiters;
-        RecordedBy = recordedBy;
+        RecordedByLabel = recordedByLabel;
+        RecordedById = recordedById;
         Notes = notes;
+        CreatedAt = DateTimeOffset.UtcNow;
     }
 
     public static MilkingSession Create(
-        DateOnly date, MilkingShift shift, string recordedBy, decimal totalLiters = 0, Guid? groupId = null, string? notes = null)
+        DateOnly date,
+        MilkingShift shift,
+        string recordedBy,
+        decimal totalLiters = 0,
+        Guid? groupId = null,
+        string? notes = null,
+        Guid? recordedById = null)
     {
         if (string.IsNullOrWhiteSpace(recordedBy))
             throw new DomainException("El registrador del ordeño es requerido.");
@@ -52,7 +69,7 @@ public class MilkingSession : AuditableEntity
         if (totalLiters < 0)
             throw new DomainException("Los litros totales no pueden ser negativos.");
 
-        return new MilkingSession(date, shift, groupId, totalLiters, recordedBy.Trim(), notes?.Trim());
+        return new MilkingSession(date, shift, groupId, totalLiters, recordedBy.Trim(), recordedById, notes?.Trim());
     }
 
     public MilkYield RecordAnimalYield(Guid animalId, decimal liters)
@@ -89,5 +106,6 @@ public class MilkYield : AuditableEntity
         MilkingSessionId = milkingSessionId;
         AnimalId = animalId;
         Liters = liters;
+        CreatedAt = DateTimeOffset.UtcNow;
     }
 }

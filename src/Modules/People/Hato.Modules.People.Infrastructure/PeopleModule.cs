@@ -3,8 +3,14 @@ using System.Security.Cryptography;
 using System.Text;
 using FluentValidation;
 using Hato.Modules.People.Application.Abstractions;
+using Hato.Modules.People.Contracts;
+using Hato.Modules.People.Domain;
+using Hato.Modules.People.Infrastructure.Authorization;
+using Hato.Modules.People.Infrastructure.CrossModule;
 using Hato.Modules.People.Infrastructure.Persistence;
+using Hato.SharedKernel;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -18,6 +24,11 @@ public static class PeopleModule
     public static IServiceCollection AddPeopleModule(
         this IServiceCollection services, IConfiguration configuration, IHostEnvironment environment)
     {
+        services.AddHttpContextAccessor();
+        services.AddScoped<ICurrentUser, HttpContextCurrentUser>();
+        services.AddScoped<AuditSaveChangesInterceptor>();
+        services.AddScoped<IUserPermissionsReader, UserPermissionsReader>();
+
         services.AddDbContext<PeopleDbContext>((sp, options) =>
         {
             var connectionString = sp.GetRequiredService<IConfiguration>().GetConnectionString("HatoDb")
@@ -26,6 +37,8 @@ public static class PeopleModule
             options.UseNpgsql(
                 connectionString,
                 npgsql => npgsql.MigrationsHistoryTable("__ef_migrations_history", PeopleDbContext.Schema));
+
+            options.AddInterceptors(sp.GetRequiredService<AuditSaveChangesInterceptor>());
         });
 
         services.AddScoped<IPeopleDbContext>(sp => sp.GetRequiredService<PeopleDbContext>());
@@ -35,17 +48,10 @@ public static class PeopleModule
 
         services.AddValidatorsFromAssembly(typeof(Application.Abstractions.IPeopleDbContext).Assembly);
 
-        // Resolved once, here, so the same key signs (JwtTokenGenerator, via
-        // IOptions<JwtOptions>) and validates (AddJwtBearer below) tokens.
         var jwtOptions = configuration.GetSection(JwtOptions.SectionName).Get<JwtOptions>() ?? new JwtOptions();
 
         if (string.IsNullOrWhiteSpace(jwtOptions.SigningKey) && !environment.IsProduction())
         {
-            // Dev/test convenience only — nothing is committed to the repo (Art. 2:
-            // GitGuardian already caught one hardcoded dev secret in this project's
-            // history). A fresh key per process start just invalidates old tokens on
-            // restart. Production must set Jwt:SigningKey via user-secrets or an
-            // environment variable, enforced by ValidateOnStart below.
             jwtOptions.SigningKey = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
         }
 
@@ -68,9 +74,6 @@ public static class PeopleModule
         services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             .AddJwtBearer(options =>
             {
-                // Without this, the default handler silently remaps short JWT claim
-                // names ("sub") to long legacy URIs, so FindFirst(sub) below would
-                // always miss and OnTokenValidated would reject every valid token.
                 options.MapInboundClaims = false;
 
                 options.TokenValidationParameters = new TokenValidationParameters
@@ -85,10 +88,6 @@ public static class PeopleModule
                     ClockSkew = TimeSpan.FromMinutes(1),
                 };
 
-                // JWTs are stateless: without this, deactivating a user (or a future
-                // "change role") has no effect until their existing token expires
-                // (ExpiryMinutes). Re-checking IsActive per request closes that gap
-                // at the cost of one indexed lookup — acceptable at this app's scale.
                 options.Events = new JwtBearerEvents
                 {
                     OnTokenValidated = async context =>
@@ -113,7 +112,16 @@ public static class PeopleModule
                 };
             });
 
-        services.AddAuthorization();
+        services.AddSingleton<IAuthorizationHandler, PermissionAuthorizationHandler>();
+
+        services.AddAuthorization(options =>
+        {
+            options.AddPolicy("PeopleUsersManage", p => p.RequirePermission(SystemPermissions.PeopleUsersManage));
+            options.AddPolicy("PeopleRolesManage", p => p.RequirePermission(SystemPermissions.PeopleRolesManage));
+            options.AddPolicy("LivestockCategoriesManage", p => p.RequirePermission(SystemPermissions.LivestockCategoriesManage));
+            options.AddPolicy("LivestockBreedsManage", p => p.RequirePermission(SystemPermissions.LivestockBreedsManage));
+            options.AddPolicy("LivestockSpeciesManage", p => p.RequirePermission(SystemPermissions.LivestockSpeciesManage));
+        });
 
         return services;
     }

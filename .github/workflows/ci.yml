@@ -7,7 +7,7 @@ on:
     branches: [develop, main]
 
 jobs:
-  build-and-test:
+  backend-build-and-test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -19,6 +19,9 @@ jobs:
 
       - name: Restore
         run: dotnet restore
+
+      - name: Verify Format
+        run: dotnet format --verify-no-changes
 
       - name: Build
         run: dotnet build --no-restore --configuration Release
@@ -32,3 +35,56 @@ jobs:
         with:
           name: test-results
           path: TestResults
+
+  field-app-ci:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: clients/field-app
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: clients/field-app/package.json
+
+      # --legacy-peer-deps is required because @nozbe/with-observables@1.6.0 still
+      # declares peer @types/react ^16||^17||^18 — the project is on React 19 since the
+      # SDK 51 -> 56 upgrade. The runtime types are structurally compatible (TS forwards
+      # them correctly); the warning is informational, not blocking. Documented in the
+      # PR body so reviewers know it's intentional.
+      - name: Install dependencies
+        run: npm ci --legacy-peer-deps || npm install --legacy-peer-deps
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Run Tests
+        run: npm test
+
+  admin-web-ci:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: clients/admin-web
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: clients/admin-web/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci || npm install
+
+      - name: Build (compile + typecheck + budget check)
+        run: npx ng build --configuration production
+
+      - name: Run unit tests
+        run: npx ng test --watch=false

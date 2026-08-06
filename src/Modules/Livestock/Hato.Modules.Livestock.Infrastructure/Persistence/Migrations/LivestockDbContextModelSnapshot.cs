@@ -66,6 +66,10 @@ namespace Hato.Modules.Livestock.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("father_straw_id");
 
+                    b.Property<DateTimeOffset?>("LastEditedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("last_edited_at");
+
                     b.Property<Guid?>("MotherId")
                         .HasColumnType("uuid")
                         .HasColumnName("mother_id");
@@ -200,11 +204,15 @@ namespace Hato.Modules.Livestock.Infrastructure.Persistence.Migrations
                         .HasColumnType("jsonb")
                         .HasColumnName("payload_json");
 
-                    b.Property<string>("RecordedBy")
+                    b.Property<Guid?>("RecordedById")
+                        .HasColumnType("uuid")
+                        .HasColumnName("recorded_by_id");
+
+                    b.Property<string>("RecordedByLabel")
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)")
-                        .HasColumnName("recorded_by");
+                        .HasColumnName("recorded_by_label");
 
                     b.Property<Guid?>("RelatedEventId")
                         .HasColumnType("uuid")
@@ -220,6 +228,9 @@ namespace Hato.Modules.Livestock.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id")
                         .HasName("p_k_animal_events");
+
+                    b.HasIndex("RecordedById")
+                        .HasDatabaseName("i_x_animal_events_recorded_by_id");
 
                     b.HasIndex("AnimalId", "OccurredAt")
                         .HasDatabaseName("i_x_animal_events_animal_id_occurred_at");
@@ -467,6 +478,12 @@ namespace Hato.Modules.Livestock.Infrastructure.Persistence.Migrations
                     b.Property<int?>("GestationDays")
                         .HasColumnType("integer")
                         .HasColumnName("gestation_days");
+
+                    b.Property<bool>("IsMilkable")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("is_milkable");
 
                     b.Property<string>("Name")
                         .IsRequired()

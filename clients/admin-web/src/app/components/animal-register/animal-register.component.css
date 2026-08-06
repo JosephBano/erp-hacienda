@@ -1,0 +1,124 @@
+.page-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.page-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+}
+
+.page-title app-icon {
+  color: var(--brand-primary);
+}
+
+.subtitle {
+  color: var(--text-muted);
+  font-size: 0.925rem;
+  margin: 0.25rem 0 0;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1.25rem;
+}
+
+.event-details-box {
+  background: rgba(15, 23, 42, 0.4);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 1.25rem;
+}
+
+.field-hint {
+  font-size: 0.75rem;
+  color: var(--warning);
+}
+
+.inline-field {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.inline-field .form-select,
+.inline-field .form-input {
+  flex: 1 1 12rem;
+  min-width: 0;
+}
+
+.btn-link {
+  background: none;
+  border: none;
+  color: var(--brand-primary);
+  cursor: pointer;
+  font-weight: 600;
+  white-space: nowrap;
+  padding: 0.25rem 0.5rem;
+}
+
+.btn-link:hover {
+  text-decoration: underline;
+}
+
+.mt-2 { margin-top: 0.5rem; }
+.mt-3 { margin-top: 1rem; }
+.mt-4 { margin-top: 1.5rem; }
+
+.alert {
+  padding: 1rem 1.5rem;
+  border-radius: var(--radius-md);
+  font-weight: 600;
+}
+.alert-success { background: rgba(16, 185, 129, 0.2); border: 1px solid rgba(16, 185, 129, 0.4); color: #34d399; }
+.alert-danger { background: rgba(239, 68, 68, 0.2); border: 1px solid rgba(239, 68, 68, 0.4); color: #f87171; }
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.form-actions .btn {
+  width: auto;
+}
+
+@media (max-width: 768px) {
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .form-actions {
+    justify-content: stretch;
+  }
+
+  .form-actions .btn {
+    width: 100%;
+    min-height: var(--touch-target);
+  }
+
+  .page-title {
+    font-size: 1.4rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .inline-field {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .inline-field .form-select,
+  .inline-field .form-input {
+    flex: 1 1 auto;
+    width: 100%;
+  }
+
+  .btn-link {
+    align-self: flex-start;
+  }
+}

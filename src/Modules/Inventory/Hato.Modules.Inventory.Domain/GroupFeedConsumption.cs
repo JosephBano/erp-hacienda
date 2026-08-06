@@ -13,12 +13,14 @@ public class GroupFeedConsumption : AuditableEntity
     public Guid? BatchId { get; private set; }
     public decimal Quantity { get; private set; }
     public DateOnly ConsumedAt { get; private set; }
-    public string RecordedBy { get; private set; }
+    public Guid? RecordedById { get; private set; }
+    public string RecordedByLabel { get; private set; }
+    public string RecordedBy => RecordedByLabel;
     public string? Notes { get; private set; }
 
     private GroupFeedConsumption()
     {
-        RecordedBy = null!;
+        RecordedByLabel = null!;
     }
 
     private GroupFeedConsumption(
@@ -27,7 +29,8 @@ public class GroupFeedConsumption : AuditableEntity
         Guid? batchId,
         decimal quantity,
         DateOnly consumedAt,
-        string recordedBy,
+        string recordedByLabel,
+        Guid? recordedById,
         string? notes)
     {
         GroupId = groupId;
@@ -35,8 +38,10 @@ public class GroupFeedConsumption : AuditableEntity
         BatchId = batchId;
         Quantity = quantity;
         ConsumedAt = consumedAt;
-        RecordedBy = recordedBy;
+        RecordedByLabel = recordedByLabel;
+        RecordedById = recordedById;
         Notes = notes;
+        CreatedAt = DateTimeOffset.UtcNow;
     }
 
     public static GroupFeedConsumption Record(
@@ -46,7 +51,8 @@ public class GroupFeedConsumption : AuditableEntity
         DateOnly consumedAt,
         string recordedBy,
         Guid? batchId = null,
-        string? notes = null)
+        string? notes = null,
+        Guid? recordedById = null)
     {
         if (groupId == Guid.Empty)
             throw new DomainException("El consumo debe estar vinculado a un grupo válido.");
@@ -61,6 +67,6 @@ public class GroupFeedConsumption : AuditableEntity
             throw new DomainException("El autor del registro no puede estar vacío.");
 
         return new GroupFeedConsumption(
-            groupId, inventoryItemId, batchId, quantity, consumedAt, recordedBy.Trim(), notes?.Trim());
+            groupId, inventoryItemId, batchId, quantity, consumedAt, recordedBy.Trim(), recordedById, notes?.Trim());
     }
 }

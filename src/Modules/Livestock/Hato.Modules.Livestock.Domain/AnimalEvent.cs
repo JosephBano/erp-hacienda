@@ -12,14 +12,16 @@ public class AnimalEvent : AuditableEntity
     public Guid AnimalId { get; private set; }
     public EventType EventType { get; private set; }
     public DateTimeOffset OccurredAt { get; private set; }
-    public string RecordedBy { get; private set; }
+    public Guid? RecordedById { get; private set; }
+    public string RecordedByLabel { get; private set; }
+    public string RecordedBy => RecordedByLabel;
     public decimal? Cost { get; private set; }
     public string PayloadJson { get; private set; }
     public Guid? RelatedEventId { get; private set; }
 
     private AnimalEvent()
     {
-        RecordedBy = null!;
+        RecordedByLabel = null!;
         PayloadJson = null!;
     }
 
@@ -27,7 +29,8 @@ public class AnimalEvent : AuditableEntity
         Guid animalId,
         EventType eventType,
         DateTimeOffset occurredAt,
-        string recordedBy,
+        string recordedByLabel,
+        Guid? recordedById,
         string payloadJson,
         decimal? cost,
         Guid? relatedEventId)
@@ -35,7 +38,8 @@ public class AnimalEvent : AuditableEntity
         AnimalId = animalId;
         EventType = eventType;
         OccurredAt = occurredAt;
-        RecordedBy = recordedBy;
+        RecordedByLabel = recordedByLabel;
+        RecordedById = recordedById;
         PayloadJson = payloadJson;
         Cost = cost;
         RelatedEventId = relatedEventId;
@@ -48,7 +52,8 @@ public class AnimalEvent : AuditableEntity
         string recordedBy,
         string payloadJson,
         decimal? cost = null,
-        Guid? relatedEventId = null)
+        Guid? relatedEventId = null,
+        Guid? recordedById = null)
     {
         if (animalId == Guid.Empty)
             throw new DomainException("Un evento debe estar asociado a un animal.");
@@ -67,6 +72,7 @@ public class AnimalEvent : AuditableEntity
             eventType,
             occurredAt,
             recordedBy.Trim(),
+            recordedById,
             payloadJson.Trim(),
             cost,
             relatedEventId);

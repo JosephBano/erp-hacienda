@@ -6,7 +6,9 @@ using Hato.Modules.Livestock.Infrastructure.CrossModule;
 using Hato.Modules.Livestock.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using Hato.SharedKernel.Persistence;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace Hato.Modules.Livestock.Infrastructure;
 
@@ -16,6 +18,10 @@ public static class LivestockModule
     public static IServiceCollection AddLivestockModule(
         this IServiceCollection services, IConfiguration configuration)
     {
+        // Shared audit stamping: without it, rows carry no created_at/updated_at
+        // and the offline pull cursor (ADR-0008) cannot position them.
+        services.TryAddScoped<AuditTimestampInterceptor>();
+
         // Resolved lazily (at DbContext construction, not service registration) so that
         // test hosts like WebApplicationFactory — which inject their own connection
         // string after this method runs — still see it. Also means the app doesn't fail
@@ -30,6 +36,8 @@ public static class LivestockModule
             options.UseNpgsql(
                 connectionString,
                 npgsql => npgsql.MigrationsHistoryTable("__ef_migrations_history", LivestockDbContext.Schema));
+
+            options.AddInterceptors(sp.GetRequiredService<AuditTimestampInterceptor>());
         });
 
         services.AddScoped<ILivestockDbContext>(sp => sp.GetRequiredService<LivestockDbContext>());
@@ -38,6 +46,7 @@ public static class LivestockModule
         services.AddScoped<IWithdrawalPeriodsReader, WithdrawalPeriodsReader>();
         services.AddScoped<IAnimalGenealogyReader, AnimalGenealogyReader>();
         services.AddScoped<IAnimalRegistrationService, AnimalRegistrationService>();
+        services.AddScoped<IAnimalSpeciesReader, AnimalSpeciesReader>();
 
         services.AddMediatR(cfg =>
         {

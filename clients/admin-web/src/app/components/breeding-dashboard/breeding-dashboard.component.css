@@ -8,10 +8,15 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
   margin-bottom: 0.5rem;
 }
 
 .page-title {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
   font-size: 1.6rem;
   font-weight: 700;
   color: #f8fafc;
@@ -27,11 +32,17 @@
 .tabs-nav {
   display: flex;
   gap: 0.5rem;
+  flex-wrap: wrap;
   border-bottom: 2px solid #334155;
   padding-bottom: 0.5rem;
 }
 
 .tab-btn {
+  display: inline-flex;
+  min-height: var(--touch-target);
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
   background: transparent;
   border: none;
   color: #94a3b8;
@@ -40,7 +51,7 @@
   padding: 0.6rem 1.2rem;
   border-radius: 8px;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 .tab-btn:hover {
@@ -49,9 +60,9 @@
 }
 
 .tab-btn.active {
-  color: #38bdf8;
+  color: var(--brand-primary);
   background: #1e293b;
-  border-bottom: 2px solid #38bdf8;
+  border-bottom: 2px solid var(--brand-primary);
 }
 
 .alerts-grid {
@@ -62,7 +73,7 @@
 
 .alert-card {
   background: #1e293b;
-  border-left: 4px solid #38bdf8;
+  border-left: 4px solid var(--brand-primary);
   border-radius: 10px;
   padding: 1.2rem;
   display: flex;
@@ -117,30 +128,6 @@
   color: #64748b;
 }
 
-.badge {
-  padding: 0.25rem 0.6rem;
-  border-radius: 20px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  background: #334155;
-  color: #f8fafc;
-}
-
-.badge-warning {
-  background: rgba(245, 158, 11, 0.2);
-  color: #f59e0b;
-}
-
-.badge-danger {
-  background: rgba(239, 68, 68, 0.2);
-  color: #ef4444;
-}
-
-.badge-success {
-  background: rgba(16, 185, 129, 0.2);
-  color: #10b981;
-}
-
 .grid-2 {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -161,6 +148,9 @@
 }
 
 .form-card h2, .table-card h2 {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
   font-size: 1.2rem;
   font-weight: 600;
   margin-bottom: 1rem;
@@ -180,20 +170,26 @@
 }
 
 .form-control {
+  min-height: var(--touch-target);
   background: #0f172a;
   border: 1px solid #334155;
   border-radius: 6px;
   color: #f8fafc;
   padding: 0.6rem 0.8rem;
-  font-size: 0.95rem;
+  font-size: 1rem;
 }
 
 .form-control:focus {
   outline: none;
-  border-color: #38bdf8;
+  border-color: var(--brand-primary);
 }
 
 .btn {
+  display: inline-flex;
+  min-height: var(--touch-target);
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
   padding: 0.6rem 1.2rem;
   border-radius: 6px;
   font-weight: 600;
@@ -202,8 +198,8 @@
 }
 
 .btn-primary {
-  background: #0284c7;
-  color: white;
+  background: linear-gradient(135deg, var(--brand-primary), var(--brand-secondary));
+  color: #0f172a;
 }
 
 .btn-success {
@@ -221,30 +217,11 @@
   width: 100%;
 }
 
-.btn-sm {
-  padding: 0.3rem 0.7rem;
-  font-size: 0.8rem;
-}
-
-.data-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.data-table th, .data-table td {
-  padding: 0.75rem 1rem;
-  text-align: left;
-  border-bottom: 1px solid #334155;
-}
-
-.data-table th {
-  color: #94a3b8;
-  font-size: 0.85rem;
-  text-transform: uppercase;
-}
-
 .highlight-date {
-  color: #38bdf8;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--brand-primary);
   font-weight: 600;
 }
 
@@ -257,10 +234,14 @@
 }
 
 .empty-icon {
-  font-size: 3rem;
+  margin: 0 auto 0.75rem;
+  color: var(--brand-primary);
 }
 
 .alert {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
   padding: 0.8rem 1.2rem;
   border-radius: 8px;
   font-weight: 500;
@@ -276,4 +257,63 @@
   background: rgba(239, 68, 68, 0.2);
   color: #f87171;
   border: 1px solid #dc2626;
+}
+
+@media (max-width: 900px) {
+  .grid-2 {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .breeding-container {
+    gap: 1rem;
+  }
+
+  .header-section {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .header-actions .btn {
+    width: 100%;
+  }
+
+  .tabs-nav {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .tab-btn {
+    padding: 0.6rem;
+    white-space: normal;
+  }
+
+  .alerts-grid,
+  .grid-3 {
+    grid-template-columns: 1fr;
+  }
+
+  .form-card,
+  .table-card,
+  .empty-state {
+    padding: 1rem;
+  }
+
+  .alert-footer {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .tabs-nav {
+    grid-template-columns: 1fr;
+  }
+
+  .page-title {
+    align-items: flex-start;
+    font-size: 1.45rem;
+  }
 }

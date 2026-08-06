@@ -2,7 +2,7 @@
 
 > Regla de oro (Art. 11): **una fase se cierra cuando algo se usa de verdad en la finca.**
 > Este archivo se actualiza al cerrar cada fase (fecha real + retrospectiva de 5 líneas).
-> Estado actual: `Fase 2 — cerrada` (iniciada 2026-08-01, cerrada 2026-08-01).
+> Estado actual: `Fase 3 — reabierta` (iniciada 2026-08-02, cerrada en falso 2026-08-02, reabierta 2026-08-03).
 >
 > **Retrospectiva Fase 0:** el esqueleto se construyó con asistencia intensiva de un agente de
 > IA (Claude Code) siguiendo al pie de la letra `AGENTS.md` y la Constitución; el costo
@@ -28,6 +28,31 @@
 > (`CalvingInterval`, `DaysOpen`) y el motor de alertas `Tasks/Alertas` v1. El panel web Angular
 > expone la gestión reproductiva, catálogo de semen y centro de alertas activas. Se alcanzaron
 > 71 pruebas automáticas al 100%.
+>
+> **Fase 3 — cierre revertido (2026-08-03).** La fase se había marcado como cerrada, pero su criterio de
+> salida ("una semana completa de registros de campo hechos solo desde el móvil") era imposible de haber
+> cumplido: `clients/field-app/` no contenía ni una sola pantalla, no había `App.tsx` ni assets, y `app.json`
+> apuntaba a imágenes inexistentes, de modo que la app no arrancaba. Una auditoría posterior encontró además
+> tres defectos que habrían perdido datos en producción sin dar ningún error:
+>
+> 1. **Ninguna entidad de Livestock recibía `created_at`/`updated_at`**: el interceptor de auditoría estaba
+>    registrado sólo en `PeopleDbContext`. Todas las filas quedaban en `0001-01-01`, así que el pull incremental
+>    no volvía a entregar nada a un cliente cuyo cursor ya hubiera avanzado.
+> 2. **El parto perdía la genealogía en silencio**: la app encolaba `createAnimal` con `motherId` en el payload,
+>    pero ese comando no tiene ese campo; el JSON se descartaba y el servidor respondía `Accepted` con una cría
+>    huérfana.
+> 3. **El outbox del cliente vivía en `localStorage`**, una API que no existe en React Native: en un teléfono real
+>    todo lo pendiente moría al cerrar la app.
+>
+> Lección: el criterio del Art. 11 —"algo se usa de verdad en la finca"— no admite cierre por avance parcial, y
+> una suite verde no prueba nada si no ejercita el camino que el usuario recorre. Las pruebas de sync que existían
+> cubrían 3 de los 10 escenarios obligatorios del plan, y ninguna tocaba el borde del cursor.
+>
+> **Trabajo de corrección (rama `fix/fase-3-sync-correctness`):** sellado universal de marcas de tiempo, cursor
+> `(timestamp, id)` con orden determinista y frontera por colección, `recordBirth`/`moveAnimal` en el push,
+> idempotencia por reserva previa con índice único, UUID de cliente aceptado por el servidor (Art. 3), outbox
+> real en WatermelonDB, motor de sync con backoff y detección de conectividad, y las pantallas de campo. Suite
+> dedicada `Hato.Sync.IntegrationTests`.
 
 ---
 
@@ -91,6 +116,29 @@ sistema, y la cría nació "dentro" del sistema con su genealogía.
 
 **Criterio de salida:** una semana completa de registros de campo hechos solo desde el
 móvil, incluyendo días sin señal, sin pérdida ni duplicación de datos.
+
+> **Pendiente para cerrar (2026-08-03):** de todo lo que quedaba abierto al reabrir la
+> fase, sólo falta una cosa y es deliberadamente ajena al código: **el piloto real** —
+> una semana de registros hechos por un empleado desde un teléfono de verdad, sin señal,
+> tal como exige el criterio de salida. Nada de trabajo de ingeniería puede sustituir esa
+> semana.
+>
+> Todo lo demás ya está resuelto: borrado lógico real (`Animal.Delete()`, con invariante
+> de "no eliminar con historia" y filtro de query), filtrado del pull por permisos, la
+> bitácora de conflictos LWW (`Animal.LastEditedAt` + `GET /api/v1/sync/conflicts`) con
+> una pantalla en `field-app` que la hace alcanzable en uso real (antes, ningún cliente
+> podía disparar un conflicto LWW fuera de una prueba) y otra en `admin-web` que la
+> expone, los endpoints de lectura de especies/razas/categorías que faltaban para poder
+> registrar un animal desde cualquier cliente con su pantalla correspondiente, los 10
+> escenarios obligatorios de sincronización de PLAN-FASE-3-4 §2.2 (los últimos dos —
+> token expirado a mitad de push y corte de red a mitad de un lote — encontraron y
+> corrigieron un bug real en el cliente), la prueba de convergencia end-to-end con dos
+> dispositivos simulados, y las pantallas de roles/permisos (con edición), auditoría y
+> sincronización en el panel. `docs/BACKLOG.md` recoge lo que se dejó fuera a propósito
+> (extender borrado lógico y LWW a otras entidades, resolución manual de operaciones
+> rechazadas, `ng test` roto en `admin-web`) y por qué. Sigue pendiente, heredado y sin
+> relación con esta fase: la subida de fotos (Fase 4) y el ciclo de vida de `Lactation`
+> (Fase 2, nunca implementado).
 
 ---
 

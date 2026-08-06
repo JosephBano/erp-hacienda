@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 
 export interface Animal {
@@ -22,6 +22,38 @@ export interface AnimalDetail extends Animal {
   milkYields: MilkYield[];
 }
 
+export interface SpeciesDto {
+  id: string;
+  name: string;
+  gestationDays?: number;
+  /**
+   * Whether the field app lets the employee record milking sessions for animals of this
+   * species. Defaults to false (fail-closed) on creation: a species the operator has not
+   * opted in cannot be milked. See `docs/GLOSSARY.md` for the Art. 8 rationale.
+   */
+  isMilkable: boolean;
+}
+
+export interface BreedDto {
+  id: string;
+  speciesId: string;
+  name: string;
+}
+
+export interface AnimalCategoryDto {
+  id: string;
+  speciesId: string;
+  name: string;
+}
+
+export interface RegisterAnimalRequest {
+  speciesId: string;
+  sex: 'Male' | 'Female';
+  breedId?: string;
+  categoryId?: string;
+  birthDate?: string;
+}
+
 export interface AnimalEvent {
   id: string;
   eventType: string;
@@ -42,6 +74,17 @@ export interface MilkingSessionRequest {
   sessionType: string;
   recordedBy: string;
   yields: { animalId: string; liters: number }[];
+}
+
+export interface MilkingSessionDto {
+  id: string;
+  date: string;
+  shift: string;
+  groupId?: string;
+  totalLiters: number;
+  recordedBy: string;
+  notes?: string;
+  yields: { id: string; animalId: string; liters: number }[];
 }
 
 export interface RecordEventRequest {
@@ -146,12 +189,143 @@ export interface AlertDto {
   createdAt: string;
 }
 
+export interface PermissionDto {
+  id: string;
+  code: string;
+  name: string;
+  module: string;
+  description: string;
+}
+
+export interface RoleDto {
+  id: string;
+  code: string;
+  name: string;
+  description: string;
+  isSystem: boolean;
+  permissions: PermissionDto[];
+}
+
+export interface UserDto {
+  id: string;
+  fullName: string;
+  email: string;
+  roles: string[];
+  isActive: boolean;
+}
+
+export interface AuditLogDto {
+  id: string;
+  userId?: string;
+  userEmail?: string;
+  userFullName?: string;
+  action: string;
+  module: string;
+  entityName: string;
+  entityId: string;
+  detailsJson?: string;
+  timestamp: string;
+}
+
+export interface PagedAuditLogsDto {
+  items: AuditLogDto[];
+  totalCount: number;
+  page: number;
+  pageSize: number;
+}
+
+export interface SyncOperationDto {
+  id: string;
+  clientOperationId: string;
+  operationType: string;
+  status: string;
+  deviceId: string;
+  errorDetails?: string;
+  resultRef?: string;
+  occurredAt: string;
+  receivedAt: string;
+}
+
+export interface SyncConflictDto {
+  id: string;
+  entityType: string;
+  entityId: string;
+  fieldName: string;
+  serverValue?: string;
+  attemptedValue?: string;
+  resolution: string;
+  deviceId?: string;
+  detectedAt: string;
+}
+
 @Injectable({
   providedIn: 'root'
 })
 export class ApiService {
   private http = inject(HttpClient);
   private baseUrl = '/api/v1';
+
+  // --- Livestock catalogs (species/breeds/categories) ---
+  getSpecies(): Observable<SpeciesDto[]> {
+    return this.http.get<SpeciesDto[]>(`${this.baseUrl}/species`);
+  }
+
+  createSpecies(data: {
+    name: string;
+    gestationDays?: number;
+    /**
+     * Defaults to false on the backend if omitted. The field app's Milking screen
+     * disables animals whose species has `isMilkable=false`, and the MilkingService
+     * rejects the registration server-side too — see Art. 8 (config, not code).
+     */
+    isMilkable?: boolean;
+  }): Observable<{ id: string }> {
+    return this.http.post<{ id: string }>(`${this.baseUrl}/species`, data);
+  }
+
+  getBreeds(speciesId?: string): Observable<BreedDto[]> {
+    let httpParams = new HttpParams();
+    if (speciesId) httpParams = httpParams.set('speciesId', speciesId);
+    return this.http.get<BreedDto[]>(`${this.baseUrl}/breeds`, { params: httpParams });
+  }
+
+  createBreed(data: { speciesId: string; name: string }): Observable<{ id: string }> {
+    return this.http.post<{ id: string }>(`${this.baseUrl}/breeds`, data);
+  }
+
+  getAnimalCategories(speciesId?: string): Observable<AnimalCategoryDto[]> {
+    let httpParams = new HttpParams();
+    if (speciesId) httpParams = httpParams.set('speciesId', speciesId);
+    return this.http.get<AnimalCategoryDto[]>(`${this.baseUrl}/animal-categories`, { params: httpParams });
+  }
+
+  createAnimalCategory(data: { speciesId: string; name: string }): Observable<{ id: string }> {
+    return this.http.post<{ id: string }>(`${this.baseUrl}/animal-categories`, data);
+  }
+
+  registerAnimal(data: RegisterAnimalRequest): Observable<{ id: string }> {
+    return this.http.post<{ id: string }>(`${this.baseUrl}/animals`, data);
+  }
+
+  assignAnimalIdentifier(
+    animalId: string,
+    data: { type: string; value: string; validFrom: string }
+  ): Observable<{ id: string }> {
+    return this.http.post<{ id: string }>(`${this.baseUrl}/animals/${animalId}/identifiers`, data);
+  }
+
+  // --- Sync tray ---
+  getSyncConflicts(entityType?: string): Observable<SyncConflictDto[]> {
+    let httpParams = new HttpParams();
+    if (entityType) httpParams = httpParams.set('entityType', entityType);
+    return this.http.get<SyncConflictDto[]>(`${this.baseUrl}/sync/conflicts`, { params: httpParams });
+  }
+
+  getSyncOperations(status?: string): Observable<SyncOperationDto[]> {
+    let httpParams = new HttpParams();
+    if (status) httpParams = httpParams.set('status', status);
+    return this.http.get<SyncOperationDto[]>(`${this.baseUrl}/sync/operations`, { params: httpParams });
+  }
 
   getAnimals(): Observable<Animal[]> {
     return this.http.get<Animal[]>(`${this.baseUrl}/animals`);
@@ -176,6 +350,12 @@ export class ApiService {
     });
   }
 
+  getMilkingSessions(date?: string): Observable<MilkingSessionDto[]> {
+    let httpParams = new HttpParams();
+    if (date) httpParams = httpParams.set('date', date);
+    return this.http.get<MilkingSessionDto[]>(`${this.baseUrl}/milking-sessions`, { params: httpParams });
+  }
+
   recordMilkingSession(data: MilkingSessionRequest): Observable<{ id: string }> {
     const individualYields = data.yields.map((y) => ({ animalId: y.animalId, liters: y.liters }));
     const totalLiters = individualYields.reduce((sum, y) => sum + y.liters, 0);
@@ -187,6 +367,42 @@ export class ApiService {
       totalLiters,
       individualYields
     });
+  }
+
+  // --- People, Roles & Permissions API ---
+  getUsers(): Observable<UserDto[]> {
+    return this.http.get<UserDto[]>(`${this.baseUrl}/people/users`);
+  }
+
+  getRoles(): Observable<RoleDto[]> {
+    return this.http.get<RoleDto[]>(`${this.baseUrl}/people/roles`);
+  }
+
+  getPermissions(): Observable<PermissionDto[]> {
+    return this.http.get<PermissionDto[]>(`${this.baseUrl}/people/permissions`);
+  }
+
+  createRole(data: { code: string; name: string; description: string; permissionIds?: string[] }): Observable<{ id: string }> {
+    return this.http.post<{ id: string }>(`${this.baseUrl}/people/roles`, data);
+  }
+
+  updateRole(roleId: string, data: { roleId: string; name: string; description: string; permissionIds?: string[] }): Observable<void> {
+    return this.http.put<void>(`${this.baseUrl}/people/roles/${roleId}`, data);
+  }
+
+  assignUserRole(userId: string, roleId: string): Observable<void> {
+    return this.http.post<void>(`${this.baseUrl}/people/users/${userId}/roles/${roleId}`, {});
+  }
+
+  getAuditLogs(params?: { userId?: string; from?: string; to?: string; page?: number; pageSize?: number }): Observable<PagedAuditLogsDto> {
+    let httpParams = new HttpParams();
+    if (params?.userId) httpParams = httpParams.set('userId', params.userId);
+    if (params?.from) httpParams = httpParams.set('from', params.from);
+    if (params?.to) httpParams = httpParams.set('to', params.to);
+    if (params?.page) httpParams = httpParams.set('page', params.page);
+    if (params?.pageSize) httpParams = httpParams.set('pageSize', params.pageSize);
+
+    return this.http.get<PagedAuditLogsDto>(`${this.baseUrl}/audit`, { params: httpParams });
   }
 
   // --- Breeding API ---

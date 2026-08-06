@@ -67,11 +67,15 @@ namespace Hato.Modules.Inventory.Infrastructure.Persistence.Migrations
                         .HasColumnType("numeric")
                         .HasColumnName("quantity");
 
-                    b.Property<string>("RecordedBy")
+                    b.Property<Guid?>("RecordedById")
+                        .HasColumnType("uuid")
+                        .HasColumnName("recorded_by_id");
+
+                    b.Property<string>("RecordedByLabel")
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)")
-                        .HasColumnName("recorded_by");
+                        .HasColumnName("recorded_by_label");
 
                     b.Property<DateTimeOffset?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")
@@ -86,6 +90,9 @@ namespace Hato.Modules.Inventory.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("InventoryItemId")
                         .HasDatabaseName("i_x_group_feed_consumptions_inventory_item_id");
+
+                    b.HasIndex("RecordedById")
+                        .HasDatabaseName("i_x_group_feed_consumptions_recorded_by_id");
 
                     b.HasIndex("GroupId", "ConsumedAt")
                         .HasDatabaseName("i_x_group_feed_consumptions_group_id_consumed_at");

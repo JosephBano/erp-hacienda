@@ -398,6 +398,12 @@ namespace Hato.Modules.Breeding.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("updated_by");
 
+                    b.Property<uint>("xmin")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
                     b.HasKey("Id")
                         .HasName("p_k_semen_straws");
 
@@ -405,7 +411,10 @@ namespace Hato.Modules.Breeding.Infrastructure.Persistence.Migrations
                         .IsUnique()
                         .HasDatabaseName("i_x_semen_straws_code");
 
-                    b.ToTable("semen_straws", "breeding");
+                    b.ToTable("semen_straws", "breeding", t =>
+                        {
+                            t.HasCheckConstraint("CK_SemenStraw_CurrentQuantityNotNegative", "current_quantity >= 0");
+                        });
                 });
 #pragma warning restore 612, 618
         }

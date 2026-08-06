@@ -159,11 +159,15 @@ namespace Hato.Modules.Production.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(500)")
                         .HasColumnName("notes");
 
-                    b.Property<string>("RecordedBy")
+                    b.Property<Guid?>("RecordedById")
+                        .HasColumnType("uuid")
+                        .HasColumnName("recorded_by_id");
+
+                    b.Property<string>("RecordedByLabel")
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)")
-                        .HasColumnName("recorded_by");
+                        .HasColumnName("recorded_by_label");
 
                     b.Property<string>("Shift")
                         .IsRequired()
@@ -185,6 +189,9 @@ namespace Hato.Modules.Production.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id")
                         .HasName("p_k_milking_sessions");
+
+                    b.HasIndex("RecordedById")
+                        .HasDatabaseName("i_x_milking_sessions_recorded_by_id");
 
                     b.HasIndex("Date", "Shift")
                         .HasDatabaseName("i_x_milking_sessions_date_shift");

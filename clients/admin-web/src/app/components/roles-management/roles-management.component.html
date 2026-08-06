@@ -1,0 +1,155 @@
+<div class="page-container">
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">
+        <app-icon name="lock" size="lg" />
+        Roles y Permisos
+      </h1>
+      <p class="subtitle">Roles configurables en base de datos (Art. 8) — no un enum compilado.</p>
+    </div>
+  </div>
+
+  <div *ngIf="successMessage" class="alert alert-success">{{ successMessage }}</div>
+  <div *ngIf="errorMessage" class="alert alert-danger">{{ errorMessage }}</div>
+  <div *ngIf="loadError" class="alert alert-danger">No se pudo cargar la información de roles/usuarios.</div>
+
+  <!-- Existing roles -->
+  <div class="table-container glass-card">
+    <table class="responsive-table">
+      <thead>
+        <tr>
+          <th>Código</th>
+          <th>Nombre</th>
+          <th>Tipo</th>
+          <th>Permisos</th>
+          <th>Acción</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let role of roles">
+          <td data-label="Código"><strong>{{ role.code }}</strong></td>
+          <td data-label="Nombre">{{ role.name }}</td>
+          <td data-label="Tipo">
+            <span class="badge" [class.badge-info]="role.isSystem" [class.badge-success]="!role.isSystem">
+              {{ role.isSystem ? 'Sistema' : 'Personalizado' }}
+            </span>
+          </td>
+          <td data-label="Permisos">
+            <span class="badge badge-info" *ngFor="let p of role.permissions" style="margin-right: 0.25rem;">
+              {{ p.code }}
+            </span>
+            <span *ngIf="role.permissions.length === 0" class="text-muted">Sin permisos</span>
+          </td>
+          <td data-label="Acción">
+            <button
+              class="btn btn-secondary btn-sm"
+              *ngIf="!role.isSystem"
+              (click)="startEditingRole(role)">
+              Editar
+            </button>
+            <span *ngIf="role.isSystem" class="field-hint">— rol de sistema —</span>
+          </td>
+        </tr>
+        <tr *ngIf="roles.length === 0" class="empty-row">
+          <td colspan="5" data-label="Estado" class="text-center py-4 text-muted">No hay roles todavía.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Edit role -->
+  <div class="glass-card form-card mt-3" *ngIf="editingRoleId">
+    <h3>Editar rol</h3>
+    <div class="form-grid mt-2">
+      <div class="form-group">
+        <label class="form-label">Nombre:</label>
+        <input type="text" class="form-input" [(ngModel)]="editRoleName">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Descripción:</label>
+        <input type="text" class="form-input" [(ngModel)]="editRoleDescription">
+      </div>
+    </div>
+
+    <div class="permission-groups mt-3">
+      <div class="permission-group" *ngFor="let group of permissionsByModule">
+        <h4>{{ group.module }}</h4>
+        <label class="checkbox-item" *ngFor="let p of group.items">
+          <input
+            type="checkbox"
+            [checked]="editRolePermissionIds.has(p.id)"
+            (change)="toggleEditPermission(p.id)">
+          {{ p.name }}
+          <span class="field-hint">({{ p.code }})</span>
+        </label>
+      </div>
+    </div>
+
+    <div class="form-actions mt-3">
+      <button class="btn btn-secondary" (click)="cancelEditingRole()">Cancelar</button>
+      <button class="btn btn-primary" (click)="saveRoleEdits()">Guardar cambios</button>
+    </div>
+  </div>
+
+  <!-- Create role -->
+  <div class="glass-card form-card mt-3">
+    <h3>Nuevo rol</h3>
+    <div class="form-grid mt-2">
+      <div class="form-group">
+        <label class="form-label">Código:</label>
+        <input type="text" class="form-input" placeholder="ordenador-campo" [(ngModel)]="newRoleCode">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Nombre:</label>
+        <input type="text" class="form-input" placeholder="Ordeñador de campo" [(ngModel)]="newRoleName">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Descripción:</label>
+        <input type="text" class="form-input" [(ngModel)]="newRoleDescription">
+      </div>
+    </div>
+
+    <div class="permission-groups mt-3">
+      <div class="permission-group" *ngFor="let group of permissionsByModule">
+        <h4>{{ group.module }}</h4>
+        <label class="checkbox-item" *ngFor="let p of group.items">
+          <input
+            type="checkbox"
+            [checked]="newRolePermissionIds.has(p.id)"
+            (change)="togglePermission(p.id)">
+          {{ p.name }}
+          <span class="field-hint">({{ p.code }})</span>
+        </label>
+      </div>
+    </div>
+
+    <div class="form-actions mt-3">
+      <button class="btn btn-primary" (click)="createRole()">Crear rol</button>
+    </div>
+  </div>
+
+  <!-- Assign role to user -->
+  <div class="glass-card form-card mt-3">
+    <h3>Asignar rol a un usuario</h3>
+    <div class="form-grid mt-2">
+      <div class="form-group">
+        <label class="form-label">Usuario:</label>
+        <select class="form-select" [(ngModel)]="assignUserId">
+          <option *ngFor="let u of users" [value]="u.id">
+            {{ u.fullName }} ({{ u.email }}) — {{ u.roles.join(', ') || 'sin rol' }}
+          </option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Rol a asignar:</label>
+        <select class="form-select" [(ngModel)]="assignRoleId">
+          <option value="">— Seleccione —</option>
+          <option *ngFor="let r of roles" [value]="r.id">{{ r.name }}</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-actions mt-2">
+      <button class="btn btn-secondary" (click)="assignRole()">Asignar</button>
+    </div>
+  </div>
+</div>

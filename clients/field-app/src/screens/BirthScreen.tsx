@@ -33,7 +33,7 @@ export function BirthScreen({
   const addCalf = (sex: Sex) => setOffspring((current) => [...current, { sex }]);
 
   /**
-   * PLAN-FASE-3-5-PORCINO §3.5a.0 #2: the litter is editable, not append-only. The client
+   * PLAN-FASE-3-5-PORCINO 3.5a.0 #2: the litter is editable, not append-only. The client
    * reported "agregué cinco, la tercera era otra cosa y no la pude sacar" — once a calf
    * was added the screen had no way back. These two handlers keep the surviving order
    * intact because the payload that `recordBirth` receives is the same `offspring` array,

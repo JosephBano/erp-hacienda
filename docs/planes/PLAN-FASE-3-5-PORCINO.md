@@ -258,7 +258,13 @@ migración corre desde cero.
 
 ---
 
-### 3.5a.2 · `feature/livestock-treatment-detail` · **estructural**
+### 3.5a.2 · `feature/livestock-treatment-detail` · **estructural — split en 3.5a.2-A, 3.5a.2-B y 3.5a.2-C**
+
+> **Esta sección se partió en tres sub-ramas ejecutables** porque la rama original
+> de 11 tareas violaba la regla "un PR = un propósito" del
+> [`PLAN-FASE-3-4.md` §1.3](../planes/PLAN-FASE-3-4.md). El contexto y la motivación
+> comunes se conservan acá; cada sub-rama vive en su propio archivo y puede ser
+> implementada por personas distintas.
 
 *Por qué:* hoy `dose` es **texto libre** (`eventService.ts`), lo que incumple el Art. 10
 ("toda cantidad física lleva su unidad explícita"). Y no se distingue una vacuna de
@@ -272,55 +278,46 @@ y nada más**: hoy el operario tipea `"10 ml"` en un campo de texto, mañana toc
 teclado numérico. Es *menos* trabajo, no más. El Art. 10 y la regla de los tres toques
 apuntan al mismo lado; el texto libre era lo peor de ambos mundos.
 
-Tareas:
-1. Catálogo `administration_routes` (Art. 8): oral en agua, oral en alimento, IM, SC,
-   tópica, intranasal, intrauterina. Semilla inicial, ampliable desde el panel.
-2. `TreatmentReason` ∈ {`Scheduled`, `Curative`, `Preventive`}.
-3. Payload de tratamiento: `route_id`, `reason`, `batch_id` (lote de inventario consumido),
-   `applied_by` distinto de `recorded_by`.
-4. **La dosis tiene tres formas, no una.** En porcinos se dosifica por peso mucho más que en
-   bovinos —y por la misma razón por la que el cliente alimenta por peso: un cerdo enfermo
-   pesa menos y le corresponde menos.
+#### Sub-ramas
 
-   | Forma | Ejemplo | Cómo se resuelve |
-   |---|---|---|
-   | Absoluta | 10 ml a este animal | El operario da el número; la unidad la pone el producto. |
-   | **Por peso** | 1 ml / 10 kg | Se resuelve contra el último pesaje del animal. |
-   | Por cabeza | 1 dosis × 42 cabezas | Vacunación de lote. |
+| Sub-rama | Alcance principal | Depende de | Rama Git |
+|---|---|---|---|
+| [`3.5a.2-A`](./sub_planes/PLAN-FASE-3-5-PORCINO-3.5a.2-A.md) | Catálogos (`administration_routes`, `TreatmentReason`), payload estructurado, `applied_by` ≠ `recorded_by`, `health_plan_item_id` nullable | — | `feature/livestock-treatment-catalog` |
+| [`3.5a.2-B`](./sub_planes/PLAN-FASE-3-5-PORCINO-3.5a.2-B.md) | Las tres formas de dosis (`Absolute`, `PerWeight`, `PerHead`), `CalculatedDose` vs `AdministeredDose`, dosis opcional, observación libre, `TreatmentCourse` | A | `feature/livestock-treatment-dose-logic` |
+| [`3.5a.2-C`](./sub_planes/PLAN-FASE-3-5-PORCINO-3.5a.2-C.md) | UI: vacunación como camino separado (3 toques) y tratamiento como camino curativo (4 toques), con plausibilidad local | A y B | `feature/field-app-treatment-ui` |
 
-5. **Se guardan la dosis calculada y la administrada, no una sola.** En un lote por conteo la
-   dosis por peso se calcula contra el promedio muestral: 42 cabezas × 35 kg × 1 ml/10 kg =
-   147 ml. Eso es una estimación con incertidumbre real. Lo que salió del frasco es exacto.
-   **La diferencia entre ambas es información**: si el sistema sugirió 147 ml y se
-   administraron 200, alguien derramó, alguien subdosificó, o el muestreo de peso está mal.
-   Ninguna de las tres se puede detectar hoy, y sale de guardar dos números en vez de uno.
-   Es además lo que hace que el descuento de inventario deje de ser una adivinanza.
-6. **La dosis es opcional; si está, lleva unidad.** Cuando el operario genuinamente no sabe
-   la cantidad ("le puse lo que quedaba en el frasco"), un campo obligatorio produce un
-   número inventado — y un `5 ml` falso es peor que un texto honesto, porque nadie puede
-   distinguirlo después de un `5 ml` real. El Art. 10 exige que **toda cantidad lleve
-   unidad**; no exige que toda aplicación tenga cantidad. Ante la duda gana el Art. 1, que
-   protege la integridad del historial.
-7. **Campo de observación libre en todo tratamiento.** No es un cajón de sastre: es donde
-   vive lo que ningún esquema captura — *"se aplicó en el cuello porque la pierna estaba
-   lastimada"*, *"medio frasco aproximadamente, se movió mucho"*. La medida se estructura;
-   la narrativa se libera.
-8. **`health_plan_item_id` nullable desde ya.** El cronograma se implementa en 3.5b, pero
-   si el piloto corre un mes sin este campo, esos tratamientos **no se pueden enlazar
-   retroactivamente** y nadie podrá decir después si aquella vacuna fue de calendario o por
-   enfermedad. Cuesta nada hoy, es irrecuperable mañana (ADR-0016).
-9. `TreatmentCourse`: un tratamiento de 3 días es **una** serie con sus aplicaciones, no
-   tres eventos sueltos e inconexos.
-10. Vacunación como camino propio en la app, separado de tratamiento.
-11. Pantalla de campo: vía y motivo en la misma pasada, sin sumar toques al caso normal.
+#### Resumen de tareas distribuidas
 
-Pruebas: dosis con valor y **sin** unidad rechazada; dosis ausente **aceptada** (con o sin
-observación); dosis por peso resuelta contra el último pesaje, y rechazada si el animal no
-tiene ninguno; dosis por peso sobre un lote usa el promedio muestral y queda marcada como
-estimada; calculada ≠ administrada se persiste sin corregir ninguna de las dos; ruta
-inexistente rechazada; serie de 3 días produce una serie con 3 aplicaciones y un solo
-período de retiro correctamente fechado; el retiro sigue calculándose igual que antes (no
-regresión de Art. 19).
+| # | Tarea | Sub-rama |
+|---|---|---|
+| 1 | Catálogo `administration_routes` (Art. 8), semilla inicial, ampliable desde el panel | A |
+| 2 | `TreatmentReason` ∈ {`Scheduled`, `Curative`, `Preventive`} | A |
+| 3 | Payload de tratamiento: `route_id`, `reason`, `batch_id`, `applied_by` ≠ `recorded_by` | A |
+| 4 | Las tres formas de dosis (Absoluta, Por peso, Por cabeza) | B |
+| 5 | Dosis calculada y administrada se guardan las dos; la diferencia es información | B |
+| 6 | La dosis es opcional; si está, lleva unidad (Art. 10) | B |
+| 7 | Campo de observación libre (`TreatmentNotes`) | B |
+| 8 | `health_plan_item_id` nullable desde ya (forward-compat con 3.5b.1, ADR-0016) | A |
+| 9 | `TreatmentCourse`: tratamiento de varios días como una serie con aplicaciones y un único retiro | B |
+| 10 | Vacunación como camino propio en la app, separado de tratamiento | C |
+| 11 | Pantalla de campo: vía y motivo en la misma pasada, sin sumar toques al caso normal | C |
+
+#### Resumen de pruebas distribuidas
+
+- **Catálogos configurables desde el panel** → [A](./sub_planes/PLAN-FASE-3-5-PORCINO-3.5a.2-A.md).
+- **`applied_by` ≠ `recorded_by`** → A.
+- **`health_plan_item_id` nullable ahora** → A.
+- **Dosis con valor y sin unidad rechazada** → [B](./sub_planes/PLAN-FASE-3-5-PORCINO-3.5a.2-B.md).
+- **Dosis ausente aceptada** (con o sin observación) → B.
+- **Dosis por peso resuelta contra el último pesaje** → B.
+- **Dosis por peso rechazada si el animal no tiene pesaje** → B.
+- **Dosis por peso sobre lote usa promedio muestral y queda `is_estimated`** → B.
+- **Calculada ≠ administrada persiste sin corregir ninguna** → B.
+- **Ruta inexistente o `is_active = false` rechazada** → A y B (B valida la FK; A garantiza que el catálogo es la fuente).
+- **Serie de 3 días produce 3 aplicaciones y un solo retiro** → B.
+- **No regresión del cálculo de retiro (Art. 19)** → B.
+- **Tres toques para vacunación, cuatro para tratamiento** → [C](./sub_planes/PLAN-FASE-3-5-PORCINO-3.5a.2-C.md).
+- **Cancelar no deja estado sucio** → C.
 
 ---
 

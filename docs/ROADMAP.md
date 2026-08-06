@@ -163,8 +163,15 @@ Se ejecuta en dos bloques; **el piloto real arranca al cerrar 3.5a**:
   unidades · rangos de plausibilidad configurables · corrección de registros desde el campo
   (ADR-0017) · buscador de animales.
 - **3.5b — Análisis.** Plan sanitario configurable con alertas (ADR-0016) · estándares de
-  alimentación · **conversión alimenticia (FCR) por lote** · selección de futuras madres ·
-  calificación e índice de madres · alertas destete–celo y retiro en carne.
+  alimentación · **conversión alimenticia (FCR) por lote** · **características observables
+  del animal** (ADR-0018) · índice de madres · alertas destete–celo y retiro en carne.
+
+> **El ADR-0018 no es porcino.** Salió de generalizar la calificación de madres —que estaba
+> modelada como una tabla que sólo servía para cerdas, violando el Art. 8— y terminó siendo
+> el mecanismo para cualquier juicio sobre cualquier animal: "este caballo patea", "esta vaca
+> se escapa del corral", "esta cerda no deja mamar". Incluye advertencias visibles en la
+> ficha del animal en el móvil, que transfieren el conocimiento del empleado veterano al que
+> recién entra — valor que no tiene nada que ver con esta fase ni con esta especie.
 
 El plan de ejecución detallado está en `PLAN-FASE-3-5-PORCINO.md`.
 

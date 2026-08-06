@@ -165,16 +165,27 @@
 | Ración de cerda lactante | `LactatingSowRation` | Caso particular del estándar, expresado como `{base_kg, por_cría_kg, max_kg}` — p. ej. 2 kg + 0.5 kg por lechón, tope 9 kg. Tres números en una fila, no una fórmula compilada. |
 | Conversión alimenticia | `FeedConversionRatio` (FCR) | Kg de alimento consumido ÷ kg de peso ganado por el lote. **El indicador que decide si el engorde va bien.** Se calcula en kg; el costo en dinero es Fase 4. |
 
+### Características observables del animal (ADR-0018 — transversal a todas las especies)
+
+| Término (ES) | Código (EN) | Definición |
+|---|---|---|
+| Característica | `AnimalTrait` | Definición configurable de un **juicio** sobre un animal: "es mansa", "patea", "se escapa del corral", "tetas funcionales". Catálogo por especie o global; agregar una es un INSERT (Art. 8). |
+| Observación de característica | `TraitObservation` | Registro fechado y **firmado** del valor de una característica en un animal. Las características **se observan, no se asignan**: nunca son una columna editable sobre `Animal`. |
+| Tipo de característica | `TraitKind` | `Conductual` (patea, deja mamar), `Morfológica` (tetas funcionales, aplomos), `Manejo` (abre el pestillo, no entra a la manga). Determina qué la consume, no cómo se guarda. |
+| Tipo de valor | `TraitValueType` | Los **cuatro únicos** admitidos: `Booleano`, `EscalaOrdinal` (conjunto cerrado etiquetado), `ConteoAcotado` (mín/máx declarados), `TextoLibre`. **Sin unidad y sin decimal libre** — ver Guardarraíl. |
+| Guardarraíl de las características | — | Regla que impide que el mecanismo se vuelva el vertedero de datos que debían estar tipados: **¿dos personas competentes, con el animal delante, obtendrían el mismo número?** Sí → medición → esquema y eventos. No → juicio → característica. Se impone estructuralmente: sin campo de unidad ni decimal libre, `peso = 35.4 kg` es **inexpresable**. |
+| Disposición actual | `CurrentDisposition` | Resumen **derivado** de la serie de observaciones ("esta yegua es mansa"). Nunca almacenado, para que un cambio de conducta sea visible en vez de sobrescrito. |
+| Advertencia de campo | `TraitAlert` | Característica marcada como visible, que aparece en la ficha del animal en el móvil antes de que alguien lo toque (*"PATEA"*). Transfiere el conocimiento del empleado veterano al que recién entra. |
+| Contexto de la observación | `ObservationContext` | Referencia opcional al hecho durante el cual se observó (un parto, una jornada de manejo). Es lo que conserva el "en **este** parto" al generalizar. |
+
 ### Selección y calificación de madres
 
 | Término (ES) | Código (EN) | Definición |
 |---|---|---|
-| Evaluación de futura madre | `GiltEvaluation` | Examen morfológico y productivo para decidir si una hembra pasa a reproductora. |
-| Criterio de selección | `SelectionCriterion` | Cada aspecto evaluado (tetas funcionales, aplomos, desarrollo vulvar, condición corporal…), con su tipo: conteo, escala 1–5 o booleano. **Catálogo configurable**: agregar un criterio es un INSERT. |
-| Teta funcional | `FunctionalTeat` | Pezón apto para amamantar. Los invertidos o ciegos no cuentan, y por eso el dato es un conteo evaluado, no el número de pezones visibles. |
-| Calificación materna | `MaternalBehaviorAssessment` | Valoración conductual de una madre **en un parto concreto** (aplastamiento, agresividad, si deja mamar, nerviosismo al manejo). Por parto y no global, para ver tendencia en vez de una etiqueta fija. |
+| Evaluación de futura madre | `GiltEvaluation` | Sesión en la que se capturan las características **morfológicas** de una hembra y se registra la decisión de pasarla a reproductora. No tiene catálogo propio: usa `AnimalTrait` (ADR-0018). |
+| Teta funcional | `FunctionalTeat` | Pezón apto para amamantar. Los invertidos o ciegos no cuentan, y por eso es un **juicio** —dos personas discrepan sobre cuáles cuentan— y no una medición: va como característica morfológica de tipo `ConteoAcotado`. |
 | Mortalidad predestete | `PreWeaningMortality` | Crías muertas entre el parto y el destete, atribuibles a la madre. KPI **derivado**, no almacenado. |
-| Índice de madre | `MaternalIndex` | Puntaje compuesto y ordenable que combina KPIs derivados y calificación conductual, con **pesos configurables**. |
+| Índice de madre | `MaternalIndex` | Puntaje compuesto y ordenable con **pesos configurables**, que combina KPIs derivados de eventos contables (mortalidad por causa, destetados, peso de camada) con las características conductuales genuinamente subjetivas. El aplastamiento **no** entra como característica: se cuenta desde los eventos de mortalidad con causa, que es objetivo. |
 
 ### Corrección de registros
 

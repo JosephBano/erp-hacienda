@@ -7,7 +7,7 @@
 >
 > Los Núcleos 1–5 están **implementados**. El **Núcleo 6** (manejo por lote sin
 > identificación individual, Fase 3.5) está **diseñado y no construido**: se documenta
-> antes de tocar el esquema, y sus decisiones de fondo viven en los ADR-0015/0016/0017.
+> antes de tocar el esquema, y sus decisiones de fondo viven en los ADR-0015/0016/0017/0018.
 >
 > Los diagramas están en Mermaid: GitHub y la mayoría de IDEs los renderizan nativamente.
 > PostgreSQL: nombres `snake_case`, PKs `uuid`, dinero `numeric` (decimal), fechas de
@@ -235,8 +235,9 @@ erDiagram
 > **Alcance:** este núcleo nace del pivote a porcinos (2026-08-05) y **nada de esto está
 > implementado**. Se documenta antes de construir, según el Art. 15 y la regla 5 de este
 > archivo. Decisiones de fondo en **ADR-0015** (lote por conteo), **ADR-0016** (plan
-> sanitario) y **ADR-0017** (corrección de campo). Plan de ejecución en
-> `PLAN-FASE-3-5-PORCINO.md`.
+> sanitario), **ADR-0017** (corrección de campo) y **ADR-0018** (características
+> observables — el único **transversal a todas las especies**: nace acá pero gobierna
+> también equinos y bovinos). Plan de ejecución en `PLAN-FASE-3-5-PORCINO.md`.
 
 ```mermaid
 erDiagram
@@ -302,7 +303,7 @@ es un dato honesto, e inventar 42 pesos individuales no lo es. La misma discipli
 | `administration_routes` | Cómo se aplicó un tratamiento | oral en agua, oral en alimento, IM, SC, tópica, intranasal |
 | `mortality_causes` | Tipificar bajas | aplastamiento, inanición, débil al nacer, diarrea, hernia, desconocida |
 | `feed_stages` | Clasificar alimento | preiniciador, iniciador, crecimiento, engorde, gestación, lactancia |
-| `selection_criteria` | Evaluar futuras madres | tetas funcionales (conteo), aplomos (1–5), desarrollo vulvar (1–5), hernia (booleano) |
+| `animal_traits` | **Juicios** sobre un animal, de cualquier especie (ADR-0018) | tetas funcionales (conteo 0–20), aplomos (escala 1–5), ¿patea? (booleano), "abre el pestillo" (texto) |
 | `unit_conversions` | Presentación → unidad base | `saco40kg` → 40 `kg` |
 | `feeding_standards` | Ración esperada por peso/etapa | `{especie, etapa, peso_desde, peso_hasta, ración_kg_día}` |
 
@@ -340,6 +341,37 @@ exige que toda cantidad lleve unidad, no que toda aplicación tenga cantidad; an
 gana el Art. 1. El campo de **observación libre** acompaña siempre: la medida se estructura,
 la narrativa se libera.
 
+### Características observables: la línea entre medición y juicio (ADR-0018)
+
+```mermaid
+erDiagram
+    ANIMAL_TRAITS ||--o{ TRAIT_OBSERVATIONS : ""
+    ANIMALS ||--o{ TRAIT_OBSERVATIONS : ""
+    USERS ||--o{ TRAIT_OBSERVATIONS : "quién observó"
+    BIRTHINGS |o--o{ TRAIT_OBSERVATIONS : "contexto opcional"
+```
+
+Los juicios sobre un animal —"es mansa", "patea", "se escapa del corral", "tetas
+funcionales"— **no son columnas de `animals`** ni tablas por especie: son observaciones
+fechadas y firmadas sobre un catálogo configurable, común a porcinos, bovinos y equinos.
+Absorbe lo que se había planificado por separado como `selection_criteria` y
+`maternal_behavior_assessments`.
+
+**El guardarraíl que impide que esto se vuelva un vertedero:**
+
+> ¿Dos personas competentes, con el animal delante, obtendrían el mismo número?
+> **Sí** → medición → esquema y eventos. **No** → juicio → característica.
+
+Y se impone **estructuralmente**, no por convención: `trait_value_type` admite exactamente
+cuatro formas —booleano, escala ordinal de conjunto cerrado, conteo acotado, texto libre—
+y **no existe columna de unidad ni decimal libre**. `peso = 35.4 kg` es inexpresable, no
+desaconsejado. Una definición con observaciones **se versiona, nunca se edita**: si una
+escala 1–5 pasa a 1–10, un 3 viejo y un 3 nuevo dejan de significar lo mismo en silencio.
+
+Consecuencia sobre el diseño anterior: el **aplastamiento de crías no es una característica**
+—dos personas coinciden en cuántos lechones aparecieron aplastados—, es un evento de
+mortalidad con causa. "Esta cerda es torpe" se *deriva* de contarlos.
+
 ### KPIs derivados, no almacenados
 
 Coherente con el Núcleo 4: mortalidad predestete por madre, peso promedio de camada al
@@ -347,13 +379,20 @@ nacer, destetados por parto, intervalo destete–celo, y **conversión alimentic
 (kg de alimento ÷ kg ganados) se **calculan**. El FCR se expresa **en kg**; el costo en
 dinero es Fase 4 y no se adelanta aquí.
 
+El `maternal_index` combina esos KPIs con las características conductuales
+irreductiblemente subjetivas, con **pesos configurables** — que es lo que permite calibrar
+conceptos ambiguos usándolos, en vez de fijarlos de antemano.
+
 ### Invariantes a implementar
 
 `animal_events`: exactamente uno de `animal_id`/`group_id` no nulo (CHECK) · un evento
 individual no puede apuntar a un animal cuyo lote actual sea `headcount` (salvo los
 anteriores a la mezcla) · `nursing_cohorts.weaning_date` ≥ `max(birthings.birth_date)` de
 sus camadas · `feeding_standards` sin rangos de peso solapados por especie+etapa ·
-`health_plan_items.ventana_días` ≥ 0 · las cabezas vivas de un lote nunca son negativas.
+`health_plan_items.ventana_días` ≥ 0 · las cabezas vivas de un lote nunca son negativas ·
+**`animal_traits` no admite unidad ni decimal libre** (guardarraíl del ADR-0018, verificado
+por prueba) · una `animal_traits` con observaciones no se edita: se versiona · el valor de
+una `trait_observations` es válido para la **versión** de la definición con que se capturó.
 
 ---
 

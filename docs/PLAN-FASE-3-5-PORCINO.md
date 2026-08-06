@@ -472,37 +472,69 @@ temprana de enfermedad y el motivo real por el que el cliente cuenta los sacos.
 Pruebas: FCR sobre un lote sembrado con valores conocidos, a mano en el test; lote sin
 pesaje inicial no produce un FCR falso; la divergencia dispara sobre umbral configurable.
 
-### 4.5 · `feature/breeding-gilt-selection`
+### 4.5 · `feature/livestock-animal-traits` · **estructural** (ADR-0018)
 
-`GiltEvaluation` con criterios **configurables** (`SelectionCriterion`: conteo / escala 1–5
-/ booleano), precisamente porque el cliente no recordaba todos.
+*Por qué:* la evaluación de futuras madres y la calificación materna eran dos subsistemas
+distintos, y el segundo (`MaternalBehaviorAssessment`) era **un `if (especie == 'cerdo')`
+disfrazado de tabla**. Ambos son el mismo mecanismo: un juicio tipado, fechado y firmado
+sobre un animal. **Dos ramas planificadas se vuelven una, y más chica.**
 
-Semilla propuesta, **a confirmar con él** (§7): tetas funcionales y simetría —los pezones
-invertidos o ciegos no cuentan, por eso es un conteo evaluado y no el número visible—,
-aplomos y calidad de pezuña, desarrollo vulvar, condición corporal, peso y edad a la
-selección, temperamento, ausencia de hernias. Más dos que el sistema ya tendrá solo: **su
-propio peso al nacer y el tamaño de la camada de la que salió**.
+Tareas:
+1. `AnimalTrait` (definición configurable) + `TraitObservation` (registro fechado y firmado).
+   `kind` ∈ {`Conductual`, `Morfológica`, `Manejo`}; `especie` nula = aplica a todas.
+2. **Se observan, no se asignan.** Nunca una columna editable sobre `Animal`: "esta yegua es
+   mansa" es un **resumen derivado** de la serie. Así una cerda que empeora entre partos, o
+   una yegua que se vuelve nerviosa tras una lastimadura, son visibles en vez de
+   sobrescritas.
+3. `contexto` opcional apuntando al hecho durante el cual se observó (un parto, una jornada
+   de manejo). Es lo que conserva el "en **este** parto aplastó" al generalizar.
+4. **Cuatro tipos de valor y nada más** — `Booleano`, `EscalaOrdinal` (conjunto **cerrado**
+   de niveles etiquetados), `ConteoAcotado` (mín/máx declarados), `TextoLibre`. **Sin campo
+   de unidad y sin decimal libre**: es el guardarraíl estructural del ADR-0018, y lo que
+   hace que `peso = 35.4 kg` sea *inexpresable* en vez de meramente desaconsejado.
+5. Absorbe `SelectionCriterion`: la evaluación de futura madre pasa a ser "capturar el
+   conjunto de morfológicas en una sesión y registrar una decisión". Semilla a confirmar con
+   el cliente (§7): tetas funcionales y simetría, aplomos y calidad de pezuña, desarrollo
+   vulvar, condición corporal, temperamento, ausencia de hernias.
+6. **Advertencias de campo**: `visible_como_advertencia` muestra la característica en la
+   ficha del animal en el móvil, antes de que alguien lo toque. *"PATEA"* al empleado nuevo.
+   Es lo de mayor valor por línea de código de toda la fase: transfiere el conocimiento del
+   empleado con veinte años al que llegó el lunes, y no tiene nada que ver con porcinos.
+7. **Una definición usada se versiona, no se edita** (ADR-0018 §9): si una escala 1–5 pasa a
+   1–10 con observaciones ya registradas, un 3 viejo y un 3 nuevo dejan de significar lo
+   mismo, en silencio.
 
-Pruebas: criterio nuevo por INSERT aparece en la evaluación sin tocar código; evaluación
-incompleta no decide; el histórico de criterios de una evaluación pasada no cambia si el
-catálogo cambia después.
+Pruebas: **una característica no puede declarar unidad ni aceptar decimal libre** —la
+invariante del guardarraíl, no los nombres del catálogo, que el cliente amplía libremente
+(Art. 8)—; característica nueva por INSERT aparece sin tocar código; observación conserva su
+interpretación tras versionarse la definición; escala ordinal rechaza un valor fuera del
+conjunto; conteo fuera de rango rechazado; el resumen derivado refleja la última observación
+y no una columna.
 
 ### 4.6 · `feature/breeding-maternal-index`
 
-Dos mitades que **no se mezclan**:
+Ahora **consumidor** de 4.5, no dueño de su propia tabla de conductas.
 
-- **Conductual**: `MaternalBehaviorAssessment` **por parto**, no global (aplastamiento,
-  agresividad, si deja mamar, nerviosismo al manejo). Por parto se ve tendencia; global se
-  ve una etiqueta fija que nadie revisa.
-- **Derivada** (calculada, **no almacenada**, coherente con `DATA-MODEL.md` §Núcleo 4):
-  nacidos vivos/muertos/momias, peso promedio de camada al nacer, **mortalidad predestete
-  0–24 d por madre**, destetados por parto, intervalo destete–celo.
+- **Derivada de eventos contables** (calculada, **no almacenada**, coherente con
+  `DATA-MODEL.md` §Núcleo 4): nacidos vivos/muertos/momias, peso promedio de camada al nacer,
+  **mortalidad predestete 0–24 d por madre**, destetados por parto, intervalo destete–celo.
+- **Características conductuales** de 4.5, sólo las genuinamente subjetivas.
 
-Encima, `MaternalIndex`: puntaje compuesto con **pesos configurables**, ordenable en el
-panel.
+> **El criterio del ADR-0018 §3 corrigió este diseño.** El aplastamiento de crías estaba
+> planificado como ítem de calificación conductual, pero dos personas **sí** coinciden en
+> cuántos lechones aparecieron aplastados: es una **medición**, o sea un evento de mortalidad
+> con causa, que ya se captura en 3.5a.3. Y "esta cerda es torpe con las crías" ni siquiera
+> hace falta como característica — **se deriva** contando esos eventos. Sólo lo
+> irreductiblemente subjetivo (¿deja mamar?, ¿es agresiva al manejo?) pasa por
+> características. El índice queda **más objetivo** que en el diseño anterior, no menos.
+
+Encima, `MaternalIndex`: puntaje compuesto con **pesos configurables** sobre ambas mitades,
+ordenable en el panel. Que los pesos sean configurables es lo que permite calibrar conceptos
+ambiguos **usándolos**, que es la única forma de calibrarlos bien.
 
 Pruebas: KPIs derivados contra datos sembrados con resultados escritos a mano; cambiar los
-pesos reordena el ranking; una madre sin partos no aparece con índice 0 (aparece sin índice).
+pesos reordena el ranking; una madre sin partos no aparece con índice 0 (aparece sin índice);
+el índice no lee ninguna característica que duplique un evento contable.
 
 ### 4.7 · `feature/tasks-swine-alerts`
 
@@ -525,8 +557,13 @@ un lote en retiro de carne se rechaza**, no se advierte (mismo estándar que
 | [0015](adr/0015-lote-por-conteo.md) | Lote por conteo, evento grupal XOR, reversibilidad al aretar | 3.5a.1 |
 | [0016](adr/0016-plan-sanitario-configurable.md) | Un solo motor de cronograma por ancla + desfase + filtro | **escrito ahora**, implementado en 3.5b.1 |
 | [0017](adr/0017-correccion-de-registros-de-campo.md) | Dos caminos de corrección según dónde esté el registro | 3.5a.8 |
+| [0018](adr/0018-caracteristicas-observables-del-animal.md) | Un solo mecanismo para los juicios sobre un animal, con guardarraíl estructural | 3.5b.5 |
 
-Los tres se mergean **antes** que su código (Art. 14).
+Los cuatro se mergean **antes** que su código (Art. 14).
+
+El 0018 es el único **transversal a todas las especies**: nace del pivote porcino pero no le
+pertenece. "Este caballo patea" y "esta vaca se escapa del corral" usan el mismo mecanismo
+que la calificación de madres, y esa fue exactamente la observación que lo hizo existir.
 
 ---
 
@@ -540,6 +577,8 @@ Los tres se mergean **antes** que su código (Art. 14).
 | Las validaciones de plausibilidad estorban | El operario pide "quitá eso" | Los rangos son configurables por el cliente: se ensanchan, no se eliminan. Nada bloquea si no hay rango configurado. |
 | Se cuela alcance de Fase 4 | Aparece "costo" o "precio" en un ticket de 3.5 | El FCR y todo lo demás va **en kg**. La plata es Fase 4. |
 | El cliente cambia de opinión sobre el aretado | — | No es riesgo: ADR-0015 hace que el aretado sea un cambio de bandera en cualquier momento. |
+| Las características se vuelven el vertedero de datos que debían estar tipados | Aparece una característica con unidad, o alguien pide "un número libre" | El guardarraíl es estructural: cuatro tipos de valor, sin unidad ni decimal libre, con un test que fija la invariante. La petición misma es la señal de que ese dato va al esquema (ADR-0018 §4). |
+| El catálogo de características se llena y nadie observa nada | Definiciones sin observaciones al cerrar la fase | Reducir a lo que demostró valor —probablemente sólo las advertencias visibles— y calcular el índice materno con KPIs derivados de eventos (condición de reversa del ADR-0018). |
 
 ---
 
@@ -547,6 +586,10 @@ Los tres se mergean **antes** que su código (Art. 14).
 
 Dos catálogos quedan **deliberadamente incompletos** porque su contenido es conocimiento de
 la finca, no decisión de diseño. Conviene llevarlos impresos a la próxima visita.
+
+> Las respuestas de A y B **no bloquean nada**: son filas de catálogo (ADR-0018 y
+> `mortality_causes`), así que el sistema se construye sin ellas y se llenan cuando él las
+> dé. Preguntarlas temprano sirve para que la semilla inicial no sea inventada.
 
 **A · Criterios de selección de futuras madres.** En la conversación mencionó el número de
 tetas y la postura de las patas, y dijo que había más que no quedaron anotados. La propuesta

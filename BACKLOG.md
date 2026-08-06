@@ -52,6 +52,19 @@
   cuando se resuelva.
 - **Riesgo de no actuar**: ninguno operacional. Es deuda visible en el workflow.
 
+### [deuda] `AnimalEvent` grupal aún no viaja en el pull (3.5a.1)
+
+- **Archivos**: `src/Hato.Api/Sync/SyncPullQueries.cs`, `clients/field-app/src/services/syncEngine.ts`.
+- **Causa**: 3.5a.1 agrega el mecanismo de evento grupal (push, dominio, CHECK de BD) pero
+  ningún flujo del móvil todavía necesita leer el historial de eventos de un lote — la
+  compuerta de `PLAN-FASE-3-5-PORCINO.md` sec.2.3 bloquea las pantallas nuevas hasta que
+  el árbol de actividades esté cerrado con el cliente (3.5a.7/3.5a.9-B). Agregar una
+  colección `groupEvents`/`animalEvents` al pull ahora sería construir sin consumidor.
+- **Trabajo a hacer**: cuando 3.5a.7 escriba la ficha del lote ("última vacunación,
+  alimento del período"), agregar `SyncAnimalEventDto` + `ReadAsync` en
+  `SyncPullQueries.cs` y su entrada en `TABLE_BY_COLLECTION`.
+- **Disparador**: arranque de 3.5a.7 (`feature/field-app-lot-registration`).
+
 ## Reglas para este archivo
 
 - Cada ítem lleva un prefijo `[categoría]` (cosmético / tests / deuda / docs / ops).

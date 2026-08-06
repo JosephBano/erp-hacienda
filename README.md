@@ -33,7 +33,9 @@
 | 7 | [`ROADMAP.md`](docs/ROADMAP.md) | Fases 0–7 con criterios de salida | Cada semana (¿en qué fase estoy?) |
 | 8 | [`LEGAL-ECUADOR.md`](docs/LEGAL-ECUADOR.md) | Agrocalidad/SIFAE, ARCSA, SRI, IESS, LOPDP | Antes de cada fase que lo toque |
 | 9 | [`BACKUPS.md`](docs/BACKUPS.md) | Estrategia de respaldos y restauración probada | Antes de declarar producción |
-| 10 | [`adr/`](docs/adr/) | Decisiones de arquitectura (6 fundacionales + plantilla) | Antes de contradecir una |
+| 10 | [`adr/`](docs/adr/) | Decisiones de arquitectura (19 + plantilla) | Antes de contradecir una |
+| 11 | [`planes/`](docs/planes/) | Planes de ejecución por fase (ramas, tareas, pruebas) | Al abrir una fase o una rama |
+| 12 | [`diagramas/`](docs/diagramas/) | Diagramas ER completos en Mermaid, por núcleo | Al tocar el esquema |
 
 ## Stack
 
@@ -50,7 +52,10 @@ para la app de campo (Fase 3). Detalles y justificación en
 ├─ Hato.sln
 ├─ Directory.Build.props      # net8.0, nullable, warnings como errores
 ├─ docker-compose.yml         # PostgreSQL 16 local
-├─ docs/                      # SOUL, CONSTITUTION, ARCHITECTURE, DATA-MODEL… + adr/
+├─ docs/                      # SOUL, CONSTITUTION, ARCHITECTURE, DATA-MODEL…
+│  ├─ adr/                    # decisiones de arquitectura: NNNN-titulo-en-kebab.md
+│  ├─ planes/                 # planes de ejecución por fase
+│  └─ diagramas/              # diagramas ER completos (.mermaid)
 ├─ src/
 │  ├─ Hato.Api/               # composición: DI, auth, endpoints de todos los módulos
 │  ├─ Shared/Hato.SharedKernel/

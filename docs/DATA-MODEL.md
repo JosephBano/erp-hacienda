@@ -54,7 +54,7 @@ flowchart LR
 
 ## Núcleo 1 — Identidad: animal genérico + doble identificación
 
-*(diagrama completo: `der-1-identidad.mermaid`)*
+*(diagrama completo: `diagramas/der-1-identidad.mermaid`)*
 
 ```mermaid
 erDiagram
@@ -90,7 +90,7 @@ parcial `WHERE valid_to IS NULL`).
 
 ## Núcleo 2 — Eventos: el corazón del sistema
 
-*(diagrama completo: `der-2-eventos.mermaid`)*
+*(diagrama completo: `diagramas/der-2-eventos.mermaid`)*
 
 ```mermaid
 erDiagram
@@ -133,7 +133,7 @@ GIN sobre `payload` solo cuando una consulta real lo pida · `(event_type_id, oc
 
 ## Núcleo 3 — Grupos, potreros e inventario (el costeo vive aquí)
 
-*(diagrama completo: `der-3-grupos-inventario.mermaid`)*
+*(diagrama completo: `diagramas/der-3-grupos-inventario.mermaid`)*
 
 ```mermaid
 erDiagram
@@ -170,7 +170,7 @@ erDiagram
 
 ## Núcleo 4 — Reproducción y genética (Fase 2, pero las FKs nacen en Fase 1)
 
-*(diagrama completo: `der-4-reproduccion.mermaid`)*
+*(diagrama completo: `diagramas/der-4-reproduccion.mermaid`)*
 
 ```mermaid
 erDiagram
@@ -202,7 +202,7 @@ erDiagram
 
 ## Núcleo 5 — Producción de leche
 
-*(diagrama completo: `der-5-produccion-leche.mermaid`)*
+*(diagrama completo: `diagramas/der-5-produccion-leche.mermaid`)*
 
 ```mermaid
 erDiagram

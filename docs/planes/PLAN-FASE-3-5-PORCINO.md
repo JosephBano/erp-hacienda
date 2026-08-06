@@ -658,11 +658,11 @@ un lote en retiro de carne se rechaza**, no se advierte (mismo estándar que
 
 | ADR | Qué decide | Cuándo se implementa |
 |---|---|---|
-| [0015](adr/0015-lote-por-conteo.md) | Lote por conteo, evento grupal XOR, reversibilidad al aretar | 3.5a.1 |
-| [0016](adr/0016-plan-sanitario-configurable.md) | Un solo motor de cronograma por ancla + desfase + filtro | **escrito ahora**, implementado en 3.5b.1 |
-| [0017](adr/0017-correccion-de-registros-de-campo.md) | Dos caminos de corrección según dónde esté el registro | 3.5a.8 |
-| [0018](adr/0018-caracteristicas-observables-del-animal.md) | Un solo mecanismo para los juicios sobre un animal, con guardarraíl estructural | 3.5b.5 |
-| [0019](adr/0019-visibilidad-de-modulos.md) | Los módulos se ocultan por interruptor explícito y **nunca se borran** | 3.5a.9 |
+| [0015](../adr/0015-lote-por-conteo.md) | Lote por conteo, evento grupal XOR, reversibilidad al aretar | 3.5a.1 |
+| [0016](../adr/0016-plan-sanitario-configurable.md) | Un solo motor de cronograma por ancla + desfase + filtro | **escrito ahora**, implementado en 3.5b.1 |
+| [0017](../adr/0017-correccion-de-registros-de-campo.md) | Dos caminos de corrección según dónde esté el registro | 3.5a.8 |
+| [0018](../adr/0018-caracteristicas-observables-del-animal.md) | Un solo mecanismo para los juicios sobre un animal, con guardarraíl estructural | 3.5b.5 |
+| [0019](../adr/0019-visibilidad-de-modulos.md) | Los módulos se ocultan por interruptor explícito y **nunca se borran** | 3.5a.9 |
 
 Los cinco se mergean **antes** que su código (Art. 14).
 

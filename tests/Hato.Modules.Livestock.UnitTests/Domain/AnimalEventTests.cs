@@ -36,6 +36,53 @@ public class AnimalEventTests
     }
 
     [Fact]
+    public void CreateForGroup_WithValidData_Succeeds()
+    {
+        var groupId = Guid.NewGuid();
+        var occurredAt = DateTimeOffset.UtcNow;
+        var payload = "{\"sampleCount\":10,\"avgKg\":45.2}";
+
+        var evt = AnimalEvent.CreateForGroup(groupId, EventType.Weighing, occurredAt, "capataz", payload);
+
+        Assert.Null(evt.AnimalId);
+        Assert.Equal(groupId, evt.GroupId);
+        Assert.Equal(EventType.Weighing, evt.EventType);
+        Assert.Null(evt.AffectedCount);
+    }
+
+    [Fact]
+    public void CreateForGroup_WithoutGroupId_Throws()
+    {
+        Assert.Throws<DomainException>(() =>
+            AnimalEvent.CreateForGroup(Guid.Empty, EventType.Disposal, DateTimeOffset.UtcNow, "admin", "{}", affectedCount: 3));
+    }
+
+    [Fact]
+    public void CreateForGroup_WithZeroAffectedCount_Throws()
+    {
+        Assert.Throws<DomainException>(() =>
+            AnimalEvent.CreateForGroup(
+                Guid.NewGuid(), EventType.Disposal, DateTimeOffset.UtcNow, "admin", "{\"count\":0}", affectedCount: 0));
+    }
+
+    [Fact]
+    public void CreateForGroup_WithNegativeAffectedCount_Throws()
+    {
+        Assert.Throws<DomainException>(() =>
+            AnimalEvent.CreateForGroup(
+                Guid.NewGuid(), EventType.Disposal, DateTimeOffset.UtcNow, "admin", "{}", affectedCount: -1));
+    }
+
+    [Fact]
+    public void Create_IndividualEvent_NeverCarriesAGroupId()
+    {
+        var evt = AnimalEvent.Create(Guid.NewGuid(), EventType.Weighing, DateTimeOffset.UtcNow, "admin", "{}");
+
+        Assert.NotNull(evt.AnimalId);
+        Assert.Null(evt.GroupId);
+    }
+
+    [Fact]
     public void WithdrawalPeriod_ActiveWindow_EvaluatesCorrectly()
     {
         var period = new WithdrawalPeriod(

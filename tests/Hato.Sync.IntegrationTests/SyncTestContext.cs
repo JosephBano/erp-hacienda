@@ -179,13 +179,14 @@ public class SyncTestContext
         return body.GetProperty("id").GetGuid();
     }
 
-    public async Task<Guid> CreateGroupAsync(string name)
+    public async Task<Guid> CreateGroupAsync(string name, string trackingMode = "Individual")
     {
         var response = await Client.PostAsJsonAsync("/api/v1/animal-groups", new
         {
             name = $"{name}-{Guid.NewGuid():N}",
             description = (string?)null,
             speciesId = (Guid?)null,
+            trackingMode,
         });
         response.EnsureSuccessStatusCode();
 

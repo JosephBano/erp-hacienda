@@ -147,4 +147,30 @@ public class AnimalTests
         Assert.Throws<DomainException>(
             () => animal.Update(Guid.NewGuid(), null, null, DateTimeOffset.UtcNow));
     }
+
+    /// <summary>
+    /// ADR-0015 sec.7: the cascade closure marks an animal disposed "with lot scope" —
+    /// it really left, the system just cannot say more than that. Distinct from
+    /// <see cref="Animal.Delete"/>, which tombstones a mis-registration.
+    /// </summary>
+    [Fact]
+    public void CloseViaLotDisposal_SetsDisposedAt_WithoutTouchingDeletedAt()
+    {
+        var animal = Animal.Register(SpeciesId, Sex.Male);
+        var disposedAt = new DateTimeOffset(2026, 6, 1, 0, 0, 0, TimeSpan.Zero);
+
+        animal.CloseViaLotDisposal(disposedAt);
+
+        Assert.Equal(disposedAt, animal.DisposedAt);
+        Assert.False(animal.IsDeleted);
+    }
+
+    [Fact]
+    public void CloseViaLotDisposal_CalledTwice_Throws()
+    {
+        var animal = Animal.Register(SpeciesId, Sex.Male);
+        animal.CloseViaLotDisposal(DateTimeOffset.UtcNow);
+
+        Assert.Throws<DomainException>(() => animal.CloseViaLotDisposal(DateTimeOffset.UtcNow));
+    }
 }

@@ -102,6 +102,50 @@ public class SyncPushProtocolTests(SyncApiFactory factory)
         Assert.Contains(recorded, o => o.GetProperty("clientOperationId").GetString() == operationId.ToString());
     }
 
+    /// <summary>
+    /// ADR-0015 + PLAN-FASE-3-4 sec.2.2: a group disposal replayed by a retry or a double
+    /// tap must decrement <c>LiveHeadCount</c> exactly once, the same "never duplicate"
+    /// guarantee every other push operation gets from the generic claim step.
+    /// </summary>
+    [Fact]
+    public async Task Push_SameGroupEventThreeTimes_DecrementsLiveHeadCountOnce()
+    {
+        var context = await SyncTestContext.CreateAsync(factory, "push-groupevent-dedupe");
+        var groupId = await context.CreateGroupAsync("Engorde", trackingMode: "Headcount");
+        var speciesId = await context.CreateSpeciesAsync("Porcino");
+
+        for (var i = 0; i < 5; i++)
+        {
+            var animalId = await context.CreateAnimalAsync(speciesId);
+            await context.AddMemberAsync(groupId, animalId);
+        }
+
+        var operationId = Guid.NewGuid();
+        var payload = new
+        {
+            groupId,
+            eventType = "Disposal",
+            occurredAt = DateTimeOffset.UtcNow,
+            recordedBy = "capataz",
+            payloadJson = "{\"count\":2,\"causeId\":null}",
+            affectedCount = 2,
+        };
+
+        var first = await context.PushAsync("recordGroupEvent", payload, operationId);
+        var second = await context.PushAsync("recordGroupEvent", payload, operationId);
+        var third = await context.PushAsync("recordGroupEvent", payload, operationId);
+
+        Assert.Equal("Accepted", first.GetProperty("status").GetString());
+        Assert.Equal("Duplicate", second.GetProperty("status").GetString());
+        Assert.Equal("Duplicate", third.GetProperty("status").GetString());
+
+        var countResponse = await context.Client.GetAsync($"/api/v1/animal-groups/{groupId}/live-head-count");
+        countResponse.EnsureSuccessStatusCode();
+        var count = await countResponse.Content.ReadFromJsonAsync<JsonElement>();
+
+        Assert.Equal(3, count.GetProperty("liveHeadCount").GetInt32());
+    }
+
     [Fact]
     public async Task Push_SameOperationThreeTimes_ProducesOneRecordAndOneResult()
     {

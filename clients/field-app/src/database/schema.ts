@@ -13,7 +13,7 @@ import { appSchema, tableSchema } from '@nozbe/watermelondb';
  * representable locally, otherwise a record deleted on the server would live on in the
  * employee's list forever.
  */
-export const SCHEMA_VERSION = 6;
+export const SCHEMA_VERSION = 7;
 
 export const schema = appSchema({
   version: SCHEMA_VERSION,
@@ -160,6 +160,16 @@ export const schema = appSchema({
     // other data. Default visibility for a module whose row is absent is "shown" so a
     // fresh install does not silently lose a surface; the seed that flips Production off
     // for the pig pilot comes through the pull, not a migration.
+    // 3.5a.3: the mortality causes catalog (Art. 8), so "baja con causa" offers the list
+    // offline instead of blocking on a round trip the field may not have.
+    tableSchema({
+      name: 'mortality_causes',
+      columns: [
+        { name: 'name', type: 'string' },
+        { name: 'is_active', type: 'boolean' },
+        { name: 'is_deleted', type: 'boolean' },
+      ],
+    }),
     tableSchema({
       name: 'farm_modules',
       columns: [

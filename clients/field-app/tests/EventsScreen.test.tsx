@@ -49,6 +49,7 @@ describe('EventsScreen', () => {
     expect(await screen.findByTestId('mode-treatment')).toBeTruthy();
     expect(screen.getByTestId('mode-weight')).toBeTruthy();
     expect(screen.getByTestId('mode-move')).toBeTruthy();
+    expect(screen.getByTestId('mode-disposal')).toBeTruthy();
     expect(screen.queryByTestId('events-animal-empty')).toBeNull();
   });
 
@@ -113,5 +114,61 @@ describe('EventsScreen', () => {
     // still leads the form. Counted taps: subject + animal + activity + confirm = 4.
     expect(await screen.findByTestId('animal-list')).toBeTruthy();
     expect(screen.queryByTestId('mode-treatment')).toBeNull();
+  });
+
+  /** 3.5a.3: "Baja con causa" reached the same way the other three activities are. */
+  it('goes straight to the disposal form when initialActivity is disposal', async () => {
+    const animals = [{ animalId: 'a-1', label: 'Pinta' }];
+    await render(
+      <EventsScreen
+        service={service}
+        animals={animals}
+        groups={[]}
+        medications={[]}
+        mortalityCauses={[{ causeId: 'cause-1', name: 'Aplastamiento' }]}
+        initialAnimalId="a-1"
+        initialActivity="disposal"
+      />,
+    );
+
+    expect(screen.queryByTestId('mode-treatment')).toBeNull();
+    expect(await screen.findByTestId('cause-cause-1')).toBeTruthy();
+  });
+
+  it('shows the resolved mother when the selected animal has one', async () => {
+    const animals = [
+      { animalId: 'sow-1', label: 'Cerda 01' },
+      { animalId: 'piglet-1', label: 'Lechón 01', motherId: 'sow-1' },
+    ];
+    await render(
+      <EventsScreen
+        service={service}
+        animals={animals}
+        groups={[]}
+        medications={[]}
+        mortalityCauses={[{ causeId: 'cause-1', name: 'Aplastamiento' }]}
+        initialAnimalId="piglet-1"
+        initialActivity="disposal"
+      />,
+    );
+
+    expect(await screen.findByText(/Madre: Cerda 01/)).toBeTruthy();
+  });
+
+  it('shows an empty-catalog message instead of a broken picker when no causes are loaded', async () => {
+    const animals = [{ animalId: 'a-1', label: 'Pinta' }];
+    await render(
+      <EventsScreen
+        service={service}
+        animals={animals}
+        groups={[]}
+        medications={[]}
+        mortalityCauses={[]}
+        initialAnimalId="a-1"
+        initialActivity="disposal"
+      />,
+    );
+
+    expect(await screen.findByText(/No hay causas de mortalidad configuradas/)).toBeTruthy();
   });
 });

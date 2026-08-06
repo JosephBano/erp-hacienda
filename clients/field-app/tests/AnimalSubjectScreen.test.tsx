@@ -118,6 +118,7 @@ describe('AnimalSubjectScreen', () => {
     expect(await screen.findByTestId('activity-treatment')).toBeTruthy();
     expect(screen.getByTestId('activity-weight')).toBeTruthy();
     expect(screen.getByTestId('activity-move')).toBeTruthy();
+    expect(screen.getByTestId('activity-disposal')).toBeTruthy();
   });
 
   it('routes the activity tap to the callback with the chosen activity', async () => {
@@ -136,5 +137,25 @@ describe('AnimalSubjectScreen', () => {
     fireEvent.press(await screen.findByTestId('activity-weight'));
 
     expect(onActivity).toHaveBeenCalledWith('a-1', 'weight');
+  });
+
+  /** 3.5a.3: the disposal stub is gone now that the mortality causes catalog exists. */
+  it('routes "Baja con causa" like any other activity, not as a disabled stub', async () => {
+    const onActivity = jest.fn();
+    await render(
+      <AnimalSubjectScreen
+        animals={animals}
+        recentIds={[]}
+        selectedAnimalId="a-1"
+        onSelectAnimal={noop}
+        onActivity={onActivity}
+        onClearSelection={noop}
+      />,
+    );
+
+    const disposalButton = await screen.findByTestId('activity-disposal');
+    fireEvent.press(disposalButton);
+
+    expect(onActivity).toHaveBeenCalledWith('a-1', 'disposal');
   });
 });

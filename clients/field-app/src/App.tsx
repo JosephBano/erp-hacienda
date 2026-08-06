@@ -11,7 +11,7 @@ import { MilkingService } from './services/milkingService';
 import { ModuleVisibility } from './services/moduleVisibility';
 import { Outbox } from './services/outbox';
 import { SyncEngine } from './services/syncEngine';
-import { loadGroups, loadHerd, loadMedications } from './services/herdQueries';
+import { loadGroups, loadHerd, loadMedications, loadMortalityCauses } from './services/herdQueries';
 import { ActivitiesHub } from './screens/ActivitiesHub';
 import { AnimalEditScreen } from './screens/AnimalEditScreen';
 import { AnimalSubjectScreen } from './screens/AnimalSubjectScreen';
@@ -72,6 +72,7 @@ export default function App() {
   const [herd, setHerd] = useState<Awaited<ReturnType<typeof loadHerd>>>([]);
   const [groups, setGroups] = useState<Awaited<ReturnType<typeof loadGroups>>>([]);
   const [medications, setMedications] = useState<Awaited<ReturnType<typeof loadMedications>>>([]);
+  const [mortalityCauses, setMortalityCauses] = useState<Awaited<ReturnType<typeof loadMortalityCauses>>>([]);
   // ADR-0019: the production module is on by default; the pull flips it off for the
   // pig pilot. ModuleVisibility answers from the local DB with no network, so this is
   // offline-safe by construction.
@@ -83,7 +84,7 @@ export default function App() {
   // picker and the activity menu when entering EventsScreen.
   const [selectedAnimalId, setSelectedAnimalId] = useState<string | null>(null);
   const [eventsInitialAnimalId, setEventsInitialAnimalId] = useState<string | undefined>(undefined);
-  const [eventsInitialActivity, setEventsInitialActivity] = useState<'treatment' | 'weight' | 'move' | undefined>(undefined);
+  const [eventsInitialActivity, setEventsInitialActivity] = useState<'treatment' | 'weight' | 'move' | 'disposal' | undefined>(undefined);
   const [todayEntries, setTodayEntries] = useState<
     { clientOperationId: string; operationType: string; occurredAt: string; status: 'pending' | 'synced' | 'rejected' | 'cancelled' }[]
   >([]);
@@ -91,10 +92,11 @@ export default function App() {
   const visibility = useMemo(() => new ModuleVisibility(database), [database]);
 
   const refresh = useCallback(async () => {
-    const [nextHerd, nextGroups, nextMedications, stats, productionVisible, today] = await Promise.all([
+    const [nextHerd, nextGroups, nextMedications, nextMortalityCauses, stats, productionVisible, today] = await Promise.all([
       loadHerd(database),
       loadGroups(database),
       loadMedications(database),
+      loadMortalityCauses(database),
       outbox.stats(),
       visibility.canShow('production'),
       outbox.today(),
@@ -103,6 +105,7 @@ export default function App() {
     setHerd(nextHerd);
     setGroups(nextGroups);
     setMedications(nextMedications);
+    setMortalityCauses(nextMortalityCauses);
     setPending(stats.pending);
     setProductionOn(productionVisible);
     setTodayEntries(
@@ -198,14 +201,8 @@ export default function App() {
               // and the activity pre-selected. Plan: the operator has already chosen
               // subject + animal + activity on the activity tree; the form they reach
               // here is the same one they would have reached by tapping through the
-              // menu — fewer steps, no behaviour change.
-              //
-              // 'disposal' is the only AnimalActivity that has no EventsScreen
-              // equivalent yet (3.5a.3 catalog has not landed). Tapping it does not
-              // navigate; the parent of AnimalSubjectScreen owns the stub messaging.
-              if (activity === 'disposal') {
-                return;
-              }
+              // menu — fewer steps, no behaviour change. 'disposal' joined this path in
+              // 3.5a.3 once the mortality causes catalog existed to back it.
               setSelectedAnimalId(animalId);
               setEventsInitialAnimalId(animalId);
               setEventsInitialActivity(activity);
@@ -246,6 +243,7 @@ export default function App() {
             animals={herd}
             groups={groups}
             medications={medications}
+            mortalityCauses={mortalityCauses}
             onRecorded={refresh}
             initialAnimalId={eventsInitialAnimalId}
             initialActivity={eventsInitialActivity}

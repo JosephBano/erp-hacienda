@@ -149,7 +149,7 @@ describe('BirthScreen — calf management', () => {
   });
 
   /**
-   * "Cancelar tras quitar no deja estado sucio" (PLAN §3.5a.0 #2): after a remove that
+   * "Cancelar tras quitar no deja estado sucio" (PLAN 3.5a.0 #2): after a remove that
    * got the litter right, cancelling must take the user back to the dam picker with an
    * empty litter — not a half-cleared draft that re-appears on the next visit.
    */
@@ -172,7 +172,7 @@ describe('BirthScreen — calf management', () => {
   });
 
   /**
-   * PLAN §3.5a.0 #3: a summary the employee can glance at before confirming — mother,
+   * PLAN 3.5a.0 #3: a summary the employee can glance at before confirming — mother,
    * father, count by sex, the list. Confirming is one extra tap IF anything looks off;
    * the inline summary is the review, not a separate screen.
    *

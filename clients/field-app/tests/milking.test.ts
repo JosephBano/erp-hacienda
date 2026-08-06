@@ -122,7 +122,7 @@ describe('MilkingService', () => {
   });
 
   /**
-   * PLAN §3.5a.0 #4 locked as a test, not as a comment: impossible values are blocked,
+   * PLAN 3.5a.0 #4 locked as a test, not as a comment: impossible values are blocked,
    * improbable values pass through. The plausibility ceiling (a 1000-L cow) is NOT this
    * layer's job — it lives in 3.5a.6 with per-species ranges — so a 1-L milking is a
    * legitimate record here even though it is unusual. "Do not punish the operator"

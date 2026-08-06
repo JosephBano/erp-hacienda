@@ -616,44 +616,56 @@ temprana de enfermedad y el motivo real por el que el cliente cuenta los sacos.
 Pruebas: FCR sobre un lote sembrado con valores conocidos, a mano en el test; lote sin
 pesaje inicial no produce un FCR falso; la divergencia dispara sobre umbral configurable.
 
-### 4.5 · `feature/livestock-animal-traits` · **estructural** (ADR-0018)
+### 4.5 · `feature/livestock-animal-traits` · **estructural** (ADR-0018) — **split en 3.5b.5-A, 3.5b.5-B y 3.5b.5-C**
+
+> **Esta sección se partió en tres sub-ramas ejecutables** porque las 7 tareas originales
+> mezclaban cambios de naturaleza muy distinta en un mismo PR: (a) la introducción del núcleo
+> del mecanismo, (b) una migración de datos con pérdida potencial si algo falla, y (c) la
+> UI donde el valor del mecanismo se vuelve tangible. Cada uno merece su propio diff.
 
 *Por qué:* la evaluación de futuras madres y la calificación materna eran dos subsistemas
 distintos, y el segundo (`MaternalBehaviorAssessment`) era **un `if (especie == 'cerdo')`
 disfrazado de tabla**. Ambos son el mismo mecanismo: un juicio tipado, fechado y firmado
 sobre un animal. **Dos ramas planificadas se vuelven una, y más chica.**
 
-Tareas:
-1. `AnimalTrait` (definición configurable) + `TraitObservation` (registro fechado y firmado).
-   `kind` ∈ {`Conductual`, `Morfológica`, `Manejo`}; `especie` nula = aplica a todas.
-2. **Se observan, no se asignan.** Nunca una columna editable sobre `Animal`: "esta yegua es
-   mansa" es un **resumen derivado** de la serie. Así una cerda que empeora entre partos, o
-   una yegua que se vuelve nerviosa tras una lastimadura, son visibles en vez de
-   sobrescritas.
-3. `contexto` opcional apuntando al hecho durante el cual se observó (un parto, una jornada
-   de manejo). Es lo que conserva el "en **este** parto aplastó" al generalizar.
-4. **Cuatro tipos de valor y nada más** — `Booleano`, `EscalaOrdinal` (conjunto **cerrado**
-   de niveles etiquetados), `ConteoAcotado` (mín/máx declarados), `TextoLibre`. **Sin campo
-   de unidad y sin decimal libre**: es el guardarraíl estructural del ADR-0018, y lo que
-   hace que `peso = 35.4 kg` sea *inexpresable* en vez de meramente desaconsejado.
-5. Absorbe `SelectionCriterion`: la evaluación de futura madre pasa a ser "capturar el
-   conjunto de morfológicas en una sesión y registrar una decisión". Semilla a confirmar con
-   el cliente (§7): tetas funcionales y simetría, aplomos y calidad de pezuña, desarrollo
-   vulvar, condición corporal, temperamento, ausencia de hernias.
-6. **Advertencias de campo**: `visible_como_advertencia` muestra la característica en la
-   ficha del animal en el móvil, antes de que alguien lo toque. *"PATEA"* al empleado nuevo.
-   Es lo de mayor valor por línea de código de toda la fase: transfiere el conocimiento del
-   empleado con veinte años al que llegó el lunes, y no tiene nada que ver con porcinos.
-7. **Una definición usada se versiona, no se edita** (ADR-0018 §9): si una escala 1–5 pasa a
-   1–10 con observaciones ya registradas, un 3 viejo y un 3 nuevo dejan de significar lo
-   mismo, en silencio.
+#### Sub-ramas
 
-Pruebas: **una característica no puede declarar unidad ni aceptar decimal libre** —la
-invariante del guardarraíl, no los nombres del catálogo, que el cliente amplía libremente
-(Art. 8)—; característica nueva por INSERT aparece sin tocar código; observación conserva su
-interpretación tras versionarse la definición; escala ordinal rechaza un valor fuera del
-conjunto; conteo fuera de rango rechazado; el resumen derivado refleja la última observación
-y no una columna.
+| Sub-rama | Alcance principal | Depende de | Rama Git |
+|---|---|---|---|
+| [`3.5b.5-A`](./sub_planes/PLAN-FASE-3-5-PORCINO-3.5b.5-A.md) | Núcleo: tablas `animal_traits`, `trait_kinds`, `trait_value_types`, `trait_observations`. Cuatro tipos de valor y nada más. `CurrentDisposition` derivado. | — | `feature/livestock-animal-traits-core` |
+| [`3.5b.5-B`](./sub_planes/PLAN-FASE-3-5-PORCINO-3.5b.5-B.md) | Absorción de `SelectionCriterion` y drenaje de `MaternalBehaviorAssessment`. Semilla de las morfológicas porcinas (tetas, aplomos, hernia, temperamento, etc.). | A | `feature/livestock-selection-criterion-deprecation` |
+| [`3.5b.5-C`](./sub_planes/PLAN-FASE-3-5-PORCINO-3.5b.5-C.md) | Advertencias visibles en la ficha del animal + versionado por clonado de las definiciones usadas. | A (recomendada B) | `feature/livestock-trait-alerts-and-versioning` |
+
+#### Resumen de tareas distribuidas
+
+| # | Tarea | Sub-rama |
+|---|---|---|
+| 1 | `AnimalTrait` (definición) + `TraitObservation` (registro fechado y firmado); `kind` ∈ {Conductual, Morfológica, Manejo}; `especie` nula = global | A |
+| 2 | "Se observan, no se asignan": nunca columna editable en `Animal`; `CurrentDisposition` derivado | A |
+| 3 | `contexto` opcional apuntando al hecho durante el cual se observó | A |
+| 4 | Cuatro tipos de valor y nada más (Booleano, EscalaOrdinal, ConteoAcotado, TextoLibre). Sin unidad y sin decimal libre (guardarraíl estructural) | A |
+| 5 | Absorbe `SelectionCriterion` y drena `MaternalBehaviorAssessment`; semillas del §7-A (tetas, aplomos, hernia, temperamento, etc.) | B |
+| 6 | `visible_como_advertencia` muestra la característica en la ficha del animal en el móvil antes de que alguien lo toque | C |
+| 7 | "Una definición usada se versiona, no se edita" (ADR-0018 §9): si la escala cambia, las observaciones viejas se interpretan con la versión que tenían al observarse | C |
+
+#### Resumen de pruebas distribuidas
+
+- **Guardarraíl estructural: característica no puede declarar unidad ni aceptar decimal libre**
+  (test de **arquitectura**) → [A](./sub_planes/PLAN-FASE-3-5-PORCINO-3.5b.5-A.md).
+- **`TraitValueType` tiene exactamente 4 filas** → A.
+- **`EscalaOrdinal` rechaza valores fuera del conjunto / fuera del string** → A.
+- **`ConteoAcotado` rechaza fuera de rango; sin decimal** → A.
+- **`CurrentDisposition` derivado y refleja la última observación** → A (lo completa C con el
+  versionado).
+- **Drenaje exacto e idempotente de `SelectionCriterion`** → [B](./sub_planes/PLAN-FASE-3-5-PORCINO-3.5b.5-B.md).
+- **`MaternalBehaviorAssessment` queda vacía y se elimina** → B.
+- **Sesión → `gilt_evaluation` context preservado** → B.
+- **Regresión del `MaternalIndex` (§4.6): lee lo drenado, no se pisa** → B.
+- **Versionado por clonado (transaccional, no edición)** → [C](./sub_planes/PLAN-FASE-3-5-PORCINO-3.5b.5-C.md).
+- **Atomicidad y concurrencia del versionado** → C.
+- **Interpretación preservada tras versionado** (la prueba más importante del ADR-0018) → C.
+- **Alertas visibles en la ficha, sin red** → C.
+- **Toggle de alerta en el panel, sin tocar código** → C.
 
 ### 4.6 · `feature/breeding-maternal-index`
 
@@ -701,7 +713,7 @@ un lote en retiro de carne se rechaza**, no se advierte (mismo estándar que
 | [0015](../adr/0015-lote-por-conteo.md) | Lote por conteo, evento grupal XOR, reversibilidad al aretar | 3.5a.1 |
 | [0016](../adr/0016-plan-sanitario-configurable.md) | Un solo motor de cronograma por ancla + desfase + filtro | **escrito ahora**, implementado en 3.5b.1 |
 | [0017](../adr/0017-correccion-de-registros-de-campo.md) | Dos caminos de corrección según dónde esté el registro | 3.5a.8 |
-| [0018](../adr/0018-caracteristicas-observables-del-animal.md) | Un solo mecanismo para los juicios sobre un animal, con guardarraíl estructural | 3.5b.5 |
+| [0018](../adr/0018-caracteristicas-observables-del-animal.md) | Un solo mecanismo para los juicios sobre un animal, con guardarraíl estructural | [`3.5b.5-A`](./sub_planes/PLAN-FASE-3-5-PORCINO-3.5b.5-A.md), [`3.5b.5-B`](./sub_planes/PLAN-FASE-3-5-PORCINO-3.5b.5-B.md), [`3.5b.5-C`](./sub_planes/PLAN-FASE-3-5-PORCINO-3.5b.5-C.md) |
 | [0019](../adr/0019-visibilidad-de-modulos.md) | Los módulos se ocultan por interruptor explícito y **nunca se borran** | [`3.5a.9-A`](./sub_planes/PLAN-FASE-3-5-PORCINO-3.5a.9-A.md) |
 
 Los cinco se mergean **antes** que su código (Art. 14).

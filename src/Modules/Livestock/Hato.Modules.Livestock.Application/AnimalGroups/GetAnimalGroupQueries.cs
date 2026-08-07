@@ -69,8 +69,6 @@ public class GetAnimalGroupsHandler(ILivestockDbContext dbContext) : IRequestHan
         )).ToList();
     }
 }
-<<<<<<< HEAD
-=======
 
 /// <summary>
 /// PLAN-FASE-3-5-PORCINO.md sec.3.5a.7 task 6: the lot summary the field-app shows
@@ -150,4 +148,3 @@ public class GetAnimalGroupSummaryHandler(ILivestockDbContext dbContext)
             lastTreatmentAt);
     }
 }
->>>>>>> b96d956 (test(livestock): parameterize the CHECK tests + 404 on unknown lot)

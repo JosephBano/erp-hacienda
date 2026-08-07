@@ -155,7 +155,16 @@ export function TodayScreen({ entries, outbox, events, onChanged }: TodayScreenP
         {ordered.map((entry) => {
           const isCorrection = entry.operationType === 'recordCorrection';
           const canCancel = entry.status === 'pending' && !isCorrection;
-          const canCorrect = entry.status === 'synced' && !isCorrection && Boolean(entry.resultRef);
+          // Bug from the Fase 3.5 retrospective: TodayScreen used to enable "Corregir"
+          // for every synced entry, but the server-side handler only knows how to find
+          // an AnimalEvent — a recordBirth's resultRef is a Birthing id, a
+          // recordMilking's resultRef is a MilkYield id, and either was rejected with
+          // "el evento original no existe". Today only recordAnimalEvent has a working
+          // server-side correction (the others will be wired in 3.5b alongside the
+          // cross-module subject lookup); the rest must go through the admin panel.
+          const correctableFromPhone = entry.operationType === 'recordAnimalEvent';
+          const canCorrect =
+            entry.status === 'synced' && !isCorrection && correctableFromPhone && Boolean(entry.resultRef);
           const isBusy = busyId === entry.clientOperationId;
           const showingReason = reasonFor === entry.clientOperationId;
           const outcomeForEntry = outcome?.entryId === entry.clientOperationId ? outcome : null;

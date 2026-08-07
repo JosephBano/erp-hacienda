@@ -117,6 +117,10 @@ public class RecordBirthingCommandHandler(
         // Enroll each live-born calf as a first-class Animal in Livestock, with
         // genealogy set — this is what makes "the calf was born inside the system"
         // (Fase 2 exit criterion) true, instead of just recording a litter count.
+        // BirthWeightKg is propagated from the field-app (PLAN-FASE-3-5-PORCINO.md
+        // sec.3.5a.4 task 3): without it, every metric that derives from the
+        // first-day weight — gilt selection, pre-weaning growth — is unrecoverable
+        // once the litter is mixed into the headcount lot.
         if (request.Offspring is { Count: > 0 })
         {
             foreach (var offspring in request.Offspring)
@@ -130,7 +134,8 @@ public class RecordBirthingCommandHandler(
                         FarmTag: offspring.FarmTag,
                         FatherAnimalId: sireAnimalId,
                         FatherStrawId: fatherStrawId,
-                        BirthingId: birthing.Id),
+                        BirthingId: birthing.Id,
+                        BirthWeightKg: offspring.BirthWeightKg),
                     cancellationToken);
             }
         }

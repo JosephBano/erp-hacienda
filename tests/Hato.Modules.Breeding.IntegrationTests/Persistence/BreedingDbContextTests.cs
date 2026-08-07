@@ -2,26 +2,24 @@ using Hato.Modules.Breeding.Domain;
 using Hato.Modules.Breeding.Domain.Enums;
 using Hato.Modules.Breeding.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
-using Testcontainers.PostgreSql;
+using Hato.TestSupport;
 using Xunit;
 
 namespace Hato.Modules.Breeding.IntegrationTests.Persistence;
 
 public sealed class BreedingDbContextTests : IAsyncLifetime
 {
-    private readonly PostgreSqlContainer _postgres = new PostgreSqlBuilder()
-        .WithImage("postgres:16-alpine")
-        .Build();
+    private TestDatabase _database = null!;
 
-    public Task InitializeAsync() => _postgres.StartAsync();
+    public async Task InitializeAsync() => _database = await TestDatabase.StartAsync();
 
-    public Task DisposeAsync() => _postgres.DisposeAsync().AsTask();
+    public Task DisposeAsync() => _database.DisposeAsync().AsTask();
 
     [Fact]
     public async Task Migrations_ApplyCleanly_OnEmptyDatabase()
     {
         var options = new DbContextOptionsBuilder<BreedingDbContext>()
-            .UseNpgsql(_postgres.GetConnectionString())
+            .UseNpgsql(_database.ConnectionString)
             .Options;
 
         await using var context = new BreedingDbContext(options);
@@ -35,7 +33,7 @@ public sealed class BreedingDbContextTests : IAsyncLifetime
     public async Task CanInsertAndQueryBreedingService_WithPostgreSQL()
     {
         var options = new DbContextOptionsBuilder<BreedingDbContext>()
-            .UseNpgsql(_postgres.GetConnectionString())
+            .UseNpgsql(_database.ConnectionString)
             .Options;
 
         await using var context = new BreedingDbContext(options);

@@ -50,10 +50,45 @@ public class InventoryItemTests
         var itemId = Guid.NewGuid();
 
         var consumption = GroupFeedConsumption.Record(
-            groupId, itemId, 120.5m, new DateOnly(2026, 8, 1), "ordeñador 1");
+            groupId, itemId, 120.5m, "kg", 120.5m, 1m, new DateOnly(2026, 8, 1), "ordeñador 1");
 
         Assert.NotEqual(Guid.Empty, consumption.Id);
-        Assert.Equal(120.5m, consumption.Quantity);
+        Assert.Equal(120.5m, consumption.QuantityRecorded);
+        Assert.Equal(120.5m, consumption.QuantityInBaseUnit);
+        Assert.Equal("kg", consumption.UnitRecorded);
         Assert.Equal("ordeñador 1", consumption.RecordedBy);
+    }
+
+    [Fact]
+    public void RecordGroupFeedConsumption_NegativeOrZeroQuantity_Throws()
+    {
+        Assert.Throws<DomainException>(() => GroupFeedConsumption.Record(
+            Guid.NewGuid(), Guid.NewGuid(), 0m, "kg", 0m, 1m,
+            new DateOnly(2026, 8, 1), "ordeñador"));
+        Assert.Throws<DomainException>(() => GroupFeedConsumption.Record(
+            Guid.NewGuid(), Guid.NewGuid(), -1m, "kg", -1m, 1m,
+            new DateOnly(2026, 8, 1), "ordeñador"));
+    }
+
+    [Fact]
+    public void RecordGroupFeedConsumption_EmptyUnit_Throws()
+    {
+        Assert.Throws<DomainException>(() => GroupFeedConsumption.Record(
+            Guid.NewGuid(), Guid.NewGuid(), 1m, "", 1m, 1m,
+            new DateOnly(2026, 8, 1), "ordeñador"));
+    }
+
+    [Fact]
+    public void RecordGroupFeedConsumption_PreservesRecordedAndBaseBoth()
+    {
+        // 3 sacos de 40 kg → 120 kg en base. Both numbers must survive on the row.
+        var consumption = GroupFeedConsumption.Record(
+            Guid.NewGuid(), Guid.NewGuid(), 3m, "saco40kg", 120m, 40m,
+            new DateOnly(2026, 8, 1), "ordeñador");
+
+        Assert.Equal(3m, consumption.QuantityRecorded);
+        Assert.Equal("saco40kg", consumption.UnitRecorded);
+        Assert.Equal(120m, consumption.QuantityInBaseUnit);
+        Assert.Equal(40m, consumption.AppliedFactor);
     }
 }

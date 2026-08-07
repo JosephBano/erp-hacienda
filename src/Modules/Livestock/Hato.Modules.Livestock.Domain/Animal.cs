@@ -22,6 +22,16 @@ public class Animal : AuditableEntity
     public Sex Sex { get; private set; }
     public DateOnly? BirthDate { get; private set; }
 
+    /// <summary>
+    /// Weight at birth in kilograms (PLAN-FASE-3-5-PORCINO.md sec.3.5a.4, task 3).
+    /// Captured once, at registration — the weighing of a newborn in the field is
+    /// short and loud, and a late edit is a different event (a Weighing event against
+    /// the calf, not a correction here). Optional because not every birthing is
+    /// weighed: a stillborn is not, and a herd whose calves are not weighed is not
+    /// wrong, only data-poorer than it could be.
+    /// </summary>
+    public decimal? BirthWeightKg { get; private set; }
+
     public Guid? MotherId { get; private set; }
     public Guid? FatherAnimalId { get; private set; }
     public Guid? FatherStrawId { get; private set; }
@@ -48,13 +58,14 @@ public class Animal : AuditableEntity
 
     public IReadOnlyCollection<AnimalIdentifier> Identifiers => _identifiers.AsReadOnly();
 
-    private Animal(Guid speciesId, Sex sex, DateOnly? birthDate, Guid? breedId, Guid? categoryId)
+    private Animal(Guid speciesId, Sex sex, DateOnly? birthDate, Guid? breedId, Guid? categoryId, decimal? birthWeightKg)
     {
         SpeciesId = speciesId;
         Sex = sex;
         BirthDate = birthDate;
         BreedId = breedId;
         CategoryId = categoryId;
+        BirthWeightKg = birthWeightKg;
     }
 
     /// <summary>
@@ -68,12 +79,15 @@ public class Animal : AuditableEntity
         DateOnly? birthDate = null,
         Guid? breedId = null,
         Guid? categoryId = null,
+        decimal? birthWeightKg = null,
         Guid? id = null)
     {
         if (speciesId == Guid.Empty)
             throw new DomainException("Un animal debe pertenecer a una especie.");
+        if (birthWeightKg is <= 0)
+            throw new DomainException("El peso al nacer debe ser positivo.");
 
-        var animal = new Animal(speciesId, sex, birthDate, breedId, categoryId);
+        var animal = new Animal(speciesId, sex, birthDate, breedId, categoryId, birthWeightKg);
 
         if (id is { } requested && requested != Guid.Empty)
         {
@@ -131,14 +145,44 @@ public class Animal : AuditableEntity
     /// <summary>
     /// Closes this animal as part of a lot's cascade disposal (ADR-0015 sec.7) — called
     /// once, by the group whose <c>Headcount</c> just reached zero, for every membership it
-    /// closed in the same operation. Never called to record an identified, individual
-    /// disposal (sale, death) — that is a plain <see cref="AnimalEvent"/> against this
-    /// animal's own id and does not touch this field.
+    /// closed in the same operation. Carries a different provenance flag in the field-app
+    /// ("baja con alcance de lote") from <see cref="Dispose"/> ("baja identificada: se sabe
+    /// cuál animal salió"), but the underlying <see cref="DisposedAt"/> state is the same.
     /// </summary>
     public void CloseViaLotDisposal(DateTimeOffset disposedAt)
     {
+        MarkDisposed(disposedAt, provenance: "lot");
+    }
+
+    /// <summary>
+    /// Records an identified, individual disposal (sale, death with cause, theft) — the
+    /// animal whose id is on the <see cref="AnimalEvent"/> is the same animal whose
+    /// <see cref="DisposedAt"/> is set here. Until 2026-08-07 the handler that wrote the
+    /// event never touched this field, so any animal whose exit was registered individually
+    /// (the common case — piglets that die before the litter mixes, identified sales)
+    /// continued to read as <see cref="IndividualState.Alive"/> or
+    /// <see cref="IndividualState.Indeterminate"/> in every aggregate that asked, including
+    /// the pre-weaning mortality roll-up that 3.5a.3 was built to make honest.
+    /// </summary>
+    public void Dispose(DateTimeOffset disposedAt)
+    {
+        MarkDisposed(disposedAt, provenance: "individual");
+    }
+
+    /// <summary>
+    /// Idempotency boundary for both <see cref="CloseViaLotDisposal"/> and
+    /// <see cref="Dispose"/>: an animal can only be disposed once, regardless of whether
+    /// the caller reached this method through an identified sale or a cascade. The
+    /// provenance argument is the message of the loud-not-silent failure so a misordered
+    /// caller learns which path collided with the other.
+    /// </summary>
+    private void MarkDisposed(DateTimeOffset disposedAt, string provenance)
+    {
         if (DisposedAt is not null)
-            throw new DomainException("El animal ya fue dado de baja con alcance de lote.");
+        {
+            throw new DomainException(
+                $"El animal ya fue dado de baja ({provenance}); una baja individual no puede seguir a otra ni a un cierre de lote.");
+        }
 
         DisposedAt = disposedAt;
     }

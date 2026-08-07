@@ -117,4 +117,15 @@ public class NursingCohortTests
 
         Assert.Contains("anterior", ex.Message);
     }
+
+    [Fact]
+    public void RecordWeaning_NegativeWeanedCount_ThrowsDomainException()
+    {
+        var cohort = NursingCohort.Open(_speciesId, new DateOnly(2026, 8, 1));
+
+        var ex = Assert.Throws<DomainException>(() =>
+            cohort.RecordWeaning(new DateOnly(2026, 8, 28), weanedCount: -1));
+
+        Assert.Contains("negativa", ex.Message);
+    }
 }

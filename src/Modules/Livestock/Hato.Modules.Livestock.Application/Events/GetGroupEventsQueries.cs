@@ -29,7 +29,10 @@ public class GetGroupEventsHandler(ILivestockDbContext dbContext)
 /// <summary>
 /// The single reading of ADR-0015 sec.4: active memberships minus disposals recorded
 /// against the lot. Never a stored, editable counter — always recomputed from the events
-/// that actually happened.
+/// that actually happened. Capped at zero: a lot whose members were all disposed
+/// (whether by a single cascade-closing disposal or by a chain of partial ones whose
+/// sums happened to reach the membership count) reports <c>0</c>, not a negative
+/// number — the aggregate of live heads is a count, never a debt.
 /// </summary>
 public record GetLiveHeadCountQuery(Guid GroupId) : IRequest<int>;
 
@@ -49,6 +52,15 @@ public class GetLiveHeadCountHandler(ILivestockDbContext dbContext)
             .Where(e => e.GroupId == request.GroupId && e.EventType == EventType.Disposal)
             .SumAsync(e => e.AffectedCount ?? 0, cancellationToken);
 
-        return activeMemberships - disposed;
+        // Bug found in the Fase 3.5 retrospective: when a cascade closure runs, every
+        // active membership goes to LeftAt != null on the same write, and the very next
+        // read of this handler sees activeMemberships = 0 while disposed is the full
+        // historical sum. The subtraction returned a negative number that propagated
+        // through every aggregate that asks "how many live heads has the farm?"
+        // (e.g. the post-#54 run #54 CI: Expected: 0 / Actual: -6 and -20). The cap is
+        // not a patch over an inconsistency — it is the correct semantic: a lot whose
+        // count is exhausted has zero live heads, regardless of which exact sequence of
+        // partial disposals got us there.
+        return Math.Max(0, activeMemberships - disposed);
     }
 }

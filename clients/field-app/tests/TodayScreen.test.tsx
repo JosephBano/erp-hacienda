@@ -117,7 +117,9 @@ describe('TodayScreen', () => {
     const outbox = { cancelPending } as unknown as Outbox;
 
     const entries = [
-      { clientOperationId: 'op-1', operationType: 'recordMilking', occurredAt: '2026-08-06T05:00:00.000Z', status: 'pending' as const },
+      // Today only recordAnimalEvent is correctable from the phone
+      // (recordBirth / recordMilking are deferred to 3.5b — see ADR-0020).
+      { clientOperationId: 'op-1', operationType: 'recordAnimalEvent', occurredAt: '2026-08-06T05:00:00.000Z', status: 'pending' as const },
     ];
 
     await render(
@@ -147,7 +149,7 @@ describe('TodayScreen', () => {
     const entries = [
       {
         clientOperationId: 'op-1',
-        operationType: 'recordMilking',
+        operationType: 'recordAnimalEvent',
         occurredAt: '2026-08-06T05:00:00.000Z',
         status: 'synced' as const,
         resultRef: 'server-event-id-1',
@@ -185,7 +187,7 @@ describe('TodayScreen', () => {
     const entries = [
       {
         clientOperationId: 'op-1',
-        operationType: 'recordMilking',
+        operationType: 'recordAnimalEvent',
         occurredAt: '2026-08-06T05:00:00.000Z',
         status: 'pending' as const,
         resultRef: 'server-event-id-1',

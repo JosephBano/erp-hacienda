@@ -4,11 +4,11 @@ using Hato.Modules.Livestock.Infrastructure.Persistence;
 using Hato.Modules.People.Infrastructure.Persistence;
 using Hato.Modules.Production.Infrastructure.Persistence;
 using Hato.Modules.Tasks.Infrastructure.Persistence;
+using Hato.TestSupport;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
-using Testcontainers.PostgreSql;
 using Xunit;
 
 namespace Hato.Sync.IntegrationTests;
@@ -20,11 +20,11 @@ namespace Hato.Sync.IntegrationTests;
 /// </summary>
 public class SyncApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
 {
-    private readonly PostgreSqlContainer _postgres = new PostgreSqlBuilder()
-        .WithImage("postgres:16-alpine")
-        .Build();
+    // Real PostgreSQL, resolved by TestSupport: a throwaway container by default,
+    // or a fresh database on the server named by HATO_TEST_POSTGRES.
+    private TestDatabase _database = null!;
 
-    public string ConnectionString => _postgres.GetConnectionString();
+    public string ConnectionString => _database.ConnectionString;
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
@@ -32,14 +32,14 @@ public class SyncApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
         {
             config.AddInMemoryCollection(new Dictionary<string, string?>
             {
-                ["ConnectionStrings:HatoDb"] = _postgres.GetConnectionString(),
+                ["ConnectionStrings:HatoDb"] = _database.ConnectionString,
             });
         });
     }
 
     public async Task InitializeAsync()
     {
-        await _postgres.StartAsync();
+        _database = await TestDatabase.StartAsync();
 
         await MigrateAsync<LivestockDbContext>(LivestockDbContext.Schema, o => new LivestockDbContext(o));
         await MigrateAsync<ProductionDbContext>(ProductionDbContext.Schema, o => new ProductionDbContext(o));
@@ -55,7 +55,7 @@ public class SyncApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
         where TContext : DbContext
     {
         var options = new DbContextOptionsBuilder<TContext>()
-            .UseNpgsql(_postgres.GetConnectionString(),
+            .UseNpgsql(_database.ConnectionString,
                 n => n.MigrationsHistoryTable("__ef_migrations_history", schema))
             .Options;
 
@@ -66,7 +66,7 @@ public class SyncApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
     async Task IAsyncLifetime.DisposeAsync()
     {
         await base.DisposeAsync();
-        await _postgres.DisposeAsync();
+        await _database.DisposeAsync();
     }
 }
 

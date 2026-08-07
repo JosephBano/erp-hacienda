@@ -34,6 +34,10 @@ namespace Hato.Modules.Livestock.Infrastructure.Persistence.Migrations
                         .HasColumnType("date")
                         .HasColumnName("birth_date");
 
+                    b.Property<decimal?>("BirthWeightKg")
+                        .HasColumnType("numeric")
+                        .HasColumnName("birth_weight_kg");
+
                     b.Property<Guid?>("BirthingId")
                         .HasColumnType("uuid")
                         .HasColumnName("birthing_id");

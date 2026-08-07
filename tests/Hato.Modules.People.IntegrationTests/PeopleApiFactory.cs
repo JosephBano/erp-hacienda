@@ -2,20 +2,20 @@ using Hato.Modules.Inventory.Infrastructure.Persistence;
 using Hato.Modules.Livestock.Infrastructure.Persistence;
 using Hato.Modules.People.Infrastructure.Persistence;
 using Hato.Modules.Production.Infrastructure.Persistence;
+using Hato.TestSupport;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
-using Testcontainers.PostgreSql;
 using Xunit;
 
 namespace Hato.Modules.People.IntegrationTests;
 
 public class PeopleApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
 {
-    private readonly PostgreSqlContainer _postgres = new PostgreSqlBuilder()
-        .WithImage("postgres:16-alpine")
-        .Build();
+    // Real PostgreSQL, resolved by TestSupport: a throwaway container by default,
+    // or a fresh database on the server named by HATO_TEST_POSTGRES.
+    private TestDatabase _database = null!;
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
@@ -23,35 +23,35 @@ public class PeopleApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
         {
             config.AddInMemoryCollection(new Dictionary<string, string?>
             {
-                ["ConnectionStrings:HatoDb"] = _postgres.GetConnectionString(),
+                ["ConnectionStrings:HatoDb"] = _database.ConnectionString,
             });
         });
     }
 
     public async Task InitializeAsync()
     {
-        await _postgres.StartAsync();
+        _database = await TestDatabase.StartAsync();
 
         var livestockOptions = new DbContextOptionsBuilder<LivestockDbContext>()
-            .UseNpgsql(_postgres.GetConnectionString(), n => n.MigrationsHistoryTable("__ef_migrations_history", LivestockDbContext.Schema))
+            .UseNpgsql(_database.ConnectionString, n => n.MigrationsHistoryTable("__ef_migrations_history", LivestockDbContext.Schema))
             .Options;
         await using var livestockContext = new LivestockDbContext(livestockOptions);
         await livestockContext.Database.MigrateAsync();
 
         var productionOptions = new DbContextOptionsBuilder<ProductionDbContext>()
-            .UseNpgsql(_postgres.GetConnectionString(), n => n.MigrationsHistoryTable("__ef_migrations_history", ProductionDbContext.Schema))
+            .UseNpgsql(_database.ConnectionString, n => n.MigrationsHistoryTable("__ef_migrations_history", ProductionDbContext.Schema))
             .Options;
         await using var productionContext = new ProductionDbContext(productionOptions);
         await productionContext.Database.MigrateAsync();
 
         var inventoryOptions = new DbContextOptionsBuilder<InventoryDbContext>()
-            .UseNpgsql(_postgres.GetConnectionString(), n => n.MigrationsHistoryTable("__ef_migrations_history", InventoryDbContext.Schema))
+            .UseNpgsql(_database.ConnectionString, n => n.MigrationsHistoryTable("__ef_migrations_history", InventoryDbContext.Schema))
             .Options;
         await using var inventoryContext = new InventoryDbContext(inventoryOptions);
         await inventoryContext.Database.MigrateAsync();
 
         var peopleOptions = new DbContextOptionsBuilder<PeopleDbContext>()
-            .UseNpgsql(_postgres.GetConnectionString(), n => n.MigrationsHistoryTable("__ef_migrations_history", PeopleDbContext.Schema))
+            .UseNpgsql(_database.ConnectionString, n => n.MigrationsHistoryTable("__ef_migrations_history", PeopleDbContext.Schema))
             .Options;
         await using var peopleContext = new PeopleDbContext(peopleOptions);
         await peopleContext.Database.MigrateAsync();
@@ -60,6 +60,6 @@ public class PeopleApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
     async Task IAsyncLifetime.DisposeAsync()
     {
         await base.DisposeAsync();
-        await _postgres.DisposeAsync();
+        await _database.DisposeAsync();
     }
 }

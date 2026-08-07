@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet, TextInput, View } from 'react-native';
 
 import { theme } from '../ui/theme';
 import { BigButton, Body, Card, EmptyState, Notice, Screen, Title } from '../ui/components';
@@ -48,6 +48,34 @@ export function BirthScreen({
         i === index ? { ...calf, sex: calf.sex === 'M' ? 'F' : 'M' } : calf,
       ),
     );
+
+  /**
+   * PLAN-FASE-3-5-PORCINO 3.5a.4 task 3: birth weight is the first-day metric the client
+   * uses to decide future mothers — a gilt of ≥1 kg is a promise, <0.7 kg usually is not.
+   * The field-app lets the operator leave it blank (the litter is still valid), and the
+   * input only accepts positive decimals so a typo doesn't silently land in the database.
+   * Validation lives on submit, not on every keystroke, so the three-tap rule still holds.
+   */
+  const setCalfWeight = (index: number, rawText: string) => {
+    const cleaned = rawText.replace(',', '.').trim();
+    if (cleaned === '') {
+      setOffspring((current) =>
+        current.map((calf, i) => (i === index ? { ...calf, birthWeightKg: undefined } : calf)),
+      );
+      return;
+    }
+
+    const parsed = Number(cleaned);
+    if (!Number.isFinite(parsed) || parsed <= 0) {
+      setError('El peso al nacer debe ser un valor positivo (en kilogramos).');
+      return;
+    }
+
+    setError(null);
+    setOffspring((current) =>
+      current.map((calf, i) => (i === index ? { ...calf, birthWeightKg: parsed } : calf)),
+    );
+  };
 
   const submit = async () => {
     if (!dam) return;
@@ -131,6 +159,15 @@ export function BirthScreen({
                   <Body muted>
                     {`${index + 1}. ${calf.sex === 'M' ? 'Macho' : 'Hembra'}`}
                   </Body>
+                  <TextInput
+                    testID={`offspring-weight-${index}`}
+                    style={styles.weightInput}
+                    keyboardType="decimal-pad"
+                    placeholder="Peso al nacer (kg) — opcional"
+                    placeholderTextColor={theme.color.textMuted}
+                    defaultValue={calf.birthWeightKg?.toString() ?? ''}
+                    onChangeText={(text) => setCalfWeight(index, text)}
+                  />
                   <View style={styles.row}>
                     <View style={styles.rowItem}>
                       <BigButton
@@ -217,5 +254,15 @@ const styles = StyleSheet.create({
   },
   offspringRow: {
     gap: theme.space.xs,
+  },
+  weightInput: {
+    borderWidth: 1,
+    borderColor: theme.color.border,
+    borderRadius: theme.radius.md,
+    paddingHorizontal: theme.space.sm,
+    paddingVertical: theme.space.xs,
+    fontSize: theme.font.body,
+    color: theme.color.text,
+    backgroundColor: theme.color.surface,
   },
 });

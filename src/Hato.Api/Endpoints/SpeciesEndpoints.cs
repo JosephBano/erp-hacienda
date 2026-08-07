@@ -1,4 +1,5 @@
 using Hato.Modules.Livestock.Application.Species;
+using Hato.Modules.Livestock.Contracts;
 using Hato.Modules.People.Domain;
 using Hato.Modules.People.Infrastructure.Authorization;
 using MediatR;
@@ -22,5 +23,29 @@ public static class SpeciesEndpoints
             var id = await sender.Send(command);
             return Results.Created($"/api/v1/species/{id}", new { id });
         }).RequireAuthorization(policy => policy.RequirePermission(SystemPermissions.LivestockSpeciesManage));
+
+        // Lactation parameters (PLAN-FASE-3-5-PORCINO.md sec.3.5a.4): the entity carries
+        // DaysOfLactation and CohortWindowDays, but for too long nothing reached them. The
+        // PATCH closes the loop end-to-end: the admin-web panel can flip the values, the
+        // field app reads the result through the pull, and the cohort-weaning handler
+        // stops refusing with "Configure el parámetro en el panel".
+        group.MapPatch("/{speciesId:guid}/lactation", async (
+            Guid speciesId,
+            UpdateSpeciesLactationCommand command,
+            ISender sender) =>
+        {
+            await sender.Send(command with { SpeciesId = speciesId });
+            return Results.NoContent();
+        }).RequireAuthorization(policy => policy.RequirePermission(SystemPermissions.LivestockSpeciesManage));
+
+        group.MapGet("/{speciesId:guid}/lactation", async (
+            Guid speciesId,
+            ISender sender) =>
+        {
+            var profile = await sender.Send(new Hato.Modules.Livestock.Application.Species.GetSpeciesLactationProfileQuery(speciesId));
+            return profile is null
+                ? Results.NotFound()
+                : Results.Ok(profile);
+        });
     }
 }

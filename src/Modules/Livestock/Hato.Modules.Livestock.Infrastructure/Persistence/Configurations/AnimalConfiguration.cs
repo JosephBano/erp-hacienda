@@ -11,6 +11,7 @@ public class AnimalConfiguration : IEntityTypeConfiguration<Animal>
         builder.ToTable("animals");
         builder.HasKey(a => a.Id);
         builder.Property(a => a.Sex).HasConversion<string>().HasMaxLength(10).IsRequired();
+        builder.Property(a => a.BirthWeightKg).HasColumnName("birth_weight_kg").HasColumnType("numeric(8,3)");
 
         builder.HasOne<Species>().WithMany().HasForeignKey(a => a.SpeciesId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne<Breed>().WithMany().HasForeignKey(a => a.BreedId).OnDelete(DeleteBehavior.Restrict);

@@ -1,11 +1,15 @@
 using System.Net;
 using System.Net.Http.Json;
+using Hato.Api.Endpoints;
 using Hato.Modules.Livestock.Application.AnimalGroups;
 using Hato.Modules.Livestock.Application.Events;
+using Hato.Modules.Livestock.Application.MortalityCauses;
 using Hato.Modules.Livestock.Domain;
 using Hato.Modules.Livestock.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Npgsql;
+using NpgsqlTypes;
 
 namespace Hato.Modules.Livestock.IntegrationTests.Api;
 
@@ -271,36 +275,138 @@ public class RecordGroupEventApiTests(HatoApiFactory factory) : IClassFixture<Ha
     /// The CHECK constraint is the backstop the domain factories cannot bypass (ADR-0015
     /// sec.2): any write that reaches Postgres with both, or neither, subject columns set
     /// fails loudly at the database, which is what protects a consumer that still assumes
-    /// AnimalId is never null.
+    /// AnimalId is never null. The original test only covered the two rejected cases;
+    /// the two accepted cases (animal-only, group-only) were never pinned, which is the
+    /// half of the contract most likely to regress silently if the CHECK is ever
+    /// weakened in a future migration.
     /// </summary>
     [Fact]
     public async Task DatabaseCheckConstraint_RejectsRowsWithBothOrNeitherSubject()
     {
-        using var scope = factory.Services.CreateScope();
-        var dbContext = scope.ServiceProvider.GetRequiredService<LivestockDbContext>();
-
-        var neitherEx = await Assert.ThrowsAsync<Npgsql.PostgresException>(() => dbContext.Database.ExecuteSqlRawAsync(
-            """
-            INSERT INTO livestock.animal_events
-                (id, animal_id, group_id, event_type, occurred_at, recorded_by, payload_json, created_at)
-            VALUES
-                (gen_random_uuid(), NULL, NULL, 'Weighing', now(), 'test', '{}', now())
-            """));
-        Assert.Equal("23514", neitherEx.SqlState);
-
         var speciesId = await CreateSpeciesAsync();
         var animalId = await CreateAnimalAsync(speciesId);
         var (groupId, _) = await SeedHeadcountGroupAsync(1);
 
-        var bothInsertSql =
-            "INSERT INTO livestock.animal_events " +
-            "(id, animal_id, group_id, event_type, occurred_at, recorded_by, payload_json, created_at) " +
-            "VALUES " +
-            $"(gen_random_uuid(), '{animalId}', '{groupId}', 'Weighing', now(), 'test', '{{}}', now())";
+        var neitherEx = await Assert.ThrowsAsync<Npgsql.PostgresException>(
+            () => InsertRawAnimalEventAsync(animalId: null, groupId: null));
+        Assert.Equal("23514", neitherEx.SqlState);
 
         var bothEx = await Assert.ThrowsAsync<Npgsql.PostgresException>(
-            () => dbContext.Database.ExecuteSqlRawAsync(bothInsertSql));
+            () => InsertRawAnimalEventAsync(animalId, groupId));
         Assert.Equal("23514", bothEx.SqlState);
+    }
+
+    /// <summary>
+    /// Companion to <see cref="DatabaseCheckConstraint_RejectsRowsWithBothOrNeitherSubject"/>:
+    /// the accepted half of the XOR. A row with <c>animal_id</c> set and <c>group_id</c>
+    /// null is the normal case (animal-subject event) and must survive the CHECK.
+    /// </summary>
+    [Fact]
+    public async Task DatabaseCheckConstraint_AcceptsRowWithOnlyAnimalSubject()
+    {
+        var speciesId = await CreateSpeciesAsync();
+        var animalId = await CreateAnimalAsync(speciesId);
+
+        await InsertRawAnimalEventAsync(animalId, groupId: null);
+    }
+
+    /// <summary>
+    /// Companion to <see cref="DatabaseCheckConstraint_RejectsRowsWithBothOrNeitherSubject"/>:
+    /// the second accepted half of the XOR. A row with <c>group_id</c> set and
+    /// <c>animal_id</c> null is the group-subject event (ADR-0015) and must survive
+    /// the CHECK.
+    /// </summary>
+    [Fact]
+    public async Task DatabaseCheckConstraint_AcceptsRowWithOnlyGroupSubject()
+    {
+        var (groupId, _) = await SeedHeadcountGroupAsync(1);
+
+        await InsertRawAnimalEventAsync(animalId: null, groupId);
+    }
+
+    /// <summary>
+    /// BLOQUE C / C3: the group disposal handler must validate CauseId the same
+    /// way the individual handler does. Before the fix, the group handler
+    /// skipped the check and would either silently store a dangling FK or, when
+    /// the FK is present, throw an opaque DbUpdateException instead of the
+    /// domain-level rejection the rest of the codebase uses. The asymmetry let
+    /// an operator file a group disposal with a cause the catalog had already
+    /// retired — the same paperwork routine that was blocked for individual
+    /// disposals (see <see cref="MortalityCauseApiTests.RecordIndividualDisposal_WithInactiveCause_IsRejected"/>).
+    /// </summary>
+    [Fact]
+    public async Task RecordGroupDisposal_WithInactiveCause_IsRejected()
+    {
+        var (groupId, _) = await SeedHeadcountGroupAsync(3);
+
+        // Create a cause, then retire it via DELETE (the catalog's soft-delete).
+        var createResponse = await _client.PostAsJsonAsync(
+            "/api/v1/mortality-causes",
+            new CreateMortalityCauseRequest($"Causa-{Guid.NewGuid():N}"));
+        createResponse.EnsureSuccessStatusCode();
+        var causeId = (await createResponse.Content.ReadFromJsonAsync<CreatedId>())!.Id;
+        (await _client.DeleteAsync($"/api/v1/mortality-causes/{causeId}")).EnsureSuccessStatusCode();
+
+        // Act: try to file a group disposal with the now-inactive cause.
+        var response = await _client.PostAsJsonAsync($"/api/v1/animal-groups/{groupId}/events", new
+        {
+            eventType = EventType.Disposal,
+            occurredAt = DateTimeOffset.UtcNow,
+            recordedBy = "capataz",
+            payloadJson = "{\"count\":1,\"causeId\":null}",
+            affectedCount = 1,
+            causeId,
+        });
+
+        // Assert: the same domain-level rejection the individual handler gives.
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+
+        // Side-effect guard: a rejected request must not have lowered the live
+        // head count. This catches the failure mode where the cause validation
+        // happens after the disposal has already mutated the group.
+        var countResponse = await _client.GetAsync($"/api/v1/animal-groups/{groupId}/live-head-count");
+        countResponse.EnsureSuccessStatusCode();
+        var body = await countResponse.Content.ReadFromJsonAsync<LiveHeadCountDto>();
+        Assert.Equal(3, body!.LiveHeadCount);
+    }
+
+    /// <summary>
+    /// Writes one <c>animal_events</c> row straight to Postgres, bypassing the domain
+    /// factories, so the CHECK of ADR-0015 is what answers — that is the whole point of
+    /// these tests: the database must be the backstop even for a writer that never went
+    /// through <see cref="AnimalEvent"/>.
+    ///
+    /// Everything variable travels as a parameter. Four attempts at this test bled on
+    /// string building instead: EF Core's <c>ExecuteSqlRaw</c> reads <c>{</c> as a
+    /// placeholder (FormatException), and doubling the braces to escape them made the
+    /// literal <c>{{"x":1}}</c> reach Postgres once the SQL stopped going through
+    /// <c>string.Format</c> (22P02, invalid json). With parameters there is no brace to
+    /// escape and no formatter in the path.
+    /// </summary>
+    private async Task InsertRawAnimalEventAsync(Guid? animalId, Guid? groupId)
+    {
+        using var scope = factory.Services.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<LivestockDbContext>();
+
+        var connection = (Npgsql.NpgsqlConnection)dbContext.Database.GetDbConnection();
+        if (connection.State != System.Data.ConnectionState.Open)
+            await connection.OpenAsync();
+
+        await using var command = connection.CreateCommand();
+        command.CommandText =
+            """
+            INSERT INTO livestock.animal_events
+                (id, animal_id, group_id, event_type, occurred_at, recorded_by_label,
+                 payload_json, created_at)
+            VALUES
+                (gen_random_uuid(), @animal_id, @group_id, 'Weighing', now(), 'test',
+                 CAST(@payload AS jsonb), now())
+            """;
+        command.Parameters.AddWithValue("animal_id", (object?)animalId ?? DBNull.Value);
+        command.Parameters.AddWithValue("group_id", (object?)groupId ?? DBNull.Value);
+        command.Parameters.AddWithValue("payload", "{\"x\":1}");
+
+        await command.ExecuteNonQueryAsync();
     }
 
     private sealed record CreatedId(Guid Id);

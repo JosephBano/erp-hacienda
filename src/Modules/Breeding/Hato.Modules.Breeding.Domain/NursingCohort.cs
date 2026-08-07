@@ -86,12 +86,13 @@ public class NursingCohort : AuditableEntity
             throw new DomainException("Esta cohorte ya está cerrada.");
         if (weaningDate < StartedAt)
             throw new DomainException("La fecha de destete no puede ser anterior al inicio de la cohorte.");
+        if (weanedCount < 0)
+            throw new DomainException("La cantidad destetada no puede ser negativa.");
 
-        // The actual weaned count is recorded on each individual Birthing (Art. 1: the
-        // events are the source of truth). The cohort only carries the date.
-        _ = weanedCount; // intentionally unused: surfaced for the API contract; the cohort
-                          // does not aggregate it because the per-birthing RecordWeaning
-                          // already validates weanedCount <= BornAlive.
+        // The weanedCount parameter is part of the API contract for symmetry with the
+        // per-birthing RecordWeaning signature, but the cohort does not aggregate it:
+        // Art. 1 puts the truth on each individual Birthing (which validates
+        // weanedCount <= BornAlive) and the cohort carries only the date.
 
         WeanedAt = weaningDate;
         ClosedAt = weaningDate;

@@ -3,7 +3,12 @@ using MediatR;
 
 namespace Hato.Modules.Livestock.Application.Species;
 
-public record CreateSpeciesCommand(string Name, int? GestationDays, bool IsMilkable = false) : IRequest<Guid>;
+public record CreateSpeciesCommand(
+    string Name,
+    int? GestationDays,
+    bool IsMilkable = false,
+    int? DaysOfLactation = null,
+    int? CohortWindowDays = null) : IRequest<Guid>;
 
 public class CreateSpeciesHandler(ILivestockDbContext dbContext) : IRequestHandler<CreateSpeciesCommand, Guid>
 {
@@ -14,7 +19,9 @@ public class CreateSpeciesHandler(ILivestockDbContext dbContext) : IRequestHandl
         var species = Hato.Modules.Livestock.Domain.Species.Create(
             request.Name,
             request.GestationDays,
-            request.IsMilkable);
+            request.IsMilkable,
+            request.DaysOfLactation,
+            request.CohortWindowDays);
 
         dbContext.Species.Add(species);
         await dbContext.SaveChangesAsync(cancellationToken);

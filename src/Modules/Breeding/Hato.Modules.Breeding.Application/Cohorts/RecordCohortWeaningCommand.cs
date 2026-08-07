@@ -34,7 +34,8 @@ public class RecordCohortWeaningCommandValidator : AbstractValidator<RecordCohor
 
 public class RecordCohortWeaningCommandHandler(
     IBreedingDbContext dbContext,
-    IAnimalSpeciesReader speciesReader) : IRequestHandler<RecordCohortWeaningCommand, NursingCohortDto>
+    IAnimalSpeciesReader speciesReader,
+    IAnimalRegistrationService animalRegistration) : IRequestHandler<RecordCohortWeaningCommand, NursingCohortDto>
 {
     public async Task<NursingCohortDto> Handle(
         RecordCohortWeaningCommand request,
@@ -80,6 +81,11 @@ public class RecordCohortWeaningCommandHandler(
         // Per-birthing weaning events. Each event still validates
         // weanedCount <= BornAlive (the existing Birthing.RecordWeaning invariant).
         // The cohort carries the date; the per-birthing record carries the count.
+        //
+        // The weaned count is NOT BornAlive: that would silently inflate every weaning
+        // by the preweaning deaths (3.5a.3's whole reason for existing). We compute it
+        // from the AnimalEvents of this litter — animals whose BirthingId is this one
+        // and that already carry a Disposal event.
         var totalWeaned = 0;
         foreach (var birthing in birthings)
         {
@@ -88,8 +94,11 @@ public class RecordCohortWeaningCommandHandler(
                 continue; // already weaned (partial correction flow), skip silently
             }
 
-            birthing.RecordWeaning(weaningDate, birthing.BornAlive, notes: null);
-            totalWeaned += birthing.BornAlive;
+            var preweaningDeaths = await animalRegistration.CountPreweaningDeathsAsync(birthing.Id, cancellationToken);
+            var weanedCount = Math.Max(0, birthing.BornAlive - preweaningDeaths);
+
+            birthing.RecordWeaning(weaningDate, weanedCount, notes: null);
+            totalWeaned += weanedCount;
         }
 
         cohort.RecordWeaning(weaningDate, totalWeaned, request.Notes);

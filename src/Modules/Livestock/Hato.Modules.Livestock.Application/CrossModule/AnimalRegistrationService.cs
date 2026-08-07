@@ -38,6 +38,15 @@ public class AnimalRegistrationService(ILivestockDbContext dbContext) : IAnimalR
         return offspring.Id;
     }
 
+    public async Task<Guid?> GetSpeciesAsync(Guid animalId, CancellationToken cancellationToken)
+    {
+        return await dbContext.Animals
+            .AsNoTracking()
+            .Where(a => a.Id == animalId && a.DeletedAt == null)
+            .Select(a => (Guid?)a.SpeciesId)
+            .FirstOrDefaultAsync(cancellationToken);
+    }
+
     private static Sex ParseSex(string sex) => sex.Trim().ToUpperInvariant() switch
     {
         "M" or "MALE" or "MACHO" => Sex.Male,

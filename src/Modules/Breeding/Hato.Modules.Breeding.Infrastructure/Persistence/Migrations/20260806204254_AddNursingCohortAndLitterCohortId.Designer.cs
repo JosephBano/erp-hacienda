@@ -3,6 +3,7 @@ using System;
 using Hato.Modules.Breeding.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Hato.Modules.Breeding.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(BreedingDbContext))]
-    partial class BreedingDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260806204254_AddNursingCohortAndLitterCohortId")]
+    partial class AddNursingCohortAndLitterCohortId
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

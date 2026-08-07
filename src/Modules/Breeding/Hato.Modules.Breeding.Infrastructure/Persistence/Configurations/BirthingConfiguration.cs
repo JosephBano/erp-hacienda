@@ -21,6 +21,13 @@ public class BirthingConfiguration : IEntityTypeConfiguration<Birthing>
 
         builder.HasIndex(b => b.DamId);
         builder.HasIndex(b => b.BirthDate);
+        builder.HasIndex(b => b.NursingCohortId);
+
+        builder.HasOne<NursingCohort>()
+            .WithMany()
+            .HasForeignKey(b => b.NursingCohortId)
+            .OnDelete(DeleteBehavior.Restrict);
+
         builder.HasQueryFilter(b => b.DeletedAt == null);
     }
 }

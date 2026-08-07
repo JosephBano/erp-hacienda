@@ -21,7 +21,7 @@ public class GetGroupEventsHandler(ILivestockDbContext dbContext)
 
         return events.Select(e => new AnimalEventDto(
             e.Id, e.AnimalId, e.GroupId, e.EventType, e.OccurredAt, e.RecordedBy,
-            e.Cost, e.PayloadJson, e.RelatedEventId, e.AffectedCount
+            e.Cost, e.PayloadJson, e.RelatedEventId, e.AffectedCount, e.CauseId
         )).ToList();
     }
 }

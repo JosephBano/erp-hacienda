@@ -1,4 +1,5 @@
 using Hato.Modules.Breeding.Application.Birthings;
+using Hato.Modules.Breeding.Application.Cohorts;
 using Hato.Modules.Breeding.Application.Pregnancies;
 using Hato.Modules.Breeding.Application.PregnancyChecks;
 using Hato.Modules.Breeding.Application.Services;
@@ -54,6 +55,22 @@ public static class BreedingEndpoints
         {
             var birthing = await sender.Send(command);
             return Results.Ok(birthing);
+        });
+
+        // ----- Nursing cohorts (PLAN-FASE-3-5-PORCINO.md sec.3.5a.4) -----
+        // Weaning is recorded at the cohort level rather than litter by litter. The
+        // command computes the date from the species' DaysOfLactation setting and
+        // walks every birthings row to record the per-birthing weaning event
+        // (Art. 1: those are the immutable history; the cohort is the calendar view
+        // that binds them together).
+        group.MapPost("/cohorts/{cohortId:guid}/wean", async (
+            Guid cohortId,
+            RecordCohortWeaningCommand command,
+            ISender sender) =>
+        {
+            var commandWithCohort = command with { NursingCohortId = cohortId };
+            var cohort = await sender.Send(commandWithCohort);
+            return Results.Ok(cohort);
         });
 
         group.MapGet("/pedigree/{animalId:guid}", async (Guid animalId, ISender sender) =>

@@ -41,6 +41,16 @@ public interface IAnimalRegistrationService
     /// command can fall back to "no cohort" without an exception.
     /// </summary>
     Task<Guid?> GetSpeciesAsync(Guid animalId, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Counts how many of this litter's offspring already carry a Disposal event.
+    /// Used by Breeding's cohort-weaning handler to compute the actual weaned count
+    /// (PLAN-FASE-3-5-PORCINO.md sec.3.5a.4 task 5): a weaning that records BornAlive
+    /// silently ignores the preweaning deaths that 3.5a.3 was built to capture.
+    /// Animals that were tombstoned (mis-registration) are excluded: their absence is
+    /// not a death.
+    /// </summary>
+    Task<int> CountPreweaningDeathsAsync(Guid birthingId, CancellationToken cancellationToken);
 }
 
 /// <summary>

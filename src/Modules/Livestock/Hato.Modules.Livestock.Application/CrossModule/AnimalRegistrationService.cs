@@ -47,6 +47,27 @@ public class AnimalRegistrationService(ILivestockDbContext dbContext) : IAnimalR
             .FirstOrDefaultAsync(cancellationToken);
     }
 
+    public async Task<int> CountPreweaningDeathsAsync(Guid birthingId, CancellationToken cancellationToken)
+    {
+        var offspringIds = await dbContext.Animals
+            .AsNoTracking()
+            .Where(a => a.BirthingId == birthingId && a.DeletedAt == null)
+            .Select(a => a.Id)
+            .ToListAsync(cancellationToken);
+
+        if (offspringIds.Count == 0)
+        {
+            return 0;
+        }
+
+        return await dbContext.AnimalEvents
+            .AsNoTracking()
+            .CountAsync(e => e.EventType == EventType.Disposal
+                          && e.AnimalId.HasValue
+                          && offspringIds.Contains(e.AnimalId.Value),
+                      cancellationToken);
+    }
+
     private static Sex ParseSex(string sex) => sex.Trim().ToUpperInvariant() switch
     {
         "M" or "MALE" or "MACHO" => Sex.Male,

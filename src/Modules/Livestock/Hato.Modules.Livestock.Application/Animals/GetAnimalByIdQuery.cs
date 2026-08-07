@@ -36,7 +36,8 @@ public record AnimalDto(
     Guid? MotherId = null,
     Guid? FatherAnimalId = null,
     Guid? FatherStrawId = null,
-    Guid? BirthingId = null);
+    Guid? BirthingId = null,
+    decimal? BirthWeightKg = null);
 
 public class GetAnimalByIdHandler(ILivestockDbContext dbContext, IMilkYieldsReader milkYieldsReader)
     : IRequestHandler<GetAnimalByIdQuery, AnimalDto?>
@@ -105,7 +106,8 @@ public class GetAnimalByIdHandler(ILivestockDbContext dbContext, IMilkYieldsRead
             animal.MotherId,
             animal.FatherAnimalId,
             animal.FatherStrawId,
-            animal.BirthingId);
+            animal.BirthingId,
+            animal.BirthWeightKg);
     }
 
     private static string? FirstActiveIdentifier(Animal animal, IdentifierType type) =>

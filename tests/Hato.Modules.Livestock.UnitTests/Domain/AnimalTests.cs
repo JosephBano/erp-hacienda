@@ -23,6 +23,31 @@ public class AnimalTests
     }
 
     [Fact]
+    public void Register_WithPositiveBirthWeight_StoresIt()
+    {
+        var animal = Animal.Register(SpeciesId, Sex.Female, birthWeightKg: 1.4m);
+
+        Assert.Equal(1.4m, animal.BirthWeightKg);
+    }
+
+    [Fact]
+    public void Register_WithoutBirthWeight_LeavesItNull()
+    {
+        var animal = Animal.Register(SpeciesId, Sex.Female);
+
+        Assert.Null(animal.BirthWeightKg);
+    }
+
+    [Fact]
+    public void Register_WithZeroOrNegativeBirthWeight_Throws()
+    {
+        Assert.Throws<DomainException>(() =>
+            Animal.Register(SpeciesId, Sex.Female, birthWeightKg: 0m));
+        Assert.Throws<DomainException>(() =>
+            Animal.Register(SpeciesId, Sex.Female, birthWeightKg: -0.1m));
+    }
+
+    [Fact]
     public void Register_WithoutTagOrRegistration_IsStillValid()
     {
         // Domain warning in AGENTS.md: an animal can be fully valid with no tag/SIFAE.

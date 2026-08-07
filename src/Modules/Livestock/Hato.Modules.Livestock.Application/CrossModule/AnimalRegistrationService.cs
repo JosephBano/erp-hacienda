@@ -25,7 +25,8 @@ public class AnimalRegistrationService(ILivestockDbContext dbContext) : IAnimalR
             sex,
             request.BirthDate,
             dam.BreedId,
-            request.CategoryId);
+            request.CategoryId,
+            request.BirthWeightKg);
 
         offspring.SetGenealogy(request.DamId, request.FatherAnimalId, request.FatherStrawId, request.BirthingId);
 

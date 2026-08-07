@@ -24,7 +24,8 @@ public record RegisterOffspringRequest(
     string? FarmTag,
     Guid? FatherAnimalId,
     Guid? FatherStrawId,
-    Guid? BirthingId);
+    Guid? BirthingId,
+    decimal? BirthWeightKg = null);
 
 /// <summary>
 /// Public write port used by Breeding to enroll a newborn as a first-class Animal with

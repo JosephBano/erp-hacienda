@@ -4,6 +4,63 @@
 > bloqueante, o lo que descubrimos mientras hacemos otra cosa, se anota acá.
 > Un ítem del BACKLOG no es una tarea: es algo a discutir antes de actuar.
 
+## Pendiente post-barrido 2026-08-07 (ADR-0020)
+
+> El barrido integral cerró los P0/P1 del informe post-mortem y entregó 3.5a.5
+> y la tarea 6 de 3.5a.7. Lo que queda fuera del barrido, documentado en
+> `docs/adr/0020-…md`, es lo siguiente:
+
+### [3.5a] Reactivar el criterio de salida — sin esto no hay piloto
+
+- **3.5a.2 (treatment detail)** — sub-ramas A/B/C ya escritas en
+  `docs/planes/sub_planes/PLAN-FASE-3-5-PORCINO-3.5a.2-{A,B,C}.md`. Sin esta rama
+  no se puede registrar un tratamiento con vía y motivo (lo que el cliente
+  pidió explícitamente).
+- **3.5a.4 task 4 (clasificación por peso)** — sin esto, los lechones no se
+  reparten en lotes de engorde por tamaño y la camada deja de seguirse dentro
+  del sistema. Pieza que cierra el criterio de salida de 3.5a.
+- **3.5a.6 (plausibility ranges)** — sin esta rama, la tarea 1 de 3.5a.7
+  (pesaje muestral) no se puede entregar sin un `if` por especie (Art. 8).
+- **3.5a.7 tasks 1, 2, 3, 4, 5 (UI del móvil)** — bloqueadas por la compuerta
+  sec.2.3 del macro plan: árbol de actividades dibujado y toques contados con
+  el cliente antes de escribir cualquier pantalla. Sin esa conversación previa,
+  la UI nueva de lote es un menú de botones y la promesa de los 3 toques muere.
+- **Disparador**: cuando el cliente pida abrir el piloto real contra el sistema,
+  abrir este ADR-0020 y arrancar por 3.5a.2-A. La cadena (3.5a.2 → 3.5a.6 →
+  3.5a.7 tasks 1–5) es el orden mínimo que cumple el criterio de salida.
+
+### [UI] admin-web: pantallas de catálogos que faltan
+
+- **Pantalla de especies** (`clients/admin-web/`). El backend tiene CRUD
+  completo (incluido `UpdateLactation` que se agregó en este barrido); la UI
+  no tiene un componente dedicado para gestionarlas. El operador edita
+  parámetros de lactancia con curl hoy.
+- **Pantalla de causas de mortalidad** (anotada previamente). El endpoint
+  existe; falta el componente Angular.
+- **Pantalla de ítems de inventario + conversiones de unidad**. El endpoint
+  existe; falta el componente Angular.
+- **Disparador**: cuando se priorice trabajo de UI admin-web, agrupar las tres
+  en una pantalla genérica "Catálogos" que reutilice un componente tabla
+  parametrizable.
+
+### [mobile] Carrera cancelar↔push — la prueba del lado JS
+
+- **Archivo**: `clients/field-app/src/services/outbox.ts:189–202` (mitigación
+  WatermelonDB). El servidor garantiza que un `clientOperationId` produce un
+  único registro (test `SyncOutboxRaceTests` del barrido 2026-08-07), pero el
+  lado JS que decide "pending → cancelled atómicamente" no tiene test propio.
+- **Disparador**: cuando los 6 tests UI skipped de MilkingScreen y
+  AnimalEditScreen vuelvan a correr (BACKLOG original §tests UI), agregar
+  el de outbox al mismo barrido.
+
+### [mobile] UI para corrección cross-module
+
+- **Archivo**: `clients/field-app/src/screens/TodayScreen.tsx:158`. Hoy el
+  botón "Corregir" sólo aparece para `recordAnimalEvent`; las entradas de
+  `recordBirth` y `recordMilking` quedan con corrección sólo desde el panel
+  (decision BLOQUE C). Cuando se implemente la lectura cross-module en 3.5b,
+  este filtro se levanta.
+
 ## Ítems abiertos (post-piloto Fase 3)
 
 ### [cosmético] Regenerar `adaptive-icon.png` con canal alfa

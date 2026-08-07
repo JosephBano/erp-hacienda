@@ -99,7 +99,10 @@ public class GetAnimalGroupSummaryHandler(ILivestockDbContext dbContext)
             .AnyAsync(g => g.Id == request.GroupId, cancellationToken);
         if (!groupExists)
         {
-            throw new DomainException($"El lote con ID '{request.GroupId}' no existe.");
+            // KeyNotFoundException is the contract ApiExceptionHandler maps to
+            // 404 Not Found (DomainException maps to 400, which is wrong for a
+            // read-side "does this exist?" lookup).
+            throw new KeyNotFoundException($"El lote con ID '{request.GroupId}' no existe.");
         }
 
         // Live head count is the same number the GET /live-head-count endpoint

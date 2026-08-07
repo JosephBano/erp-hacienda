@@ -41,6 +41,14 @@ public class UnitConversionApiTests(InventoryApiFactory factory) : IClassFixture
             new { fromUnit = "saco40kg", toUnit = "kg", factor = 40m });
         createConversionResponse.EnsureSuccessStatusCode();
 
+        // 2b. Stock the item with a 200 kg batch. The batch, like every batch, is
+        // expressed in the item's own unit — it is the only unit a batch has.
+        var batchResponse = await _client.PostAsJsonAsync(
+            $"/api/v1/inventory/items/{itemId}/batches",
+            new { batchNumber = $"L-{Guid.NewGuid():N}"[..12], quantity = 200m, costPerUnit = 0.9m });
+        batchResponse.EnsureSuccessStatusCode();
+        var batchId = (await batchResponse.Content.ReadFromJsonAsync<CreatedId>())!.Id;
+
         // 3. Record a consumption of 3 sacks on a fictitious group. The endpoint
         // signature takes the operator-typed unit, so the conversion runs in the
         // handler (Art. 10, Art. 8: factor is data, not a hardcoded switch).
@@ -53,6 +61,7 @@ public class UnitConversionApiTests(InventoryApiFactory factory) : IClassFixture
         {
             groupId = Guid.NewGuid(),
             inventoryItemId = itemId,
+            batchId,
             quantity = 3m,
             unit = "saco40kg",
             consumedAt = new DateOnly(2026, 8, 7),
@@ -74,6 +83,18 @@ public class UnitConversionApiTests(InventoryApiFactory factory) : IClassFixture
         Assert.Equal("saco40kg", consumption.UnitRecorded);
         Assert.Equal(120m, consumption.QuantityInBaseUnit);
         Assert.Equal(40m, consumption.AppliedFactor);
+
+        // 5. And the stock moved by the kilos, not by the number the operator typed.
+        // This is the assertion PLAN-FASE-3-5-PORCINO.md sec.3.5a.5 asks for by name
+        // ("consumo en sacos descuenta los kilos correctos del batch"); without it the
+        // "bug del saco" survives on the stock side while the consumption row looks right.
+        var item = await Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions
+            .FirstAsync(
+                Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions.Include(
+                    dbContext.InventoryItems, i => i.Batches),
+                i => i.Id == itemId);
+
+        Assert.Equal(80m, item.Batches.Single(b => b.Id == batchId).Quantity);
     }
 
     [Fact]

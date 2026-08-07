@@ -42,6 +42,15 @@ public class GroupFeedConsumptionConfiguration : IEntityTypeConfiguration<GroupF
 
         builder.Property(c => c.RecordedByLabel).HasMaxLength(100).IsRequired();
         builder.Property(c => c.RecordedById).IsRequired(false);
+
+        // The unit the operator typed lives under the same rules as InventoryItem.Unit —
+        // it is the same vocabulary. The factor shares the precision of
+        // unit_conversions.factor, which is where it came from (Art. 10: quantities carry
+        // their unit, and the conversion that produced them is part of the record).
+        builder.Property(c => c.UnitRecorded).HasMaxLength(20).IsRequired();
+        builder.Property(c => c.QuantityRecorded).HasColumnType("numeric(18,3)");
+        builder.Property(c => c.QuantityInBaseUnit).HasColumnType("numeric(18,3)");
+        builder.Property(c => c.AppliedFactor).HasColumnType("numeric(18,6)");
         builder.Ignore(c => c.RecordedBy);
         builder.Property(c => c.Notes).HasMaxLength(500);
 

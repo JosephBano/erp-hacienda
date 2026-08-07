@@ -49,7 +49,7 @@ public class UnitConversionApiTests(InventoryApiFactory factory) : IClassFixture
         // lookup of the group. We use a random Guid and accept that the row will
         // exist with no FK back to a real group: this endpoint is the field-app
         // sync surface, where the group was already pushed.
-        var recordResponse = await _client.PostAsJsonAsync("/api/v1/feed-consumptions", new
+        var recordResponse = await _client.PostAsJsonAsync("/api/v1/inventory/feed-consumptions", new
         {
             groupId = Guid.NewGuid(),
             inventoryItemId = itemId,
@@ -107,7 +107,7 @@ public class UnitConversionApiTests(InventoryApiFactory factory) : IClassFixture
         createItemResponse.EnsureSuccessStatusCode();
         var itemId = (await createItemResponse.Content.ReadFromJsonAsync<CreatedId>())!.Id;
 
-        var response = await _client.PostAsJsonAsync("/api/v1/feed-consumptions", new
+        var response = await _client.PostAsJsonAsync("/api/v1/inventory/feed-consumptions", new
         {
             groupId = Guid.NewGuid(),
             inventoryItemId = itemId,

@@ -290,11 +290,11 @@ public class RecordGroupEventApiTests(HatoApiFactory factory) : IClassFixture<Ha
         // would then have caught a FormatException instead of a CHECK violation, and
         // the CHECK would have been left unverified.
         var neitherEx = await Assert.ThrowsAsync<Npgsql.PostgresException>(() => dbContext.Database.ExecuteSqlRawAsync(
-            """
+            $$"""
             INSERT INTO livestock.animal_events
                 (id, animal_id, group_id, event_type, occurred_at, recorded_by, payload_json, created_at)
             VALUES
-                (gen_random_uuid(), NULL, NULL, 'Weighing', now(), 'test', '{"x":1}', now())
+                (gen_random_uuid(), NULL, NULL, 'Weighing', now(), 'test', '{{"x":1}}', now())
             """));
         Assert.Equal("23514", neitherEx.SqlState);
 

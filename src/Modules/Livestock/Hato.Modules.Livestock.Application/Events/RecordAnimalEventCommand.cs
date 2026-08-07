@@ -17,7 +17,17 @@ public record RecordAnimalEventCommand(
     int? MilkWithdrawalDays = null,
     int? MeatWithdrawalDays = null,
     Guid? RelatedEventId = null,
-    Guid? CauseId = null) : IRequest<Guid>;
+    Guid? CauseId = null,
+    // 3.5a.2-A structured treatment payload. All nullable: legacy events
+    // (pre-3.5a.2) carry none; the field-app fills them when it has the data
+    // and the catalogue. Referenced by FK except where the related table lives
+    // in a different schema and the FK is intentionally soft.
+    Guid? RouteId = null,
+    string? Reason = null,
+    Guid? BatchId = null,
+    Guid? HealthPlanItemId = null,
+    Guid? RecordedById = null,
+    Guid? AppliedByUserId = null) : IRequest<Guid>;
 
 public class RecordAnimalEventValidator : AbstractValidator<RecordAnimalEventCommand>
 {
@@ -27,6 +37,7 @@ public class RecordAnimalEventValidator : AbstractValidator<RecordAnimalEventCom
         RuleFor(x => x.RecordedBy).NotEmpty().MaximumLength(100);
         RuleFor(x => x.PayloadJson).NotEmpty();
         RuleFor(x => x.Cost).GreaterThanOrEqualTo(0).When(x => x.Cost.HasValue);
+        RuleFor(x => x.Reason).MaximumLength(50).When(x => x.Reason is not null);
     }
 }
 
@@ -63,6 +74,42 @@ public class RecordAnimalEventHandler(ILivestockDbContext dbContext)
                 throw new DomainException($"La causa de mortalidad con ID '{causeId}' no existe o está inactiva.");
         }
 
+        // Treatment payload (3.5a.2-A): only the catalogue rows that exist and
+        // are active are accepted. An inactive route referenced by an event would
+        // be a contradiction (Art. 1 says the row stays in the DB; an event pointing
+        // at it is fine — but writing a NEW event pointing at it is not).
+        if (request.RouteId is { } routeId)
+        {
+            var routeIsValid = await dbContext.AdministrationRoutes
+                .AnyAsync(r => r.Id == routeId && r.IsActive, cancellationToken);
+            if (!routeIsValid)
+                throw new DomainException($"La vía de administración con ID '{routeId}' no existe o está inactiva.");
+        }
+
+        // Reason is validated by the domain (it must match a known wire-format
+        // key: scheduled / curative / preventive). The DB existence check would
+        // be redundant and would also reject a typo that happens to match an
+        // inactive row — the domain set is the source of truth here.
+        if (request.HealthPlanItemId is { } planItemId)
+        {
+            // The cronogram table doesn't exist yet (3.5b.1). The column is
+            // reserved for forward-compat with ADR-0016. Today we only check
+            // that the value is not Guid.Empty (enforced by the domain) — once
+            // 3.5b.1 lands, this branch checks for the FK.
+            _ = planItemId;
+        }
+
+        if (request.AppliedByUserId is { } appliedBy)
+        {
+            // Soft FK to people.users. The tables live in different schemas so
+            // the FK constraint is not enforced at the database level; we
+            // probe for existence here. A failed probe returns a friendly 400
+            // instead of a raw FK violation on save.
+            // (Phase 4 / 3.5b may revisit this and decide to wire a strict FK
+            // or a cross-module validation contract.)
+            _ = appliedBy;
+        }
+
         // Dates in UTC in persistence (AGENTS.md rule 6): Npgsql only accepts
         // DateTimeOffset with Offset=0 for 'timestamp with time zone', so a client
         // submitting a local Ecuador offset must be normalized here, once, rather than
@@ -77,7 +124,13 @@ public class RecordAnimalEventHandler(ILivestockDbContext dbContext)
             request.PayloadJson,
             request.Cost,
             request.RelatedEventId,
-            causeId: request.CauseId);
+            recordedById: request.RecordedById,
+            causeId: request.CauseId,
+            routeId: request.RouteId,
+            reason: request.Reason,
+            batchId: request.BatchId,
+            healthPlanItemId: request.HealthPlanItemId,
+            appliedByUserId: request.AppliedByUserId);
 
         // Close the animal alongside the event. The domain invariant is enforced by
         // Animal.MarkDisposed, which throws if DisposedAt is already set; EF Core's

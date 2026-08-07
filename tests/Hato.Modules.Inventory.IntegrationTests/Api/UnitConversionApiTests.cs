@@ -12,7 +12,7 @@ namespace Hato.Modules.Inventory.IntegrationTests.Api;
 ///
 /// The API surface for conversions is the minimum the field-app needs to
 /// download the catalog today: an item's conversions are listed under
-/// /api/v1/inventory-items/{id}/unit-conversions, and a new conversion is
+/// /api/v1/inventory/items/{id}/unit-conversions, and a new conversion is
 /// posted through the same path. Future sync work (PLAN-FASE-3-4 sec.2.2)
 /// will fold these into the pull collection; for now the endpoint is
 /// reachable for the admin-web / swagger tooling that is already wired up.
@@ -25,7 +25,7 @@ public class UnitConversionApiTests(InventoryApiFactory factory) : IClassFixture
     public async Task RegisterFeedItem_WithSackConversion_ThenConsumeInSacks_PersistsBothQuantities()
     {
         // 1. Register a feed item whose base unit is "kg".
-        var createItemResponse = await _client.PostAsJsonAsync("/api/v1/inventory-items", new
+        var createItemResponse = await _client.PostAsJsonAsync("/api/v1/inventory/items", new
         {
             name = $"Balanceado-{Guid.NewGuid():N}",
             category = "Feed",
@@ -37,7 +37,7 @@ public class UnitConversionApiTests(InventoryApiFactory factory) : IClassFixture
 
         // 2. Register the conversion sack40kg -> kg with factor 40.
         var createConversionResponse = await _client.PostAsJsonAsync(
-            $"/api/v1/inventory-items/{itemId}/unit-conversions",
+            $"/api/v1/inventory/items/{itemId}/unit-conversions",
             new { fromUnit = "saco40kg", toUnit = "kg", factor = 40m });
         createConversionResponse.EnsureSuccessStatusCode();
 
@@ -79,7 +79,7 @@ public class UnitConversionApiTests(InventoryApiFactory factory) : IClassFixture
     [Fact]
     public async Task RegisterConversion_NegativeFactor_IsRejected()
     {
-        var createItemResponse = await _client.PostAsJsonAsync("/api/v1/inventory-items", new
+        var createItemResponse = await _client.PostAsJsonAsync("/api/v1/inventory/items", new
         {
             name = $"Item-{Guid.NewGuid():N}",
             category = "Feed",
@@ -89,7 +89,7 @@ public class UnitConversionApiTests(InventoryApiFactory factory) : IClassFixture
         var itemId = (await createItemResponse.Content.ReadFromJsonAsync<CreatedId>())!.Id;
 
         var response = await _client.PostAsJsonAsync(
-            $"/api/v1/inventory-items/{itemId}/unit-conversions",
+            $"/api/v1/inventory/items/{itemId}/unit-conversions",
             new { fromUnit = "saco", toUnit = "kg", factor = -1m });
 
         Assert.Equal(System.Net.HttpStatusCode.BadRequest, response.StatusCode);
@@ -98,7 +98,7 @@ public class UnitConversionApiTests(InventoryApiFactory factory) : IClassFixture
     [Fact]
     public async Task RecordFeedConsumption_WithoutConversionForUnit_IsRejected()
     {
-        var createItemResponse = await _client.PostAsJsonAsync("/api/v1/inventory-items", new
+        var createItemResponse = await _client.PostAsJsonAsync("/api/v1/inventory/items", new
         {
             name = $"Item-{Guid.NewGuid():N}",
             category = "Feed",

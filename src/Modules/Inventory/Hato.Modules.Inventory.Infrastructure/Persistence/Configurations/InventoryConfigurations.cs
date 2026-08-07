@@ -50,3 +50,20 @@ public class GroupFeedConsumptionConfiguration : IEntityTypeConfiguration<GroupF
         builder.HasIndex(c => c.RecordedById);
     }
 }
+
+public class UnitConversionConfiguration : IEntityTypeConfiguration<UnitConversion>
+{
+    public void Configure(EntityTypeBuilder<UnitConversion> builder)
+    {
+        builder.ToTable("unit_conversions");
+        builder.HasKey(u => u.Id);
+
+        builder.Property(u => u.FromUnit).HasMaxLength(20).IsRequired();
+        builder.Property(u => u.ToUnit).HasMaxLength(20).IsRequired();
+        builder.Property(u => u.Factor).HasColumnType("numeric(18,6)").IsRequired();
+
+        builder.HasOne<InventoryItem>().WithMany().HasForeignKey(u => u.InventoryItemId).OnDelete(DeleteBehavior.Cascade);
+        // (item, from, to) is unique: a single explicit conversion per direction.
+        builder.HasIndex(u => new { u.InventoryItemId, u.FromUnit, u.ToUnit }).IsUnique();
+    }
+}

@@ -310,14 +310,10 @@ public class RecordGroupEventApiTests(HatoApiFactory factory) : IClassFixture<Ha
             "INSERT INTO livestock.animal_events " +
             "(id, animal_id, group_id, event_type, occurred_at, recorded_by_label, payload_json, created_at) " +
             "VALUES " +
-            "(gen_random_uuid(), @animalId, @groupId, 'Weighing', now(), 'test', @payload, now())";
+            $"(gen_random_uuid(), '{animalId}', '{groupId}', 'Weighing', now(), 'test', '{{\"x\":1}}', now())";
 
         var bothEx = await Assert.ThrowsAsync<Npgsql.PostgresException>(
-            () => dbContext.Database.ExecuteSqlRawAsync(
-                bothInsertSql,
-                new Npgsql.NpgsqlParameter("animalId", NpgsqlDbType.Uuid) { Value = animalId },
-                new Npgsql.NpgsqlParameter("groupId", NpgsqlDbType.Uuid) { Value = groupId },
-                new Npgsql.NpgsqlParameter("payload", NpgsqlDbType.Jsonb) { Value = "{\"x\":1}" }));
+            () => dbContext.Database.ExecuteSqlRawAsync(bothInsertSql));
         Assert.Equal("23514", bothEx.SqlState);
     }
 
@@ -339,12 +335,9 @@ public class RecordGroupEventApiTests(HatoApiFactory factory) : IClassFixture<Ha
             "INSERT INTO livestock.animal_events " +
             "(id, animal_id, group_id, event_type, occurred_at, recorded_by_label, payload_json, created_at) " +
             "VALUES " +
-            "(gen_random_uuid(), @animalId, NULL, 'Weighing', now(), 'test', @payload, now())";
+            $"(gen_random_uuid(), '{animalId}', NULL, 'Weighing', now(), 'test', '{{\"x\":1}}', now())";
 
-        await dbContext.Database.ExecuteSqlRawAsync(
-            sql,
-            new Npgsql.NpgsqlParameter("animalId", NpgsqlDbType.Uuid) { Value = animalId },
-            new Npgsql.NpgsqlParameter("payload", NpgsqlDbType.Jsonb) { Value = "{\"x\":1}" });
+        await dbContext.Database.ExecuteSqlRawAsync(sql);
     }
 
     /// <summary>
@@ -365,12 +358,9 @@ public class RecordGroupEventApiTests(HatoApiFactory factory) : IClassFixture<Ha
             "INSERT INTO livestock.animal_events " +
             "(id, animal_id, group_id, event_type, occurred_at, recorded_by_label, payload_json, created_at) " +
             "VALUES " +
-            "(gen_random_uuid(), NULL, @groupId, 'Weighing', now(), 'test', @payload, now())";
+            $"(gen_random_uuid(), NULL, '{groupId}', 'Weighing', now(), 'test', '{{\"x\":1}}', now())";
 
-        await dbContext.Database.ExecuteSqlRawAsync(
-            sql,
-            new Npgsql.NpgsqlParameter("groupId", NpgsqlDbType.Uuid) { Value = groupId },
-            new Npgsql.NpgsqlParameter("payload", NpgsqlDbType.Jsonb) { Value = "{\"x\":1}" });
+        await dbContext.Database.ExecuteSqlRawAsync(sql);
     }
 
     /// <summary>

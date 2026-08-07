@@ -18,6 +18,7 @@ public class PeopleDbContext(DbContextOptions<PeopleDbContext> options)
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
     public DbSet<SyncOperation> SyncOperations => Set<SyncOperation>();
     public DbSet<SyncConflict> SyncConflicts => Set<SyncConflict>();
+    public DbSet<FarmModule> FarmModules => Set<FarmModule>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

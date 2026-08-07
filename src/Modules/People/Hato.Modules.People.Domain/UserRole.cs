@@ -75,4 +75,10 @@ public static class SystemPermissions
     // Tasks
     public const string TasksManage = "tasks.manage";
     public const string TasksRead = "tasks.read";
+
+    // Settings / farm-modules (ADR-0019). The on/off decision for each module is
+    // owned by the product owner, not the catalogue of data, so it lives behind
+    // a permission that does not depend on which module the toggle controls.
+    public const string SettingsFarmModulesRead = "settings.farm-modules.read";
+    public const string SettingsFarmModulesManage = "settings.farm-modules.manage";
 }

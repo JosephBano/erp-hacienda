@@ -58,6 +58,7 @@ app.MapInventoryEndpoints();
 app.MapPeopleEndpoints();
 app.MapBreedingEndpoints();
 app.MapTasksEndpoints();
+app.MapFarmModulesEndpoints();
 app.MapSyncEndpoints();
 
 app.Run();

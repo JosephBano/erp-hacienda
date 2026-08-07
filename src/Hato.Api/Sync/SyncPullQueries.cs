@@ -36,7 +36,8 @@ public record SyncCollectionsDto(
     List<SyncCategoryDto> AnimalCategories,
     List<SyncInventoryItemDto> InventoryItems,
     List<SyncWithdrawalPeriodDto> WithdrawalPeriods,
-    List<SyncMortalityCauseDto> MortalityCauses);
+    List<SyncMortalityCauseDto> MortalityCauses,
+    List<SyncFarmModuleDto> FarmModules);
 
 public record SyncAnimalDto(
     Guid Id,
@@ -152,6 +153,21 @@ public record SyncMortalityCauseDto(
     DateTimeOffset? UpdatedAt,
     bool IsDeleted) : ISyncRow;
 
+/// <summary>
+/// Module on/off rows (ADR-0019). The phone already has a local table; this
+/// collection is the server's view of the same data, so the toggle the operator
+/// presses in the panel can land on the field without a deploy and without a
+/// network round-trip at navigation time.
+/// </summary>
+public record SyncFarmModuleDto(
+    Guid Id,
+    string Key,
+    bool Enabled,
+    string? DisabledReason,
+    DateTimeOffset CreatedAt,
+    DateTimeOffset? UpdatedAt,
+    bool IsDeleted) : ISyncRow;
+
 public record GetSyncPullQuery(
     string? Since = null,
     string? Collections = null,
@@ -160,6 +176,7 @@ public record GetSyncPullQuery(
 public class GetSyncPullQueryHandler(
     ILivestockDbContext livestockDb,
     IInventoryDbContext inventoryDb,
+    IPeopleDbContext peopleDb,
     IUserPermissionsReader permissionsReader,
     ICurrentUser currentUser)
     : IRequestHandler<GetSyncPullQuery, SyncPullResponseDto>
@@ -172,7 +189,8 @@ public class GetSyncPullQueryHandler(
     /// 4: "el empleado solo baja lo que le corresponde"). Reference tables (species,
     /// breeds, categories) sit under the same permission as animals: they exist to
     /// support working with animals, so a role with no livestock access has no use for
-    /// them either.
+    /// them either. The farm_modules list sits behind the Settings read bit so the
+    /// visibility check is consistent with the panel-toggle screen.
     /// </summary>
     private static readonly Dictionary<string, string> RequiredPermissionByCollection =
         new(StringComparer.OrdinalIgnoreCase)
@@ -187,6 +205,7 @@ public class GetSyncPullQueryHandler(
             ["withdrawalPeriods"] = SystemPermissions.LivestockAnimalsRead,
             ["inventoryItems"] = SystemPermissions.InventoryItemsRead,
             ["mortalityCauses"] = SystemPermissions.LivestockAnimalsRead,
+            ["farmModules"] = SystemPermissions.SettingsFarmModulesRead,
         };
 
     public async Task<SyncPullResponseDto> Handle(GetSyncPullQuery request, CancellationToken cancellationToken)
@@ -280,9 +299,15 @@ public class GetSyncPullQueryHandler(
                 c.Id, c.Name, c.IsActive, c.CreatedAt, c.UpdatedAt, c.DeletedAt != null),
             cancellationToken);
 
+        var farmModules = await ReadAsync(
+            effective, "farmModules", peopleDb.FarmModules, since, limit, frontier,
+            m => new SyncFarmModuleDto(
+                m.Id, m.Key, m.Enabled, m.DisabledReason, m.CreatedAt, m.UpdatedAt, false),
+            cancellationToken);
+
         var collections = new SyncCollectionsDto(
             animals, identifiers, groups, memberships,
-            speciesList, breeds, categories, items, withdrawals, mortalityCauses);
+            speciesList, breeds, categories, items, withdrawals, mortalityCauses, farmModules);
 
         return new SyncPullResponseDto(frontier.Next.Format(), frontier.HasMore, collections);
     }

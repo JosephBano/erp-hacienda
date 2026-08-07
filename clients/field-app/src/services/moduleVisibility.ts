@@ -1,6 +1,7 @@
 import { Database, Q } from '@nozbe/watermelondb';
 
 import { FarmModule } from '../database/models';
+import type { SyncApi } from './syncApi';
 
 /**
  * The keys every screen that wants to gate itself asks for.
@@ -32,7 +33,10 @@ export type ModuleKey = 'production' | 'livestock' | 'inventory' | 'breeding' | 
  * for now, only the first term is non-trivial.
  */
 export class ModuleVisibility {
-  constructor(private readonly database: Database) {}
+  constructor(
+    private readonly database: Database,
+    private readonly api?: SyncApi,
+  ) {}
 
   async canShow(key: ModuleKey): Promise<boolean> {
     const rows = await this.database
@@ -48,12 +52,18 @@ export class ModuleVisibility {
   }
 
   /**
-   * Writes the on/off row for `key`. Used by the in-app "Módulos del dispositivo"
-   * control on SyncStatusScreen so the operator can toggle a module without waiting
-   * for the next pull — the constraint the plan spells out as "encender/apagar no
-   * requiere un deploy". Idempotent: setting the existing value does not duplicate
-   * the row. The row is created on first use so a phone that has never received a
-   * pull can still be configured locally.
+   * Writes the on/off row for `key` and, when a SyncApi is wired in, fires a
+   * best-effort propagation to the server. The local row is the source of
+   * truth for the navigation decision (ADR-0019 sec. 4, Art. 9): a failed
+   * network call leaves the operator's choice intact, and the next pull
+   * will reconcile with whatever the panel eventually decides.
+   *
+   * Used by the in-app "Módulos del dispositivo" control on SyncStatusScreen
+   * so the operator can toggle a module without waiting for the next pull —
+   * the constraint the plan spells out as "encender/apagar no requiere un
+   * deploy". Idempotent: setting the existing value does not duplicate the
+   * row. The row is created on first use so a phone that has never received
+   * a pull can still be configured locally.
    */
   async setEnabled(key: ModuleKey, enabled: boolean, updatedBy: string = 'field-app'): Promise<void> {
     const rows = await this.database
@@ -71,21 +81,34 @@ export class ModuleVisibility {
           row.updatedBy = updatedBy;
         });
       });
-      return;
+    } else {
+      const existing = rows[0];
+      if (existing.enabled !== enabled) {
+        await this.database.write(async () => {
+          await existing.update((row) => {
+            row.enabled = enabled;
+            row.disabledReason = enabled ? '' : 'apagado desde el teléfono';
+            row.updatedAt = Date.now();
+            row.updatedBy = updatedBy;
+          });
+        });
+      }
     }
 
-    const existing = rows[0];
-    if (existing.enabled === enabled) {
-      return;
+    // Best-effort propagation. A failure here is logged but never blocks the
+    // local toggle: the pull is the eventual source of truth, and the panel
+    // can replay the operator's choice when the signal returns.
+    if (this.api?.setFarmModuleEnabled) {
+      try {
+        await this.api.setFarmModuleEnabled(
+          key,
+          enabled,
+          enabled ? undefined : 'apagado desde el teléfono',
+        );
+      } catch {
+        // The next pull wins. ADR-0019 sec. 1: the panel is the canonical writer
+        // anyway, so the in-app toggle is only an accelerator.
+      }
     }
-
-    await this.database.write(async () => {
-      await existing.update((row) => {
-        row.enabled = enabled;
-        row.disabledReason = enabled ? '' : 'apagado desde el teléfono';
-        row.updatedAt = Date.now();
-        row.updatedBy = updatedBy;
-      });
-    });
   }
 }

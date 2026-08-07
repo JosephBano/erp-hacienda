@@ -48,6 +48,47 @@ public class AnimalTests
     }
 
     [Fact]
+    public void Dispose_SetsDisposedAt()
+    {
+        var animal = Animal.Register(SpeciesId, Sex.Female);
+        var occurredAt = new DateTimeOffset(2026, 8, 7, 12, 0, 0, TimeSpan.Zero);
+
+        animal.Dispose(occurredAt);
+
+        Assert.Equal(occurredAt, animal.DisposedAt);
+    }
+
+    [Fact]
+    public void Dispose_Twice_Throws()
+    {
+        var animal = Animal.Register(SpeciesId, Sex.Female);
+        animal.Dispose(DateTimeOffset.UtcNow);
+
+        Assert.Throws<DomainException>(() => animal.Dispose(DateTimeOffset.UtcNow));
+    }
+
+    [Fact]
+    public void Dispose_AfterLotCascade_Throws()
+    {
+        var animal = Animal.Register(SpeciesId, Sex.Female);
+        animal.CloseViaLotDisposal(DateTimeOffset.UtcNow);
+
+        // A second individual disposal must not silently overwrite the cascade's flag.
+        Assert.Throws<DomainException>(() => animal.Dispose(DateTimeOffset.UtcNow));
+    }
+
+    [Fact]
+    public void CloseViaLotDisposal_AfterIndividualDispose_Throws()
+    {
+        var animal = Animal.Register(SpeciesId, Sex.Female);
+        animal.Dispose(DateTimeOffset.UtcNow);
+
+        // A late cascade (e.g. an offline record that syncs after the individual sale)
+        // must not silently overwrite the individual disposal.
+        Assert.Throws<DomainException>(() => animal.CloseViaLotDisposal(DateTimeOffset.UtcNow));
+    }
+
+    [Fact]
     public void Register_WithoutTagOrRegistration_IsStillValid()
     {
         // Domain warning in AGENTS.md: an animal can be fully valid with no tag/SIFAE.

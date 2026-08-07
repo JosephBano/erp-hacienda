@@ -35,9 +35,25 @@ public class RecordAnimalEventHandler(ILivestockDbContext dbContext)
 {
     public async Task<Guid> Handle(RecordAnimalEventCommand request, CancellationToken cancellationToken)
     {
-        var animalExists = await dbContext.Animals.AnyAsync(a => a.Id == request.AnimalId, cancellationToken);
-        if (!animalExists)
-            throw new DomainException($"El animal con ID '{request.AnimalId}' no existe.");
+        // An individual disposal closes the animal (Animal.DisposedAt) in the same write
+        // that appends the AnimalEvent. Until 2026-08-07 the handler only added the
+        // event, leaving the animal resolvable as Alive/Indeterminate in every aggregate
+        // (pre-weaning mortality, group-head-count roll-ups, ResolveIndividualStateQuery).
+        // We load the entity only when needed to keep the hot path cheap.
+        var isIndividualDisposal = request.EventType == EventType.Disposal;
+
+        var animal = isIndividualDisposal
+            ? await dbContext.Animals.FirstOrDefaultAsync(a => a.Id == request.AnimalId, cancellationToken)
+                ?? throw new DomainException($"El animal con ID '{request.AnimalId}' no existe.")
+            : null;
+
+        if (animal is null && !isIndividualDisposal)
+        {
+            // Non-disposal events: cheap existence probe, same shape as before.
+            var animalExists = await dbContext.Animals.AnyAsync(a => a.Id == request.AnimalId, cancellationToken);
+            if (!animalExists)
+                throw new DomainException($"El animal con ID '{request.AnimalId}' no existe.");
+        }
 
         if (request.CauseId is { } causeId)
         {
@@ -62,6 +78,14 @@ public class RecordAnimalEventHandler(ILivestockDbContext dbContext)
             request.Cost,
             request.RelatedEventId,
             causeId: request.CauseId);
+
+        // Close the animal alongside the event. The domain invariant is enforced by
+        // Animal.MarkDisposed, which throws if DisposedAt is already set; EF Core's
+        // change tracker propagates the new value to the row.
+        if (isIndividualDisposal)
+        {
+            animal!.Dispose(occurredAtUtc);
+        }
 
         dbContext.AnimalEvents.Add(animalEvent);
 

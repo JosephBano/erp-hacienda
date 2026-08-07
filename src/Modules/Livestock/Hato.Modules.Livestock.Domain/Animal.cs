@@ -145,14 +145,44 @@ public class Animal : AuditableEntity
     /// <summary>
     /// Closes this animal as part of a lot's cascade disposal (ADR-0015 sec.7) — called
     /// once, by the group whose <c>Headcount</c> just reached zero, for every membership it
-    /// closed in the same operation. Never called to record an identified, individual
-    /// disposal (sale, death) — that is a plain <see cref="AnimalEvent"/> against this
-    /// animal's own id and does not touch this field.
+    /// closed in the same operation. Carries a different provenance flag in the field-app
+    /// ("baja con alcance de lote") from <see cref="Dispose"/> ("baja identificada: se sabe
+    /// cuál animal salió"), but the underlying <see cref="DisposedAt"/> state is the same.
     /// </summary>
     public void CloseViaLotDisposal(DateTimeOffset disposedAt)
     {
+        MarkDisposed(disposedAt, provenance: "lot");
+    }
+
+    /// <summary>
+    /// Records an identified, individual disposal (sale, death with cause, theft) — the
+    /// animal whose id is on the <see cref="AnimalEvent"/> is the same animal whose
+    /// <see cref="DisposedAt"/> is set here. Until 2026-08-07 the handler that wrote the
+    /// event never touched this field, so any animal whose exit was registered individually
+    /// (the common case — piglets that die before the litter mixes, identified sales)
+    /// continued to read as <see cref="IndividualState.Alive"/> or
+    /// <see cref="IndividualState.Indeterminate"/> in every aggregate that asked, including
+    /// the pre-weaning mortality roll-up that 3.5a.3 was built to make honest.
+    /// </summary>
+    public void Dispose(DateTimeOffset disposedAt)
+    {
+        MarkDisposed(disposedAt, provenance: "individual");
+    }
+
+    /// <summary>
+    /// Idempotency boundary for both <see cref="CloseViaLotDisposal"/> and
+    /// <see cref="Dispose"/>: an animal can only be disposed once, regardless of whether
+    /// the caller reached this method through an identified sale or a cascade. The
+    /// provenance argument is the message of the loud-not-silent failure so a misordered
+    /// caller learns which path collided with the other.
+    /// </summary>
+    private void MarkDisposed(DateTimeOffset disposedAt, string provenance)
+    {
         if (DisposedAt is not null)
-            throw new DomainException("El animal ya fue dado de baja con alcance de lote.");
+        {
+            throw new DomainException(
+                $"El animal ya fue dado de baja ({provenance}); una baja individual no puede seguir a otra ni a un cierre de lote.");
+        }
 
         DisposedAt = disposedAt;
     }

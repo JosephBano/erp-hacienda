@@ -333,9 +333,12 @@ public class RecordGroupEventApiTests(HatoApiFactory factory) : IClassFixture<Ha
             "INSERT INTO livestock.animal_events " +
             "(id, animal_id, group_id, event_type, occurred_at, recorded_by, payload_json, created_at) " +
             "VALUES " +
-            $"(gen_random_uuid(), '{animalId}', NULL, 'Weighing', now(), 'test', '{{\"x\":1}}', now())";
+            "(gen_random_uuid(), @animalId, NULL, 'Weighing', now(), 'test', @payload, now())";
 
-        await dbContext.Database.ExecuteSqlRawAsync(sql);
+        await dbContext.Database.ExecuteSqlRawAsync(
+            sql,
+            new Npgsql.NpgsqlParameter("animalId", animalId),
+            new Npgsql.NpgsqlParameter("payload", "{\"x\":1}"));
     }
 
     /// <summary>
@@ -356,9 +359,12 @@ public class RecordGroupEventApiTests(HatoApiFactory factory) : IClassFixture<Ha
             "INSERT INTO livestock.animal_events " +
             "(id, animal_id, group_id, event_type, occurred_at, recorded_by, payload_json, created_at) " +
             "VALUES " +
-            $"(gen_random_uuid(), NULL, '{groupId}', 'Weighing', now(), 'test', '{{\"x\":1}}', now())";
+            "(gen_random_uuid(), NULL, @groupId, 'Weighing', now(), 'test', @payload, now())";
 
-        await dbContext.Database.ExecuteSqlRawAsync(sql);
+        await dbContext.Database.ExecuteSqlRawAsync(
+            sql,
+            new Npgsql.NpgsqlParameter("groupId", groupId),
+            new Npgsql.NpgsqlParameter("payload", "{\"x\":1}"));
     }
 
     /// <summary>

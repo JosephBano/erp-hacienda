@@ -506,7 +506,7 @@ se muere sin que nadie tome la decisión de matarla.
 | Sub-rama | Alcance principal | ADR | Compuerta |
 |---|---|---|---|
 | [`3.5a.9-A`](./sub_planes/PLAN-FASE-3-5-PORCINO-3.5a.9-A.md) (rama `feature/field-app-module-visibility`) | Visibilidad de módulos por interruptor explícito (`FarmModule`) — apagar Ordeño para esta finca, sin borrar nada | [ADR-0019](../adr/0019-visibilidad-de-modulos.md) | Ninguna. Es transversal y testeable en aislamiento. |
-| [`3.5a.9-B`](./sub_planes/PLAN-FASE-3-5-PORCINO-3.5a.9-B.md) (rama `feature/field-app-activity-tree`) | Árbol de actividades con sujeto como primer nivel + selector con búsqueda, filtro por lote y "recientes" | — (se apoya en sec.2.3 y en ADR-0019) | **[Bloqueada por sec.2.3 y sec.7-C](#)** del macro plan: el árbol se dibuja y los toques se cuentan con el cliente **antes** de escribir pantallas. |
+| [`3.5a.9-B`](./sub_planes/PLAN-FASE-3-5-PORCINO-3.5a.9-B.md) (rama `feature/field-app-activity-tree`) | Árbol de actividades con sujeto como primer nivel + selector con búsqueda, filtro por lote y "recientes" | — (se apoya en sec.2.3 y en ADR-0019) | **Compuerta sec.2.3 cerrada parcialmente por [ADR-0021](../adr/0021-cierre-retroactivo-compuerta-3-5a-9-B.md) (2026-08-07):** el primer nivel (cuatro sujetos) ya mergea vía PR #51/#53; el segundo nivel (actividades del sujeto "lote") sigue gated por 3.5a.7 tareas 1–5 y por `TapBudget` validado contra el operador. |
 
 #### Decisiones que aplican a las dos sub-ramas
 
@@ -516,6 +516,9 @@ se muere sin que nadie tome la decisión de matarla.
   pull y se evalúan localmente.
 - **El orden de las actividades va por frecuencia declarada por el cliente**, no por
   importancia conceptual. Sin la respuesta a sec.7-C, 3.5a.9-B no arranca; 3.5a.9-A sí.
+  El primer nivel del árbol mergea con un orden por defecto pineado por test (ver
+  [ADR-0021](../adr/0021-cierre-retroactivo-compuerta-3-5a-9-B.md)); el reorden cuando
+  el cliente responda sec.7-C será un commit deliberado, no una regresión.
 
 #### Resumen de tareas (distribuidas en los sub-planes)
 

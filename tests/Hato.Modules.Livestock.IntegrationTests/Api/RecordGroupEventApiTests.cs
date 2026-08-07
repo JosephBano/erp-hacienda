@@ -306,11 +306,12 @@ public class RecordGroupEventApiTests(HatoApiFactory factory) : IClassFixture<Ha
         var animalId = await CreateAnimalAsync(speciesId);
         var (groupId, _) = await SeedHeadcountGroupAsync(1);
 
-        var bothInsertSql =
+        var bothInsertSql = string.Format(
             "INSERT INTO livestock.animal_events " +
             "(id, animal_id, group_id, event_type, occurred_at, recorded_by_label, payload_json, created_at) " +
             "VALUES " +
-            $"(gen_random_uuid(), '{animalId}', '{groupId}', 'Weighing', now(), 'test', '{{\"x\":1}}', now())";
+            "(gen_random_uuid(), '{0}', '{1}', 'Weighing', now(), 'test', '{{\"x\":1}}', now())",
+            animalId, groupId);
 
         var bothEx = await Assert.ThrowsAsync<Npgsql.PostgresException>(
             () => dbContext.Database.ExecuteSqlRawAsync(bothInsertSql));
@@ -331,11 +332,12 @@ public class RecordGroupEventApiTests(HatoApiFactory factory) : IClassFixture<Ha
         var speciesId = await CreateSpeciesAsync();
         var animalId = await CreateAnimalAsync(speciesId);
 
-        var sql =
+        var sql = string.Format(
             "INSERT INTO livestock.animal_events " +
             "(id, animal_id, group_id, event_type, occurred_at, recorded_by_label, payload_json, created_at) " +
             "VALUES " +
-            $"(gen_random_uuid(), '{animalId}', NULL, 'Weighing', now(), 'test', '{{\"x\":1}}', now())";
+            "(gen_random_uuid(), '{0}', NULL, 'Weighing', now(), 'test', '{{\"x\":1}}', now())",
+            animalId);
 
         await dbContext.Database.ExecuteSqlRawAsync(sql);
     }
@@ -354,11 +356,12 @@ public class RecordGroupEventApiTests(HatoApiFactory factory) : IClassFixture<Ha
 
         var (_, groupId) = await SeedHeadcountGroupAsync(1);
 
-        var sql =
+        var sql = string.Format(
             "INSERT INTO livestock.animal_events " +
             "(id, animal_id, group_id, event_type, occurred_at, recorded_by_label, payload_json, created_at) " +
             "VALUES " +
-            $"(gen_random_uuid(), NULL, '{groupId}', 'Weighing', now(), 'test', '{{\"x\":1}}', now())";
+            "(gen_random_uuid(), NULL, '{0}', 'Weighing', now(), 'test', '{{\"x\":1}}', now())",
+            groupId);
 
         await dbContext.Database.ExecuteSqlRawAsync(sql);
     }

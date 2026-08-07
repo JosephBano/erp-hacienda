@@ -12,11 +12,18 @@ public record AnimalEventDto(
     EventType EventType,
     DateTimeOffset OccurredAt,
     string RecordedBy,
+    Guid? RecordedById,
     decimal? Cost,
     string PayloadJson,
     Guid? RelatedEventId,
     int? AffectedCount,
-    Guid? CauseId);
+    Guid? CauseId,
+    // 3.5a.2-A structured treatment payload (mirrors AnimalEvent properties).
+    Guid? RouteId,
+    string? Reason,
+    Guid? BatchId,
+    Guid? HealthPlanItemId,
+    Guid? AppliedByUserId);
 
 public record WithdrawalPeriodDto(
     Guid Id,
@@ -49,11 +56,17 @@ public class GetAnimalEventsHandler(ILivestockDbContext dbContext)
             e.EventType,
             e.OccurredAt,
             e.RecordedBy,
+            e.RecordedById,
             e.Cost,
             e.PayloadJson,
             e.RelatedEventId,
             e.AffectedCount,
-            e.CauseId
+            e.CauseId,
+            e.RouteId,
+            e.Reason,
+            e.BatchId,
+            e.HealthPlanItemId,
+            e.AppliedByUserId
         )).ToList();
     }
 }

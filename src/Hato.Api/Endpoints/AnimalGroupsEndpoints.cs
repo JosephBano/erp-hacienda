@@ -16,7 +16,9 @@ public static class AnimalGroupsEndpoints
             var command = new RecordGroupEventCommand(
                 id, request.EventType, request.OccurredAt, request.RecordedBy,
                 request.PayloadJson, request.AffectedCount, request.Cost, request.RelatedEventId,
-                request.CauseId);
+                request.CauseId,
+                request.RouteId, request.Reason, request.BatchId, request.HealthPlanItemId,
+                request.RecordedById, request.AppliedByUserId);
 
             var eventId = await sender.Send(command);
             return Results.Created($"/api/v1/animal-groups/{id}/events/{eventId}", new { id = eventId });
@@ -85,4 +87,12 @@ public record RecordGroupEventRequest(
     int? AffectedCount = null,
     decimal? Cost = null,
     Guid? RelatedEventId = null,
-    Guid? CauseId = null);
+    Guid? CauseId = null,
+    // 3.5a.2-A structured treatment payload. See RecordGroupEventCommand
+    // for the rationale on each field.
+    Guid? RouteId = null,
+    string? Reason = null,
+    Guid? BatchId = null,
+    Guid? HealthPlanItemId = null,
+    Guid? RecordedById = null,
+    Guid? AppliedByUserId = null);

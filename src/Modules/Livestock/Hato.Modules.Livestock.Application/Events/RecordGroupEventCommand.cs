@@ -22,7 +22,15 @@ public record RecordGroupEventCommand(
     int? AffectedCount = null,
     decimal? Cost = null,
     Guid? RelatedEventId = null,
-    Guid? CauseId = null) : IRequest<Guid>;
+    Guid? CauseId = null,
+    // 3.5a.2-A structured treatment payload. See RecordAnimalEventCommand
+    // for the rationale on each field and on which FKs are soft.
+    Guid? RouteId = null,
+    string? Reason = null,
+    Guid? BatchId = null,
+    Guid? HealthPlanItemId = null,
+    Guid? RecordedById = null,
+    Guid? AppliedByUserId = null) : IRequest<Guid>;
 
 public class RecordGroupEventValidator : AbstractValidator<RecordGroupEventCommand>
 {
@@ -37,6 +45,7 @@ public class RecordGroupEventValidator : AbstractValidator<RecordGroupEventComma
             .NotNull()
             .WithMessage("Una baja de lote debe declarar cuántas cabezas incluye.")
             .When(x => x.EventType == EventType.Disposal);
+        RuleFor(x => x.Reason).MaximumLength(50).When(x => x.Reason is not null);
     }
 }
 
@@ -72,16 +81,33 @@ public class RecordGroupEventHandler(ILivestockDbContext dbContext)
             }
         }
 
+        // Treatment payload (3.5a.2-A): same validation as the individual handler.
+        if (request.RouteId is { } routeId)
+        {
+            var routeIsValid = await dbContext.AdministrationRoutes
+                .AnyAsync(r => r.Id == routeId && r.IsActive, cancellationToken);
+            if (!routeIsValid)
+                throw new DomainException($"La vía de administración con ID '{routeId}' no existe o está inactiva.");
+        }
+
+        var occurredAtUtc = request.OccurredAt.ToUniversalTime();
+
         var animalEvent = AnimalEvent.CreateForGroup(
-            request.GroupId, request.EventType, request.OccurredAt, request.RecordedBy,
+            request.GroupId, request.EventType, occurredAtUtc, request.RecordedBy,
             request.PayloadJson, request.AffectedCount, request.Cost, request.RelatedEventId,
-            causeId: request.CauseId);
+            recordedById: request.RecordedById,
+            causeId: request.CauseId,
+            routeId: request.RouteId,
+            reason: request.Reason,
+            batchId: request.BatchId,
+            healthPlanItemId: request.HealthPlanItemId,
+            appliedByUserId: request.AppliedByUserId);
 
         dbContext.AnimalEvents.Add(animalEvent);
 
         if (request.EventType == EventType.Disposal)
         {
-            await ApplyDisposalAsync(group, request.AffectedCount!.Value, request.OccurredAt, cancellationToken);
+            await ApplyDisposalAsync(group, request.AffectedCount!.Value, occurredAtUtc, cancellationToken);
         }
 
         await dbContext.SaveChangesAsync(cancellationToken);

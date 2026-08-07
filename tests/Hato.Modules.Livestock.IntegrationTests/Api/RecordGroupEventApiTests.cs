@@ -1,7 +1,9 @@
 using System.Net;
 using System.Net.Http.Json;
+using Hato.Api.Endpoints;
 using Hato.Modules.Livestock.Application.AnimalGroups;
 using Hato.Modules.Livestock.Application.Events;
+using Hato.Modules.Livestock.Application.MortalityCauses;
 using Hato.Modules.Livestock.Domain;
 using Hato.Modules.Livestock.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -357,6 +359,52 @@ public class RecordGroupEventApiTests(HatoApiFactory factory) : IClassFixture<Ha
             $"(gen_random_uuid(), NULL, '{groupId}', 'Weighing', now(), 'test', '{{\"x\":1}}', now())";
 
         await dbContext.Database.ExecuteSqlRawAsync(sql);
+    }
+
+    /// <summary>
+    /// BLOQUE C / C3: the group disposal handler must validate CauseId the same
+    /// way the individual handler does. Before the fix, the group handler
+    /// skipped the check and would either silently store a dangling FK or, when
+    /// the FK is present, throw an opaque DbUpdateException instead of the
+    /// domain-level rejection the rest of the codebase uses. The asymmetry let
+    /// an operator file a group disposal with a cause the catalog had already
+    /// retired — the same paperwork routine that was blocked for individual
+    /// disposals (see <see cref="MortalityCauseApiTests.RecordIndividualDisposal_WithInactiveCause_IsRejected"/>).
+    /// </summary>
+    [Fact]
+    public async Task RecordGroupDisposal_WithInactiveCause_IsRejected()
+    {
+        var (groupId, _) = await SeedHeadcountGroupAsync(3);
+
+        // Create a cause, then retire it via DELETE (the catalog's soft-delete).
+        var createResponse = await _client.PostAsJsonAsync(
+            "/api/v1/mortality-causes",
+            new CreateMortalityCauseRequest($"Causa-{Guid.NewGuid():N}"));
+        createResponse.EnsureSuccessStatusCode();
+        var causeId = (await createResponse.Content.ReadFromJsonAsync<CreatedId>())!.Id;
+        (await _client.DeleteAsync($"/api/v1/mortality-causes/{causeId}")).EnsureSuccessStatusCode();
+
+        // Act: try to file a group disposal with the now-inactive cause.
+        var response = await _client.PostAsJsonAsync($"/api/v1/animal-groups/{groupId}/events", new
+        {
+            eventType = EventType.Disposal,
+            occurredAt = DateTimeOffset.UtcNow,
+            recordedBy = "capataz",
+            payloadJson = "{\"count\":1,\"causeId\":null}",
+            affectedCount = 1,
+            causeId,
+        });
+
+        // Assert: the same domain-level rejection the individual handler gives.
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+
+        // Side-effect guard: a rejected request must not have lowered the live
+        // head count. This catches the failure mode where the cause validation
+        // happens after the disposal has already mutated the group.
+        var countResponse = await _client.GetAsync($"/api/v1/animal-groups/{groupId}/live-head-count");
+        countResponse.EnsureSuccessStatusCode();
+        var body = await countResponse.Content.ReadFromJsonAsync<LiveHeadCountDto>();
+        Assert.Equal(3, body!.LiveHeadCount);
     }
 
     private sealed record CreatedId(Guid Id);

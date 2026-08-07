@@ -55,6 +55,23 @@ public class RecordGroupEventHandler(ILivestockDbContext dbContext)
         if (!group.IsActive)
             throw new DomainException("No se pueden registrar eventos sobre un lote inactivo.");
 
+        // Bug from the Fase 3.5 retrospective: the individual handler validates CauseId
+        // exists + IsActive; the group handler accepted any Guid and would either silently
+        // store a dangling reference or, when the FK to mortality_causes is present, throw
+        // an opaque DbUpdateException instead of the domain-level rejection the rest of
+        // the codebase uses. Mirror the individual handler's check so the operator sees
+        // the same error message regardless of which kind of event they were filing.
+        if (request.EventType == EventType.Disposal && request.CauseId is { } causeId)
+        {
+            var causeIsValid = await dbContext.MortalityCauses
+                .AnyAsync(c => c.Id == causeId && c.IsActive, cancellationToken);
+            if (!causeIsValid)
+            {
+                throw new DomainException(
+                    $"La causa de mortalidad con ID '{causeId}' no existe o está inactiva.");
+            }
+        }
+
         var animalEvent = AnimalEvent.CreateForGroup(
             request.GroupId, request.EventType, request.OccurredAt, request.RecordedBy,
             request.PayloadJson, request.AffectedCount, request.Cost, request.RelatedEventId,

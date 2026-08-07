@@ -1,3 +1,4 @@
+using System.Text.Json;
 using FluentValidation;
 using Hato.Modules.Livestock.Application.Abstractions;
 using Hato.Modules.Livestock.Domain;
@@ -70,7 +71,15 @@ public class RecordCorrectionCommandHandler(ILivestockDbContext dbContext)
 
         // The reason is stored as JSONB so the field-app can grow the schema later
         // (a free-text correction reason is a starting point, not a final contract).
-        var payloadJson = $"{{\"reason\":\"{Escape(request.Reason)}\"}}";
+        //
+        // Bug from the Fase 3.5 retrospective: this used to be a hand-rolled string
+        // template with a tiny `Escape` that only handled `\\` and `"`. Any reason
+        // with a newline, a tab, a control character, or a U+2028 line separator
+        // produced invalid JSON against the jsonb column and the entire correction
+        // was rejected — exactly the operator who says "lo escribí mal en lunes,
+        // corrijo el martes" cannot correct. System.Text.Json escapes Unicode
+        // control characters correctly out of the box.
+        var payloadJson = JsonSerializer.Serialize(new { reason = request.Reason });
 
         // The Correction event's subject mirrors the original (Art. 1: the
         // correction is about the same animal/group). AnimalEvent.Create and
@@ -110,7 +119,4 @@ public class RecordCorrectionCommandHandler(ILivestockDbContext dbContext)
 
         return correction.Id;
     }
-
-    private static string Escape(string value) =>
-        value.Replace("\\", "\\\\").Replace("\"", "\\\"");
 }

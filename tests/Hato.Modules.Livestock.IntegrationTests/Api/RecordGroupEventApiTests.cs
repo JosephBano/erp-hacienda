@@ -286,35 +286,41 @@ public class RecordGroupEventApiTests(HatoApiFactory factory) : IClassFixture<Ha
         using var scope = factory.Services.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<LivestockDbContext>();
 
-        // Note on the payload_json literal: the string is interpolated as raw SQL,
-        // not as a parameterised placeholder, so the value `'{"x":1}'` (a JSON object
-        // with one property) is sent verbatim to Postgres. The original test used
-        // `'{}'` which the SQL formatter pre-processor used to misread as a malformed
-        // `{}` placeholder before the call reached the server — the assertion below
-        // would then have caught a FormatException instead of a CHECK violation, and
-        // the CHECK would have been left unverified.
-        var neitherEx = await Assert.ThrowsAsync<Npgsql.PostgresException>(() => dbContext.Database.ExecuteSqlRawAsync(
-            $$"""
-            INSERT INTO livestock.animal_events
-                (id, animal_id, group_id, event_type, occurred_at, recorded_by_label, payload_json, created_at)
-            VALUES
-                (gen_random_uuid(), NULL, NULL, 'Weighing', now(), 'test', '{{"x":1}}', now())
-            """));
+// Note on the payload_json literal: EF Core's RawSqlCommandBuilder interprets
+// `{}` as a malformed placeholder regardless of the surrounding quoting, which
+// broke the previous attempts at interpolated or string.Format-based escapes.
+// Go through the raw DbConnection instead so no parameter parsing happens.
+        var neitherEx = await Assert.ThrowsAsync<Npgsql.PostgresException>(async () =>
+        {
+            var conn = (Npgsql.NpgsqlConnection)dbContext.Database.GetDbConnection();
+            if (conn.State != System.Data.ConnectionState.Open) await conn.OpenAsync();
+            await using var cmd = conn.CreateCommand();
+            cmd.CommandText =
+                "INSERT INTO livestock.animal_events " +
+                "(id, animal_id, group_id, event_type, occurred_at, recorded_by_label, payload_json, created_at) " +
+                "VALUES " +
+                "(gen_random_uuid(), NULL, NULL, 'Weighing', now(), 'test', '{\"x\":1}', now())";
+            await cmd.ExecuteNonQueryAsync();
+        });
         Assert.Equal("23514", neitherEx.SqlState);
 
         var speciesId = await CreateSpeciesAsync();
         var animalId = await CreateAnimalAsync(speciesId);
         var (groupId, _) = await SeedHeadcountGroupAsync(1);
 
-        var bothInsertSql = string.Format(
-            "INSERT INTO livestock.animal_events " +
-            "(id, animal_id, group_id, event_type, occurred_at, recorded_by_label, payload_json, created_at) " +
-            "VALUES " +
-            "(gen_random_uuid(), '{0}', '{1}', 'Weighing', now(), 'test', '{{\"x\":1}}', now())",
-            animalId, groupId);
-
-        var bothEx = await Assert.ThrowsAsync<Npgsql.PostgresException>(
-            () => dbContext.Database.ExecuteSqlRawAsync(bothInsertSql));
+        var bothEx = await Assert.ThrowsAsync<Npgsql.PostgresException>(async () =>
+        {
+            var conn = (Npgsql.NpgsqlConnection)dbContext.Database.GetDbConnection();
+            if (conn.State != System.Data.ConnectionState.Open) await conn.OpenAsync();
+            await using var cmd = conn.CreateCommand();
+            cmd.CommandText = string.Format(
+                "INSERT INTO livestock.animal_events " +
+                "(id, animal_id, group_id, event_type, occurred_at, recorded_by_label, payload_json, created_at) " +
+                "VALUES " +
+                "(gen_random_uuid(), '{0}', '{1}', 'Weighing', now(), 'test', '{\"x\":1}', now())",
+                animalId, groupId);
+            await cmd.ExecuteNonQueryAsync();
+        });
         Assert.Equal("23514", bothEx.SqlState);
     }
 
@@ -332,14 +338,16 @@ public class RecordGroupEventApiTests(HatoApiFactory factory) : IClassFixture<Ha
         var speciesId = await CreateSpeciesAsync();
         var animalId = await CreateAnimalAsync(speciesId);
 
-        var sql = string.Format(
+        var conn = (Npgsql.NpgsqlConnection)dbContext.Database.GetDbConnection();
+        if (conn.State != System.Data.ConnectionState.Open) await conn.OpenAsync();
+        await using var cmd = conn.CreateCommand();
+        cmd.CommandText = string.Format(
             "INSERT INTO livestock.animal_events " +
             "(id, animal_id, group_id, event_type, occurred_at, recorded_by_label, payload_json, created_at) " +
             "VALUES " +
-            "(gen_random_uuid(), '{0}', NULL, 'Weighing', now(), 'test', '{{\"x\":1}}', now())",
+            "(gen_random_uuid(), '{0}', NULL, 'Weighing', now(), 'test', '{\"x\":1}', now())",
             animalId);
-
-        await dbContext.Database.ExecuteSqlRawAsync(sql);
+        await cmd.ExecuteNonQueryAsync();
     }
 
     /// <summary>
@@ -356,14 +364,16 @@ public class RecordGroupEventApiTests(HatoApiFactory factory) : IClassFixture<Ha
 
         var (_, groupId) = await SeedHeadcountGroupAsync(1);
 
-        var sql = string.Format(
+        var conn = (Npgsql.NpgsqlConnection)dbContext.Database.GetDbConnection();
+        if (conn.State != System.Data.ConnectionState.Open) await conn.OpenAsync();
+        await using var cmd = conn.CreateCommand();
+        cmd.CommandText = string.Format(
             "INSERT INTO livestock.animal_events " +
             "(id, animal_id, group_id, event_type, occurred_at, recorded_by_label, payload_json, created_at) " +
             "VALUES " +
-            "(gen_random_uuid(), NULL, '{0}', 'Weighing', now(), 'test', '{{\"x\":1}}', now())",
+            "(gen_random_uuid(), NULL, '{0}', 'Weighing', now(), 'test', '{\"x\":1}', now())",
             groupId);
-
-        await dbContext.Database.ExecuteSqlRawAsync(sql);
+        await cmd.ExecuteNonQueryAsync();
     }
 
     /// <summary>

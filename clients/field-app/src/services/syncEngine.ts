@@ -316,6 +316,11 @@ const TABLE_BY_COLLECTION: Record<string, string> = {
   inventoryItems: 'inventory_items',
   withdrawalPeriods: 'withdrawal_periods',
   mortalityCauses: 'mortality_causes',
+  // ADR-0019: the server's module on/off rows arrive through the same pull as
+  // every other collection. The local model already exists (3.5a.9-A), so the
+  // pull just upserts new rows and overwrites old ones — same one-shot, no
+  // special path.
+  farmModules: 'farm_modules',
 };
 
 /**

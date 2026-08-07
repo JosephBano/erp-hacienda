@@ -33,6 +33,14 @@ export interface PullResponse {
 export interface SyncApi {
   push(operations: PushOperation[]): Promise<PushResponse>;
   pull(since?: string, batchSize?: number): Promise<PullResponse>;
+  /**
+   * Best-effort propagation of an in-app module toggle to the server. The
+   * admin-web panel is the canonical writer; the phone's call is a hint the
+   * server will accept but does not require. The phone keeps the local row
+   * regardless of the response, so an offline state or a 401 never loses the
+   * operator's intent.
+   */
+  setFarmModuleEnabled?(key: string, enabled: boolean, disabledReason?: string): Promise<void>;
 }
 
 export class AuthenticationExpiredError extends Error {
@@ -71,6 +79,13 @@ export class HttpSyncApi implements SyncApi {
     return this.request<PullResponse>(`/api/v1/sync/pull${suffix}`, { method: 'GET' });
   }
 
+  async setFarmModuleEnabled(key: string, enabled: boolean, disabledReason?: string): Promise<void> {
+    await this.request<void>(`/api/v1/farm-modules/${encodeURIComponent(key)}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ enabled, disabledReason: disabledReason ?? null }),
+    });
+  }
+
   /**
    * Retries exactly once after refreshing an expired token. The retry is safe because
    * every operation carries its `clientOperationId`: the server recognises the replay and
@@ -104,6 +119,10 @@ export class HttpSyncApi implements SyncApi {
     if (!response.ok) {
       const detail = await response.text();
       throw new Error(`Sincronización falló (${response.status}): ${detail}`);
+    }
+
+    if (response.status === 204) {
+      return undefined as T;
     }
 
     return (await response.json()) as T;

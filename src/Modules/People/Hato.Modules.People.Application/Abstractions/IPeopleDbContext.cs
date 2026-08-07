@@ -15,6 +15,7 @@ public interface IPeopleDbContext
     DbSet<RefreshToken> RefreshTokens { get; }
     DbSet<SyncOperation> SyncOperations { get; }
     DbSet<SyncConflict> SyncConflicts { get; }
+    DbSet<FarmModule> FarmModules { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken);
 

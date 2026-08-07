@@ -48,16 +48,18 @@ export default function App() {
   const auth = useMemo(() => new AuthService(API_BASE_URL), []);
   const outbox = useMemo(() => new Outbox(database), [database]);
 
-  const engine = useMemo(() => {
-    const api = new HttpSyncApi({
-      baseUrl: API_BASE_URL,
-      getToken: () => auth.token(),
-      refreshToken: () => auth.refresh(),
-      deviceId: DEVICE_ID,
-    });
+  const api = useMemo(
+    () =>
+      new HttpSyncApi({
+        baseUrl: API_BASE_URL,
+        getToken: () => auth.token(),
+        refreshToken: () => auth.refresh(),
+        deviceId: DEVICE_ID,
+      }),
+    [auth],
+  );
 
-    return new SyncEngine(database, api);
-  }, [auth, database]);
+  const engine = useMemo(() => new SyncEngine(database, api), [api, database]);
 
   const milking = useMemo(() => new MilkingService(database), [database]);
   const events = useMemo(() => new EventService(database), [database]);
@@ -95,7 +97,7 @@ export default function App() {
     }[]
   >([]);
 
-  const visibility = useMemo(() => new ModuleVisibility(database), [database]);
+  const visibility = useMemo(() => new ModuleVisibility(database, api), [database, api]);
 
   const refresh = useCallback(async () => {
     const [nextHerd, nextGroups, nextMedications, nextMortalityCauses, stats, productionVisible, today] = await Promise.all([

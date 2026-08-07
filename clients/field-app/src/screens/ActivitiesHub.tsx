@@ -10,7 +10,10 @@ import { BigButton, Body, Card, Screen, Title } from '../ui/components';
  *  - 'animal-subject': the animal picker that gates per-animal activities.
  *  - 'today': the on-phone accountability view.
  *
- * 'lote-subject' is a stub today; it will become 'lot-subject' once 3.5a.1 lands.
+ * The 'lote' subject is rendered as a stub today. It is not a real route yet — it
+ * becomes one when 3.5a.7 tasks 1–5 (pesaje muestral, baja con causa, vacunación de
+ * lote, diagnóstico grupal, consumo de alimento) merge with a TapBudget validated
+ * against the operator. The state of the gate is recorded in ADR-0021.
  */
 export type ActivityRoute =
   | 'animal-subject'
@@ -25,9 +28,9 @@ interface ActivitiesHubProps {
   /** Pending count, surfaced so the operator sees how much is unsent before choosing. */
   pending: number;
   /**
-   * Routes to the chosen subject/screen. 'lote-subject' is not yet a real route so
-   * the hub does not call `onSelect` for it — the button is rendered disabled and the
-   * notification is the label itself.
+   * Routes to the chosen subject/screen. The 'lote' subject is rendered as a stub
+   * (disabled button) and is not yet a real route, so the hub does not call
+   * `onSelect` for it — the notification is the label itself.
    */
   onSelect: (route: ActivityRoute) => void;
 }
@@ -37,7 +40,8 @@ interface ActivitiesHubProps {
  *
  * Subjects — "un animal", "lo que registré hoy", "un parto", "un lote" — are the four
  * things the macro plan 2.3 names as the first navigation level. Each subject maps to
- * a flow that already exists (or, for the lot subject, to 3.5a.1 which has not landed).
+ * a flow that already exists (or, for the lot subject, to 3.5a.7 which has not landed —
+ * see ADR-0021).
  *
  * The order of the subjects is the responsible default. PLAN-FASE-3-5-PORCINO sec. 7-C
  * marks the final order as a question only the client can answer; the test pins the
@@ -70,7 +74,7 @@ export function ActivitiesHub({ pending, onSelect }: ActivitiesHubProps) {
         />
         <BigButton
           testID="subject-lot-stub"
-          label="Un lote — disponible con el módulo de control por conteo"
+          label="Un lote — pendiente 3.5a.7 (pesaje, baja, vacunación, dx, consumo)"
           tone="neutral"
           disabled
         />

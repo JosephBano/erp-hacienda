@@ -30,8 +30,13 @@ describe('ActivitiesHub', () => {
     expect(await screen.findByTestId('subject-animal')).toBeTruthy();
     expect(screen.getByTestId('subject-birth')).toBeTruthy();
     expect(screen.getByTestId('subject-today')).toBeTruthy();
-    // The fourth subject ("lote") is shown as a stub pending 3.5a.1 — it has a
-    // different testID because its action is not yet a real route.
+    // The fourth subject ("lote") is shown as a stub pending 3.5a.7 tasks 1–5
+    // (pesaje muestral, baja con causa, vacunación de lote, diagnóstico grupal,
+    // consumo de alimento). It has a different testID because its action is not yet
+    // a real route. 3.5a.1 (group events) already merged in PR #54, so the
+    // dependency that motivated the original stub comment is no longer the gate —
+    // the gate is now the activities themselves, plus their TapBudget per
+    // ADR-0021.
     expect(screen.getByTestId('subject-lot-stub')).toBeTruthy();
   });
 

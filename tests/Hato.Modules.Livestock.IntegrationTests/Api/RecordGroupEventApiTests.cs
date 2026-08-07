@@ -362,7 +362,7 @@ public class RecordGroupEventApiTests(HatoApiFactory factory) : IClassFixture<Ha
         using var scope = factory.Services.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<LivestockDbContext>();
 
-        var (_, groupId) = await SeedHeadcountGroupAsync(1);
+        var (groupId, _) = await SeedHeadcountGroupAsync(1);
 
         var conn = (Npgsql.NpgsqlConnection)dbContext.Database.GetDbConnection();
         if (conn.State != System.Data.ConnectionState.Open) await conn.OpenAsync();

@@ -16,6 +16,13 @@
   esté dibujado y los toques contados** con el cliente. Sin esa conversación este
   PR no arranca. Es deliberado y es la promesa de los tres toques para 15+
   actividades.
+- **Estado de la compuerta al 2026-08-07:** **cerrada parcialmente** por
+  [ADR-0021](../../adr/0021-cierre-retroactivo-compuerta-3-5a-9-B.md). El primer
+  nivel (los cuatro sujetos) mergea vía PR #51/#53 sin actividades nuevas del sujeto
+  "lote"; el segundo nivel (actividades concretas) sigue gated por 3.5a.7 tareas 1–5
+  y por la infraestructura `TapBudget` que este sub-plan preveía (sub-tarea 6) y
+  que **aún no se ha implementado**. Cualquier merge futuro de pantallas del sujeto
+  "lote" requiere `TapBudget` validado contra el operador antes de aceptar el PR.
 
 ---
 

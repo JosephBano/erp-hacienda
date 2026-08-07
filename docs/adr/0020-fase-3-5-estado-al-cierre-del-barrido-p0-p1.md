@@ -1,8 +1,14 @@
 # ADR-0020 — Estado real de Fase 3.5 al cierre del barrido P0/P1 + 3.5a.5 + 3.5a.7
 
-- **Estado:** Aceptado
+- **Estado:** Reemplazado por ADR-0021
 - **Fecha:** 2026-08-07
 - **Fase del roadmap:** Fase 3.5 — Adaptación porcina
+
+> **Este ADR quedó reemplazado por [ADR-0021](./0021-cierre-retroactivo-compuerta-3-5a-9-B.md)
+> el 2026-08-07**, al aceptar retroactivamente el merge de los PRs #51 (`bc3d315`) y
+> #53 (`57cf5a3`) que trajeron 3.5a.9-B a develop. El cuerpo de este ADR se conserva
+> intacto como historial: la sec."Decisión" punto 4 reflejaba el estado del repo
+> **antes** del descubrimiento de la contradicción con los merges.
 
 ## Contexto
 

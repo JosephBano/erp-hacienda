@@ -1,6 +1,7 @@
 using System.Net.Http.Json;
 using Hato.Api.Endpoints;
 using Hato.Modules.Breeding.Contracts;
+using Hato.Modules.Breeding.Infrastructure.Persistence;
 using Hato.Modules.Livestock.Application.MortalityCauses;
 using Hato.Modules.Livestock.Domain;
 using Hato.Modules.Livestock.Infrastructure.Persistence;
@@ -139,8 +140,15 @@ public class RecordCohortWeaningApiTests(BreedingApiFactory factory) : IClassFix
         weaningResponse.EnsureSuccessStatusCode();
 
         // Assert: the per-birthing WeanedCount reflects the preweaning deaths.
-        var weaned = await _client.GetFromJsonAsync<BirthingDto>(
-            $"/api/v1/breeding/birthings/{birthing.Id}");
+        // Read straight from the DbContext — the project has no GET endpoint for
+        // a single Birthing, and adding one solely for this test would be a
+        // surface added without a consumer. The DbContext is the source of truth.
+        using var assertScope = factory.Services.CreateScope();
+        var assertContext = assertScope.ServiceProvider.GetRequiredService<BreedingDbContext>();
+        var weaned = await assertContext.Birthings
+            .AsNoTracking()
+            .FirstOrDefaultAsync(b => b.Id == birthing.Id);
+
         Assert.NotNull(weaned);
         Assert.Equal(bornAlive - offspring.Count, weaned!.WeanedCount);
         Assert.NotNull(weaned.WeanedAt);
@@ -184,8 +192,12 @@ public class RecordCohortWeaningApiTests(BreedingApiFactory factory) : IClassFix
             new { });
         weaningResponse.EnsureSuccessStatusCode();
 
-        var weaned = await _client.GetFromJsonAsync<BirthingDto>(
-            $"/api/v1/breeding/birthings/{birthing.Id}");
+        using var assertScope = factory.Services.CreateScope();
+        var assertContext = assertScope.ServiceProvider.GetRequiredService<BreedingDbContext>();
+        var weaned = await assertContext.Birthings
+            .AsNoTracking()
+            .FirstOrDefaultAsync(b => b.Id == birthing.Id);
+
         Assert.NotNull(weaned);
         Assert.Equal(bornAlive, weaned!.WeanedCount);
     }

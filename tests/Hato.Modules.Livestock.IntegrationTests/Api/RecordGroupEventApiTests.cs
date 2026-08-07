@@ -8,6 +8,8 @@ using Hato.Modules.Livestock.Domain;
 using Hato.Modules.Livestock.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Npgsql;
+using NpgsqlTypes;
 
 namespace Hato.Modules.Livestock.IntegrationTests.Api;
 
@@ -313,9 +315,9 @@ public class RecordGroupEventApiTests(HatoApiFactory factory) : IClassFixture<Ha
         var bothEx = await Assert.ThrowsAsync<Npgsql.PostgresException>(
             () => dbContext.Database.ExecuteSqlRawAsync(
                 bothInsertSql,
-                new Npgsql.NpgsqlParameter("animalId", NpgsqlTypes.NpgsqlDbType.Uuid) { Value = animalId },
-                new Npgsql.NpgsqlParameter("groupId", NpgsqlTypes.NpgsqlDbType.Uuid) { Value = groupId },
-                new Npgsql.NpgsqlParameter("payload", "{\"x\":1}")));
+                new Npgsql.NpgsqlParameter("animalId", NpgsqlDbType.Uuid) { Value = animalId },
+                new Npgsql.NpgsqlParameter("groupId", NpgsqlDbType.Uuid) { Value = groupId },
+                new Npgsql.NpgsqlParameter("payload", NpgsqlDbType.Jsonb) { Value = "{\"x\":1}" }));
         Assert.Equal("23514", bothEx.SqlState);
     }
 
@@ -341,8 +343,8 @@ public class RecordGroupEventApiTests(HatoApiFactory factory) : IClassFixture<Ha
 
         await dbContext.Database.ExecuteSqlRawAsync(
             sql,
-            new Npgsql.NpgsqlParameter("animalId", NpgsqlTypes.NpgsqlDbType.Uuid) { Value = animalId },
-            new Npgsql.NpgsqlParameter("payload", "{\"x\":1}"));
+            new Npgsql.NpgsqlParameter("animalId", NpgsqlDbType.Uuid) { Value = animalId },
+            new Npgsql.NpgsqlParameter("payload", NpgsqlDbType.Jsonb) { Value = "{\"x\":1}" });
     }
 
     /// <summary>
@@ -367,8 +369,8 @@ public class RecordGroupEventApiTests(HatoApiFactory factory) : IClassFixture<Ha
 
         await dbContext.Database.ExecuteSqlRawAsync(
             sql,
-            new Npgsql.NpgsqlParameter("groupId", NpgsqlTypes.NpgsqlDbType.Uuid) { Value = groupId },
-            new Npgsql.NpgsqlParameter("payload", "{\"x\":1}"));
+            new Npgsql.NpgsqlParameter("groupId", NpgsqlDbType.Uuid) { Value = groupId },
+            new Npgsql.NpgsqlParameter("payload", NpgsqlDbType.Jsonb) { Value = "{\"x\":1}" });
     }
 
     /// <summary>

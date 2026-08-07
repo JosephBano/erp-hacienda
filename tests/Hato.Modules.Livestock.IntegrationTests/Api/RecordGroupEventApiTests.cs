@@ -286,10 +286,10 @@ public class RecordGroupEventApiTests(HatoApiFactory factory) : IClassFixture<Ha
         using var scope = factory.Services.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<LivestockDbContext>();
 
-// Note on the payload_json literal: EF Core's RawSqlCommandBuilder interprets
-// `{}` as a malformed placeholder regardless of the surrounding quoting, which
-// broke the previous attempts at interpolated or string.Format-based escapes.
-// Go through the raw DbConnection instead so no parameter parsing happens.
+        // Note on the payload_json literal: EF Core's RawSqlCommandBuilder interprets
+        // `{}` as a malformed placeholder regardless of the surrounding quoting, which
+        // broke the previous attempts at interpolated or string.Format-based escapes.
+        // Go through the raw DbConnection instead so no parameter parsing happens.
         var neitherEx = await Assert.ThrowsAsync<Npgsql.PostgresException>(async () =>
         {
             var conn = (Npgsql.NpgsqlConnection)dbContext.Database.GetDbConnection();

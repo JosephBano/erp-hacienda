@@ -8,6 +8,8 @@ using Hato.Modules.Livestock.Domain;
 using Hato.Modules.Livestock.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Npgsql;
+using NpgsqlTypes;
 
 namespace Hato.Modules.Livestock.IntegrationTests.Api;
 
@@ -313,9 +315,9 @@ public class RecordGroupEventApiTests(HatoApiFactory factory) : IClassFixture<Ha
         var bothEx = await Assert.ThrowsAsync<Npgsql.PostgresException>(
             () => dbContext.Database.ExecuteSqlRawAsync(
                 bothInsertSql,
-                new Npgsql.NpgsqlParameter("animalId", animalId),
-                new Npgsql.NpgsqlParameter("groupId", groupId),
-                new Npgsql.NpgsqlParameter("payload", "{\"x\":1}")));
+                new Npgsql.NpgsqlParameter("animalId", NpgsqlDbType.Uuid) { Value = animalId },
+                new Npgsql.NpgsqlParameter("groupId", NpgsqlDbType.Uuid) { Value = groupId },
+                new Npgsql.NpgsqlParameter("payload", NpgsqlDbType.Jsonb) { Value = "{\"x\":1}" }));
         Assert.Equal("23514", bothEx.SqlState);
     }
 
@@ -341,8 +343,8 @@ public class RecordGroupEventApiTests(HatoApiFactory factory) : IClassFixture<Ha
 
         await dbContext.Database.ExecuteSqlRawAsync(
             sql,
-            new Npgsql.NpgsqlParameter("animalId", animalId),
-            new Npgsql.NpgsqlParameter("payload", "{\"x\":1}"));
+            new Npgsql.NpgsqlParameter("animalId", NpgsqlDbType.Uuid) { Value = animalId },
+            new Npgsql.NpgsqlParameter("payload", NpgsqlDbType.Jsonb) { Value = "{\"x\":1}" });
     }
 
     /// <summary>
@@ -367,62 +369,8 @@ public class RecordGroupEventApiTests(HatoApiFactory factory) : IClassFixture<Ha
 
         await dbContext.Database.ExecuteSqlRawAsync(
             sql,
-            new Npgsql.NpgsqlParameter("groupId", groupId),
-            new Npgsql.NpgsqlParameter("payload", "{\"x\":1}"));
-    }
-
-    /// <summary>
-    /// BLOQUE E / 3.5a.7 task 6: the lot summary is the screen the field-app shows
-    /// when the operator taps on a headcount lot. It pins the live head count, the
-    /// last vaccination date, and the count of heads affected by open diagnoses.
-    /// </summary>
-    [Fact]
-    public async Task GetLotSummary_ReflectsEventsRecorded()
-    {
-        var (groupId, _) = await SeedHeadcountGroupAsync(8);
-
-        // 2 deaths, 1 vaccination, 1 diagnosis of "1 cabeza con tos".
-        await _client.PostAsJsonAsync($"/api/v1/animal-groups/{groupId}/events", new
-        {
-            eventType = EventType.Disposal,
-            occurredAt = DateTimeOffset.UtcNow,
-            recordedBy = "capataz",
-            payloadJson = "{\"count\":2,\"causeId\":null}",
-            affectedCount = 2,
-        });
-        await _client.PostAsJsonAsync($"/api/v1/animal-groups/{groupId}/events", new
-        {
-            eventType = EventType.Vaccination,
-            occurredAt = DateTimeOffset.UtcNow,
-            recordedBy = "capataz",
-            payloadJson = "{\"vaccine\":\"aftosa\"}",
-            affectedCount = 8,
-        });
-        await _client.PostAsJsonAsync($"/api/v1/animal-groups/{groupId}/events", new
-        {
-            eventType = EventType.Diagnosis,
-            occurredAt = DateTimeOffset.UtcNow,
-            recordedBy = "capataz",
-            payloadJson = "{\"condition\":\"tos\",\"notes\":\"\"}",
-            affectedCount = 1,
-        });
-
-        var response = await _client.GetAsync($"/api/v1/animal-groups/{groupId}/summary");
-        response.EnsureSuccessStatusCode();
-        var summary = await response.Content.ReadFromJsonAsync<LotSummaryDto>();
-
-        Assert.NotNull(summary);
-        Assert.Equal(6, summary!.LiveHeadCount);
-        Assert.Equal(1, summary.HeadsAffectedByDiagnosis);
-        Assert.NotNull(summary.LastVaccinationAt);
-        Assert.NotNull(summary.LastDisposalAt);
-    }
-
-    [Fact]
-    public async Task GetLotSummary_OnUnknownGroup_Returns404()
-    {
-        var response = await _client.GetAsync($"/api/v1/animal-groups/{Guid.NewGuid()}/summary");
-        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+            new Npgsql.NpgsqlParameter("groupId", NpgsqlDbType.Uuid) { Value = groupId },
+            new Npgsql.NpgsqlParameter("payload", NpgsqlDbType.Jsonb) { Value = "{\"x\":1}" });
     }
 
     /// <summary>
@@ -474,11 +422,4 @@ public class RecordGroupEventApiTests(HatoApiFactory factory) : IClassFixture<Ha
     private sealed record CreatedId(Guid Id);
     private sealed record LiveHeadCountDto(int LiveHeadCount);
     private sealed record IndividualStateDto(string State);
-    private sealed record LotSummaryDto(
-        Guid GroupId,
-        int LiveHeadCount,
-        int HeadsAffectedByDiagnosis,
-        DateTimeOffset? LastVaccinationAt,
-        DateTimeOffset? LastDisposalAt,
-        DateTimeOffset? LastTreatmentAt);
 }

@@ -59,6 +59,7 @@ public static class SystemPermissions
     public const string LivestockCategoriesManage = "livestock.categories.manage";
     public const string LivestockBreedsManage = "livestock.breeds.manage";
     public const string LivestockSpeciesManage = "livestock.species.manage";
+    public const string LivestockTreatmentsConfigure = "livestock.treatments.configure";
 
     // Production
     public const string ProductionMilkingRecord = "production.milking.record";

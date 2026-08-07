@@ -37,7 +37,9 @@ public record SyncCollectionsDto(
     List<SyncInventoryItemDto> InventoryItems,
     List<SyncWithdrawalPeriodDto> WithdrawalPeriods,
     List<SyncMortalityCauseDto> MortalityCauses,
-    List<SyncFarmModuleDto> FarmModules);
+    List<SyncFarmModuleDto> FarmModules,
+    List<SyncAdministrationRouteDto> AdministrationRoutes,
+    List<SyncTreatmentReasonDto> TreatmentReasons);
 
 public record SyncAnimalDto(
     Guid Id,
@@ -168,6 +170,35 @@ public record SyncFarmModuleDto(
     DateTimeOffset? UpdatedAt,
     bool IsDeleted) : ISyncRow;
 
+/// <summary>
+/// The administration routes catalog (3.5a.2-A). The field app uses these to
+/// populate the "via de administración" picker when registering a treatment
+/// offline — without them it cannot build a structured treatment payload
+/// (PLAN-FASE-3-5-PORCINO-3.5a.2-A sec.7).
+/// </summary>
+public record SyncAdministrationRouteDto(
+    Guid Id,
+    string Key,
+    string LabelEs,
+    bool IsActive,
+    DateTimeOffset CreatedAt,
+    DateTimeOffset? UpdatedAt,
+    bool IsDeleted) : ISyncRow;
+
+/// <summary>
+/// The treatment reason catalog (3.5a.2-A): scheduled / curative / preventive.
+/// Distinguishing them is what separates "vacuna de calendario" from "vacuna
+/// porque se enfermó" on the herd's history.
+/// </summary>
+public record SyncTreatmentReasonDto(
+    Guid Id,
+    string Key,
+    string LabelEs,
+    bool IsActive,
+    DateTimeOffset CreatedAt,
+    DateTimeOffset? UpdatedAt,
+    bool IsDeleted) : ISyncRow;
+
 public record GetSyncPullQuery(
     string? Since = null,
     string? Collections = null,
@@ -206,6 +237,8 @@ public class GetSyncPullQueryHandler(
             ["inventoryItems"] = SystemPermissions.InventoryItemsRead,
             ["mortalityCauses"] = SystemPermissions.LivestockAnimalsRead,
             ["farmModules"] = SystemPermissions.SettingsFarmModulesRead,
+            ["administrationRoutes"] = SystemPermissions.LivestockAnimalsRead,
+            ["treatmentReasons"] = SystemPermissions.LivestockAnimalsRead,
         };
 
     public async Task<SyncPullResponseDto> Handle(GetSyncPullQuery request, CancellationToken cancellationToken)
@@ -305,9 +338,22 @@ public class GetSyncPullQueryHandler(
                 m.Id, m.Key, m.Enabled, m.DisabledReason, m.CreatedAt, m.UpdatedAt, false),
             cancellationToken);
 
+        var administrationRoutes = await ReadAsync(
+            effective, "administrationRoutes", livestockDb.AdministrationRoutes, since, limit, frontier,
+            r => new SyncAdministrationRouteDto(
+                r.Id, r.Key, r.LabelEs, r.IsActive, r.CreatedAt, r.UpdatedAt, r.DeletedAt != null),
+            cancellationToken);
+
+        var treatmentReasons = await ReadAsync(
+            effective, "treatmentReasons", livestockDb.TreatmentReasons, since, limit, frontier,
+            r => new SyncTreatmentReasonDto(
+                r.Id, r.Key, r.LabelEs, r.IsActive, r.CreatedAt, r.UpdatedAt, r.DeletedAt != null),
+            cancellationToken);
+
         var collections = new SyncCollectionsDto(
             animals, identifiers, groups, memberships,
-            speciesList, breeds, categories, items, withdrawals, mortalityCauses, farmModules);
+            speciesList, breeds, categories, items, withdrawals, mortalityCauses, farmModules,
+            administrationRoutes, treatmentReasons);
 
         return new SyncPullResponseDto(frontier.Next.Format(), frontier.HasMore, collections);
     }

@@ -294,7 +294,7 @@ public class RecordGroupEventApiTests(HatoApiFactory factory) : IClassFixture<Ha
         var neitherEx = await Assert.ThrowsAsync<Npgsql.PostgresException>(() => dbContext.Database.ExecuteSqlRawAsync(
             $$"""
             INSERT INTO livestock.animal_events
-                (id, animal_id, group_id, event_type, occurred_at, recorded_by, payload_json, created_at)
+                (id, animal_id, group_id, event_type, occurred_at, recorded_by_label, payload_json, created_at)
             VALUES
                 (gen_random_uuid(), NULL, NULL, 'Weighing', now(), 'test', '{{"x":1}}', now())
             """));
@@ -306,7 +306,7 @@ public class RecordGroupEventApiTests(HatoApiFactory factory) : IClassFixture<Ha
 
         var bothInsertSql =
             "INSERT INTO livestock.animal_events " +
-            "(id, animal_id, group_id, event_type, occurred_at, recorded_by, payload_json, created_at) " +
+            "(id, animal_id, group_id, event_type, occurred_at, recorded_by_label, payload_json, created_at) " +
             "VALUES " +
             "(gen_random_uuid(), @animalId, @groupId, 'Weighing', now(), 'test', @payload, now())";
 
@@ -335,7 +335,7 @@ public class RecordGroupEventApiTests(HatoApiFactory factory) : IClassFixture<Ha
 
         var sql =
             "INSERT INTO livestock.animal_events " +
-            "(id, animal_id, group_id, event_type, occurred_at, recorded_by, payload_json, created_at) " +
+            "(id, animal_id, group_id, event_type, occurred_at, recorded_by_label, payload_json, created_at) " +
             "VALUES " +
             "(gen_random_uuid(), @animalId, NULL, 'Weighing', now(), 'test', @payload, now())";
 
@@ -361,7 +361,7 @@ public class RecordGroupEventApiTests(HatoApiFactory factory) : IClassFixture<Ha
 
         var sql =
             "INSERT INTO livestock.animal_events " +
-            "(id, animal_id, group_id, event_type, occurred_at, recorded_by, payload_json, created_at) " +
+            "(id, animal_id, group_id, event_type, occurred_at, recorded_by_label, payload_json, created_at) " +
             "VALUES " +
             "(gen_random_uuid(), NULL, @groupId, 'Weighing', now(), 'test', @payload, now())";
 

@@ -271,7 +271,10 @@ public class RecordGroupEventApiTests(HatoApiFactory factory) : IClassFixture<Ha
     /// The CHECK constraint is the backstop the domain factories cannot bypass (ADR-0015
     /// sec.2): any write that reaches Postgres with both, or neither, subject columns set
     /// fails loudly at the database, which is what protects a consumer that still assumes
-    /// AnimalId is never null.
+    /// AnimalId is never null. The original test only covered the two rejected cases;
+    /// the two accepted cases (animal-only, group-only) were never pinned, which is the
+    /// half of the contract most likely to regress silently if the CHECK is ever
+    /// weakened in a future migration.
     /// </summary>
     [Fact]
     public async Task DatabaseCheckConstraint_RejectsRowsWithBothOrNeitherSubject()
@@ -279,12 +282,19 @@ public class RecordGroupEventApiTests(HatoApiFactory factory) : IClassFixture<Ha
         using var scope = factory.Services.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<LivestockDbContext>();
 
+        // Note on the payload_json literal: the string is interpolated as raw SQL,
+        // not as a parameterised placeholder, so the value `'{"x":1}'` (a JSON object
+        // with one property) is sent verbatim to Postgres. The original test used
+        // `'{}'` which the SQL formatter pre-processor used to misread as a malformed
+        // `{}` placeholder before the call reached the server — the assertion below
+        // would then have caught a FormatException instead of a CHECK violation, and
+        // the CHECK would have been left unverified.
         var neitherEx = await Assert.ThrowsAsync<Npgsql.PostgresException>(() => dbContext.Database.ExecuteSqlRawAsync(
             """
             INSERT INTO livestock.animal_events
                 (id, animal_id, group_id, event_type, occurred_at, recorded_by, payload_json, created_at)
             VALUES
-                (gen_random_uuid(), NULL, NULL, 'Weighing', now(), 'test', '{}', now())
+                (gen_random_uuid(), NULL, NULL, 'Weighing', now(), 'test', '{"x":1}', now())
             """));
         Assert.Equal("23514", neitherEx.SqlState);
 
@@ -296,11 +306,57 @@ public class RecordGroupEventApiTests(HatoApiFactory factory) : IClassFixture<Ha
             "INSERT INTO livestock.animal_events " +
             "(id, animal_id, group_id, event_type, occurred_at, recorded_by, payload_json, created_at) " +
             "VALUES " +
-            $"(gen_random_uuid(), '{animalId}', '{groupId}', 'Weighing', now(), 'test', '{{}}', now())";
+            $"(gen_random_uuid(), '{animalId}', '{groupId}', 'Weighing', now(), 'test', '{{\"x\":1}}', now())";
 
         var bothEx = await Assert.ThrowsAsync<Npgsql.PostgresException>(
             () => dbContext.Database.ExecuteSqlRawAsync(bothInsertSql));
         Assert.Equal("23514", bothEx.SqlState);
+    }
+
+    /// <summary>
+    /// Companion to <see cref="DatabaseCheckConstraint_RejectsRowsWithBothOrNeitherSubject"/>:
+    /// the accepted half of the XOR. A row with <c>animal_id</c> set and <c>group_id</c>
+    /// null is the normal case (animal-subject event) and must survive the CHECK.
+    /// </summary>
+    [Fact]
+    public async Task DatabaseCheckConstraint_AcceptsRowWithOnlyAnimalSubject()
+    {
+        using var scope = factory.Services.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<LivestockDbContext>();
+
+        var speciesId = await CreateSpeciesAsync();
+        var animalId = await CreateAnimalAsync(speciesId);
+
+        var sql =
+            "INSERT INTO livestock.animal_events " +
+            "(id, animal_id, group_id, event_type, occurred_at, recorded_by, payload_json, created_at) " +
+            "VALUES " +
+            $"(gen_random_uuid(), '{animalId}', NULL, 'Weighing', now(), 'test', '{{\"x\":1}}', now())";
+
+        await dbContext.Database.ExecuteSqlRawAsync(sql);
+    }
+
+    /// <summary>
+    /// Companion to <see cref="DatabaseCheckConstraint_RejectsRowsWithBothOrNeitherSubject"/>:
+    /// the second accepted half of the XOR. A row with <c>group_id</c> set and
+    /// <c>animal_id</c> null is the group-subject event (ADR-0015) and must survive
+    /// the CHECK.
+    /// </summary>
+    [Fact]
+    public async Task DatabaseCheckConstraint_AcceptsRowWithOnlyGroupSubject()
+    {
+        using var scope = factory.Services.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<LivestockDbContext>();
+
+        var (_, groupId) = await SeedHeadcountGroupAsync(1);
+
+        var sql =
+            "INSERT INTO livestock.animal_events " +
+            "(id, animal_id, group_id, event_type, occurred_at, recorded_by, payload_json, created_at) " +
+            "VALUES " +
+            $"(gen_random_uuid(), NULL, '{groupId}', 'Weighing', now(), 'test', '{{\"x\":1}}', now())";
+
+        await dbContext.Database.ExecuteSqlRawAsync(sql);
     }
 
     private sealed record CreatedId(Guid Id);

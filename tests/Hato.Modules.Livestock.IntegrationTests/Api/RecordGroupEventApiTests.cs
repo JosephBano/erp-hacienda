@@ -313,8 +313,8 @@ public class RecordGroupEventApiTests(HatoApiFactory factory) : IClassFixture<Ha
         var bothEx = await Assert.ThrowsAsync<Npgsql.PostgresException>(
             () => dbContext.Database.ExecuteSqlRawAsync(
                 bothInsertSql,
-                new Npgsql.NpgsqlParameter("animalId", animalId),
-                new Npgsql.NpgsqlParameter("groupId", groupId),
+                new Npgsql.NpgsqlParameter("animalId", NpgsqlTypes.NpgsqlDbType.Uuid) { Value = animalId },
+                new Npgsql.NpgsqlParameter("groupId", NpgsqlTypes.NpgsqlDbType.Uuid) { Value = groupId },
                 new Npgsql.NpgsqlParameter("payload", "{\"x\":1}")));
         Assert.Equal("23514", bothEx.SqlState);
     }
@@ -341,7 +341,7 @@ public class RecordGroupEventApiTests(HatoApiFactory factory) : IClassFixture<Ha
 
         await dbContext.Database.ExecuteSqlRawAsync(
             sql,
-            new Npgsql.NpgsqlParameter("animalId", animalId),
+            new Npgsql.NpgsqlParameter("animalId", NpgsqlTypes.NpgsqlDbType.Uuid) { Value = animalId },
             new Npgsql.NpgsqlParameter("payload", "{\"x\":1}"));
     }
 
@@ -367,7 +367,7 @@ public class RecordGroupEventApiTests(HatoApiFactory factory) : IClassFixture<Ha
 
         await dbContext.Database.ExecuteSqlRawAsync(
             sql,
-            new Npgsql.NpgsqlParameter("groupId", groupId),
+            new Npgsql.NpgsqlParameter("groupId", NpgsqlTypes.NpgsqlDbType.Uuid) { Value = groupId },
             new Npgsql.NpgsqlParameter("payload", "{\"x\":1}"));
     }
 

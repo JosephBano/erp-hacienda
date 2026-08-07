@@ -283,44 +283,16 @@ public class RecordGroupEventApiTests(HatoApiFactory factory) : IClassFixture<Ha
     [Fact]
     public async Task DatabaseCheckConstraint_RejectsRowsWithBothOrNeitherSubject()
     {
-        using var scope = factory.Services.CreateScope();
-        var dbContext = scope.ServiceProvider.GetRequiredService<LivestockDbContext>();
-
-        // Note on the payload_json literal: EF Core's RawSqlCommandBuilder interprets
-        // `{}` as a malformed placeholder regardless of the surrounding quoting, which
-        // broke the previous attempts at interpolated or string.Format-based escapes.
-        // Go through the raw DbConnection instead so no parameter parsing happens.
-        var neitherEx = await Assert.ThrowsAsync<Npgsql.PostgresException>(async () =>
-        {
-            var conn = (Npgsql.NpgsqlConnection)dbContext.Database.GetDbConnection();
-            if (conn.State != System.Data.ConnectionState.Open) await conn.OpenAsync();
-            await using var cmd = conn.CreateCommand();
-            cmd.CommandText =
-                "INSERT INTO livestock.animal_events " +
-                "(id, animal_id, group_id, event_type, occurred_at, recorded_by_label, payload_json, created_at) " +
-                "VALUES " +
-                "(gen_random_uuid(), NULL, NULL, 'Weighing', now(), 'test', '{{\"x\":1}}', now())";
-            await cmd.ExecuteNonQueryAsync();
-        });
-        Assert.Equal("23514", neitherEx.SqlState);
-
         var speciesId = await CreateSpeciesAsync();
         var animalId = await CreateAnimalAsync(speciesId);
         var (groupId, _) = await SeedHeadcountGroupAsync(1);
 
-        var bothEx = await Assert.ThrowsAsync<Npgsql.PostgresException>(async () =>
-        {
-            var conn = (Npgsql.NpgsqlConnection)dbContext.Database.GetDbConnection();
-            if (conn.State != System.Data.ConnectionState.Open) await conn.OpenAsync();
-            await using var cmd = conn.CreateCommand();
-            cmd.CommandText = string.Format(
-                "INSERT INTO livestock.animal_events " +
-                "(id, animal_id, group_id, event_type, occurred_at, recorded_by_label, payload_json, created_at) " +
-                "VALUES " +
-                "(gen_random_uuid(), '{0}', '{1}', 'Weighing', now(), 'test', '{{\"x\":1}}', now())",
-                animalId, groupId);
-            await cmd.ExecuteNonQueryAsync();
-        });
+        var neitherEx = await Assert.ThrowsAsync<Npgsql.PostgresException>(
+            () => InsertRawAnimalEventAsync(animalId: null, groupId: null));
+        Assert.Equal("23514", neitherEx.SqlState);
+
+        var bothEx = await Assert.ThrowsAsync<Npgsql.PostgresException>(
+            () => InsertRawAnimalEventAsync(animalId, groupId));
         Assert.Equal("23514", bothEx.SqlState);
     }
 
@@ -332,22 +304,10 @@ public class RecordGroupEventApiTests(HatoApiFactory factory) : IClassFixture<Ha
     [Fact]
     public async Task DatabaseCheckConstraint_AcceptsRowWithOnlyAnimalSubject()
     {
-        using var scope = factory.Services.CreateScope();
-        var dbContext = scope.ServiceProvider.GetRequiredService<LivestockDbContext>();
-
         var speciesId = await CreateSpeciesAsync();
         var animalId = await CreateAnimalAsync(speciesId);
 
-        var conn = (Npgsql.NpgsqlConnection)dbContext.Database.GetDbConnection();
-        if (conn.State != System.Data.ConnectionState.Open) await conn.OpenAsync();
-        await using var cmd = conn.CreateCommand();
-        cmd.CommandText = string.Format(
-            "INSERT INTO livestock.animal_events " +
-            "(id, animal_id, group_id, event_type, occurred_at, recorded_by_label, payload_json, created_at) " +
-            "VALUES " +
-            "(gen_random_uuid(), '{0}', NULL, 'Weighing', now(), 'test', '{{\"x\":1}}', now())",
-            animalId);
-        await cmd.ExecuteNonQueryAsync();
+        await InsertRawAnimalEventAsync(animalId, groupId: null);
     }
 
     /// <summary>
@@ -359,21 +319,9 @@ public class RecordGroupEventApiTests(HatoApiFactory factory) : IClassFixture<Ha
     [Fact]
     public async Task DatabaseCheckConstraint_AcceptsRowWithOnlyGroupSubject()
     {
-        using var scope = factory.Services.CreateScope();
-        var dbContext = scope.ServiceProvider.GetRequiredService<LivestockDbContext>();
-
         var (groupId, _) = await SeedHeadcountGroupAsync(1);
 
-        var conn = (Npgsql.NpgsqlConnection)dbContext.Database.GetDbConnection();
-        if (conn.State != System.Data.ConnectionState.Open) await conn.OpenAsync();
-        await using var cmd = conn.CreateCommand();
-        cmd.CommandText = string.Format(
-            "INSERT INTO livestock.animal_events " +
-            "(id, animal_id, group_id, event_type, occurred_at, recorded_by_label, payload_json, created_at) " +
-            "VALUES " +
-            "(gen_random_uuid(), NULL, '{0}', 'Weighing', now(), 'test', '{{\"x\":1}}', now())",
-            groupId);
-        await cmd.ExecuteNonQueryAsync();
+        await InsertRawAnimalEventAsync(animalId: null, groupId);
     }
 
     /// <summary>
@@ -420,6 +368,45 @@ public class RecordGroupEventApiTests(HatoApiFactory factory) : IClassFixture<Ha
         countResponse.EnsureSuccessStatusCode();
         var body = await countResponse.Content.ReadFromJsonAsync<LiveHeadCountDto>();
         Assert.Equal(3, body!.LiveHeadCount);
+    }
+
+    /// <summary>
+    /// Writes one <c>animal_events</c> row straight to Postgres, bypassing the domain
+    /// factories, so the CHECK of ADR-0015 is what answers — that is the whole point of
+    /// these tests: the database must be the backstop even for a writer that never went
+    /// through <see cref="AnimalEvent"/>.
+    ///
+    /// Everything variable travels as a parameter. Four attempts at this test bled on
+    /// string building instead: EF Core's <c>ExecuteSqlRaw</c> reads <c>{</c> as a
+    /// placeholder (FormatException), and doubling the braces to escape them made the
+    /// literal <c>{{"x":1}}</c> reach Postgres once the SQL stopped going through
+    /// <c>string.Format</c> (22P02, invalid json). With parameters there is no brace to
+    /// escape and no formatter in the path.
+    /// </summary>
+    private async Task InsertRawAnimalEventAsync(Guid? animalId, Guid? groupId)
+    {
+        using var scope = factory.Services.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<LivestockDbContext>();
+
+        var connection = (Npgsql.NpgsqlConnection)dbContext.Database.GetDbConnection();
+        if (connection.State != System.Data.ConnectionState.Open)
+            await connection.OpenAsync();
+
+        await using var command = connection.CreateCommand();
+        command.CommandText =
+            """
+            INSERT INTO livestock.animal_events
+                (id, animal_id, group_id, event_type, occurred_at, recorded_by_label,
+                 payload_json, created_at)
+            VALUES
+                (gen_random_uuid(), @animal_id, @group_id, 'Weighing', now(), 'test',
+                 CAST(@payload AS jsonb), now())
+            """;
+        command.Parameters.AddWithValue("animal_id", (object?)animalId ?? DBNull.Value);
+        command.Parameters.AddWithValue("group_id", (object?)groupId ?? DBNull.Value);
+        command.Parameters.AddWithValue("payload", "{\"x\":1}");
+
+        await command.ExecuteNonQueryAsync();
     }
 
     private sealed record CreatedId(Guid Id);

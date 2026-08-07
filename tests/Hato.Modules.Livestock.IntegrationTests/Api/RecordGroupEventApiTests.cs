@@ -299,7 +299,7 @@ public class RecordGroupEventApiTests(HatoApiFactory factory) : IClassFixture<Ha
                 "INSERT INTO livestock.animal_events " +
                 "(id, animal_id, group_id, event_type, occurred_at, recorded_by_label, payload_json, created_at) " +
                 "VALUES " +
-                "(gen_random_uuid(), NULL, NULL, 'Weighing', now(), 'test', '{\"x\":1}', now())";
+                "(gen_random_uuid(), NULL, NULL, 'Weighing', now(), 'test', '{{\"x\":1}}', now())";
             await cmd.ExecuteNonQueryAsync();
         });
         Assert.Equal("23514", neitherEx.SqlState);
@@ -317,7 +317,7 @@ public class RecordGroupEventApiTests(HatoApiFactory factory) : IClassFixture<Ha
                 "INSERT INTO livestock.animal_events " +
                 "(id, animal_id, group_id, event_type, occurred_at, recorded_by_label, payload_json, created_at) " +
                 "VALUES " +
-                "(gen_random_uuid(), '{0}', '{1}', 'Weighing', now(), 'test', '{\"x\":1}', now())",
+                "(gen_random_uuid(), '{0}', '{1}', 'Weighing', now(), 'test', '{{\"x\":1}}', now())",
                 animalId, groupId);
             await cmd.ExecuteNonQueryAsync();
         });
@@ -345,7 +345,7 @@ public class RecordGroupEventApiTests(HatoApiFactory factory) : IClassFixture<Ha
             "INSERT INTO livestock.animal_events " +
             "(id, animal_id, group_id, event_type, occurred_at, recorded_by_label, payload_json, created_at) " +
             "VALUES " +
-            "(gen_random_uuid(), '{0}', NULL, 'Weighing', now(), 'test', '{\"x\":1}', now())",
+            "(gen_random_uuid(), '{0}', NULL, 'Weighing', now(), 'test', '{{\"x\":1}}', now())",
             animalId);
         await cmd.ExecuteNonQueryAsync();
     }
@@ -371,7 +371,7 @@ public class RecordGroupEventApiTests(HatoApiFactory factory) : IClassFixture<Ha
             "INSERT INTO livestock.animal_events " +
             "(id, animal_id, group_id, event_type, occurred_at, recorded_by_label, payload_json, created_at) " +
             "VALUES " +
-            "(gen_random_uuid(), NULL, '{0}', 'Weighing', now(), 'test', '{\"x\":1}', now())",
+            "(gen_random_uuid(), NULL, '{0}', 'Weighing', now(), 'test', '{{\"x\":1}}', now())",
             groupId);
         await cmd.ExecuteNonQueryAsync();
     }

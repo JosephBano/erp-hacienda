@@ -62,6 +62,12 @@ export interface GroupEventInput {
   occurredAt?: string;
 }
 
+export interface CorrectionInput {
+  originalEventId: string;
+  reason: string;
+  occurredAt?: string;
+}
+
 export interface QueuedEvent {
   clientOperationId: string;
 }
@@ -211,6 +217,37 @@ export class EventService {
       fromGroupId: input.fromGroupId,
       movedOn,
     });
+
+    return { clientOperationId: entry.clientOperationId };
+  }
+
+  /**
+   * Records a field correction (PLAN-FASE-3-5-PORCINO.md sec.3.5a.8, ADR-0017).
+   *
+   * The original event id is the server's id (the `resultRef` the phone received
+   * when the original op was Accepted). The server rejects corrections that
+   * arrive on a different UTC calendar day than the original, so the window is
+   * local-midnight to UTC-midnight: the phone may not always know the server's
+   * offset, but for the local operator "I typed it wrong five minutes ago" is
+   * what the day-boundary is asking about.
+   */
+  async recordCorrection(input: CorrectionInput): Promise<QueuedEvent> {
+    if (!input.originalEventId) throw new Error('El evento a corregir es obligatorio.');
+    if (!input.reason || input.reason.trim().length === 0) {
+      throw new Error('La razón de la corrección es obligatoria.');
+    }
+
+    const occurredAt = input.occurredAt ?? new Date().toISOString();
+
+    const entry = await this.outbox.enqueue(
+      'recordCorrection',
+      {
+        originalEventId: input.originalEventId,
+        recordedBy: 'field-app',
+        reason: input.reason.trim(),
+      },
+      occurredAt,
+    );
 
     return { clientOperationId: entry.clientOperationId };
   }

@@ -86,7 +86,13 @@ export default function App() {
   const [eventsInitialAnimalId, setEventsInitialAnimalId] = useState<string | undefined>(undefined);
   const [eventsInitialActivity, setEventsInitialActivity] = useState<'treatment' | 'weight' | 'move' | 'disposal' | undefined>(undefined);
   const [todayEntries, setTodayEntries] = useState<
-    { clientOperationId: string; operationType: string; occurredAt: string; status: 'pending' | 'synced' | 'rejected' | 'cancelled' }[]
+    {
+      clientOperationId: string;
+      operationType: string;
+      occurredAt: string;
+      status: 'pending' | 'synced' | 'rejected' | 'cancelled';
+      resultRef?: string;
+    }[]
   >([]);
 
   const visibility = useMemo(() => new ModuleVisibility(database), [database]);
@@ -114,6 +120,7 @@ export default function App() {
         operationType: entry.operationType,
         occurredAt: entry.occurredAt,
         status: entry.status as 'pending' | 'synced' | 'rejected' | 'cancelled',
+        resultRef: entry.resultRef,
       })),
     );
   }, [database, outbox, visibility]);
@@ -214,11 +221,9 @@ export default function App() {
         {tab === 'today' ? (
           <TodayScreen
             entries={todayEntries}
-            onSelectEntry={() => {
-              // 3.5a.8 (corrections) is a separate concern; for now the tap is a no-op
-              // so the row renders correctly and the contract with the future screen is
-              // already in place.
-            }}
+            outbox={outbox}
+            events={events}
+            onChanged={() => void refresh()}
           />
         ) : null}
 

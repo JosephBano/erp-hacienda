@@ -308,10 +308,14 @@ public class RecordGroupEventApiTests(HatoApiFactory factory) : IClassFixture<Ha
             "INSERT INTO livestock.animal_events " +
             "(id, animal_id, group_id, event_type, occurred_at, recorded_by, payload_json, created_at) " +
             "VALUES " +
-            $"(gen_random_uuid(), '{animalId}', '{groupId}', 'Weighing', now(), 'test', '{{\"x\":1}}', now())";
+            "(gen_random_uuid(), @animalId, @groupId, 'Weighing', now(), 'test', @payload, now())";
 
         var bothEx = await Assert.ThrowsAsync<Npgsql.PostgresException>(
-            () => dbContext.Database.ExecuteSqlRawAsync(bothInsertSql));
+            () => dbContext.Database.ExecuteSqlRawAsync(
+                bothInsertSql,
+                new Npgsql.NpgsqlParameter("animalId", animalId),
+                new Npgsql.NpgsqlParameter("groupId", groupId),
+                new Npgsql.NpgsqlParameter("payload", "{\"x\":1}")));
         Assert.Equal("23514", bothEx.SqlState);
     }
 

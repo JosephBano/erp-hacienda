@@ -268,6 +268,23 @@ public class PushSyncBatchCommandHandler(
                     return result.AnimalId.ToString();
                 }
 
+            case "recordcorrection":
+                {
+                    // Field correction flow (PLAN-FASE-3-5-PORCINO.md sec.3.5a.8, ADR-0017).
+                    // The original event must already exist on the server and the
+                    // correction must arrive on the same calendar day; the handler checks
+                    // both. The push op is the always-routed path so the outbox can
+                    // stay dumb — it only knows the operation type.
+                    var payload = Deserialize<RecordCorrectionPushPayload>(payloadJson, "corrección");
+                    var command = new RecordCorrectionCommand(
+                        payload.OriginalEventId,
+                        operation.OccurredAt,
+                        payload.RecordedBy,
+                        payload.Reason);
+                    var id = await sender.Send(command, cancellationToken);
+                    return id.ToString();
+                }
+
             default:
                 throw new DomainException($"Tipo de operación no soportado: '{operation.OperationType}'.");
         }
@@ -343,3 +360,15 @@ public record UpdateAnimalPushPayload(
     Guid? CategoryId,
     DateOnly? BirthDate,
     DateTimeOffset? KnownUpdatedAt = null);
+
+/// <summary>
+/// Field correction payload (3.5a.8). The original event id is the
+/// <c>resultRef</c> the device got back when it pushed the original op, so the
+/// server can resolve the correction without an extra round trip. The reason is
+/// the operator's free-text explanation; the server stores it under the event
+/// payload as JSONB.
+/// </summary>
+public record RecordCorrectionPushPayload(
+    Guid OriginalEventId,
+    string RecordedBy,
+    string Reason);

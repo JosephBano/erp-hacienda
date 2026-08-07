@@ -21,7 +21,8 @@ public record RecordGroupEventCommand(
     string PayloadJson,
     int? AffectedCount = null,
     decimal? Cost = null,
-    Guid? RelatedEventId = null) : IRequest<Guid>;
+    Guid? RelatedEventId = null,
+    Guid? CauseId = null) : IRequest<Guid>;
 
 public class RecordGroupEventValidator : AbstractValidator<RecordGroupEventCommand>
 {
@@ -56,7 +57,8 @@ public class RecordGroupEventHandler(ILivestockDbContext dbContext)
 
         var animalEvent = AnimalEvent.CreateForGroup(
             request.GroupId, request.EventType, request.OccurredAt, request.RecordedBy,
-            request.PayloadJson, request.AffectedCount, request.Cost, request.RelatedEventId);
+            request.PayloadJson, request.AffectedCount, request.Cost, request.RelatedEventId,
+            causeId: request.CauseId);
 
         dbContext.AnimalEvents.Add(animalEvent);
 

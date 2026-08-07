@@ -97,8 +97,49 @@ dotnet ef database update \
 dotnet run --project src/Hato.Api     # health check en /health
 ```
 
-Las pruebas de integración levantan su propio PostgreSQL efímero con Testcontainers, así
-que necesitan Docker corriendo pero **no** dependen del `docker compose` de desarrollo.
+### Las pruebas de integración y su PostgreSQL
+
+Corren contra un PostgreSQL de verdad, nunca InMemory (Art. 12, `AGENTS.md` regla 5): la
+mitad de lo que verifican —el `CHECK` del ADR-0015, la validación de `jsonb`, el índice
+único que hace idempotente el push, la CTE recursiva del pedigrí— no existe en un proveedor
+falso. De dónde sale ese PostgreSQL sí es configurable:
+
+- **Por defecto**: Testcontainers levanta un contenedor efímero por *fixture*. No hace falta
+  configurar nada, pero necesita un demonio Docker capaz de crear redes bridge.
+- **Con `HATO_TEST_POSTGRES`**: se usa un servidor que ya está corriendo. Cada *fixture*
+  sigue creando su propia base y borrándola al terminar, así que el aislamiento es el mismo.
+
+La segunda vía existe porque hay máquinas donde Testcontainers no arranca (Docker rootless,
+sandboxes, algunas configuraciones de WSL) y el síntoma es siempre el mismo:
+`failed to create endpoint testcontainers-ryuk-… operation not supported`. Cuando nadie del
+equipo puede correr la suite localmente, cada arreglo se empuja a ciegas y el CI termina de
+depurador — eso es lo que esta salida evita.
+
+La credencial sale de tu `.env`, igual que todo lo demás: acá tampoco hay ninguna escrita
+en el repositorio. El usuario `hato` del `docker compose` ya puede crear bases, que es lo
+único que la variable necesita.
+
+```bash
+docker compose up -d                  # el mismo PostgreSQL de desarrollo
+
+set -a; . ./.env; set +a              # trae POSTGRES_PASSWORD del .env
+export HATO_TEST_POSTGRES="Host=127.0.0.1;Port=5432;Database=postgres;Username=hato;Password=$POSTGRES_PASSWORD"
+
+dotnet test                           # ahora sin Testcontainers
+```
+
+El CI usa exactamente ese camino con un `services: postgres` (ver `.github/workflows/ci.yml`).
+Si la variable no está definida, todo vuelve a Testcontainers sin tocar una línea de código.
+
+Cada *fixture* borra su base al terminar. Si una corrida se interrumpe a la brava quedan
+bases huérfanas; se barren así:
+
+```bash
+docker exec hato-postgres psql -U hato -d postgres -tAc \
+  "SELECT datname FROM pg_database WHERE datname LIKE 'hato_test_%';" \
+  | xargs -r -I{} docker exec hato-postgres psql -U hato -d postgres \
+      -c 'DROP DATABASE IF EXISTS "{}" WITH (FORCE);'
+```
 
 ## Cómo se contribuye
 

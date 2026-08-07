@@ -1,6 +1,6 @@
 using Hato.Modules.Livestock.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
-using Testcontainers.PostgreSql;
+using Hato.TestSupport;
 
 namespace Hato.Modules.Livestock.IntegrationTests.Persistence;
 
@@ -10,19 +10,17 @@ namespace Hato.Modules.Livestock.IntegrationTests.Persistence;
 /// </summary>
 public sealed class LivestockDbContextTests : IAsyncLifetime
 {
-    private readonly PostgreSqlContainer _postgres = new PostgreSqlBuilder()
-        .WithImage("postgres:16-alpine")
-        .Build();
+    private TestDatabase _database = null!;
 
-    public Task InitializeAsync() => _postgres.StartAsync();
+    public async Task InitializeAsync() => _database = await TestDatabase.StartAsync();
 
-    public Task DisposeAsync() => _postgres.DisposeAsync().AsTask();
+    public Task DisposeAsync() => _database.DisposeAsync().AsTask();
 
     [Fact]
     public async Task Migrations_ApplyCleanly_OnEmptyDatabase()
     {
         var options = new DbContextOptionsBuilder<LivestockDbContext>()
-            .UseNpgsql(_postgres.GetConnectionString())
+            .UseNpgsql(_database.ConnectionString)
             .Options;
 
         await using var context = new LivestockDbContext(options);

@@ -9,6 +9,34 @@ on:
 jobs:
   backend-build-and-test:
     runs-on: ubuntu-latest
+
+    # One PostgreSQL for the whole job instead of one container per test fixture.
+    # TestSupport's TestDatabase creates a fresh database per fixture on this server,
+    # so isolation is unchanged while the suite stops paying for ~10 container starts
+    # (and stops depending on the runner's Docker being able to build bridge networks,
+    # which is the failure that keeps developer machines out of the integration suite).
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          # No password, by design: the container lives for the length of this job and
+          # is reachable only from it. Inventing a credential here would put one in the
+          # repository, which is precisely what this project does not do (README,
+          # "Puesta en marcha") — and a hardcoded one is what GitGuardian would flag.
+          POSTGRES_HOST_AUTH_METHOD: trust
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+
+    env:
+      # Remove this variable and the suite falls back to Testcontainers, unchanged.
+      HATO_TEST_POSTGRES: "Host=localhost;Port=5432;Database=postgres;Username=postgres"
+
     steps:
       - uses: actions/checkout@v4
 

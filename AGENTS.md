@@ -26,7 +26,11 @@ Español para dominio y docs, inglés para código.
 4. **No toques `main` ni `develop` directamente.** Rama `feature/<módulo>-<descripción>`
    desde `develop`, PR con descripción de qué y por qué.
 5. **Todo PR incluye pruebas.** Dominio → unitarias (xUnit). Persistencia/API → integración
-   con Testcontainers (PostgreSQL real, no InMemory para verificar comportamiento final).
+   contra PostgreSQL real, nunca InMemory para verificar comportamiento final. El servidor lo
+   resuelve `TestDatabase` (en `tests/Hato.TestSupport`): Testcontainers por defecto, o el
+   servidor de `HATO_TEST_POSTGRES` si esa variable existe. Si Docker no te levanta
+   contenedores, usá la variable — correr la suite entera antes de pushear no es opcional
+   (ver README, "Las pruebas de integración y su PostgreSQL").
 6. **Dinero = `decimal`. Cantidades con unidad. Fechas en UTC en persistencia**, zona
    `America/Guayaquil` solo en presentación.
 7. **Migraciones EF Core para todo cambio de esquema.** Nunca edites una migración ya

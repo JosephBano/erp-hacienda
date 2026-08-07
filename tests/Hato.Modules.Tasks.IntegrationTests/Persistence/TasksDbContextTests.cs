@@ -2,26 +2,24 @@ using Hato.Modules.Tasks.Domain;
 using Hato.Modules.Tasks.Domain.Enums;
 using Hato.Modules.Tasks.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
-using Testcontainers.PostgreSql;
+using Hato.TestSupport;
 using Xunit;
 
 namespace Hato.Modules.Tasks.IntegrationTests.Persistence;
 
 public sealed class TasksDbContextTests : IAsyncLifetime
 {
-    private readonly PostgreSqlContainer _postgres = new PostgreSqlBuilder()
-        .WithImage("postgres:16-alpine")
-        .Build();
+    private TestDatabase _database = null!;
 
-    public Task InitializeAsync() => _postgres.StartAsync();
+    public async Task InitializeAsync() => _database = await TestDatabase.StartAsync();
 
-    public Task DisposeAsync() => _postgres.DisposeAsync().AsTask();
+    public Task DisposeAsync() => _database.DisposeAsync().AsTask();
 
     [Fact]
     public async Task Migrations_ApplyCleanly_OnEmptyDatabase()
     {
         var options = new DbContextOptionsBuilder<TasksDbContext>()
-            .UseNpgsql(_postgres.GetConnectionString())
+            .UseNpgsql(_database.ConnectionString)
             .Options;
 
         await using var context = new TasksDbContext(options);
@@ -35,7 +33,7 @@ public sealed class TasksDbContextTests : IAsyncLifetime
     public async Task CanInsertAndQueryAlert_WithPostgreSQL()
     {
         var options = new DbContextOptionsBuilder<TasksDbContext>()
-            .UseNpgsql(_postgres.GetConnectionString())
+            .UseNpgsql(_database.ConnectionString)
             .Options;
 
         await using var context = new TasksDbContext(options);

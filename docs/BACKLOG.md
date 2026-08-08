@@ -76,6 +76,38 @@
   **Disparador:** un ítem real del cronograma del cliente que no se pueda expresar con las
   cuatro.
 
+### Deuda explícita por desacople del piloto (ADR-0024, 2026-08-08)
+
+> Estas piezas viven como **deuda rastreable** porque el inicio del piloto real no las
+> exige como requisito (ver sub-criterio "Para abrir el piloto real" en
+> `docs/planes/PLAN-FASE-3-5-PORCINO.md`). Quedan acá con disparador explícito, no se
+> "esconden" en un criterio vago. Cuando el disparador ocurra, la entrada se promueve a
+> tarea concreta de la rama o sub-plan correspondiente.
+
+- **3.5a.7.1–5 — UI del sujeto "lote" (pesaje muestral, baja con causa, vacunación de
+  lote, diagnóstico grupal, consumo en sacos).** Sin estas pantallas, el flujo viejo
+  (`recordAnimalEvent` con `GroupId` directo) cubre la captura grupal a través de las
+  pantallas individuales — documentado como deuda, no como UX. La pieza 3.5a.7 tarea 6
+  (endpoint ficha del lote) sí está mergeada (PR #66). **Disparador:** (a) el cliente
+  responde las preguntas de `PLAN-FASE-3-5-PORCINO.md` sec.7-C (frecuencias reales), y/o
+  (b) la compuerta sec.2.3 se cierra para el segundo nivel del árbol (vía ADR-0021 o un
+  sucesor). Cuando ocurra cualquiera de los dos, 3.5a.7.1–5 sale del backlog y entra a
+  la rama `feature/field-app-lot-registration` con `TapBudget` validado contra el
+  operador.
+
+- **3.5a.8 — Corrección de registros desde el teléfono (ADR-0017).** Sin esto, la
+  corrección durante el piloto se hace por re-registro manual (lo que el criterio
+  completo de 3.5a explícitamente rechaza como prueba). Aceptado por ADR-0024 mientras
+  la deuda esté rastreable. **Disparador:** cualquier rechazo o dedupe en el outbox del
+  cliente móvil durante el piloto que no pueda corregirse volviendo a registrar — o el
+  operario reporta "no encuentro cómo arreglar lo que escribí mal".
+
+- **3.5a.3 — Causas configurables de muerte de lechón.** Sin catálogo de causas, la
+  mortalidad se registra sin causa (válido para el piloto; el índice de madres de 3.5b.6
+  queda incompleto hasta que esto exista). **Disparador:** el cliente pide distinguir
+  causas durante el piloto, o el índice de madres (3.5b.6) necesita la causa antes de
+  que se cierre el primer ciclo de engorde.
+
 ## Ideas sin fase asignada
 
 - **Fotos de eventos**: la app de campo ya guarda la referencia local (`photoUri`) y la

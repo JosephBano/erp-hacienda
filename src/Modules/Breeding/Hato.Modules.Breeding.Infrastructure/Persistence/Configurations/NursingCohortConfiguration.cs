@@ -15,6 +15,7 @@ public class NursingCohortConfiguration : IEntityTypeConfiguration<NursingCohort
         builder.Property(c => c.StartedAt).IsRequired();
         builder.Property(c => c.ClosedAt);
         builder.Property(c => c.WeanedAt);
+        builder.Property(c => c.SortedAt);
         builder.Property(c => c.Notes).HasMaxLength(500);
 
         // Find the open cohort for a species when assigning a new birthing.

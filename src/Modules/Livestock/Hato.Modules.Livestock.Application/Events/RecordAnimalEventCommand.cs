@@ -92,11 +92,16 @@ public class RecordAnimalEventHandler(ILivestockDbContext dbContext)
         // inactive row — the domain set is the source of truth here.
         if (request.HealthPlanItemId is { } planItemId)
         {
-            // The cronogram table doesn't exist yet (3.5b.1). The column is
-            // reserved for forward-compat with ADR-0016. Today we only check
-            // that the value is not Guid.Empty (enforced by the domain) — once
-            // 3.5b.1 lands, this branch checks for the FK.
-            _ = planItemId;
+            // ADR-0016: the cronogram table now exists (3.5b.1). The column
+            // existed as forward-compat since 3.5a.2-A; the FK on it is added
+            // by AddHealthPlans migration. Verify the item exists and is active
+            // so a stale clientOperationId surfaces as a clear 400 rather than
+            // a Postgres FK violation.
+            var itemExists = await dbContext.HealthPlanItems
+                .AnyAsync(i => i.Id == planItemId && i.IsActive && i.DeletedAt == null, cancellationToken);
+            if (!itemExists)
+                throw new DomainException(
+                    $"El ítem del plan sanitario '{planItemId}' no existe o está inactivo.");
         }
 
         if (request.AppliedByUserId is { } appliedBy)

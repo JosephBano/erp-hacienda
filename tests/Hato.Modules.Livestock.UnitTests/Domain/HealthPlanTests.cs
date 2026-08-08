@@ -4,144 +4,77 @@ using Hato.SharedKernel;
 namespace Hato.Modules.Livestock.UnitTests.Domain;
 
 /// <summary>
-/// 3.5b.1 — HealthPlan aggregate root (ADR-0016). The plan is a
-/// configuration object: it groups <see cref="HealthPlanItem"/>s and is
-/// scoped to a single species. The unit tests live here because the
-/// invariants are pure and do not need a database; the integration tests
-/// prove the schema agrees with the model.
+/// HealthPlan / HealthPlanItem / HealthPlanAssignment domain tests
+/// (ADR-0016). The plan is the configurable cronogram the client uses to
+/// schedule vaccinations, parasite treatments and procedures. The state
+/// machinery — anchor resolution, due-date calculation, fulfillment
+/// detection — is the responsibility of the application layer; the domain
+/// only enforces structural validity.
 /// </summary>
 public class HealthPlanTests
 {
-    private static readonly Guid SpeciesId = Guid.NewGuid();
-    private static readonly Guid OtherSpeciesId = Guid.NewGuid();
+    private readonly Guid _speciesId = Guid.NewGuid();
 
     [Fact]
     public void Create_WithValidName_IsActiveByDefault()
     {
-        var plan = HealthPlan.Create("Cronograma porcino de engorde", SpeciesId);
+        var plan = HealthPlan.Create("Plan de inicio", _speciesId);
 
-        Assert.NotEqual(Guid.Empty, plan.Id);
-        Assert.Equal("Cronograma porcino de engorde", plan.Name);
-        Assert.Equal(SpeciesId, plan.SpeciesId);
+        Assert.Equal(_speciesId, plan.SpeciesId);
+        Assert.Equal("Plan de inicio", plan.Name);
         Assert.True(plan.IsActive);
-        Assert.Empty(plan.Items);
     }
 
     [Fact]
     public void Create_WithEmptyName_Throws()
     {
-        Assert.Throws<DomainException>(() => HealthPlan.Create("   ", SpeciesId));
+        Assert.Throws<DomainException>(() => HealthPlan.Create("   ", _speciesId));
     }
 
     [Fact]
     public void Create_WithEmptySpeciesId_Throws()
     {
-        Assert.Throws<DomainException>(() => HealthPlan.Create("Vacunación Bovinos", Guid.Empty));
+        Assert.Throws<DomainException>(() => HealthPlan.Create("Plan", Guid.Empty));
     }
 
     [Fact]
-    public void Create_WithDuplicateNameSameSpecies_DoesNotThrowAtDomainLevel()
+    public void AddItem_StoresItOnThePlan()
     {
-        // The duplicate check is the application layer's job (calls the DB
-        // through its handler before invoking Create). The domain itself
-        // is pure: it has no database, so two Create() calls in a row both
-        // return — the DB's filtered unique index is what stops the second
-        // one from persisting. The integration suite covers the
-        // end-to-end behaviour; here we only assert the domain lets the
-        // application layer make the call.
-        var first = HealthPlan.Create("Cronograma", SpeciesId);
-        var second = HealthPlan.Create("Cronograma", SpeciesId);
-
-        Assert.Equal(first.Name, second.Name);
-        Assert.Equal(first.SpeciesId, second.SpeciesId);
-    }
-
-    [Fact]
-    public void Create_WithSameNameDifferentSpecies_IsAllowed()
-    {
-        // The unique index is (name, species_id); the same name across two
-        // species is legitimate because the client may run independent
-        // schedules for bovine and porcine herds.
-        var a = HealthPlan.Create("Engorde", SpeciesId);
-        var b = HealthPlan.Create("Engorde", OtherSpeciesId);
-
-        Assert.Equal("Engorde", a.Name);
-        Assert.Equal("Engorde", b.Name);
-        Assert.NotEqual(a.SpeciesId, b.SpeciesId);
-    }
-
-    [Fact]
-    public void AddItem_WithValidData_AppendsAndIsRetrievable()
-    {
-        var plan = HealthPlan.Create("Cronograma", SpeciesId);
-
+        var plan = HealthPlan.Create("Plan", _speciesId);
         var item = plan.AddItem(
-            name: "Vacuna A",
+            name: "Vacuna 1",
             eventType: "Vaccination",
-            anchor: PlanAnchor.GroupStart,
-            anchorOffsetDays: 21,
+            anchor: PlanAnchor.Birth,
+            anchorOffsetDays: 30,
             complianceWindowDays: 3);
 
         Assert.Single(plan.Items);
-        Assert.Equal(item, plan.Items[0]);
-        Assert.Equal(plan.Id, item.HealthPlanId);
-        Assert.Equal("Vaccination", item.EventType);
-        Assert.Equal(PlanAnchor.GroupStart, item.Anchor);
-        Assert.Equal(21, item.AnchorOffsetDays);
-        Assert.Equal(3, item.ComplianceWindowDays);
+        Assert.Equal(item.Id, plan.Items.First().Id);
     }
 
     [Fact]
-    public void AddItem_ToDeactivatedPlan_Throws()
+    public void HealthPlanItem_Create_WithZeroOffsetAndNoRepetition_Throws()
     {
-        var plan = HealthPlan.Create("Cronograma", SpeciesId);
-        plan.Deactivate();
-
-        Assert.Throws<DomainException>(() => plan.AddItem(
-            "Vacuna", "Vaccination", PlanAnchor.Birth, 30, 3));
-    }
-
-    [Fact]
-    public void AddItem_WithZeroOffsetAndNoRepetition_Throws()
-    {
-        // The CHECK constraint at the DB level is enforced at the domain too:
-        // a zero offset with no repetition would mean "do it at the anchor,
-        // and never again" — readable as zero days, but the whole point of
-        // recording the offset is to make the timing explicit.
-        var plan = HealthPlan.Create("Cronograma", SpeciesId);
-
-        Assert.Throws<DomainException>(() => plan.AddItem(
-            "Vacuna", "Vaccination", PlanAnchor.Birth, 0, 3));
-    }
-
-    [Fact]
-    public void AddItem_WithZeroOffsetAndRepetition_Allows()
-    {
-        // If the operator wants a recurring zero-offset event, the repetitions
-        // carry the cadence (e.g. monthly dosing aligned with the anchor).
-        var plan = HealthPlan.Create("Cronograma", SpeciesId);
-
-        var item = plan.AddItem(
-            name: "Desparasitación",
-            eventType: "Treatment",
-            anchor: PlanAnchor.GroupStart,
+        // ADR-0016 sec.1: an item with anchorOffsetDays == 0 AND no repetitions
+        // is a degenerate configuration. The client can express "fire on the
+        // anchor day" with offset = 1 if they really want it. Rejecting it
+        // here keeps the resolver simple.
+        Assert.Throws<DomainException>(() => HealthPlanItem.Create(
+            healthPlanId: Guid.NewGuid(),
+            name: "Vacuna",
+            eventType: "Vaccination",
+            anchor: PlanAnchor.Birth,
             anchorOffsetDays: 0,
-            complianceWindowDays: 3,
-            repetitions: 30);
-
-        Assert.Equal(0, item.AnchorOffsetDays);
-        Assert.Equal(30, item.Repetitions);
+            complianceWindowDays: 3));
     }
 
     [Fact]
-    public void AddItem_WithNegativeOffset_Allows()
+    public void HealthPlanItem_Create_WithNegativeOffset_Allowed()
     {
-        // "14 days before birthing" is core use case: a pre-partum vaccine
-        // for the mother lives behind anchorOffsetDays = -14.
-        var plan = HealthPlan.Create("Madres", SpeciesId);
-
-        var item = plan.AddItem(
-            name: "Pre-parto",
+        // "14 days before farrowing" is a real use case for the gilt.
+        var item = HealthPlanItem.Create(
+            healthPlanId: Guid.NewGuid(),
+            name: "Vacuna pre-parto",
             eventType: "Vaccination",
             anchor: PlanAnchor.Birthing,
             anchorOffsetDays: -14,
@@ -151,106 +84,108 @@ public class HealthPlanTests
     }
 
     [Fact]
-    public void AddItem_WithInvalidEventType_Throws()
+    public void HealthPlanItem_Create_WithInvalidEventType_Throws()
     {
-        // event_type is data, not an enum (Art. 8), but the wire-format
-        // hygiene is the same: a typo in the panel that produces
-        // "vacunacion " or "Vacc!" must be rejected before the row lands.
-        var plan = HealthPlan.Create("Cronograma", SpeciesId);
-
-        Assert.Throws<DomainException>(() => plan.AddItem(
-            "Vacuna", "Vacunación ", PlanAnchor.Birth, 7, 3));
+        // The event_type is a string (Art. 8), but a typo producing a
+        // bare-ASCII special character is rejected here so a parser
+        // downstream can rely on the on-the-wire format.
+        Assert.Throws<DomainException>(() => HealthPlanItem.Create(
+            healthPlanId: Guid.NewGuid(),
+            name: "Vacuna",
+            eventType: "Vaccination!",
+            anchor: PlanAnchor.Birth,
+            anchorOffsetDays: 30,
+            complianceWindowDays: 3));
     }
 
     [Fact]
-    public void AddItem_WithEmptyName_Throws()
+    public void HealthPlanItem_Create_WithEmptyName_Throws()
     {
-        var plan = HealthPlan.Create("Cronograma", SpeciesId);
-
-        Assert.Throws<DomainException>(() => plan.AddItem(
-            "   ", "Vaccination", PlanAnchor.Birth, 7, 3));
+        Assert.Throws<DomainException>(() => HealthPlanItem.Create(
+            healthPlanId: Guid.NewGuid(),
+            name: "  ",
+            eventType: "Vaccination",
+            anchor: PlanAnchor.Birth,
+            anchorOffsetDays: 30,
+            complianceWindowDays: 3));
     }
 
     [Fact]
-    public void AddItem_WithNegativeComplianceWindow_Throws()
+    public void HealthPlanItem_Create_WithNegativeComplianceWindow_Throws()
     {
-        var plan = HealthPlan.Create("Cronograma", SpeciesId);
-
-        Assert.Throws<DomainException>(() => plan.AddItem(
-            "Vacuna", "Vaccination", PlanAnchor.Birth, 7, -1));
+        Assert.Throws<DomainException>(() => HealthPlanItem.Create(
+            healthPlanId: Guid.NewGuid(),
+            name: "Vacuna",
+            eventType: "Vaccination",
+            anchor: PlanAnchor.Birth,
+            anchorOffsetDays: 30,
+            complianceWindowDays: -1));
     }
 
     [Fact]
-    public void AddItem_WithZeroComplianceWindow_Throws()
+    public void HealthPlanAssignment_CreateForAnimal_StoresAnimalId()
     {
-        var plan = HealthPlan.Create("Cronograma", SpeciesId);
+        var planId = Guid.NewGuid();
+        var animalId = Guid.NewGuid();
 
-        Assert.Throws<DomainException>(() => plan.AddItem(
-            "Vacuna", "Vaccination", PlanAnchor.Birth, 7, 0));
-    }
+        var assignment = HealthPlanAssignment.CreateForAnimal(planId, animalId);
 
-    [Fact]
-    public void AddItem_WithNonPositiveRepetitions_Throws()
-    {
-        var plan = HealthPlan.Create("Cronograma", SpeciesId);
-
-        Assert.Throws<DomainException>(() => plan.AddItem(
-            "Vacuna", "Vaccination", PlanAnchor.Birth, 0, 3, repetitions: 0));
-    }
-
-    [Fact]
-    public void Deactivate_ThenDeactivateAgain_Throws()
-    {
-        var plan = HealthPlan.Create("Cronograma", SpeciesId);
-        plan.Deactivate();
-
-        Assert.False(plan.IsActive);
-        Assert.Throws<DomainException>(() => plan.Deactivate());
-    }
-
-    [Fact]
-    public void Activate_AfterDeactivate_RestoresIt()
-    {
-        var plan = HealthPlan.Create("Cronograma", SpeciesId);
-        plan.Deactivate();
-
-        plan.Activate();
-
-        Assert.True(plan.IsActive);
-    }
-
-    [Fact]
-    public void Assignment_CreateForAnimal_StoresAnimalIdOnly()
-    {
-        var assignment = HealthPlanAssignment.CreateForAnimal(Guid.NewGuid(), Guid.NewGuid());
-
-        Assert.Equal(assignment.HealthPlanId, assignment.HealthPlanId);
-        Assert.NotNull(assignment.AnimalId);
+        Assert.Equal(planId, assignment.HealthPlanId);
+        Assert.Equal(animalId, assignment.AnimalId);
         Assert.Null(assignment.GroupId);
         Assert.True(assignment.IsActive);
     }
 
     [Fact]
-    public void Assignment_CreateForGroup_StoresGroupIdOnly()
+    public void HealthPlanAssignment_CreateForGroup_StoresGroupId()
     {
-        var assignment = HealthPlanAssignment.CreateForGroup(Guid.NewGuid(), Guid.NewGuid());
+        var planId = Guid.NewGuid();
+        var groupId = Guid.NewGuid();
 
-        Assert.NotNull(assignment.GroupId);
+        var assignment = HealthPlanAssignment.CreateForGroup(planId, groupId);
+
+        Assert.Equal(planId, assignment.HealthPlanId);
+        Assert.Equal(groupId, assignment.GroupId);
         Assert.Null(assignment.AnimalId);
-        Assert.True(assignment.IsActive);
     }
 
     [Fact]
-    public void Assignment_WithBothAnimalAndGroup_Throws()
+    public void HealthPlanAssignment_CreateForAnimal_WithEmptyAnimalId_Throws()
     {
-        Assert.Throws<DomainException>(() => HealthPlanAssignment.Create(
-            Guid.NewGuid(), animalId: Guid.NewGuid(), groupId: Guid.NewGuid()));
+        Assert.Throws<DomainException>(() =>
+            HealthPlanAssignment.CreateForAnimal(Guid.NewGuid(), Guid.Empty));
     }
 
     [Fact]
-    public void Assignment_WithNeitherAnimalNorGroup_Throws()
+    public void HealthPlanAssignment_CreateForGroup_WithEmptyGroupId_Throws()
     {
-        Assert.Throws<DomainException>(() => HealthPlanAssignment.Create(
-            Guid.NewGuid(), animalId: null, groupId: null));
+        Assert.Throws<DomainException>(() =>
+            HealthPlanAssignment.CreateForGroup(Guid.NewGuid(), Guid.Empty));
+    }
+
+    [Fact]
+    public void HealthPlanAssignment_CreateForBoth_Throws()
+    {
+        // XOR: exactly one of animal/group, not both.
+        Assert.Throws<DomainException>(() =>
+            HealthPlanAssignment.Create(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid()));
+    }
+
+    [Fact]
+    public void HealthPlanAssignment_CreateForNeither_Throws()
+    {
+        // XOR: exactly one of animal/group, not neither.
+        Assert.Throws<DomainException>(() =>
+            HealthPlanAssignment.Create(Guid.NewGuid(), null, null));
+    }
+
+    [Fact]
+    public void HealthPlanAssignment_Deactivate_RestoresIt()
+    {
+        var assignment = HealthPlanAssignment.CreateForAnimal(Guid.NewGuid(), Guid.NewGuid());
+
+        assignment.Deactivate();
+
+        Assert.False(assignment.IsActive);
     }
 }

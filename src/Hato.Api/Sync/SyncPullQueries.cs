@@ -39,7 +39,10 @@ public record SyncCollectionsDto(
     List<SyncMortalityCauseDto> MortalityCauses,
     List<SyncFarmModuleDto> FarmModules,
     List<SyncAdministrationRouteDto> AdministrationRoutes,
-    List<SyncTreatmentReasonDto> TreatmentReasons);
+    List<SyncTreatmentReasonDto> TreatmentReasons,
+    List<SyncHealthPlanDto> HealthPlans,
+    List<SyncHealthPlanItemDto> HealthPlanItems,
+    List<SyncHealthPlanAssignmentDto> HealthPlanAssignments);
 
 public record SyncAnimalDto(
     Guid Id,
@@ -199,6 +202,51 @@ public record SyncTreatmentReasonDto(
     DateTimeOffset? UpdatedAt,
     bool IsDeleted) : ISyncRow;
 
+/// <summary>
+/// Health plan catalog (3.5b.1, ADR-0016). The field-app needs the cronogram
+/// locally so it can resolve theoretical dates offline and stamp the
+/// <c>health_plan_item_id</c> on a treatment when the user is in the corral.
+/// </summary>
+public record SyncHealthPlanDto(
+    Guid Id,
+    string Name,
+    Guid SpeciesId,
+    bool IsActive,
+    DateTimeOffset CreatedAt,
+    DateTimeOffset? UpdatedAt,
+    bool IsDeleted) : ISyncRow;
+
+public record SyncHealthPlanItemDto(
+    Guid Id,
+    Guid HealthPlanId,
+    string Name,
+    string EventType,
+    string Anchor,
+    int AnchorOffsetDays,
+    int ComplianceWindowDays,
+    Guid? InventoryItemId,
+    Guid? RouteId,
+    decimal? DoseQuantity,
+    Guid? DoseUnitId,
+    int? Repetitions,
+    Guid? AppliesToCategoryId,
+    string? AppliesToSex,
+    bool IsActive,
+    DateTimeOffset CreatedAt,
+    DateTimeOffset? UpdatedAt,
+    bool IsDeleted) : ISyncRow;
+
+public record SyncHealthPlanAssignmentDto(
+    Guid Id,
+    Guid HealthPlanId,
+    Guid? AnimalId,
+    Guid? GroupId,
+    DateTimeOffset AssignedAt,
+    bool IsActive,
+    DateTimeOffset CreatedAt,
+    DateTimeOffset? UpdatedAt,
+    bool IsDeleted) : ISyncRow;
+
 public record GetSyncPullQuery(
     string? Since = null,
     string? Collections = null,
@@ -239,6 +287,9 @@ public class GetSyncPullQueryHandler(
             ["farmModules"] = SystemPermissions.SettingsFarmModulesRead,
             ["administrationRoutes"] = SystemPermissions.LivestockAnimalsRead,
             ["treatmentReasons"] = SystemPermissions.LivestockAnimalsRead,
+            ["healthPlans"] = SystemPermissions.LivestockAnimalsRead,
+            ["healthPlanItems"] = SystemPermissions.LivestockAnimalsRead,
+            ["healthPlanAssignments"] = SystemPermissions.LivestockAnimalsRead,
         };
 
     public async Task<SyncPullResponseDto> Handle(GetSyncPullQuery request, CancellationToken cancellationToken)
@@ -350,10 +401,34 @@ public class GetSyncPullQueryHandler(
                 r.Id, r.Key, r.LabelEs, r.IsActive, r.CreatedAt, r.UpdatedAt, r.DeletedAt != null),
             cancellationToken);
 
+        var healthPlans = await ReadAsync(
+            effective, "healthPlans", livestockDb.HealthPlans, since, limit, frontier,
+            p => new SyncHealthPlanDto(
+                p.Id, p.Name, p.SpeciesId, p.IsActive, p.CreatedAt, p.UpdatedAt, p.DeletedAt != null),
+            cancellationToken);
+
+        var healthPlanItems = await ReadAsync(
+            effective, "healthPlanItems", livestockDb.HealthPlanItems, since, limit, frontier,
+            i => new SyncHealthPlanItemDto(
+                i.Id, i.HealthPlanId, i.Name, i.EventType, i.Anchor.ToString(),
+                i.AnchorOffsetDays, i.ComplianceWindowDays,
+                i.InventoryItemId, i.RouteId, i.DoseQuantity, i.DoseUnitId,
+                i.Repetitions, i.AppliesToCategoryId, i.AppliesToSex, i.IsActive,
+                i.CreatedAt, i.UpdatedAt, i.DeletedAt != null),
+            cancellationToken);
+
+        var healthPlanAssignments = await ReadAsync(
+            effective, "healthPlanAssignments", livestockDb.HealthPlanAssignments, since, limit, frontier,
+            a => new SyncHealthPlanAssignmentDto(
+                a.Id, a.HealthPlanId, a.AnimalId, a.GroupId, a.AssignedAt,
+                a.IsActive, a.CreatedAt, a.UpdatedAt, a.DeletedAt != null),
+            cancellationToken);
+
         var collections = new SyncCollectionsDto(
             animals, identifiers, groups, memberships,
             speciesList, breeds, categories, items, withdrawals, mortalityCauses, farmModules,
-            administrationRoutes, treatmentReasons);
+            administrationRoutes, treatmentReasons,
+            healthPlans, healthPlanItems, healthPlanAssignments);
 
         return new SyncPullResponseDto(frontier.Next.Format(), frontier.HasMore, collections);
     }

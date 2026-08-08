@@ -55,6 +55,7 @@ app.MapAnimalEventsEndpoints();
 app.MapMortalityCausesEndpoints();
 app.MapAdministrationRoutesEndpoints();
 app.MapTreatmentReasonsEndpoints();
+app.MapHealthPlansEndpoints();
 app.MapMilkingEndpoints();
 app.MapInventoryEndpoints();
 app.MapPeopleEndpoints();

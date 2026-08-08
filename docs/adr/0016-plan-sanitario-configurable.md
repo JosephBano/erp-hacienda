@@ -1,7 +1,8 @@
 # ADR-0016 — Un solo motor de cronograma para vacunas, procedimientos y decisiones de manejo
 
-- **Estado:** Propuesto
+- **Estado:** Aceptado
 - **Fecha:** 2026-08-05
+- **Aceptado en rama:** `feature/livestock-health-plans` (3.5b.1) — pendiente de merge
 - **Fase del roadmap:** Fase 3.5 (Adaptación porcina) — **diseñado en 3.5a, implementado en 3.5b**
 
 ## Contexto

@@ -71,6 +71,16 @@
 
 ### [3.5b.1] Cerrar la FK de `health_plan_item_id` cuando exista `HealthPlan`
 
+- **Estado (2026-08-08)**: ✅ CERRADO en `feature/livestock-health-plans`
+  (pendiente de merge a `develop`). La tabla `health_plan_items` existe, la
+  migración `20260808055359_AddHealthPlans` agrega el FK constraint sobre la
+  columna pre-existente + el índice `i_x_animal_events_health_plan_item_id`,
+  `AnimalEventConfiguration.cs` ahora declara el `HasOne<HealthPlanItem>()`
+  correspondiente, y `RecordAnimalEventCommand.cs` valida que el id
+  referenciado exista y esté activo. La rama además entrega la API CRUD de
+  planes (POST /health-plans, /items, /assignments), el sync pull de las tres
+  colecciones nuevas y 6 tests (4 integración + 2 sync). El ítem se mantiene
+  en este BACKLOG hasta que la rama se mergee como referencia.
 - **Archivos**: `animal_events.health_plan_item_id` (columna nullable ya
   creada por la migración `20260807214557_AddAnimalEventTreatmentPayload`, ver
   `src/Modules/Livestock/Hato.Modules.Livestock.Infrastructure/Persistence/Configurations/AnimalEventConfiguration.cs:39`

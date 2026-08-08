@@ -1,0 +1,56 @@
+<div class="table-container glass-card">
+  <table class="responsive-table">
+    <thead>
+      <tr>
+        @for (column of columns; track column.key) {
+          <th scope="col">{{ column.label }}</th>
+        }
+        @if (hasActions()) {
+          <th scope="col" class="actions-header">Acciones</th>
+        }
+      </tr>
+    </thead>
+    <tbody>
+      @for (row of rows; track $index) {
+        <tr [class.row-inactive]="isInactive(row)">
+          @for (column of columns; track column.key) {
+            <td [attr.data-label]="column.label">
+              @if (isBooleanColumn(column)) {
+                @if (booleanValue(row, column)) {
+                  <app-icon name="check" [ariaLabel]="'Verdadero'"></app-icon>
+                } @else {
+                  <app-icon name="close" [ariaLabel]="'Falso'"></app-icon>
+                }
+              } @else {
+                {{ cellText(row, column) }}
+              }
+            </td>
+          }
+          @if (hasActions()) {
+            <td class="actions-cell">
+              @for (action of actions; track action.label) {
+                @if (isActionVisible(action, row)) {
+                  <button
+                    type="button"
+                    class="icon-button"
+                    [attr.aria-label]="action.label"
+                    [attr.data-action]="action.label"
+                    (click)="onActionClick(action, row)">
+                    <app-icon [name]="action.iconName" [ariaLabel]="action.label"></app-icon>
+                  </button>
+                }
+              }
+            </td>
+          }
+        </tr>
+      }
+      @if (rows.length === 0) {
+        <tr class="empty-row">
+          <td [attr.colspan]="columns.length + (hasActions() ? 1 : 0)" class="text-center py-4 text-muted">
+            {{ emptyMessage }}
+          </td>
+        </tr>
+      }
+    </tbody>
+  </table>
+</div>

@@ -46,6 +46,48 @@ export interface AnimalCategoryDto {
   name: string;
 }
 
+export interface SpeciesLactationDto {
+  speciesId: string;
+  daysOfLactation?: number | null;
+  cohortWindowDays?: number | null;
+}
+
+export interface MortalityCauseDto {
+  id: string;
+  name: string;
+  isActive: boolean;
+}
+
+export interface AdministrationRouteDto {
+  id: string;
+  key: string;
+  labelEs: string;
+  isActive: boolean;
+}
+
+export interface TreatmentReasonDto {
+  id: string;
+  key: string;
+  labelEs: string;
+  isActive: boolean;
+}
+
+export interface InventoryItemDto {
+  id: string;
+  name: string;
+  category: string;
+  unit: string;
+  minStock: number;
+  description?: string | null;
+  totalStock: number;
+}
+
+export interface FarmModuleDto {
+  key: string;
+  enabled: boolean;
+  disabledReason?: string | null;
+}
+
 export interface RegisterAnimalRequest {
   speciesId: string;
   sex: 'Male' | 'Female';
@@ -453,5 +495,103 @@ export class ApiService {
 
   dismissAlert(id: string): Observable<void> {
     return this.http.post<void>(`${this.baseUrl}/alerts/${id}/dismiss`, {});
+  }
+
+  // --- Catalog generic methods (PR3) ---
+
+  getMortalityCauses(includeInactive = false): Observable<MortalityCauseDto[]> {
+    let params = new HttpParams();
+    if (includeInactive) params = params.set('includeInactive', 'true');
+    return this.http.get<MortalityCauseDto[]>(`${this.baseUrl}/mortality-causes`, { params });
+  }
+
+  createMortalityCause(name: string): Observable<{ id: string }> {
+    return this.http.post<{ id: string }>(`${this.baseUrl}/mortality-causes`, { name });
+  }
+
+  deactivateMortalityCause(id: string): Observable<void> {
+    return this.http.delete<void>(`${this.baseUrl}/mortality-causes/${id}`);
+  }
+
+  getAdministrationRoutes(includeInactive = false): Observable<AdministrationRouteDto[]> {
+    let params = new HttpParams();
+    if (includeInactive) params = params.set('includeInactive', 'true');
+    return this.http.get<AdministrationRouteDto[]>(`${this.baseUrl}/administration-routes`, { params });
+  }
+
+  createAdministrationRoute(data: { key: string; labelEs: string }): Observable<{ id: string }> {
+    return this.http.post<{ id: string }>(`${this.baseUrl}/administration-routes`, data);
+  }
+
+  deactivateAdministrationRoute(id: string): Observable<void> {
+    return this.http.delete<void>(`${this.baseUrl}/administration-routes/${id}`);
+  }
+
+  activateAdministrationRoute(id: string): Observable<void> {
+    return this.http.post<void>(`${this.baseUrl}/administration-routes/${id}/activate`, {});
+  }
+
+  updateAdministrationRouteLabel(id: string, labelEs: string): Observable<void> {
+    return this.http.patch<void>(`${this.baseUrl}/administration-routes/${id}/label`, { labelEs });
+  }
+
+  getTreatmentReasons(includeInactive = false): Observable<TreatmentReasonDto[]> {
+    let params = new HttpParams();
+    if (includeInactive) params = params.set('includeInactive', 'true');
+    return this.http.get<TreatmentReasonDto[]>(`${this.baseUrl}/treatment-reasons`, { params });
+  }
+
+  createTreatmentReason(data: { key: string; labelEs: string }): Observable<{ id: string }> {
+    return this.http.post<{ id: string }>(`${this.baseUrl}/treatment-reasons`, data);
+  }
+
+  deactivateTreatmentReason(id: string): Observable<void> {
+    return this.http.delete<void>(`${this.baseUrl}/treatment-reasons/${id}`);
+  }
+
+  activateTreatmentReason(id: string): Observable<void> {
+    return this.http.post<void>(`${this.baseUrl}/treatment-reasons/${id}/activate`, {});
+  }
+
+  updateTreatmentReasonLabel(id: string, labelEs: string): Observable<void> {
+    return this.http.patch<void>(`${this.baseUrl}/treatment-reasons/${id}/label`, { labelEs });
+  }
+
+  getInventoryItems(category?: string): Observable<InventoryItemDto[]> {
+    let params = new HttpParams();
+    if (category) params = params.set('category', category);
+    return this.http.get<InventoryItemDto[]>(`${this.baseUrl}/inventory/items`, { params });
+  }
+
+  createInventoryItem(data: {
+    name: string;
+    category: string;
+    unit: string;
+    minStock?: number;
+    description?: string;
+  }): Observable<{ id: string }> {
+    return this.http.post<{ id: string }>(`${this.baseUrl}/inventory/items`, data);
+  }
+
+  getFarmModules(): Observable<FarmModuleDto[]> {
+    return this.http.get<FarmModuleDto[]>(`${this.baseUrl}/farm-modules`);
+  }
+
+  setFarmModuleEnabled(key: string, enabled: boolean, disabledReason?: string): Observable<FarmModuleDto> {
+    return this.http.patch<FarmModuleDto>(`${this.baseUrl}/farm-modules/${key}`, {
+      enabled,
+      disabledReason,
+    });
+  }
+
+  getSpeciesLactation(speciesId: string): Observable<SpeciesLactationDto> {
+    return this.http.get<SpeciesLactationDto>(`${this.baseUrl}/species/${speciesId}/lactation`);
+  }
+
+  updateSpeciesLactation(speciesId: string, data: {
+    daysOfLactation?: number | null;
+    cohortWindowDays?: number | null;
+  }): Observable<void> {
+    return this.http.patch<void>(`${this.baseUrl}/species/${speciesId}/lactation`, data);
   }
 }

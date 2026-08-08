@@ -25,6 +25,7 @@ public class LivestockDbContext(DbContextOptions<LivestockDbContext> options)
     public DbSet<MortalityCause> MortalityCauses => Set<MortalityCause>();
     public DbSet<AdministrationRoute> AdministrationRoutes => Set<AdministrationRoute>();
     public DbSet<TreatmentReason> TreatmentReasons => Set<TreatmentReason>();
+    public DbSet<PlausibilityRange> PlausibilityRanges => Set<PlausibilityRange>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

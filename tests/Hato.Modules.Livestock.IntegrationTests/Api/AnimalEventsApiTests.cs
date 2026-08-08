@@ -12,7 +12,7 @@ public class AnimalEventsApiTests(HatoApiFactory factory) : IClassFixture<HatoAp
     public async Task RecordTreatmentEvent_CreatesWithdrawalPeriod_AndFetchesHistory()
     {
         // 1. Setup Animal
-        var speciesResponse = await _client.PostAsJsonAsync("/api/v1/species", new { name = "Bovino", gestationDays = 283 });
+        var speciesResponse = await _client.PostAsJsonAsync("/api/v1/species", new { name = $"Bovino-{Guid.NewGuid():N}", gestationDays = 283 });
         var speciesId = (await speciesResponse.Content.ReadFromJsonAsync<CreatedId>())!.Id;
 
         var animalResponse = await _client.PostAsJsonAsync("/api/v1/animals", new

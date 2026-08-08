@@ -15,7 +15,7 @@ public class BirthingApiTests(BreedingApiFactory factory) : IClassFixture<Breedi
     [Fact]
     public async Task RecordBirthing_WithOffspring_CreatesAnimalWithGenealogy()
     {
-        var speciesResponse = await _client.PostAsJsonAsync("/api/v1/species", new { name = "Bovino", gestationDays = 283 });
+        var speciesResponse = await _client.PostAsJsonAsync("/api/v1/species", new { name = $"Bovino-{Guid.NewGuid():N}", gestationDays = 283 });
         speciesResponse.EnsureSuccessStatusCode();
         var speciesId = (await speciesResponse.Content.ReadFromJsonAsync<CreatedId>())!.Id;
 

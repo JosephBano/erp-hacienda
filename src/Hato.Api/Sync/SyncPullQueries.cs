@@ -39,7 +39,8 @@ public record SyncCollectionsDto(
     List<SyncMortalityCauseDto> MortalityCauses,
     List<SyncFarmModuleDto> FarmModules,
     List<SyncAdministrationRouteDto> AdministrationRoutes,
-    List<SyncTreatmentReasonDto> TreatmentReasons);
+    List<SyncTreatmentReasonDto> TreatmentReasons,
+    List<SyncPlausibilityRangeDto> PlausibilityRanges);
 
 public record SyncAnimalDto(
     Guid Id,
@@ -199,6 +200,27 @@ public record SyncTreatmentReasonDto(
     DateTimeOffset? UpdatedAt,
     bool IsDeleted) : ISyncRow;
 
+/// <summary>
+/// Plausibility range catalog (3.5a.6, ADR-0022). The field-app uses these to
+/// validate weights, milk volumes and future magnitudes locally before enqueuing
+/// the operation. The ranges reach the device via the pull so the validation
+/// works offline (Art. 9). Bounds are decimal? because any of the four may be
+/// unconfigured — the evaluator handles nulls as fail-open.
+/// </summary>
+public record SyncPlausibilityRangeDto(
+    Guid Id,
+    Guid SpeciesId,
+    Guid? CategoryId,
+    string Magnitude,
+    decimal? PlausibleMin,
+    decimal? PlausibleMax,
+    decimal? AbsoluteMin,
+    decimal? AbsoluteMax,
+    bool IsActive,
+    DateTimeOffset CreatedAt,
+    DateTimeOffset? UpdatedAt,
+    bool IsDeleted) : ISyncRow;
+
 public record GetSyncPullQuery(
     string? Since = null,
     string? Collections = null,
@@ -239,6 +261,7 @@ public class GetSyncPullQueryHandler(
             ["farmModules"] = SystemPermissions.SettingsFarmModulesRead,
             ["administrationRoutes"] = SystemPermissions.LivestockAnimalsRead,
             ["treatmentReasons"] = SystemPermissions.LivestockAnimalsRead,
+            ["plausibilityRanges"] = SystemPermissions.LivestockAnimalsRead,
         };
 
     public async Task<SyncPullResponseDto> Handle(GetSyncPullQuery request, CancellationToken cancellationToken)
@@ -350,10 +373,18 @@ public class GetSyncPullQueryHandler(
                 r.Id, r.Key, r.LabelEs, r.IsActive, r.CreatedAt, r.UpdatedAt, r.DeletedAt != null),
             cancellationToken);
 
+        var plausibilityRanges = await ReadAsync(
+            effective, "plausibilityRanges", livestockDb.PlausibilityRanges, since, limit, frontier,
+            r => new SyncPlausibilityRangeDto(
+                r.Id, r.SpeciesId, r.CategoryId, r.Magnitude,
+                r.PlausibleMin, r.PlausibleMax, r.AbsoluteMin, r.AbsoluteMax,
+                r.IsActive, r.CreatedAt, r.UpdatedAt, r.DeletedAt != null),
+            cancellationToken);
+
         var collections = new SyncCollectionsDto(
             animals, identifiers, groups, memberships,
             speciesList, breeds, categories, items, withdrawals, mortalityCauses, farmModules,
-            administrationRoutes, treatmentReasons);
+            administrationRoutes, treatmentReasons, plausibilityRanges);
 
         return new SyncPullResponseDto(frontier.Next.Format(), frontier.HasMore, collections);
     }

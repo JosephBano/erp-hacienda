@@ -13,7 +13,7 @@ import { appSchema, tableSchema } from '@nozbe/watermelondb';
  * representable locally, otherwise a record deleted on the server would live on in the
  * employee's list forever.
  */
-export const SCHEMA_VERSION = 7;
+export const SCHEMA_VERSION = 8;
 
 export const schema = appSchema({
   version: SCHEMA_VERSION,
@@ -178,6 +178,45 @@ export const schema = appSchema({
         { name: 'disabled_reason', type: 'string', isOptional: true },
         { name: 'updated_at', type: 'number' },
         { name: 'updated_by', type: 'string' },
+      ],
+    }),
+    // 3.5a.2-C (ADR-0016 + 3.5a.2-A): catalogs required by VaccinateScreen and
+    // TreatScreen. Mirrored so the field can build a structured treatment
+    // payload offline without a round trip to the server (Art. 9).
+    tableSchema({
+      name: 'administration_routes',
+      columns: [
+        { name: 'key', type: 'string', isIndexed: true },
+        { name: 'label_es', type: 'string' },
+        { name: 'is_active', type: 'boolean' },
+        { name: 'is_deleted', type: 'boolean' },
+      ],
+    }),
+    tableSchema({
+      name: 'treatment_reasons',
+      columns: [
+        { name: 'key', type: 'string', isIndexed: true },
+        { name: 'label_es', type: 'string' },
+        { name: 'is_active', type: 'boolean' },
+        { name: 'is_deleted', type: 'boolean' },
+      ],
+    }),
+    // 3.5a.6 (ADR-0022): plausibility ranges for offline validation of
+    // weights and milk volumes. The validator (see plausibilityService) is
+    // fail-open: a missing row for the (species, category, magnitude)
+    // combination returns pass, not block.
+    tableSchema({
+      name: 'plausibility_ranges',
+      columns: [
+        { name: 'species_id', type: 'string', isIndexed: true },
+        { name: 'category_id', type: 'string', isOptional: true, isIndexed: true },
+        { name: 'magnitude', type: 'string', isIndexed: true },
+        { name: 'plausible_min', type: 'number', isOptional: true },
+        { name: 'plausible_max', type: 'number', isOptional: true },
+        { name: 'absolute_min', type: 'number', isOptional: true },
+        { name: 'absolute_max', type: 'number', isOptional: true },
+        { name: 'is_active', type: 'boolean' },
+        { name: 'is_deleted', type: 'boolean' },
       ],
     }),
   ],

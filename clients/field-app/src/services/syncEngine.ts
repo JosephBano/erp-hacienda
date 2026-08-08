@@ -321,6 +321,12 @@ const TABLE_BY_COLLECTION: Record<string, string> = {
   // pull just upserts new rows and overwrites old ones — same one-shot, no
   // special path.
   farmModules: 'farm_modules',
+  // 3.5a.2-A: catalog of administration routes (oral_water, im, sc, ...).
+  administrationRoutes: 'administration_routes',
+  // 3.5a.2-A: catalog of treatment reasons (scheduled, curative, preventive).
+  treatmentReasons: 'treatment_reasons',
+  // 3.5a.6 (ADR-0022): plausibility ranges for offline validation.
+  plausibilityRanges: 'plausibility_ranges',
 };
 
 /**

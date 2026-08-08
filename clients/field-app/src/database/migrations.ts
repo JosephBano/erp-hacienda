@@ -151,5 +151,46 @@ export const migrations = schemaMigrations({
         }),
       ],
     },
+    {
+      toVersion: 8,
+      steps: [
+        // 3.5a.2-C (ADR-0016 + 3.5a.2-A): catalogs that the structured
+        // treatment payload needs. Mirrored locally so the field app can
+        // build the payload without a round-trip (Art. 9).
+        createTable({
+          name: 'administration_routes',
+          columns: [
+            { name: 'key', type: 'string', isIndexed: true },
+            { name: 'label_es', type: 'string' },
+            { name: 'is_active', type: 'boolean' },
+            { name: 'is_deleted', type: 'boolean' },
+          ],
+        }),
+        createTable({
+          name: 'treatment_reasons',
+          columns: [
+            { name: 'key', type: 'string', isIndexed: true },
+            { name: 'label_es', type: 'string' },
+            { name: 'is_active', type: 'boolean' },
+            { name: 'is_deleted', type: 'boolean' },
+          ],
+        }),
+        // 3.5a.6 (ADR-0022): plausibility ranges for offline validation.
+        createTable({
+          name: 'plausibility_ranges',
+          columns: [
+            { name: 'species_id', type: 'string', isIndexed: true },
+            { name: 'category_id', type: 'string', isOptional: true, isIndexed: true },
+            { name: 'magnitude', type: 'string', isIndexed: true },
+            { name: 'plausible_min', type: 'number', isOptional: true },
+            { name: 'plausible_max', type: 'number', isOptional: true },
+            { name: 'absolute_min', type: 'number', isOptional: true },
+            { name: 'absolute_max', type: 'number', isOptional: true },
+            { name: 'is_active', type: 'boolean' },
+            { name: 'is_deleted', type: 'boolean' },
+          ],
+        }),
+      ],
+    },
   ],
 });

@@ -30,6 +30,17 @@ public class GroupMembership : AuditableEntity
         JoinedAt = joinedAt;
     }
 
+    /// <summary>
+    /// Factory for the cross-module cohort-classification flow (3.5a.4 task 4,
+    /// ADR-0023). The constructor is internal because most call sites go
+    /// through <c>AddMemberCommand</c> or the <c>MoveAnimalPayload</c> sync
+    /// path; the classification case is the only one that needs to bypass
+    /// the regular write port to stay free of a reference to
+    /// <c>Hato.Modules.Breeding</c>.
+    /// </summary>
+    public static GroupMembership Create(Guid animalId, Guid groupId, DateOnly joinedAt)
+        => new(groupId, animalId, joinedAt);
+
     internal void Close(DateOnly leftAt)
     {
         if (leftAt < JoinedAt)

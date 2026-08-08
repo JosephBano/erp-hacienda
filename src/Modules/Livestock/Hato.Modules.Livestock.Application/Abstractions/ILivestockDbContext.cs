@@ -24,6 +24,7 @@ public interface ILivestockDbContext
     DbSet<Domain.MortalityCause> MortalityCauses { get; }
     DbSet<Domain.AdministrationRoute> AdministrationRoutes { get; }
     DbSet<Domain.TreatmentReason> TreatmentReasons { get; }
+    DbSet<Domain.PlausibilityRange> PlausibilityRanges { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken);
 }

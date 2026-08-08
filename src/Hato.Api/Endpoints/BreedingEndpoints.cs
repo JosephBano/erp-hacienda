@@ -73,6 +73,29 @@ public static class BreedingEndpoints
             return Results.Ok(cohort);
         });
 
+        // 3.5a.4 task 4: classifies a weaned nursing cohort by weight into N
+        // headcount engorde lots (ADR-0023). The clinic document is the source
+        // for the (animal → group, weight) assignment payload: the operator
+        // weighs each animal on the day and the panel sends the list in one
+        // request. The handler emits N individual WeightSorted events and M
+        // GroupWeightSorting events in the same transaction.
+        group.MapPost("/cohorts/{cohortId:guid}/classify-by-weight", async (
+            Guid cohortId,
+            ClassifyCohortByWeightRequest request,
+            ISender sender) =>
+        {
+            var assignments = request.Assignments
+                .Select(a => new WeightSortingAssignment(
+                    a.AnimalId, a.TargetGroupId, a.WeightKg))
+                .ToList();
+
+            var command = new ClassifyCohortByWeightCommand(
+                cohortId, request.SortingDate, assignments, request.Notes);
+
+            var result = await sender.Send(command);
+            return Results.Ok(result);
+        });
+
         group.MapGet("/pedigree/{animalId:guid}", async (Guid animalId, ISender sender) =>
         {
             var pedigree = await sender.Send(new Hato.Modules.Breeding.Application.Pedigree.GetPedigreeQuery(animalId));
@@ -86,3 +109,13 @@ public static class BreedingEndpoints
         });
     }
 }
+
+public record ClassifyCohortByWeightRequest(
+    DateOnly SortingDate,
+    List<ClassifyCohortByWeightAssignmentDto> Assignments,
+    string? Notes = null);
+
+public record ClassifyCohortByWeightAssignmentDto(
+    Guid AnimalId,
+    Guid TargetGroupId,
+    decimal WeightKg);

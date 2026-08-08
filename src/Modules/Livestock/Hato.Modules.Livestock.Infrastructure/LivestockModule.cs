@@ -47,6 +47,7 @@ public static class LivestockModule
         services.AddScoped<IAnimalGenealogyReader, AnimalGenealogyReader>();
         services.AddScoped<IAnimalRegistrationService, AnimalRegistrationService>();
         services.AddScoped<IAnimalSpeciesReader, AnimalSpeciesReader>();
+        services.AddScoped<IAnimalGroupWriter, AnimalGroupWriter>();
 
         services.AddMediatR(cfg =>
         {

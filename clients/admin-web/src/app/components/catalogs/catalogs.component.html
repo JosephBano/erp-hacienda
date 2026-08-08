@@ -1,0 +1,258 @@
+<div class="page-header">
+  <h2>Catálogos</h2>
+  <p class="text-muted">Listas de referencia que el sistema consulta en tiempo de captura. Cada cambio entra en vigor sin redeploy.</p>
+</div>
+
+<nav class="tabs-container" role="tablist" aria-label="Pestañas de catálogos">
+  @for (tab of tabs; track tab.key) {
+    <button
+      type="button"
+      role="tab"
+      class="tab-btn"
+      [class.active]="activeTab() === tab.key"
+      [attr.aria-selected]="activeTab() === tab.key"
+      [attr.data-tab]="tab.key"
+      (click)="setActiveTab(tab.key)">
+      {{ tab.label }}
+    </button>
+  }
+</nav>
+
+@if (successMessage) {
+  <div class="alert alert-success" data-testid="success-message">{{ successMessage }}</div>
+}
+@if (errorMessage) {
+  <div class="alert alert-danger" data-testid="error-message">{{ errorMessage }}</div>
+}
+
+<section class="tab-panel" role="tabpanel">
+  @if (isSpecies()) {
+    <div class="card glass-card">
+      <p>La gestión de especies (incluyendo el perfil de lactancia) vive en la pantalla dedicada. Esta pestaña muestra el catálogo de referencia.</p>
+      <app-catalog-table
+        [rows]="species()"
+        [columns]="speciesColumns()"
+        emptyMessage="No hay especies registradas.">
+      </app-catalog-table>
+    </div>
+  }
+
+  @if (isBreeds()) {
+    <div class="card glass-card">
+      <div class="filter-toolbar">
+        <label class="form-label" for="breeds-species-filter">Filtrar por especie (ID)</label>
+        <input
+          id="breeds-species-filter"
+          type="text"
+          class="form-input"
+          [(ngModel)]="breedsSpeciesFilter"
+          (ngModelChange)="onBreedsFilterChange()"
+          placeholder="UUID de especie">
+      </div>
+      <app-catalog-table
+        [rows]="breeds()"
+        [columns]="breedColumns"
+        emptyMessage="No hay razas registradas.">
+      </app-catalog-table>
+    </div>
+  }
+
+  @if (isCategories()) {
+    <div class="card glass-card">
+      <div class="filter-toolbar">
+        <label class="form-label" for="categories-species-filter">Filtrar por especie (ID)</label>
+        <input
+          id="categories-species-filter"
+          type="text"
+          class="form-input"
+          [(ngModel)]="categoriesSpeciesFilter"
+          (ngModelChange)="onCategoriesFilterChange()"
+          placeholder="UUID de especie">
+      </div>
+      <app-catalog-table
+        [rows]="categories()"
+        [columns]="categoryColumns"
+        emptyMessage="No hay categorías registradas.">
+      </app-catalog-table>
+    </div>
+  }
+
+  @if (isMortality()) {
+    <div class="card glass-card">
+      <div class="inline-form">
+        <h3>Agregar causa de mortalidad</h3>
+        <div class="form-grid">
+          <label class="form-label" for="new-mortality-name">Nombre</label>
+          <input
+            id="new-mortality-name"
+            type="text"
+            class="form-input"
+            [(ngModel)]="newMortalityCauseName"
+            placeholder="Aplastamiento, diarrea, desconocida…"
+            data-testid="mortality-name-input">
+          <div class="form-actions">
+            <button
+              type="button"
+              class="btn-primary"
+              (click)="addMortalityCause()"
+              data-testid="mortality-add-button">
+              Agregar
+            </button>
+          </div>
+        </div>
+      </div>
+      <app-catalog-table
+        [rows]="mortalityCauses()"
+        [columns]="mortalityColumns"
+        [actions]="mortalityActions"
+        [rowInactive]="isInactive"
+        (action)="onMortalityAction($event)"
+        emptyMessage="No hay causas registradas.">
+      </app-catalog-table>
+    </div>
+  }
+
+  @if (isRoutes()) {
+    <div class="card glass-card">
+      <div class="inline-form">
+        <h3>Agregar vía de administración</h3>
+        <div class="form-grid">
+          <label class="form-label" for="new-route-key">Clave (snake_case)</label>
+          <input
+            id="new-route-key"
+            type="text"
+            class="form-input"
+            [(ngModel)]="newAdminRouteKey"
+            placeholder="intramuscular"
+            data-testid="route-key-input">
+          <label class="form-label" for="new-route-label">Etiqueta</label>
+          <input
+            id="new-route-label"
+            type="text"
+            class="form-input"
+            [(ngModel)]="newAdminRouteLabel"
+            placeholder="Intramuscular"
+            data-testid="route-label-input">
+          <div class="form-actions">
+            <button
+              type="button"
+              class="btn-primary"
+              (click)="addAdminRoute()"
+              data-testid="route-add-button">
+              Agregar
+            </button>
+          </div>
+        </div>
+      </div>
+      <app-catalog-table
+        [rows]="adminRoutes()"
+        [columns]="routeColumns"
+        [actions]="routeActions"
+        [rowInactive]="isInactive"
+        (action)="onRouteAction($event)"
+        emptyMessage="No hay vías registradas.">
+      </app-catalog-table>
+    </div>
+  }
+
+  @if (isReasons()) {
+    <div class="card glass-card">
+      <div class="inline-form">
+        <h3>Agregar motivo de tratamiento</h3>
+        <div class="form-grid">
+          <label class="form-label" for="new-reason-key">Clave (snake_case)</label>
+          <input
+            id="new-reason-key"
+            type="text"
+            class="form-input"
+            [(ngModel)]="newTreatmentReasonKey"
+            placeholder="scheduled"
+            data-testid="reason-key-input">
+          <label class="form-label" for="new-reason-label">Etiqueta</label>
+          <input
+            id="new-reason-label"
+            type="text"
+            class="form-input"
+            [(ngModel)]="newTreatmentReasonLabel"
+            placeholder="Programado"
+            data-testid="reason-label-input">
+          <div class="form-actions">
+            <button
+              type="button"
+              class="btn-primary"
+              (click)="addTreatmentReason()"
+              data-testid="reason-add-button">
+              Agregar
+            </button>
+          </div>
+        </div>
+      </div>
+      <app-catalog-table
+        [rows]="treatmentReasons()"
+        [columns]="reasonColumns"
+        [actions]="reasonActions"
+        [rowInactive]="isInactive"
+        (action)="onReasonAction($event)"
+        emptyMessage="No hay motivos registrados.">
+      </app-catalog-table>
+    </div>
+  }
+
+  @if (isInventory()) {
+    <div class="card glass-card">
+      <div class="filter-toolbar">
+        <label class="form-label" for="inventory-category-filter">Filtrar por categoría</label>
+        <select
+          id="inventory-category-filter"
+          class="form-select"
+          [(ngModel)]="inventoryCategoryFilter"
+          (ngModelChange)="onInventoryFilterChange()">
+          <option value="">Todas</option>
+          <option value="Medicine">Medicamento</option>
+          <option value="Feed">Alimento</option>
+          <option value="Supply">Insumo</option>
+          <option value="Product">Producto</option>
+        </select>
+      </div>
+      <app-catalog-table
+        [rows]="inventoryItems()"
+        [columns]="inventoryColumns"
+        emptyMessage="No hay ítems registrados.">
+      </app-catalog-table>
+    </div>
+  }
+
+  @if (isModules()) {
+    <div class="card glass-card">
+      <h3>Módulos de la finca</h3>
+      <p class="text-muted">Interruptor explícito por módulo (ADR-0019). Apagar un módulo oculta su entrada en la app móvil, pero el código y los datos siguen intactos.</p>
+      <div class="modules-grid">
+        @for (module of farmModules(); track module.key) {
+          <div class="module-card" [class.disabled]="!module.enabled" [attr.data-module]="module.key">
+            <div class="module-header">
+              <span class="module-key">{{ module.key }}</span>
+              <span class="badge" [class.badge-success]="module.enabled" [class.badge-secondary]="!module.enabled">
+                {{ module.enabled ? 'Activo' : 'Inactivo' }}
+              </span>
+            </div>
+            @if (module.disabledReason) {
+              <p class="module-reason text-muted">{{ module.disabledReason }}</p>
+            }
+            <div class="module-actions">
+              <button
+                type="button"
+                class="btn-primary"
+                (click)="toggleFarmModule(module)"
+                [attr.data-toggle]="module.key">
+                {{ module.enabled ? 'Desactivar' : 'Activar' }}
+              </button>
+            </div>
+          </div>
+        }
+        @if (farmModules().length === 0) {
+          <p class="text-muted">No hay módulos configurados.</p>
+        }
+      </div>
+    </div>
+  }
+</section>

@@ -94,7 +94,13 @@ antes de escribir la primera línea, y el ADR-0015 le dedica una sección entera
 
 ### 2.2 Captura primero, análisis después
 
-La fase se parte en dos bloques y **el piloto arranca al cerrar 3.5a**:
+La fase se parte en dos bloques. **El piloto real puede arrancar con un sub-conjunto de
+3.5a mergeado a develop** (sub-criterio "Para abrir el piloto real" más abajo, en esta
+misma sección), siempre que la deuda restante quede documentada como tal — ver
+[ADR-0024](../adr/0024-pilot-decoupling-from-3-5a.md). El desacople es deliberado: no
+hay valor en dejar al cliente sin sistema mientras la UI del sujeto "lote" (3.5a.7.1–5)
+termina de implementarse, y la conversación de frecuencias con el cliente (sec.7-C de
+este plan) puede ocurrir en paralelo al uso real:
 
 - **3.5a — captura.** Todo lo que se *registra*. Sin esto, el campo no puede cargar la
   realidad porcina.
@@ -552,6 +558,36 @@ se muere sin que nadie tome la decisión de matarla.
 ---
 
 ### Criterio de salida de 3.5a
+
+#### Para abrir el piloto real (sub-criterio de inicio, ADR-0024)
+
+> Este sub-criterio fija **cuándo se abre el piloto real** con el cliente. Es condición
+> **necesaria** para abrir el piloto, **no suficiente** para cerrar 3.5a como bloque — el
+> cierre del bloque sigue siendo el criterio completo de la sección siguiente.
+
+El piloto real puede abrir cuando estén **mergeadas a develop** las siguientes piezas
+(en cualquier orden). Lo que aquí no aparece queda como deuda rastreable en
+[`BACKLOG.md`](../../BACKLOG.md), sección 3.5.
+
+| Pieza | Por qué es requisito para abrir |
+|---|---|
+| 3.5a.0 input guards | El cliente reportó defectos de dedo que no se arreglan solos. |
+| 3.5a.1 group events ([ADR-0015](../../adr/0015-lote-por-conteo.md)) | El sujeto "lote" no existe en el modelo sin esto. La UI llega después; el modelo no puede esperar. |
+| 3.5a.2-A y 3.5a.2-B (catálogos + payload) | El camino de tratamiento (lo más frecuente en porcinos) sin esto se queda en texto libre, violando Art. 10. |
+| 3.5a.2-C (UI de tratamiento) | Sin pantallas, lo anterior existe sólo en backend. |
+| 3.5a.5 inventory unit conversions | El alimento se compra en sacos y se consume en kilos — sin conversión, los números mienten. |
+| 3.5a.6 plausibility ranges | El cliente reportó que la app acepta 1000 L; no se abre el piloto con esa puerta abierta. |
+| 3.5a.9-A module visibility ([ADR-0019](../../adr/0019-visibilidad-de-modulos.md)) | Apagar Ordeño para esta finca sin tocar código. |
+| 3.5a.9-B primer nivel del árbol ([ADR-0021](../../adr/0021-cierre-retroactivo-compuerta-3-5a-9-B.md)) | La navegación de primer nivel (animal, lote como stub, parto, hoy) mergeada. |
+
+No exige 3.5a.7.1–5 (UI del sujeto "lote") ni 3.5a.8 (corrección de registros desde el
+teléfono) — esas piezas viven como deuda rastreable con disparador explícito en
+`BACKLOG.md`. Mientras esa deuda no se pague, el piloto funciona con el flujo viejo:
+`recordAnimalEvent` con `GroupId` directo sobre eventos grupales (sin UI específica del
+sujeto "lote"), y corrección de eventos por re-registro manual. Esto está **documentado
+como deuda**, no oculto.
+
+#### Criterio completo (cierre del bloque 3.5a)
 
 > Una camada real nacida, pesada y seguida dentro del sistema hasta su clasificación por
 > peso a los 24 días, con sus tratamientos registrados con vía y motivo, y **al menos una

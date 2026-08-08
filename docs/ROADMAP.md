@@ -144,6 +144,16 @@ móvil, incluyendo días sin señal, sin pérdida ni duplicación de datos.
 ---
 
 ## Fase 3.5 — Adaptación porcina (insertada 2026-08-05)
+
+> **Desacople del inicio del piloto del cierre completo del bloque 3.5a (ADR-0024,
+> 2026-08-08).** El inicio del piloto real no exige cerrar 3.5a como bloque: exige
+> un sub-conjunto mínimo de captura + tratamiento + primer nivel del árbol + visibilidad
+> de módulos + rangos de plausibilidad, todos mergeados a develop. Lo que falta
+> (3.5a.7.1–5 UI del sujeto "lote", 3.5a.8 correcciones desde el teléfono, 3.5a.3
+> causas de muerte) queda como deuda rastreable en `BACKLOG.md`, no como bloqueo.
+> El criterio completo de salida de 3.5a sigue exigiendo clasificación por peso +
+> tratamiento con vía/motivo + corrección desde el teléfono como bloque.
+
 **Objetivo:** que el sistema represente el negocio real del cliente del piloto, que no es
 una lechería sino una **granja porcina**.
 
@@ -155,7 +165,13 @@ una lechería sino una **granja porcina**.
 > existe porque nadie puede usar el sistema para lo que esta finca hace. Adaptar el dominio
 > primero es lo que habilita esa carga — el orden que pide el Art. 11.
 
-Se ejecuta en dos bloques; **el piloto real arranca al cerrar 3.5a**:
+Se ejecuta en dos bloques. **El piloto real puede arrancar con un sub-conjunto de 3.5a
+mergeado a develop** (sub-criterio "Para abrir el piloto real" en el plan), siempre que la
+deuda restante quede documentada como tal — ver
+[ADR-0024](adr/0024-pilot-decoupling-from-3-5a.md). El desacople es deliberado: no hay
+valor en dejar al cliente sin sistema mientras la UI del sujeto "lote" (3.5a.7.1–5)
+termina de implementarse, y la conversación de frecuencias con el cliente (sec.7-C del
+plan) puede ocurrir en paralelo al uso real:
 
 - **3.5a — Captura.** Lote por conteo y eventos grupales (ADR-0015) · parto con peso por
   lechón y cohorte de lactancia · tratamientos con vía, motivo y dosis con unidad (Art. 10)

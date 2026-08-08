@@ -61,6 +61,41 @@
   (decision BLOQUE C). Cuando se implemente la lectura cross-module en 3.5b,
   este filtro se levanta.
 
+## Pendiente 3.5b — diferido del barrido 2026-08-07
+
+> 3.5b está fuera del alcance del barrido integral del 2026-08-07 (lo deja
+> sentado [ADR-0020](./docs/adr/0020-fase-3-5-estado-al-cierre-del-barrido-p0-p1.md)),
+> pero hay **una pieza concreta** que el barrido de 3.5a.2-A dejó sembrada y
+> que tiene que cerrarse con la primera rama de 3.5b. Lo siguiente es
+> trazabilidad, no trabajo del barrido actual.
+
+### [3.5b.1] Cerrar la FK de `health_plan_item_id` cuando exista `HealthPlan`
+
+- **Archivos**: `animal_events.health_plan_item_id` (columna nullable ya
+  creada por la migración `20260807214557_AddAnimalEventTreatmentPayload`, ver
+  `src/Modules/Livestock/Hato.Modules.Livestock.Infrastructure/Persistence/Configurations/AnimalEventConfiguration.cs:39`
+  y
+  `src/Modules/Livestock/Hato.Modules.Livestock.Infrastructure/Persistence/Migrations/20260807214557_AddAnimalEventTreatmentPayload.cs:29`)
+  — pendiente el `FOREIGN KEY` a `health_plan_items.id` cuando esa tabla exista.
+- **Por qué se sembró así**: el plan
+  [`3.5a.2-A`](./docs/planes/sub_planes/PLAN-FASE-3-5-PORCINO-3.5a.2-A.md)
+  sec."Forward-compat con el cronograma" fija la decisión: si el piloto corre
+  un mes registrando tratamientos sin el campo, **esos datos no se pueden
+  enlazar retroactivamente** al cronograma cuando aparezca. Cuesta una línea
+  crear la columna nullable hoy; es irrecuperable mañana. La presencia del
+  campo en la fila (no su integridad referencial) es lo que importa en el
+  tramo 3.5a.
+- **Trabajo a hacer**: cuando arranque 3.5b.1 (rama
+  `feature/livestock-health-plans`, ADR-0016), la migración que crea
+  `health_plan_items` debe **agregar el FK constraint** sobre la columna ya
+  existente, no crear la columna de nuevo. Riesgo explícito en 3.5a.2-A: que
+  alguien cree la columna como FK desde cero, sin notar que ya existe, y la
+  migración falle por duplicado. La tarea de 3.5b.1 debe revisar primero el
+  snapshot del modelo (`LivestockDbContextModelSnapshot.cs:287`) y la
+  migración `20260807214557` antes de proponer el constraint.
+- **Disparador**: arranque de 3.5b.1 (rama `feature/livestock-health-plans`,
+  ADR-0016). Es la primera tarea de 3.5b según el macro plan sec.4.1.
+
 ## Ítems abiertos (post-piloto Fase 3)
 
 ### [cosmético] Regenerar `adaptive-icon.png` con canal alfa

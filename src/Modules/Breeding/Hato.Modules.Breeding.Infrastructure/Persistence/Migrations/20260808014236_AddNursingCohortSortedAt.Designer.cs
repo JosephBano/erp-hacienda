@@ -3,6 +3,7 @@ using System;
 using Hato.Modules.Breeding.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Hato.Modules.Breeding.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(BreedingDbContext))]
-    partial class BreedingDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260808014236_AddNursingCohortSortedAt")]
+    partial class AddNursingCohortSortedAt
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -228,6 +231,10 @@ namespace Hato.Modules.Breeding.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(500)")
                         .HasColumnName("notes");
 
+                    b.Property<DateOnly?>("SortedAt")
+                        .HasColumnType("date")
+                        .HasColumnName("sorted_at");
+
                     b.Property<Guid>("SpeciesId")
                         .HasColumnType("uuid")
                         .HasColumnName("species_id");
@@ -235,10 +242,6 @@ namespace Hato.Modules.Breeding.Infrastructure.Persistence.Migrations
                     b.Property<DateOnly>("StartedAt")
                         .HasColumnType("date")
                         .HasColumnName("started_at");
-
-                    b.Property<DateOnly?>("SortedAt")
-                        .HasColumnType("date")
-                        .HasColumnName("sorted_at");
 
                     b.Property<DateTimeOffset?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")

@@ -128,4 +128,40 @@ public class NursingCohortTests
 
         Assert.Contains("negativa", ex.Message);
     }
+
+    [Fact]
+    public void MarkSorted_BeforeWeaning_Throws()
+    {
+        var cohort = NursingCohort.Open(_speciesId, new DateOnly(2026, 8, 1));
+        var sortingDate = new DateOnly(2026, 9, 1);
+
+        var ex = Assert.Throws<DomainException>(() => cohort.MarkSorted(sortingDate));
+
+        Assert.Contains("destetada", ex.Message);
+    }
+
+    [Fact]
+    public void MarkSorted_Twice_Throws()
+    {
+        var cohort = NursingCohort.Open(_speciesId, new DateOnly(2026, 8, 1));
+        cohort.RecordWeaning(new DateOnly(2026, 8, 28), weanedCount: 24);
+        cohort.MarkSorted(new DateOnly(2026, 9, 1));
+
+        var ex = Assert.Throws<DomainException>(() => cohort.MarkSorted(new DateOnly(2026, 9, 2)));
+
+        Assert.Contains("clasificada", ex.Message);
+    }
+
+    [Fact]
+    public void MarkSorted_SetsSortedAt()
+    {
+        var cohort = NursingCohort.Open(_speciesId, new DateOnly(2026, 8, 1));
+        cohort.RecordWeaning(new DateOnly(2026, 8, 28), weanedCount: 24);
+        var sortingDate = new DateOnly(2026, 9, 1);
+
+        cohort.MarkSorted(sortingDate, notes: "Lote A y B");
+
+        Assert.Equal(sortingDate, cohort.SortedAt);
+        Assert.Equal("Lote A y B", cohort.Notes);
+    }
 }

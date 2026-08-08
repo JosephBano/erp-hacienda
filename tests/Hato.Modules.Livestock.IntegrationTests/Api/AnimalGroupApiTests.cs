@@ -13,7 +13,7 @@ public class AnimalGroupApiTests(HatoApiFactory factory) : IClassFixture<HatoApi
     public async Task CreateGroup_AddMember_AndRemoveMember_RoundTripsThroughPostgres()
     {
         // 1. Create Species and Animal
-        var speciesResponse = await _client.PostAsJsonAsync("/api/v1/species", new { name = "Bovino", gestationDays = 283 });
+        var speciesResponse = await _client.PostAsJsonAsync("/api/v1/species", new { name = $"Bovino-{Guid.NewGuid():N}", gestationDays = 283 });
         var speciesId = (await speciesResponse.Content.ReadFromJsonAsync<CreatedId>())!.Id;
 
         var animalResponse = await _client.PostAsJsonAsync("/api/v1/animals", new

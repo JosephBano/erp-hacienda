@@ -43,13 +43,12 @@ public class AnimalEventConfiguration : IEntityTypeConfiguration<AnimalEvent>
         builder.HasOne<AnimalGroup>().WithMany().HasForeignKey(e => e.GroupId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne<MortalityCause>().WithMany().HasForeignKey(e => e.CauseId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne<AdministrationRoute>().WithMany().HasForeignKey(e => e.RouteId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne<HealthPlanItem>().WithMany().HasForeignKey(e => e.HealthPlanItemId).OnDelete(DeleteBehavior.Restrict);
         // FK cross-schema a inventory_batches y a people.users son soft FKs:
         // el catálogo de inventory no comparte esquema con livestock y la tabla
         // users vive en people. Las FKs estrictas llegan en Fase 4 cuando la
         // arquitectura decida cómo conectar módulos. Por ahora, índices para
         // que las consultas por lote / por usuario sigan siendo rápidas.
-        // FK a health_plan_items llegará con 3.5b.1 (ADR-0016) — por ahora la
-        // columna existe como nullable y sin FK.
 
         builder.HasIndex(e => new { e.AnimalId, e.OccurredAt });
         builder.HasIndex(e => new { e.GroupId, e.OccurredAt });
@@ -58,6 +57,7 @@ public class AnimalEventConfiguration : IEntityTypeConfiguration<AnimalEvent>
         builder.HasIndex(e => e.Reason);
         builder.HasIndex(e => e.BatchId);
         builder.HasIndex(e => e.AppliedByUserId);
+        builder.HasIndex(e => e.HealthPlanItemId).HasDatabaseName("i_x_animal_events_health_plan_item_id");
     }
 }
 

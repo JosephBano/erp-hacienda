@@ -1,29 +1,34 @@
-import { Component, ChangeDetectionStrategy, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { IconComponent, IconName } from '../icon/icon.component';
 
 export interface CatalogColumn<T> {
-  /** Property of T to render. Required so the {{ row[col.key] }} interpolation stays strict. */
   key: keyof T & string;
-  /**
-   * Header text in Spanish. The spec contract is that the same string must appear as
-   * `data-label` on every dynamic `<td>` of the column, so the responsive table reads
-   * naturally on narrow screens.
-   */
   label: string;
-  /** Custom cell renderer. Falls back to stringification of the row property. */
+  /**
+   * Optional custom render. When omitted, the value is shown as-is via T[column.key].
+   */
   render?: (row: T) => string;
-  /** When true, the cell renders a check/cross icon and never prints true/false. */
+  /**
+   * When true, the cell renders a check/cross icon for boolean values instead of
+   * the raw true/false string. Keeps the responsive table honest about its content.
+   */
   boolean?: boolean;
 }
 
 export interface CatalogAction<T> {
-  /** Stable label used by `data-action` and emitted with the action. */
   label: string;
   iconName: IconName;
-  /** Hide the action for some rows (e.g. only show 'Activar' when isActive is false). */
+  /**
+   * When provided, the action button only renders if the predicate returns true.
+   * Used to hide "Desactivar" on rows that are already inactive, etc.
+   */
   showWhen?: (row: T) => boolean;
-  variant?: 'primary' | 'danger' | 'neutral';
+}
+
+export interface CatalogActionEvent<T> {
+  action: CatalogAction<T>;
+  row: T;
 }
 
 @Component({
@@ -34,40 +39,48 @@ export interface CatalogAction<T> {
   styleUrls: ['./catalog-table.component.css'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class CatalogTableComponent<T extends { id?: string; key?: string }> {
-  readonly rows = input.required<T[]>();
-  readonly columns = input.required<CatalogColumn<T>[]>();
-  readonly actions = input<CatalogAction<T>[]>([]);
-  readonly emptyMessage = input<string>('Sin registros');
+export class CatalogTableComponent<T> {
+  @Input({ required: true }) rows: T[] = [];
+  @Input({ required: true }) columns: CatalogColumn<T>[] = [];
+  @Input() actions: CatalogAction<T>[] = [];
+  @Input() emptyMessage = 'Sin registros';
+  @Input() rowInactive: (row: T) => boolean = () => false;
 
-  /**
-   * Emits the action label and the row the user clicked. The screen decides what to do
-   * with the pair (call a deactivate endpoint, open an edit modal, etc.), keeping the
-   * table component free of business logic.
-   */
-  readonly action = output<{ actionLabel: string; row: T }>();
+  @Output() action = new EventEmitter<CatalogActionEvent<T>>();
 
-  trackById(_index: number, row: T): string | number {
-    return (row.id ?? row.key ?? _index) as string | number;
+  isInactive(row: T): boolean {
+    return this.rowInactive(row);
   }
 
-  visibleActions(row: T): CatalogAction<T>[] {
-    return this.actions().filter((a) => !a.showWhen || a.showWhen(row));
+  hasActions(): boolean {
+    return this.actions.length > 0;
   }
 
-  cellValue(row: T, column: CatalogColumn<T>): string {
-    if (column.render) return column.render(row);
+  onActionClick(action: CatalogAction<T>, row: T): void {
+    this.action.emit({ action, row });
+  }
+
+  isActionVisible(action: CatalogAction<T>, row: T): boolean {
+    return action.showWhen ? action.showWhen(row) : true;
+  }
+
+  cellText(row: T, column: CatalogColumn<T>): string {
+    if (column.render) {
+      return column.render(row);
+    }
     const value = (row as Record<string, unknown>)[column.key];
-    if (value === null || value === undefined) return '';
+    if (value === null || value === undefined) {
+      return '';
+    }
     return String(value);
   }
 
-  isInactive(row: T): boolean {
-    const value = (row as Record<string, unknown>)['isActive'];
-    return value === false;
+  isBooleanColumn(column: CatalogColumn<T>): boolean {
+    return column.boolean === true;
   }
 
-  onAction(action: CatalogAction<T>, row: T): void {
-    this.action.emit({ actionLabel: action.label, row });
+  booleanValue(row: T, column: CatalogColumn<T>): boolean {
+    const value = (row as Record<string, unknown>)[column.key];
+    return value === true;
   }
 }

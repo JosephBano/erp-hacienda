@@ -160,6 +160,57 @@ export class MortalityCause extends Model {
   @field('is_deleted') declare isDeleted: boolean;
 }
 
+/**
+ * Mirror of the server's `administration_routes` catalog (3.5a.2-A). The
+ * field app needs the active list to build a structured treatment
+ * payload — `routeId` is a foreign key the server will reject if the
+ * local pick is stale.
+ */
+export class AdministrationRoute extends Model {
+  static table = 'administration_routes';
+
+  @text('key') declare key: string;
+  @text('label_es') declare labelEs: string;
+  @field('is_active') declare isActive: boolean;
+  @field('is_deleted') declare isDeleted: boolean;
+}
+
+/**
+ * Mirror of the server's `treatment_reasons` catalog (3.5a.2-A). The
+ * three values (`scheduled`, `curative`, `preventive`) are what separate
+ * "vacuna de calendario" from "vacuna porque se enfermó" on the herd's
+ * history.
+ */
+export class TreatmentReason extends Model {
+  static table = 'treatment_reasons';
+
+  @text('key') declare key: string;
+  @text('label_es') declare labelEs: string;
+  @field('is_active') declare isActive: boolean;
+  @field('is_deleted') declare isDeleted: boolean;
+}
+
+/**
+ * Mirror of the server's `plausibility_ranges` catalog (3.5a.6, ADR-0022).
+ * The four bounds classify a recorded value into pass/confirm/block. The
+ * evaluator (`plausibilityService`) is fail-open: a missing row for the
+ * (species, category, magnitude) combination returns pass, so a range
+ * forgotten by the operator never prevents registering a real field datum.
+ */
+export class PlausibilityRange extends Model {
+  static table = 'plausibility_ranges';
+
+  @text('species_id') declare speciesId: string;
+  @text('category_id') categoryId?: string;
+  @text('magnitude') declare magnitude: string;
+  @field('plausible_min') plausibleMin?: number;
+  @field('plausible_max') plausibleMax?: number;
+  @field('absolute_min') absoluteMin?: number;
+  @field('absolute_max') absoluteMax?: number;
+  @field('is_active') declare isActive: boolean;
+  @field('is_deleted') declare isDeleted: boolean;
+}
+
 export const modelClasses = [
   Animal,
   AnimalIdentifier,
@@ -175,4 +226,7 @@ export const modelClasses = [
   SyncMeta,
   FarmModule,
   MortalityCause,
+  AdministrationRoute,
+  TreatmentReason,
+  PlausibilityRange,
 ];

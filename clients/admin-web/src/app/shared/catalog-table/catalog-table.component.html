@@ -1,56 +1,53 @@
-<div class="table-container">
+<div class="table-container glass-card">
   <table class="responsive-table">
     <thead>
       <tr>
-        @for (col of columns(); track col.key) {
-          <th>{{ col.label }}</th>
+        @for (column of columns; track column.key) {
+          <th scope="col">{{ column.label }}</th>
         }
-        @if (actions().length > 0) {
-          <th class="actions-col">Acciones</th>
+        @if (hasActions()) {
+          <th scope="col" class="actions-header">Acciones</th>
         }
       </tr>
     </thead>
     <tbody>
-      @for (row of rows(); track trackById($index, row)) {
+      @for (row of rows; track $index) {
         <tr [class.row-inactive]="isInactive(row)">
-          @for (col of columns(); track col.key) {
-            <td [attr.data-label]="col.label">
-              @if (col.boolean) {
-                @if (row[col.key]) {
-                  <app-icon name="check" [label]="col.label + ': sí'" />
+          @for (column of columns; track column.key) {
+            <td [attr.data-label]="column.label">
+              @if (isBooleanColumn(column)) {
+                @if (booleanValue(row, column)) {
+                  <app-icon name="check" [ariaLabel]="'Verdadero'"></app-icon>
                 } @else {
-                  <app-icon name="close" [label]="col.label + ': no'" />
+                  <app-icon name="close" [ariaLabel]="'Falso'"></app-icon>
                 }
               } @else {
-                {{ cellValue(row, col) }}
+                {{ cellText(row, column) }}
               }
             </td>
           }
-          @if (actions().length > 0) {
-            <td class="actions-cell" data-label="Acciones">
-              @for (action of visibleActions(row); track action.label) {
-                <button
-                  type="button"
-                  class="row-action row-action--{{ action.variant || 'neutral' }}"
-                  [attr.data-action]="action.label"
-                  [attr.aria-label]="action.label"
-                  (click)="onAction(action, row)"
-                >
-                  <app-icon [name]="action.iconName" size="sm" />
-                </button>
+          @if (hasActions()) {
+            <td class="actions-cell">
+              @for (action of actions; track action.label) {
+                @if (isActionVisible(action, row)) {
+                  <button
+                    type="button"
+                    class="icon-button"
+                    [attr.aria-label]="action.label"
+                    [attr.data-action]="action.label"
+                    (click)="onActionClick(action, row)">
+                    <app-icon [name]="action.iconName" [ariaLabel]="action.label"></app-icon>
+                  </button>
+                }
               }
             </td>
           }
         </tr>
       }
-      @if (rows().length === 0) {
+      @if (rows.length === 0) {
         <tr class="empty-row">
-          <td
-            [attr.colspan]="columns().length + (actions().length > 0 ? 1 : 0)"
-            data-label="Estado"
-            class="text-muted text-center py-3"
-          >
-            {{ emptyMessage() }}
+          <td [attr.colspan]="columns.length + (hasActions() ? 1 : 0)" class="text-center py-4 text-muted">
+            {{ emptyMessage }}
           </td>
         </tr>
       }

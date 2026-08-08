@@ -9,6 +9,7 @@ import { BreedingDashboardComponent } from './components/breeding-dashboard/bree
 import { RolesManagementComponent } from './components/roles-management/roles-management.component';
 import { AuditLogComponent } from './components/audit-log/audit-log.component';
 import { SyncTrayComponent } from './components/sync-tray/sync-tray.component';
+import { CatalogsComponent } from './components/catalogs/catalogs.component';
 import { LoginComponent } from './components/login/login.component';
 import { authGuard } from './guards/auth.guard';
 import { permissionGuard } from './guards/permission.guard';
@@ -36,6 +37,11 @@ export const routes: Routes = [
     path: 'sync',
     component: SyncTrayComponent,
     canActivate: [authGuard, permissionGuard('people.users.manage')]
+  },
+  {
+    path: 'catalogs',
+    component: CatalogsComponent,
+    canActivate: [authGuard, permissionGuard('livestock.species.manage')]
   },
   { path: '**', redirectTo: '' }
 ];

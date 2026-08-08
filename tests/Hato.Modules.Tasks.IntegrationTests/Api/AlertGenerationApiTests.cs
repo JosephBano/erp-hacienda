@@ -49,7 +49,7 @@ public class AlertGenerationApiTests(TasksApiFactory factory) : IClassFixture<Ta
         pendingServiceResponse.EnsureSuccessStatusCode();
 
         // 3. Active withdrawal: register an animal, then a treatment with a milk withdrawal.
-        var speciesResponse = await _client.PostAsJsonAsync("/api/v1/species", new { name = "Bovino", gestationDays = 283 });
+        var speciesResponse = await _client.PostAsJsonAsync("/api/v1/species", new { name = $"Bovino-{Guid.NewGuid():N}", gestationDays = 283 });
         speciesResponse.EnsureSuccessStatusCode();
         var speciesId = (await speciesResponse.Content.ReadFromJsonAsync<CreatedId>())!.Id;
 

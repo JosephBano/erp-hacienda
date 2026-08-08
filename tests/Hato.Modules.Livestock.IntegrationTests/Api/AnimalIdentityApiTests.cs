@@ -12,7 +12,7 @@ public class AnimalIdentityApiTests(HatoApiFactory factory) : IClassFixture<Hato
     [Fact]
     public async Task RegisterAnimal_AssignIdentifier_AndFetch_RoundTripsThroughPostgres()
     {
-        var speciesResponse = await _client.PostAsJsonAsync("/api/v1/species", new { name = "Bovino", gestationDays = 283 });
+        var speciesResponse = await _client.PostAsJsonAsync("/api/v1/species", new { name = $"Bovino-{Guid.NewGuid():N}", gestationDays = 283 });
         speciesResponse.EnsureSuccessStatusCode();
         var speciesId = (await speciesResponse.Content.ReadFromJsonAsync<CreatedId>())!.Id;
 

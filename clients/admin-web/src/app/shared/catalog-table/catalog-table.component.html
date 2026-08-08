@@ -1,0 +1,59 @@
+<div class="table-container">
+  <table class="responsive-table">
+    <thead>
+      <tr>
+        @for (col of columns(); track col.key) {
+          <th>{{ col.label }}</th>
+        }
+        @if (actions().length > 0) {
+          <th class="actions-col">Acciones</th>
+        }
+      </tr>
+    </thead>
+    <tbody>
+      @for (row of rows(); track trackById($index, row)) {
+        <tr [class.row-inactive]="isInactive(row)">
+          @for (col of columns(); track col.key) {
+            <td [attr.data-label]="col.label">
+              @if (col.boolean) {
+                @if (row[col.key]) {
+                  <app-icon name="check" [label]="col.label + ': sí'" />
+                } @else {
+                  <app-icon name="close" [label]="col.label + ': no'" />
+                }
+              } @else {
+                {{ cellValue(row, col) }}
+              }
+            </td>
+          }
+          @if (actions().length > 0) {
+            <td class="actions-cell" data-label="Acciones">
+              @for (action of visibleActions(row); track action.label) {
+                <button
+                  type="button"
+                  class="row-action row-action--{{ action.variant || 'neutral' }}"
+                  [attr.data-action]="action.label"
+                  [attr.aria-label]="action.label"
+                  (click)="onAction(action, row)"
+                >
+                  <app-icon [name]="action.iconName" size="sm" />
+                </button>
+              }
+            </td>
+          }
+        </tr>
+      }
+      @if (rows().length === 0) {
+        <tr class="empty-row">
+          <td
+            [attr.colspan]="columns().length + (actions().length > 0 ? 1 : 0)"
+            data-label="Estado"
+            class="text-muted text-center py-3"
+          >
+            {{ emptyMessage() }}
+          </td>
+        </tr>
+      }
+    </tbody>
+  </table>
+</div>

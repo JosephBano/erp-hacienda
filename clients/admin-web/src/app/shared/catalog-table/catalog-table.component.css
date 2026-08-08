@@ -1,0 +1,61 @@
+:host {
+  display: block;
+}
+
+.actions-col {
+  width: 1%;
+  white-space: nowrap;
+}
+
+.actions-cell {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.row-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-color);
+  background: var(--bg-surface);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  padding: 0;
+}
+
+.row-action:hover {
+  border-color: var(--text-subtle);
+  color: var(--text-main);
+  background: var(--bg-card-hover);
+}
+
+.row-action--primary {
+  background: linear-gradient(135deg, var(--brand-primary), var(--brand-secondary));
+  border-color: transparent;
+  color: #0f172a;
+}
+
+.row-action--primary:hover {
+  filter: brightness(1.1);
+}
+
+.row-action--danger {
+  border-color: rgba(239, 68, 68, 0.4);
+  color: var(--danger);
+}
+
+.row-action--danger:hover {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+.row-inactive td {
+  opacity: 0.55;
+}

@@ -139,7 +139,11 @@ public record SyncInventoryItemDto(
 public record SyncWithdrawalPeriodDto(
     Guid Id,
     Guid AnimalId,
-    Guid EventId,
+    // Nullable since 3.5a.2-B: a period anchored to a TreatmentCourse carries
+    // TreatmentCourseId instead (see WithdrawalPeriod's Event-xor-Course invariant).
+    // The field-app mirror table update for this new shape is 3.5a.2-C scope.
+    Guid? EventId,
+    Guid? TreatmentCourseId,
     string Target,
     DateOnly StartsAt,
     DateOnly EndsAt,
@@ -396,7 +400,7 @@ public class GetSyncPullQueryHandler(
         var withdrawals = await ReadAsync(
             effective, "withdrawalPeriods", livestockDb.WithdrawalPeriods, since, limit, frontier,
             w => new SyncWithdrawalPeriodDto(
-                w.Id, w.AnimalId, w.EventId, w.Target.ToString(), w.StartsAt, w.EndsAt,
+                w.Id, w.AnimalId, w.EventId, w.TreatmentCourseId, w.Target.ToString(), w.StartsAt, w.EndsAt,
                 w.CreatedAt, w.UpdatedAt, w.DeletedAt != null),
             cancellationToken);
 

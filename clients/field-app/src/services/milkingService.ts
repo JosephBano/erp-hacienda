@@ -11,9 +11,13 @@ import { Outbox } from './outbox';
  *      before they touch the outbox; improbable ones pass. The reasoning lives in
  *      `assertVolume` and its siblings below. Locked by the
  *      'locks the input guardrail' test in `tests/milking.test.ts`.
- *   2. **3.5a.6 (later).** Plausibility ranges per species, configurable from the
- *      web panel, fail-open when unset. Those are *warnings*, not blocks: the
- *      operator may confirm an unusual figure.
+ *   2. **`plausibilityService.ts` (ADR-0022, 3.5a.6), wired at `MilkingScreen`.**
+ *      Plausibility ranges per species/category, mirrored locally and evaluated
+ *      offline, fail-open when unset. Those are *warnings*, not blocks: the
+ *      operator confirms an unusual figure (e.g. 1000 L for one cow) before it
+ *      is enqueued, and the confirmation is persisted as
+ *      `isPlausibilityConfirmed` on the payload. Only a value outside the
+ *      *absolute* range is rejected outright, same as this layer's floor.
  *
  * The rule both layers obey (PLAN-FASE-3-5-PORCINO 3.5a.0 #4):
  *
@@ -69,6 +73,13 @@ export class MilkingService {
     liters: number,
     recordedBy: string,
     date: string = todayIso(),
+    /**
+     * Set by `MilkingScreen` when the operator explicitly confirmed a value the
+     * plausibility check (ADR-0022) flagged as improbable. Stamped on the payload
+     * so the server-side audit (sec.6 of the ADR) can tell a confirmed outlier
+     * from one nobody looked at.
+     */
+    isPlausibilityConfirmed = false,
   ): Promise<RecordedYield> {
     assertVolume(liters);
 
@@ -90,6 +101,7 @@ export class MilkingService {
       recordedBy,
       totalLiters: liters,
       individualYields: [{ animalId, liters }],
+      isPlausibilityConfirmed,
     });
 
     return this.remember({
@@ -272,9 +284,14 @@ export class MilkingService {
  *                                       exactly nothing. Recording it would litter the
  *                                       outbox with meaningless rows and muddy the
  *                                       plausibility work planned for 3.5a.6.
- *   - `liters > 0`                    → accepted. The plausibility ceiling (a 1000-L cow)
- *                                       is NOT this layer's job; it belongs to the
- *                                       configurable per-species ranges.
+ *   - `liters > 0`                    → accepted here. The plausibility ceiling (a
+ *                                       1000-L cow) is NOT this layer's job: it is
+ *                                       evaluated by `evaluatePlausibility` in
+ *                                       `MilkingScreen`, against the per-species/
+ *                                       category ranges mirrored from the server
+ *                                       (ADR-0022, 3.5a.6). That layer runs *after*
+ *                                       this one and decides pass / confirm / block
+ *                                       for anything that gets past this floor.
  *
  * The error message explains the rule rather than restating it, so an employee who reads
  * it understands *why* their input was rejected and not just that it was.

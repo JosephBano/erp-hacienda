@@ -238,6 +238,7 @@ export default function App() {
         {tab === 'milking' && productionOn ? (
           <MilkingScreen
             service={milking}
+            database={database}
             candidates={herd}
             recordedBy={auth.currentSession()?.email ?? 'field-app'}
             onRecorded={refresh}
@@ -247,6 +248,7 @@ export default function App() {
         {tab === 'events' ? (
           <EventsScreen
             service={events}
+            database={database}
             animals={herd}
             groups={groups}
             medications={medications}

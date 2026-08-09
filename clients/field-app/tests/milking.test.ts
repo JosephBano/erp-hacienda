@@ -94,6 +94,26 @@ describe('MilkingService', () => {
     expect(record.liters).toBe(12.5);
   });
 
+  /**
+   * ADR-0022 sec.5: the confirmation of an improbable value is persisted on the
+   * payload, not just shown and forgotten. The default is false so a plain call
+   * (no plausibility involved, e.g. a value inside range) never claims a
+   * confirmation that never happened.
+   */
+  it('defaults isPlausibilityConfirmed to false when not stamped by the screen', async () => {
+    await service.recordIndividualYield('cow-1', 'Morning', 12.5, recordedBy);
+
+    const [entry] = await outbox.pending();
+    expect(entry.payload).toMatchObject({ isPlausibilityConfirmed: false });
+  });
+
+  it('carries isPlausibilityConfirmed through to the outbox payload when set', async () => {
+    await service.recordIndividualYield('cow-1', 'Morning', 12.5, recordedBy, undefined, true);
+
+    const [entry] = await outbox.pending();
+    expect(entry.payload).toMatchObject({ isPlausibilityConfirmed: true });
+  });
+
   it('records the day total per group in a single operation', async () => {
     await service.recordGroupMilking('group-1', 'Morning', 240, recordedBy);
 

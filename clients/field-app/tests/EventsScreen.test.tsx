@@ -40,6 +40,7 @@ describe('EventsScreen', () => {
     await render(
       <EventsScreen
         service={service}
+        database={database}
         animals={[]}
         groups={[]}
         medications={[]}
@@ -65,6 +66,7 @@ describe('EventsScreen', () => {
     await render(
       <EventsScreen
         service={service}
+        database={database}
         animals={animals}
         groups={[]}
         medications={[]}
@@ -85,6 +87,7 @@ describe('EventsScreen', () => {
     await render(
       <EventsScreen
         service={service}
+        database={database}
         animals={animals}
         groups={[]}
         medications={[]}
@@ -103,6 +106,7 @@ describe('EventsScreen', () => {
     await render(
       <EventsScreen
         service={service}
+        database={database}
         animals={animals}
         groups={[]}
         medications={[]}
@@ -122,6 +126,7 @@ describe('EventsScreen', () => {
     await render(
       <EventsScreen
         service={service}
+        database={database}
         animals={animals}
         groups={[]}
         medications={[]}
@@ -143,6 +148,7 @@ describe('EventsScreen', () => {
     await render(
       <EventsScreen
         service={service}
+        database={database}
         animals={animals}
         groups={[]}
         medications={[]}
@@ -160,6 +166,7 @@ describe('EventsScreen', () => {
     await render(
       <EventsScreen
         service={service}
+        database={database}
         animals={animals}
         groups={[]}
         medications={[]}

@@ -28,6 +28,9 @@ public interface ILivestockDbContext
     DbSet<Domain.HealthPlanItem> HealthPlanItems { get; }
     DbSet<Domain.HealthPlanAssignment> HealthPlanAssignments { get; }
     DbSet<Domain.PlausibilityRange> PlausibilityRanges { get; }
+    DbSet<Domain.DoseKind> DoseKinds { get; }
+    DbSet<Domain.TreatmentCourse> TreatmentCourses { get; }
+    DbSet<Domain.TreatmentCourseApplication> TreatmentCourseApplications { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken);
 }

@@ -1,6 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Hato.Modules.Breeding.Application.Birthings;
+using Hato.Modules.Inventory.Application.Consumptions;
 using Hato.Modules.Livestock.Application.AnimalGroups;
 using Hato.Modules.Livestock.Application.Animals;
 using Hato.Modules.Livestock.Application.Events;
@@ -214,6 +215,29 @@ public class PushSyncBatchCommandHandler(
                     return id.ToString();
                 }
 
+            case "recordfeedconsumption":
+                {
+                    // 3.5a.7 task 5: "el lote comió N sacos" is not an AnimalEvent — it is
+                    // an Inventory-module write (GroupFeedConsumption) so the batch
+                    // decrements and the cost-prorate engine reads kilograms regardless of
+                    // what unit the operator typed ("bug del saco",
+                    // PLAN-FASE-3-5-PORCINO.md sec.3.5a.5). Routed to the same command the
+                    // POST /api/v1/inventory/feed-consumptions endpoint uses.
+                    var payload = Deserialize<RecordFeedConsumptionPushPayload>(payloadJson, "consumo de alimento");
+                    var consumedAt = payload.ConsumedAt ?? DateOnly.FromDateTime(operation.OccurredAt.UtcDateTime);
+                    var command = new RecordGroupFeedConsumptionCommand(
+                        payload.GroupId,
+                        payload.InventoryItemId,
+                        payload.Quantity,
+                        consumedAt,
+                        payload.RecordedBy,
+                        payload.Unit,
+                        payload.BatchId,
+                        payload.Notes);
+                    var id = await sender.Send(command, cancellationToken);
+                    return id.ToString();
+                }
+
             case "createanimal":
                 {
                     var command = Deserialize<RegisterAnimalCommand>(payloadJson, "animal");
@@ -372,3 +396,21 @@ public record RecordCorrectionPushPayload(
     Guid OriginalEventId,
     string RecordedBy,
     string Reason);
+
+/// <summary>
+/// 3.5a.7 task 5 push payload. Field names mirror <see cref="RecordGroupFeedConsumptionCommand"/>
+/// exactly (case-insensitively, per <c>JsonOptions</c> above) so a rename on either side is
+/// caught by <c>SyncPushFeedConsumptionTests</c> instead of being silently dropped — the
+/// same class of bug that closed the pilot in false in Fase 3, because this deserializer has
+/// no <c>UnmappedMemberHandling.Disallow</c>. <paramref name="ConsumedAt"/> is optional: the
+/// phone may omit it and mean "the day this was recorded", exactly like <c>MoveAnimalPayload.MovedOn</c>.
+/// </summary>
+public record RecordFeedConsumptionPushPayload(
+    Guid GroupId,
+    Guid InventoryItemId,
+    decimal Quantity,
+    string RecordedBy,
+    string? Unit = null,
+    Guid? BatchId = null,
+    string? Notes = null,
+    DateOnly? ConsumedAt = null);

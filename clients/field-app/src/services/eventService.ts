@@ -67,6 +67,13 @@ export interface GroupEventInput {
   affectedCount?: number;
   cost?: number;
   occurredAt?: string;
+  /**
+   * Mortality cause for a lot disposal (3.5a.7 task 2). Carried as its own field —
+   * not buried in `payload` — because `RecordGroupEventCommand.CauseId` is what the
+   * server validates against the `mortality_causes` catalog and stamps on the row;
+   * mirrors how `recordDisposal` (individual) already passes `causeId` top-level.
+   */
+  causeId?: string;
 }
 
 export interface CorrectionInput {
@@ -180,6 +187,7 @@ export class EventService {
         recordedBy: 'field-app',
         cost: input.cost,
         affectedCount: input.affectedCount,
+        causeId: input.causeId,
         payloadJson: JSON.stringify(input.payload),
       },
       occurredAt,

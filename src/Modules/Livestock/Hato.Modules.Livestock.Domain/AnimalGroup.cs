@@ -54,6 +54,39 @@ public class AnimalGroup : AuditableEntity
         IsActive = false;
     }
 
+    /// <summary>
+    /// Reactivates a group previously deactivated. Idempotent: calling
+    /// <see cref="Activate"/> on an already active group is a no-op.
+    /// </summary>
+    public void Activate()
+    {
+        IsActive = true;
+    }
+
+    /// <summary>
+    /// Changes the group's tracking mode. ADR-0025 sec.3: only allowed while the
+    /// group is active; the "no membership, no events" guard lives in the handler
+    /// because it requires queries against other tables the entity does not see.
+    /// Idempotent when the requested mode equals the current one. A retroactive
+    /// change after events have been recorded would re-write the past (Art. 1) or
+    /// fabricate identity within an anonymous lot (ADR-0015 sec.7 "trampa").
+    /// </summary>
+    public void ChangeTrackingMode(TrackingMode newMode)
+    {
+        if (newMode == TrackingMode)
+        {
+            return;
+        }
+
+        if (!IsActive)
+        {
+            throw new DomainException(
+                "No se puede cambiar el modo de seguimiento de un grupo inactivo.");
+        }
+
+        TrackingMode = newMode;
+    }
+
     public GroupMembership AddMember(Guid animalId, DateOnly joinedAt)
     {
         if (!IsActive)

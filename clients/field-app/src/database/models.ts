@@ -211,6 +211,35 @@ export class PlausibilityRange extends Model {
   @field('is_deleted') declare isDeleted: boolean;
 }
 
+/**
+ * Mirror of the server's `animal_events` history (3.5a.1, ADR-0015). Exactly one of
+ * `animalId` / `groupId` is set, never both and never neither — the same XOR the
+ * domain and the DB CHECK enforce server-side. Consumers (e.g. the lot record's
+ * "última vacunación, alimento del período") must branch on which one is present
+ * instead of assuming `animalId` is always populated.
+ */
+export class AnimalEvent extends Model {
+  static table = 'animal_events';
+
+  @text('animal_id') animalId?: string;
+  @text('group_id') groupId?: string;
+  @text('event_type') declare eventType: string;
+  @text('occurred_at') declare occurredAt: string;
+  @text('recorded_by') declare recordedBy: string;
+  @text('recorded_by_id') recordedById?: string;
+  @text('payload_json') declare payloadJson: string;
+  @field('cost') cost?: number;
+  @text('related_event_id') relatedEventId?: string;
+  @field('affected_count') affectedCount?: number;
+  @text('cause_id') causeId?: string;
+  @text('route_id') routeId?: string;
+  @text('reason') reason?: string;
+  @text('batch_id') batchId?: string;
+  @text('health_plan_item_id') healthPlanItemId?: string;
+  @text('applied_by_user_id') appliedByUserId?: string;
+  @field('is_deleted') declare isDeleted: boolean;
+}
+
 export const modelClasses = [
   Animal,
   AnimalIdentifier,
@@ -229,4 +258,5 @@ export const modelClasses = [
   AdministrationRoute,
   TreatmentReason,
   PlausibilityRange,
+  AnimalEvent,
 ];

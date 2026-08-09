@@ -25,8 +25,75 @@ describe('local schema', () => {
         'sync_meta',
         'farm_modules',
         'mortality_causes',
+        'animal_events',
       ]),
     );
+  });
+
+  /**
+   * 3.5a.1 (ADR-0015) + BACKLOG "AnimalEvent grupal aún no viaja en el pull": the
+   * event's subject is exactly one of `animal_id` / `group_id`, mirroring the server's
+   * domain invariant and DB CHECK. Both columns must exist and both must be optional —
+   * a schema that made `animal_id` required would force a fake value onto every group
+   * event, which is precisely the synthetic data ADR-0015 exists to avoid.
+   */
+  it('lets an event carry an animal subject, a group subject, or neither column filled — never a forced value on the other', () => {
+    const columns = schema.tables['animal_events'].columns;
+
+    expect(columns['animal_id'].isOptional).toBe(true);
+    expect(columns['group_id'].isOptional).toBe(true);
+    expect(Object.keys(columns)).toEqual(
+      expect.arrayContaining([
+        'animal_id',
+        'group_id',
+        'event_type',
+        'occurred_at',
+        'recorded_by',
+        'payload_json',
+        'affected_count',
+        'cause_id',
+        'related_event_id',
+        'is_deleted',
+      ]),
+    );
+  });
+
+  it('accepts both an animal-subject and a group-subject event row', async () => {
+    const adapter = new LokiJSAdapter({
+      schema,
+      migrations,
+      useWebWorker: false,
+      useIncrementalIndexedDB: false,
+      dbName: `hato-schema-events-${Math.random()}`,
+    });
+    const database = new Database({ adapter: adapter as never, modelClasses });
+
+    await database.write(async () => {
+      await database.get('animal_events').create((row: any) => {
+        row._raw.id = 'evt-animal-1';
+        row.animalId = 'animal-1';
+        row.groupId = undefined;
+        row.eventType = 'Weighing';
+        row.occurredAt = '2026-08-01T00:00:00Z';
+        row.recordedBy = 'Operario';
+        row.payloadJson = '{"kg":45}';
+        row.isDeleted = false;
+      });
+
+      await database.get('animal_events').create((row: any) => {
+        row._raw.id = 'evt-group-1';
+        row.animalId = undefined;
+        row.groupId = 'group-1';
+        row.eventType = 'GroupWeighing';
+        row.occurredAt = '2026-08-02T00:00:00Z';
+        row.recordedBy = 'Operario';
+        row.payloadJson = '{"sample_count":10,"avg_kg":22}';
+        row.affectedCount = 42;
+        row.isDeleted = false;
+      });
+    });
+
+    expect(await database.get('animal_events').query().fetchCount()).toBe(2);
   });
 
   /**

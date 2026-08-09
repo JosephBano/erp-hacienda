@@ -165,10 +165,12 @@ public class AnimalGroupApiTests(HatoApiFactory factory) : IClassFixture<HatoApi
     {
         var (groupId, _) = await CreateGroupWithSpeciesAsync("ChangeMode Target");
 
-        var dto = await SendAsync(new ChangeAnimalGroupTrackingModeCommand(groupId, TrackingMode.Headcount));
+        // Command returns Unit; the canonical state is observable via GetByIdAsync.
+        await SendAsync(new ChangeAnimalGroupTrackingModeCommand(groupId, TrackingMode.Headcount));
 
-        Assert.Equal(TrackingMode.Headcount, dto.TrackingMode);
-        Assert.True(dto.IsActive);
+        var after = await GetByIdAsync(groupId);
+        Assert.Equal(TrackingMode.Headcount, after.TrackingMode);
+        Assert.True(after.IsActive);
     }
 
     [Fact]
@@ -176,9 +178,11 @@ public class AnimalGroupApiTests(HatoApiFactory factory) : IClassFixture<HatoApi
     {
         var (groupId, _) = await CreateGroupWithSpeciesAsync("NoOp Target", TrackingMode.Headcount);
 
-        var dto = await SendAsync(new ChangeAnimalGroupTrackingModeCommand(groupId, TrackingMode.Headcount));
+        // Same-mode is a no-op: command returns Unit, state remains unchanged.
+        await SendAsync(new ChangeAnimalGroupTrackingModeCommand(groupId, TrackingMode.Headcount));
 
-        Assert.Equal(TrackingMode.Headcount, dto.TrackingMode);
+        var after = await GetByIdAsync(groupId);
+        Assert.Equal(TrackingMode.Headcount, after.TrackingMode);
     }
 
     [Fact]

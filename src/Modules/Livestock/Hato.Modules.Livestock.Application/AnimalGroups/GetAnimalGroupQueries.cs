@@ -38,7 +38,7 @@ public class GetAnimalGroupByIdHandler(ILivestockDbContext dbContext) : IRequest
             .FirstOrDefaultAsync(g => g.Id == request.Id, cancellationToken);
 
         if (group is null)
-            throw new DomainException($"El grupo con ID '{request.Id}' no existe.");
+            throw new KeyNotFoundException($"El grupo con ID '{request.Id}' no existe.");
 
         var liveHeadCount = await ComputeLiveHeadCountAsync(dbContext, group.Id, group.Memberships.Count(m => m.IsActive), cancellationToken);
 

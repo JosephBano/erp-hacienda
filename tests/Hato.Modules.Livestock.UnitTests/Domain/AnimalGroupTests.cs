@@ -151,4 +151,72 @@ public class AnimalGroupTests
 
         Assert.Empty(returned);
     }
+
+    // === ADR-0025: Activate, ChangeTrackingMode, idempotencia de Deactivate ===
+
+    [Fact]
+    public void Activate_OnInactiveGroup_SetsIsActiveTrue()
+    {
+        var group = AnimalGroup.Create("Vacas Lecheras");
+        group.Deactivate();
+        Assert.False(group.IsActive);
+
+        group.Activate();
+
+        Assert.True(group.IsActive);
+    }
+
+    [Fact]
+    public void Activate_OnActiveGroup_IsNoOp()
+    {
+        var group = AnimalGroup.Create("Vacas Lecheras");
+        Assert.True(group.IsActive);
+
+        group.Activate();
+
+        Assert.True(group.IsActive);
+    }
+
+    [Fact]
+    public void Deactivate_Twice_IsIdempotent()
+    {
+        var group = AnimalGroup.Create("Vacas Lecheras");
+        group.Deactivate();
+        group.Deactivate();
+
+        Assert.False(group.IsActive);
+    }
+
+    [Fact]
+    public void ChangeTrackingMode_SameMode_IsNoOp()
+    {
+        var group = AnimalGroup.Create("Engorde 1", trackingMode: TrackingMode.Headcount);
+
+        group.ChangeTrackingMode(TrackingMode.Headcount);
+
+        Assert.Equal(TrackingMode.Headcount, group.TrackingMode);
+    }
+
+    [Fact]
+    public void ChangeTrackingMode_OnInactive_Throws()
+    {
+        var group = AnimalGroup.Create("Engorde 1", trackingMode: TrackingMode.Headcount);
+        group.Deactivate();
+
+        var ex = Assert.Throws<DomainException>(() =>
+            group.ChangeTrackingMode(TrackingMode.Individual));
+
+        Assert.Contains("inactivo", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void ChangeTrackingMode_OnActive_UpdatesMode()
+    {
+        var group = AnimalGroup.Create("Vacas Lecheras", trackingMode: TrackingMode.Individual);
+
+        group.ChangeTrackingMode(TrackingMode.Headcount);
+
+        Assert.Equal(TrackingMode.Headcount, group.TrackingMode);
+        Assert.True(group.IsActive);
+    }
 }

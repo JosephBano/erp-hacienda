@@ -1,6 +1,7 @@
 using FluentValidation;
 using Hato.Modules.Livestock.Application.HealthPlans;
 using Hato.Modules.Livestock.Application.PlausibilityRanges;
+using Hato.Modules.Livestock.Domain.Exceptions;
 using Hato.SharedKernel;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
@@ -19,6 +20,7 @@ public class ApiExceptionHandler : IExceptionHandler
             DomainException => (StatusCodes.Status400BadRequest, "Regla de negocio violada"),
             DuplicateHealthPlanException => (StatusCodes.Status409Conflict, "Plan duplicado"),
             DuplicatePlausibilityRangeException => (StatusCodes.Status409Conflict, "Combinación duplicada"),
+            AnimalGroupStateException => (StatusCodes.Status409Conflict, "Estado del grupo no permite la operación"),
             UnauthorizedAccessException => (StatusCodes.Status401Unauthorized, "No autorizado"),
             KeyNotFoundException => (StatusCodes.Status404NotFound, "No encontrado"),
             _ => (0, string.Empty),

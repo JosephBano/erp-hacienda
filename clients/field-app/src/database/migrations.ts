@@ -192,5 +192,37 @@ export const migrations = schemaMigrations({
         }),
       ],
     },
+    {
+      toVersion: 9,
+      steps: [
+        // 3.5a.1 (ADR-0015) + BACKLOG "AnimalEvent grupal aún no viaja en el
+        // pull": the event history (individual and group-subject) now travels
+        // on the pull, which is what 3.5a.7's lot record needs. A phone in
+        // the field cannot be wiped to pick this up (PLAN-FASE-3-4 sec.3.B),
+        // so this is a real migration, not a fresh install requirement.
+        createTable({
+          name: 'animal_events',
+          columns: [
+            { name: 'animal_id', type: 'string', isOptional: true, isIndexed: true },
+            { name: 'group_id', type: 'string', isOptional: true, isIndexed: true },
+            { name: 'event_type', type: 'string', isIndexed: true },
+            { name: 'occurred_at', type: 'string', isIndexed: true },
+            { name: 'recorded_by', type: 'string' },
+            { name: 'recorded_by_id', type: 'string', isOptional: true },
+            { name: 'payload_json', type: 'string' },
+            { name: 'cost', type: 'number', isOptional: true },
+            { name: 'related_event_id', type: 'string', isOptional: true },
+            { name: 'affected_count', type: 'number', isOptional: true },
+            { name: 'cause_id', type: 'string', isOptional: true },
+            { name: 'route_id', type: 'string', isOptional: true },
+            { name: 'reason', type: 'string', isOptional: true },
+            { name: 'batch_id', type: 'string', isOptional: true },
+            { name: 'health_plan_item_id', type: 'string', isOptional: true },
+            { name: 'applied_by_user_id', type: 'string', isOptional: true },
+            { name: 'is_deleted', type: 'boolean' },
+          ],
+        }),
+      ],
+    },
   ],
 });

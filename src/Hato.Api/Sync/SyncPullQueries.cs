@@ -43,7 +43,8 @@ public record SyncCollectionsDto(
     List<SyncHealthPlanDto> HealthPlans,
     List<SyncHealthPlanItemDto> HealthPlanItems,
     List<SyncHealthPlanAssignmentDto> HealthPlanAssignments,
-    List<SyncPlausibilityRangeDto> PlausibilityRanges);
+    List<SyncPlausibilityRangeDto> PlausibilityRanges,
+    List<SyncAnimalEventDto> AnimalEvents);
 
 public record SyncAnimalDto(
     Guid Id,
@@ -269,6 +270,47 @@ public record SyncPlausibilityRangeDto(
     DateTimeOffset? UpdatedAt,
     bool IsDeleted) : ISyncRow;
 
+/// <summary>
+/// The animal/group event history (3.5a.1, ADR-0015), gated by
+/// <c>livestock.animals.read</c> like the rest of the animal-support collections.
+///
+/// This is the deuda from BACKLOG.md ("AnimalEvent grupal aún no viaja en el pull"):
+/// 3.5a.1 built the group-subject mechanism (push, domain, DB CHECK) but nothing pulled
+/// it back down until 3.5a.7 needed "última vacunación, alimento del período" on the lot
+/// record. One collection carries both animal- and group-subject events, mirroring the
+/// same XOR the domain and the DB CHECK already enforce (ADR-0015 sec.2) — <see
+/// cref="AnimalId"/> and <see cref="GroupId"/> are never both set and never both null.
+/// Faking an <c>animalId</c> on a group event to keep the wire shape uniform is exactly
+/// the synthetic data ADR-0015 exists to prevent, so the DTO stays honest about the
+/// subject the same way <see cref="SyncHealthPlanAssignmentDto"/> already does.
+///
+/// Events are append-only (Art. 1): a correction is a new row referencing the original
+/// via <see cref="RelatedEventId"/>, never an edit. So <see cref="UpdatedAt"/> is always
+/// null and <see cref="IsDeleted"/> is always false — there is nothing to overwrite or
+/// tombstone, only a growing log for the cursor to walk.
+/// </summary>
+public record SyncAnimalEventDto(
+    Guid Id,
+    Guid? AnimalId,
+    Guid? GroupId,
+    string EventType,
+    DateTimeOffset OccurredAt,
+    string RecordedBy,
+    Guid? RecordedById,
+    string PayloadJson,
+    decimal? Cost,
+    Guid? RelatedEventId,
+    int? AffectedCount,
+    Guid? CauseId,
+    Guid? RouteId,
+    string? Reason,
+    Guid? BatchId,
+    Guid? HealthPlanItemId,
+    Guid? AppliedByUserId,
+    DateTimeOffset CreatedAt,
+    DateTimeOffset? UpdatedAt,
+    bool IsDeleted) : ISyncRow;
+
 public record GetSyncPullQuery(
     string? Since = null,
     string? Collections = null,
@@ -313,6 +355,7 @@ public class GetSyncPullQueryHandler(
             ["healthPlanItems"] = SystemPermissions.LivestockAnimalsRead,
             ["healthPlanAssignments"] = SystemPermissions.LivestockAnimalsRead,
             ["plausibilityRanges"] = SystemPermissions.LivestockAnimalsRead,
+            ["animalEvents"] = SystemPermissions.LivestockAnimalsRead,
         };
 
     public async Task<SyncPullResponseDto> Handle(GetSyncPullQuery request, CancellationToken cancellationToken)
@@ -455,12 +498,22 @@ public class GetSyncPullQueryHandler(
                 r.IsActive, r.CreatedAt, r.UpdatedAt, r.DeletedAt != null),
             cancellationToken);
 
+        var animalEvents = await ReadAsync(
+            effective, "animalEvents", livestockDb.AnimalEvents, since, limit, frontier,
+            e => new SyncAnimalEventDto(
+                e.Id, e.AnimalId, e.GroupId, e.EventType.ToString(), e.OccurredAt,
+                e.RecordedByLabel, e.RecordedById, e.PayloadJson, e.Cost, e.RelatedEventId,
+                e.AffectedCount, e.CauseId, e.RouteId, e.Reason, e.BatchId,
+                e.HealthPlanItemId, e.AppliedByUserId,
+                e.CreatedAt, e.UpdatedAt, e.DeletedAt != null),
+            cancellationToken);
+
         var collections = new SyncCollectionsDto(
             animals, identifiers, groups, memberships,
             speciesList, breeds, categories, items, withdrawals, mortalityCauses, farmModules,
             administrationRoutes, treatmentReasons,
             healthPlans, healthPlanItems, healthPlanAssignments,
-            plausibilityRanges);
+            plausibilityRanges, animalEvents);
 
         return new SyncPullResponseDto(frontier.Next.Format(), frontier.HasMore, collections);
     }

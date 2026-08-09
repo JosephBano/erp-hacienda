@@ -327,6 +327,9 @@ const TABLE_BY_COLLECTION: Record<string, string> = {
   treatmentReasons: 'treatment_reasons',
   // 3.5a.6 (ADR-0022): plausibility ranges for offline validation.
   plausibilityRanges: 'plausibility_ranges',
+  // 3.5a.1 (ADR-0015) + BACKLOG "AnimalEvent grupal aún no viaja en el pull":
+  // animal- and group-subject event history, needed by 3.5a.7's lot record.
+  animalEvents: 'animal_events',
 };
 
 /**

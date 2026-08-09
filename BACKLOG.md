@@ -176,16 +176,28 @@
 
 ### [deuda] `AnimalEvent` grupal aún no viaja en el pull (3.5a.1)
 
-- **Archivos**: `src/Hato.Api/Sync/SyncPullQueries.cs`, `clients/field-app/src/services/syncEngine.ts`.
-- **Causa**: 3.5a.1 agrega el mecanismo de evento grupal (push, dominio, CHECK de BD) pero
-  ningún flujo del móvil todavía necesita leer el historial de eventos de un lote — la
-  compuerta de `PLAN-FASE-3-5-PORCINO.md` sec.2.3 bloquea las pantallas nuevas hasta que
-  el árbol de actividades esté cerrado con el cliente (3.5a.7/3.5a.9-B). Agregar una
-  colección `groupEvents`/`animalEvents` al pull ahora sería construir sin consumidor.
-- **Trabajo a hacer**: cuando 3.5a.7 escriba la ficha del lote ("última vacunación,
-  alimento del período"), agregar `SyncAnimalEventDto` + `ReadAsync` en
-  `SyncPullQueries.cs` y su entrada en `TABLE_BY_COLLECTION`.
-- **Disparador**: arranque de 3.5a.7 (`feature/field-app-lot-registration`).
+- **Estado (2026-08-09)**: ✅ CERRADO en `feature/sync-animal-event-pull` (pendiente de
+  merge a `develop`; desbloquea el arranque paralelo de 3.5a.7). Agrega
+  `SyncAnimalEventDto` + su `ReadAsync` en `src/Hato.Api/Sync/SyncPullQueries.cs`, con
+  entrada `animalEvents` en `TABLE_BY_COLLECTION` (gated por `livestock.animals.read`,
+  igual que el resto de las colecciones de soporte de animales). Un solo DTO carga
+  tanto eventos de sujeto animal como de sujeto lote — `AnimalId`/`GroupId` opcionales,
+  espejando el XOR que el dominio y el CHECK de BD ya imponen (ADR-0015 sec.2); no se
+  inventa un `animalId` falso para los eventos de lote (la trampa que el ADR-0015
+  existe para evitar). Del lado móvil: tabla `animal_events` en
+  `clients/field-app/src/database/schema.ts` (versión 9), modelo `AnimalEvent` en
+  `models.ts`, migración `toVersion: 9` en `migrations.ts` (un teléfono en el campo no
+  se reinstala sin perder la cola), y entrada en `TABLE_BY_COLLECTION` de
+  `clients/field-app/src/services/syncEngine.ts`. Pruebas: 6 nuevas de integración en
+  `tests/Hato.Sync.IntegrationTests/SyncPullAnimalEventsTests.cs` (evento animal,
+  evento de lote, baja de lote con `affectedCount`, permiso, empate de cursor en el
+  mismo instante, paginación incremental sin pérdidas ni duplicados) + 3 nuevas del
+  lado móvil (`schema.test.ts`, `syncEngine.test.ts`).
+- **Archivos**: `src/Hato.Api/Sync/SyncPullQueries.cs`,
+  `clients/field-app/src/database/{schema,models,migrations}.ts`,
+  `clients/field-app/src/services/syncEngine.ts`,
+  `tests/Hato.Sync.IntegrationTests/SyncPullAnimalEventsTests.cs`.
+- **Disparador**: N/A — ítem cerrado.
 
 ### [docs] `mortality_causes` sin pantalla de administración en admin-web (3.5a.3)
 

@@ -8,7 +8,12 @@ using Microsoft.EntityFrameworkCore;
 namespace Hato.Modules.Inventory.Application.Items;
 
 public record CreateInventoryItemCommand(
-    string Name, ItemCategory Category, string Unit, decimal MinStock = 0, string? Description = null) : IRequest<Guid>;
+    string Name,
+    ItemCategory Category,
+    string Unit,
+    decimal MinStock = 0,
+    string? Description = null,
+    Guid? FeedStageId = null) : IRequest<Guid>;
 
 public class CreateInventoryItemValidator : AbstractValidator<CreateInventoryItemCommand>
 {
@@ -25,8 +30,18 @@ public class CreateInventoryItemHandler(IInventoryDbContext dbContext)
 {
     public async Task<Guid> Handle(CreateInventoryItemCommand request, CancellationToken cancellationToken)
     {
+        if (request.FeedStageId.HasValue)
+        {
+            var stageExists = await dbContext.FeedStages
+                .AsNoTracking()
+                .AnyAsync(s => s.Id == request.FeedStageId.Value, cancellationToken);
+
+            if (!stageExists)
+                throw new DomainException($"La etapa de alimento con ID '{request.FeedStageId}' no existe.");
+        }
+
         var item = InventoryItem.Create(
-            request.Name, request.Category, request.Unit, request.MinStock, request.Description);
+            request.Name, request.Category, request.Unit, request.MinStock, request.Description, request.FeedStageId);
 
         dbContext.InventoryItems.Add(item);
         await dbContext.SaveChangesAsync(cancellationToken);

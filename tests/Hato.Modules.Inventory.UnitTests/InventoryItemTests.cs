@@ -91,4 +91,74 @@ public class InventoryItemTests
         Assert.Equal(120m, consumption.QuantityInBaseUnit);
         Assert.Equal(40m, consumption.AppliedFactor);
     }
+
+    // PLAN-FASE-3-5-PORCINO.md sec.3.5a.5 task 3: feed_stage only applies to Feed items.
+
+    [Fact]
+    public void CreateItem_FeedCategory_WithFeedStage_Succeeds()
+    {
+        var stageId = Guid.NewGuid();
+
+        var item = InventoryItem.Create("Preiniciador porcino", ItemCategory.Feed, "kg", 0, null, stageId);
+
+        Assert.Equal(stageId, item.FeedStageId);
+    }
+
+    [Fact]
+    public void CreateItem_NonFeedCategory_WithFeedStage_Throws()
+    {
+        var stageId = Guid.NewGuid();
+
+        Assert.Throws<DomainException>(() =>
+            InventoryItem.Create("Oxitetraciclina", ItemCategory.Medicine, "ml", 0, null, stageId));
+    }
+
+    [Fact]
+    public void CreateItem_WithoutFeedStage_LeavesItNull()
+    {
+        var item = InventoryItem.Create("Balanceado genérico", ItemCategory.Feed, "kg");
+
+        Assert.Null(item.FeedStageId);
+    }
+
+    [Fact]
+    public void SetFeedStage_OnFeedItem_Succeeds()
+    {
+        var item = InventoryItem.Create("Balanceado genérico", ItemCategory.Feed, "kg");
+        var stageId = Guid.NewGuid();
+
+        item.SetFeedStage(stageId);
+
+        Assert.Equal(stageId, item.FeedStageId);
+    }
+
+    [Fact]
+    public void SetFeedStage_OnFeedItem_WithNull_ClearsIt()
+    {
+        var item = InventoryItem.Create("Balanceado genérico", ItemCategory.Feed, "kg", 0, null, Guid.NewGuid());
+
+        item.SetFeedStage(null);
+
+        Assert.Null(item.FeedStageId);
+    }
+
+    [Fact]
+    public void SetFeedStage_OnNonFeedItem_Throws()
+    {
+        var item = InventoryItem.Create("Oxitetraciclina", ItemCategory.Medicine, "ml");
+
+        Assert.Throws<DomainException>(() => item.SetFeedStage(Guid.NewGuid()));
+    }
+
+    [Fact]
+    public void SetFeedStage_OnNonFeedItem_WithNull_DoesNotThrow()
+    {
+        // Clearing (or leaving unset) never conflicts with the invariant — only
+        // declaring a stage on a non-Feed item does.
+        var item = InventoryItem.Create("Oxitetraciclina", ItemCategory.Medicine, "ml");
+
+        item.SetFeedStage(null);
+
+        Assert.Null(item.FeedStageId);
+    }
 }

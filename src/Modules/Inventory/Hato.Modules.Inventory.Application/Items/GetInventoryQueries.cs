@@ -15,6 +15,7 @@ public record InventoryItemDto(
     string Unit,
     decimal MinStock,
     string? Description,
+    Guid? FeedStageId,
     decimal TotalStock,
     List<InventoryBatchDto> Batches);
 
@@ -42,6 +43,7 @@ public class GetInventoryItemsHandler(IInventoryDbContext dbContext)
             i.Unit,
             i.MinStock,
             i.Description,
+            i.FeedStageId,
             i.Batches.Sum(b => b.Quantity),
             i.Batches.Select(b => new InventoryBatchDto(b.Id, b.BatchNumber, b.Quantity, b.CostPerUnit, b.ExpirationDate)).ToList()
         )).ToList();

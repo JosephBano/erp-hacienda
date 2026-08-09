@@ -15,9 +15,33 @@ public class InventoryItemConfiguration : IEntityTypeConfiguration<InventoryItem
         builder.Property(i => i.Category).HasConversion<string>().HasMaxLength(20).IsRequired();
         builder.Property(i => i.Unit).HasMaxLength(20).IsRequired();
         builder.Property(i => i.Description).HasMaxLength(500);
+        builder.Property(i => i.FeedStageId).IsRequired(false);
+
+        // Restrict, not cascade: deactivating/removing a feed stage must never silently
+        // wipe the classification off items that reference it (Art. 1).
+        builder.HasOne<FeedStage>().WithMany().HasForeignKey(i => i.FeedStageId).OnDelete(DeleteBehavior.Restrict);
 
         builder.Metadata.FindNavigation(nameof(InventoryItem.Batches))!
             .SetPropertyAccessMode(PropertyAccessMode.Field);
+    }
+}
+
+public class FeedStageConfiguration : IEntityTypeConfiguration<FeedStage>
+{
+    public void Configure(EntityTypeBuilder<FeedStage> builder)
+    {
+        builder.ToTable("feed_stages");
+        builder.HasKey(s => s.Id);
+
+        builder.Property(s => s.Key).HasMaxLength(50).IsRequired();
+        builder.Property(s => s.LabelEs).HasMaxLength(100).IsRequired();
+        builder.Property(s => s.IsActive).IsRequired();
+
+        // Key is the wire-format identifier; unique across active rows only, same pattern
+        // as AdministrationRoute/TreatmentReason — a deactivated row keeps its old key so
+        // historical InventoryItem.FeedStageId references stay meaningful.
+        builder.HasIndex(s => s.Key).IsUnique().HasFilter("deleted_at IS NULL");
+        builder.HasIndex(s => s.IsActive);
     }
 }
 

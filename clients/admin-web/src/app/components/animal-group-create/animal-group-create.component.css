@@ -1,0 +1,65 @@
+/* PR3 — Create. Reusa estilos globales (form-grid, form-input, glass-card,
+   page-container, btn-primary, btn-secondary). Aquí solo lo específico. */
+
+.required { color: var(--danger); margin-left: 0.2rem; }
+
+.tracking-mode-fieldset {
+  margin: 1.5rem 0 0 0;
+  padding: 1.25rem 1.5rem;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.tracking-mode-fieldset legend {
+  padding: 0 0.5rem;
+  font-weight: 600;
+}
+
+.hint-text {
+  margin: 0 0 1rem 0;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.radio-row {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+  padding: 0.75rem 0;
+  cursor: pointer;
+  border-top: 1px solid var(--border-color);
+}
+
+.radio-row:first-of-type {
+  border-top: none;
+}
+
+.radio-row input[type="radio"] {
+  margin-top: 0.25rem;
+  flex: 0 0 auto;
+}
+
+.radio-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.radio-sub {
+  color: var(--text-muted);
+  font-size: 0.875rem;
+}
+
+.warning-block {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  margin-top: 1rem;
+  padding: 0.75rem 1rem;
+  background: rgba(245, 158, 11, 0.08);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  border-radius: var(--radius-md);
+  color: var(--text-main);
+  font-size: 0.9rem;
+}

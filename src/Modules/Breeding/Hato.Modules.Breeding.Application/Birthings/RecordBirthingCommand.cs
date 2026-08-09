@@ -1,5 +1,6 @@
 using FluentValidation;
 using Hato.Modules.Breeding.Application.Abstractions;
+using Hato.Modules.Breeding.Application.Cohorts;
 using Hato.Modules.Breeding.Contracts;
 using Hato.Modules.Breeding.Domain;
 using Hato.Modules.Breeding.Domain.Enums;
@@ -43,7 +44,10 @@ public class RecordBirthingCommandValidator : AbstractValidator<RecordBirthingCo
     }
 }
 
-public class RecordBirthingCommandHandler(IBreedingDbContext dbContext, IAnimalRegistrationService animalRegistration)
+public class RecordBirthingCommandHandler(
+    IBreedingDbContext dbContext,
+    IAnimalRegistrationService animalRegistration,
+    INursingCohortAssigner cohortAssigner)
     : IRequestHandler<RecordBirthingCommand, BirthingDto>
 {
     public async Task<BirthingDto> Handle(RecordBirthingCommand request, CancellationToken cancellationToken)
@@ -80,6 +84,17 @@ public class RecordBirthingCommandHandler(IBreedingDbContext dbContext, IAnimalR
             }
         }
 
+        // Pull the species off the dam so the cohort assigner knows which window to apply.
+        var speciesId = await ResolveDamSpeciesAsync(request.DamId, cancellationToken);
+
+        // Cohort assignment happens before Save so the new birthings row carries the
+        // nursing_cohort_id; the assigner opens a new cohort when no candidate is open.
+        Guid? cohortId = null;
+        if (speciesId.HasValue)
+        {
+            cohortId = await cohortAssigner.AssignAsync(speciesId.Value, request.BirthDate, cancellationToken);
+        }
+
         var birthing = Birthing.Create(
             request.DamId,
             request.BirthDate,
@@ -92,7 +107,8 @@ public class RecordBirthingCommandHandler(IBreedingDbContext dbContext, IAnimalR
             request.Notes,
             sireAnimalId,
             fatherStrawId,
-            request.Offspring
+            request.Offspring,
+            cohortId
         );
 
         dbContext.Birthings.Add(birthing);
@@ -101,6 +117,10 @@ public class RecordBirthingCommandHandler(IBreedingDbContext dbContext, IAnimalR
         // Enroll each live-born calf as a first-class Animal in Livestock, with
         // genealogy set — this is what makes "the calf was born inside the system"
         // (Fase 2 exit criterion) true, instead of just recording a litter count.
+        // BirthWeightKg is propagated from the field-app (PLAN-FASE-3-5-PORCINO.md
+        // sec.3.5a.4 task 3): without it, every metric that derives from the
+        // first-day weight — gilt selection, pre-weaning growth — is unrecoverable
+        // once the litter is mixed into the headcount lot.
         if (request.Offspring is { Count: > 0 })
         {
             foreach (var offspring in request.Offspring)
@@ -114,7 +134,8 @@ public class RecordBirthingCommandHandler(IBreedingDbContext dbContext, IAnimalR
                         FarmTag: offspring.FarmTag,
                         FatherAnimalId: sireAnimalId,
                         FatherStrawId: fatherStrawId,
-                        BirthingId: birthing.Id),
+                        BirthingId: birthing.Id,
+                        BirthWeightKg: offspring.BirthWeightKg),
                     cancellationToken);
             }
         }
@@ -131,7 +152,23 @@ public class RecordBirthingCommandHandler(IBreedingDbContext dbContext, IAnimalR
             birthing.Mummified,
             birthing.LitterWeight,
             birthing.Notes,
-            birthing.CreatedAt
+            birthing.CreatedAt,
+            birthing.WeanedAt,
+            birthing.WeanedCount,
+            birthing.NursingCohortId
         );
+    }
+
+    /// <summary>
+    /// The cohort assigner needs the species id of the dam. The cross-module
+    /// <see cref="IAnimalRegistrationService"/> port exposes a read-only species lookup
+    /// for exactly this purpose (the dam registration may live in Livestock.Domain
+    /// without Breeding importing the table). If the dam was deleted or the species
+    /// cannot be resolved, the birth is recorded without grouping — the kinship
+    /// through the birthing row is preserved either way.
+    /// </summary>
+    private async Task<Guid?> ResolveDamSpeciesAsync(Guid damId, CancellationToken cancellationToken)
+    {
+        return await animalRegistration.GetSpeciesAsync(damId, cancellationToken);
     }
 }

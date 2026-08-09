@@ -49,6 +49,126 @@ describe('EventsScreen', () => {
     expect(await screen.findByTestId('mode-treatment')).toBeTruthy();
     expect(screen.getByTestId('mode-weight')).toBeTruthy();
     expect(screen.getByTestId('mode-move')).toBeTruthy();
+    expect(screen.getByTestId('mode-disposal')).toBeTruthy();
     expect(screen.queryByTestId('events-animal-empty')).toBeNull();
+  });
+
+  /**
+   * When the activity tree (3.5a.9-B) hands us an animal + activity, EventsScreen
+   * skips both the animal picker and the activity menu. The operator has already
+   * done the three taps (subject, animal, activity) by the time they arrive here, and
+   * the form they get next is the same one they would have reached by tapping through
+   * the menu — fewer steps, no behaviour change.
+   */
+  it('skips the activity menu when initialAnimalId is set together with initialActivity', async () => {
+    const animals = [{ animalId: 'a-1', label: 'Pinta' }];
+    await render(
+      <EventsScreen
+        service={service}
+        animals={animals}
+        groups={[]}
+        medications={[]}
+        initialAnimalId="a-1"
+        initialActivity="weight"
+      />,
+    );
+
+    // The mode menu is replaced by the weight form directly.
+    expect(screen.queryByTestId('mode-treatment')).toBeNull();
+    expect(screen.queryByTestId('mode-weight')).toBeNull();
+    expect(screen.queryByTestId('mode-move')).toBeNull();
+    expect(await screen.findByTestId('weight-input')).toBeTruthy();
+  });
+
+  it('still shows the menu when only initialAnimalId is set', async () => {
+    const animals = [{ animalId: 'a-1', label: 'Pinta' }];
+    await render(
+      <EventsScreen
+        service={service}
+        animals={animals}
+        groups={[]}
+        medications={[]}
+        initialAnimalId="a-1"
+      />,
+    );
+
+    // Pre-selecting just the animal does not collapse the activity menu — the caller
+    // chose the animal, but the activity is still the operator's choice. The menu
+    // remains visible; the picker is reached once they tap an activity.
+    expect(await screen.findByTestId('mode-treatment')).toBeTruthy();
+  });
+
+  it('still shows the menu when only initialActivity is set', async () => {
+    const animals = [{ animalId: 'a-1', label: 'Pinta' }];
+    await render(
+      <EventsScreen
+        service={service}
+        animals={animals}
+        groups={[]}
+        medications={[]}
+        initialActivity="weight"
+      />,
+    );
+
+    // Pre-selecting just the activity means the menu is gone but the animal picker
+    // still leads the form. Counted taps: subject + animal + activity + confirm = 4.
+    expect(await screen.findByTestId('animal-list')).toBeTruthy();
+    expect(screen.queryByTestId('mode-treatment')).toBeNull();
+  });
+
+  /** 3.5a.3: "Baja con causa" reached the same way the other three activities are. */
+  it('goes straight to the disposal form when initialActivity is disposal', async () => {
+    const animals = [{ animalId: 'a-1', label: 'Pinta' }];
+    await render(
+      <EventsScreen
+        service={service}
+        animals={animals}
+        groups={[]}
+        medications={[]}
+        mortalityCauses={[{ causeId: 'cause-1', name: 'Aplastamiento' }]}
+        initialAnimalId="a-1"
+        initialActivity="disposal"
+      />,
+    );
+
+    expect(screen.queryByTestId('mode-treatment')).toBeNull();
+    expect(await screen.findByTestId('cause-cause-1')).toBeTruthy();
+  });
+
+  it('shows the resolved mother when the selected animal has one', async () => {
+    const animals = [
+      { animalId: 'sow-1', label: 'Cerda 01' },
+      { animalId: 'piglet-1', label: 'Lechón 01', motherId: 'sow-1' },
+    ];
+    await render(
+      <EventsScreen
+        service={service}
+        animals={animals}
+        groups={[]}
+        medications={[]}
+        mortalityCauses={[{ causeId: 'cause-1', name: 'Aplastamiento' }]}
+        initialAnimalId="piglet-1"
+        initialActivity="disposal"
+      />,
+    );
+
+    expect(await screen.findByText(/Madre: Cerda 01/)).toBeTruthy();
+  });
+
+  it('shows an empty-catalog message instead of a broken picker when no causes are loaded', async () => {
+    const animals = [{ animalId: 'a-1', label: 'Pinta' }];
+    await render(
+      <EventsScreen
+        service={service}
+        animals={animals}
+        groups={[]}
+        medications={[]}
+        mortalityCauses={[]}
+        initialAnimalId="a-1"
+        initialActivity="disposal"
+      />,
+    );
+
+    expect(await screen.findByText(/No hay causas de mortalidad configuradas/)).toBeTruthy();
   });
 });

@@ -23,6 +23,8 @@ describe('local schema', () => {
         'sync_outbox',
         'milk_yields',
         'sync_meta',
+        'farm_modules',
+        'mortality_causes',
       ]),
     );
   });

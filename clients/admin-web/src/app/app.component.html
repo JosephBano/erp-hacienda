@@ -77,10 +77,23 @@
 
       <div
         class="nav-section-label"
-        *ngIf="auth.hasPermission('people.roles.manage') || auth.hasPermission('people.users.manage')"
+        *ngIf="auth.hasPermission('people.roles.manage') || auth.hasPermission('people.users.manage') || auth.hasPermission('livestock.animals.write')"
       >
         Administración
       </div>
+
+      <a
+        routerLink="/animal-groups"
+        routerLinkActive="active"
+        class="nav-item"
+        aria-label="Administración de lotes y grupos"
+        title="Lotes y Grupos"
+        *ngIf="auth.hasPermission('livestock.animals.write')"
+        (click)="closeDrawer()"
+      >
+        <app-icon class="nav-icon" name="tag" />
+        <span class="nav-label">Lotes y Grupos</span>
+      </a>
 
       <a
         routerLink="/roles"

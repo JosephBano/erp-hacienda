@@ -2,7 +2,8 @@
 
 > Regla de oro (Art. 11): **una fase se cierra cuando algo se usa de verdad en la finca.**
 > Este archivo se actualiza al cerrar cada fase (fecha real + retrospectiva de 5 líneas).
-> Estado actual: `Fase 3 — reabierta` (iniciada 2026-08-02, cerrada en falso 2026-08-02, reabierta 2026-08-03).
+> Estado actual: `Fase 3 — reabierta` (iniciada 2026-08-02, cerrada en falso 2026-08-02, reabierta 2026-08-03),
+> con la `Fase 3.5 — Adaptación porcina` insertada el 2026-08-05 antes de la Fase 4.
 >
 > **Retrospectiva Fase 0:** el esqueleto se construyó con asistencia intensiva de un agente de
 > IA (Claude Code) siguiendo al pie de la letra `AGENTS.md` y la Constitución; el costo
@@ -130,7 +131,7 @@ móvil, incluyendo días sin señal, sin pérdida ni duplicación de datos.
 > podía disparar un conflicto LWW fuera de una prueba) y otra en `admin-web` que la
 > expone, los endpoints de lectura de especies/razas/categorías que faltaban para poder
 > registrar un animal desde cualquier cliente con su pantalla correspondiente, los 10
-> escenarios obligatorios de sincronización de PLAN-FASE-3-4 §2.2 (los últimos dos —
+> escenarios obligatorios de sincronización de PLAN-FASE-3-4 sec.2.2 (los últimos dos —
 > token expirado a mitad de push y corte de red a mitad de un lote — encontraron y
 > corrigieron un bug real en el cliente), la prueba de convergencia end-to-end con dos
 > dispositivos simulados, y las pantallas de roles/permisos (con edición), auditoría y
@@ -139,6 +140,65 @@ móvil, incluyendo días sin señal, sin pérdida ni duplicación de datos.
 > rechazadas, `ng test` roto en `admin-web`) y por qué. Sigue pendiente, heredado y sin
 > relación con esta fase: la subida de fotos (Fase 4) y el ciclo de vida de `Lactation`
 > (Fase 2, nunca implementado).
+
+---
+
+## Fase 3.5 — Adaptación porcina (insertada 2026-08-05)
+
+> **Desacople del inicio del piloto del cierre completo del bloque 3.5a (ADR-0024,
+> 2026-08-08).** El inicio del piloto real no exige cerrar 3.5a como bloque: exige
+> un sub-conjunto mínimo de captura + tratamiento + primer nivel del árbol + visibilidad
+> de módulos + rangos de plausibilidad, todos mergeados a develop. Lo que falta
+> (3.5a.7.1–5 UI del sujeto "lote", 3.5a.8 correcciones desde el teléfono, 3.5a.3
+> causas de muerte) queda como deuda rastreable en `BACKLOG.md`, no como bloqueo.
+> El criterio completo de salida de 3.5a sigue exigiendo clasificación por peso +
+> tratamiento con vía/motivo + corrección desde el teléfono como bloque.
+
+**Objetivo:** que el sistema represente el negocio real del cliente del piloto, que no es
+una lechería sino una **granja porcina**.
+
+> **Por qué existe esta fase y por qué va antes de la Fase 4.** El levantamiento del
+> 2026-08-05 con el cliente expuso ocho frentes donde el modelo no representa su operación.
+> Dos chocan con supuestos que atraviesan todo el sistema: los porcinos de engorde **no
+> tienen arete** (y el modelo asume *animal = individuo con UUID*), y el manejo es por lote
+> con conteo, no por individuo. La Fase 4 necesita volumen de datos cargados que hoy no
+> existe porque nadie puede usar el sistema para lo que esta finca hace. Adaptar el dominio
+> primero es lo que habilita esa carga — el orden que pide el Art. 11.
+
+Se ejecuta en dos bloques. **El piloto real puede arrancar con un sub-conjunto de 3.5a
+mergeado a develop** (sub-criterio "Para abrir el piloto real" en el plan), siempre que la
+deuda restante quede documentada como tal — ver
+[ADR-0024](adr/0024-pilot-decoupling-from-3-5a.md). El desacople es deliberado: no hay
+valor en dejar al cliente sin sistema mientras la UI del sujeto "lote" (3.5a.7.1–5)
+termina de implementarse, y la conversación de frecuencias con el cliente (sec.7-C del
+plan) puede ocurrir en paralelo al uso real:
+
+- **3.5a — Captura.** Lote por conteo y eventos grupales (ADR-0015) · parto con peso por
+  lechón y cohorte de lactancia · tratamientos con vía, motivo y dosis con unidad (Art. 10)
+  · vacunación como evento propio · muerte con causa · alimento en sacos con conversión de
+  unidades · rangos de plausibilidad configurables · corrección de registros desde el campo
+  (ADR-0017) · buscador de animales · **Ordeño oculto por interruptor explícito** (ADR-0019):
+  el módulo no aplica a esta finca, se apaga desde el panel y **no se borra nada** — código,
+  pruebas, endpoints y datos quedan intactos hasta que el dueño lo encienda.
+- **3.5b — Análisis.** Plan sanitario configurable con alertas (ADR-0016) · estándares de
+  alimentación · **conversión alimenticia (FCR) por lote** · **características observables
+  del animal** (ADR-0018) · índice de madres · alertas destete–celo y retiro en carne.
+
+> **El ADR-0018 no es porcino.** Salió de generalizar la calificación de madres —que estaba
+> modelada como una tabla que sólo servía para cerdas, violando el Art. 8— y terminó siendo
+> el mecanismo para cualquier juicio sobre cualquier animal: "este caballo patea", "esta vaca
+> se escapa del corral", "esta cerda no deja mamar". Incluye advertencias visibles en la
+> ficha del animal en el móvil, que transfieren el conocimiento del empleado veterano al que
+> recién entra — valor que no tiene nada que ver con esta fase ni con esta especie.
+
+El plan de ejecución detallado está en `PLAN-FASE-3-5-PORCINO.md`.
+
+**Criterio de salida (3.5a):** una camada real nacida, pesada y seguida dentro del sistema
+hasta su clasificación por peso a los 24 días, con sus tratamientos registrados con vía y
+motivo, y al menos una **corrección hecha desde el teléfono por un error de dedo real**.
+
+**Criterio de salida (3.5b):** un ciclo de engorde con su conversión alimenticia calculada
+por el sistema, y una decisión de manejo del cliente tomada con ese número.
 
 ---
 

@@ -9,7 +9,11 @@ import { BreedingDashboardComponent } from './components/breeding-dashboard/bree
 import { RolesManagementComponent } from './components/roles-management/roles-management.component';
 import { AuditLogComponent } from './components/audit-log/audit-log.component';
 import { SyncTrayComponent } from './components/sync-tray/sync-tray.component';
+import { CatalogsComponent } from './components/catalogs/catalogs.component';
 import { LoginComponent } from './components/login/login.component';
+import { AnimalGroupsListComponent } from './components/animal-groups-list/animal-groups-list.component';
+import { AnimalGroupCreateComponent } from './components/animal-group-create/animal-group-create.component';
+import { AnimalGroupDetailComponent } from './components/animal-group-detail/animal-group-detail.component';
 import { authGuard } from './guards/auth.guard';
 import { permissionGuard } from './guards/permission.guard';
 
@@ -22,6 +26,21 @@ export const routes: Routes = [
   { path: 'milking', component: QuickMilkingComponent, canActivate: [authGuard] },
   { path: 'events', component: QuickEventComponent, canActivate: [authGuard] },
   { path: 'breeding', component: BreedingDashboardComponent, canActivate: [authGuard] },
+  {
+    path: 'animal-groups',
+    component: AnimalGroupsListComponent,
+    canActivate: [authGuard, permissionGuard('livestock.animals.write')]
+  },
+  {
+    path: 'animal-groups/new',
+    component: AnimalGroupCreateComponent,
+    canActivate: [authGuard, permissionGuard('livestock.animals.write')]
+  },
+  {
+    path: 'animal-groups/:id',
+    component: AnimalGroupDetailComponent,
+    canActivate: [authGuard, permissionGuard('livestock.animals.write')]
+  },
   {
     path: 'roles',
     component: RolesManagementComponent,
@@ -36,6 +55,11 @@ export const routes: Routes = [
     path: 'sync',
     component: SyncTrayComponent,
     canActivate: [authGuard, permissionGuard('people.users.manage')]
+  },
+  {
+    path: 'catalogs',
+    component: CatalogsComponent,
+    canActivate: [authGuard, permissionGuard('livestock.species.manage')]
   },
   { path: '**', redirectTo: '' }
 ];

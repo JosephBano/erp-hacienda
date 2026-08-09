@@ -52,11 +52,17 @@ app.MapAnimalCategoriesEndpoints();
 app.MapAnimalsEndpoints();
 app.MapAnimalGroupsEndpoints();
 app.MapAnimalEventsEndpoints();
+app.MapMortalityCausesEndpoints();
+app.MapAdministrationRoutesEndpoints();
+app.MapTreatmentReasonsEndpoints();
+app.MapHealthPlansEndpoints();
+app.MapPlausibilityRangesEndpoints();
 app.MapMilkingEndpoints();
 app.MapInventoryEndpoints();
 app.MapPeopleEndpoints();
 app.MapBreedingEndpoints();
 app.MapTasksEndpoints();
+app.MapFarmModulesEndpoints();
 app.MapSyncEndpoints();
 
 app.Run();

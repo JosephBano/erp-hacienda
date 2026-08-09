@@ -9,7 +9,6 @@ using Microsoft.AspNetCore.TestHost;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Testcontainers.PostgreSql;
 using Xunit;
 
 namespace Hato.Modules.Tasks.IntegrationTests.Api;
@@ -21,9 +20,9 @@ namespace Hato.Modules.Tasks.IntegrationTests.Api;
 /// </summary>
 public class TasksApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
 {
-    private readonly PostgreSqlContainer _postgres = new PostgreSqlBuilder()
-        .WithImage("postgres:16-alpine")
-        .Build();
+    // Real PostgreSQL, resolved by TestSupport: a throwaway container by default,
+    // or a fresh database on the server named by HATO_TEST_POSTGRES.
+    private TestDatabase _database = null!;
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
@@ -31,7 +30,7 @@ public class TasksApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
         {
             config.AddInMemoryCollection(new Dictionary<string, string?>
             {
-                ["ConnectionStrings:HatoDb"] = _postgres.GetConnectionString(),
+                ["ConnectionStrings:HatoDb"] = _database.ConnectionString,
             });
         });
 
@@ -40,28 +39,28 @@ public class TasksApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
 
     public async Task InitializeAsync()
     {
-        await _postgres.StartAsync();
+        _database = await TestDatabase.StartAsync();
 
         var livestockOptions = new DbContextOptionsBuilder<LivestockDbContext>()
-            .UseNpgsql(_postgres.GetConnectionString(), n => n.MigrationsHistoryTable("__ef_migrations_history", LivestockDbContext.Schema))
+            .UseNpgsql(_database.ConnectionString, n => n.MigrationsHistoryTable("__ef_migrations_history", LivestockDbContext.Schema))
             .Options;
         await using var livestockContext = new LivestockDbContext(livestockOptions);
         await livestockContext.Database.MigrateAsync();
 
         var breedingOptions = new DbContextOptionsBuilder<BreedingDbContext>()
-            .UseNpgsql(_postgres.GetConnectionString(), n => n.MigrationsHistoryTable("__ef_migrations_history", BreedingDbContext.Schema))
+            .UseNpgsql(_database.ConnectionString, n => n.MigrationsHistoryTable("__ef_migrations_history", BreedingDbContext.Schema))
             .Options;
         await using var breedingContext = new BreedingDbContext(breedingOptions);
         await breedingContext.Database.MigrateAsync();
 
         var inventoryOptions = new DbContextOptionsBuilder<InventoryDbContext>()
-            .UseNpgsql(_postgres.GetConnectionString(), n => n.MigrationsHistoryTable("__ef_migrations_history", InventoryDbContext.Schema))
+            .UseNpgsql(_database.ConnectionString, n => n.MigrationsHistoryTable("__ef_migrations_history", InventoryDbContext.Schema))
             .Options;
         await using var inventoryContext = new InventoryDbContext(inventoryOptions);
         await inventoryContext.Database.MigrateAsync();
 
         var tasksOptions = new DbContextOptionsBuilder<TasksDbContext>()
-            .UseNpgsql(_postgres.GetConnectionString(), n => n.MigrationsHistoryTable("__ef_migrations_history", TasksDbContext.Schema))
+            .UseNpgsql(_database.ConnectionString, n => n.MigrationsHistoryTable("__ef_migrations_history", TasksDbContext.Schema))
             .Options;
         await using var tasksContext = new TasksDbContext(tasksOptions);
         await tasksContext.Database.MigrateAsync();
@@ -70,6 +69,6 @@ public class TasksApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
     async Task IAsyncLifetime.DisposeAsync()
     {
         await base.DisposeAsync();
-        await _postgres.DisposeAsync();
+        await _database.DisposeAsync();
     }
 }

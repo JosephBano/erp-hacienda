@@ -11,4 +11,14 @@
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
   </ItemGroup>
 
+  <!--
+    Both packages already lived in every integration test project; TestDatabase is where
+    they get referenced once instead of seven times. No new third-party dependency enters
+    the repository (AGENTS.md rule 2).
+  -->
+  <ItemGroup>
+    <PackageReference Include="Npgsql" Version="8.0.6" />
+    <PackageReference Include="Testcontainers.PostgreSql" Version="4.1.0" />
+  </ItemGroup>
+
 </Project>

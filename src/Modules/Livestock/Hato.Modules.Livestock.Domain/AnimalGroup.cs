@@ -14,25 +14,29 @@ public class AnimalGroup : AuditableEntity
     public string? Description { get; private set; }
     public Guid? SpeciesId { get; private set; }
     public bool IsActive { get; private set; }
+    public TrackingMode TrackingMode { get; private set; }
 
     public IReadOnlyCollection<GroupMembership> Memberships => _memberships.AsReadOnly();
 
     private AnimalGroup() { Name = null!; }
 
-    private AnimalGroup(string name, string? description, Guid? speciesId)
+    private AnimalGroup(string name, string? description, Guid? speciesId, TrackingMode trackingMode)
     {
         Name = name;
         Description = description;
         SpeciesId = speciesId;
         IsActive = true;
+        TrackingMode = trackingMode;
     }
 
-    public static AnimalGroup Create(string name, string? description = null, Guid? speciesId = null)
+    public static AnimalGroup Create(
+        string name, string? description = null, Guid? speciesId = null,
+        TrackingMode trackingMode = TrackingMode.Individual)
     {
         if (string.IsNullOrWhiteSpace(name))
             throw new DomainException("El nombre del grupo no puede estar vacío.");
 
-        return new AnimalGroup(name.Trim(), description?.Trim(), speciesId);
+        return new AnimalGroup(name.Trim(), description?.Trim(), speciesId, trackingMode);
     }
 
     public void Update(string name, string? description = null, Guid? speciesId = null)
@@ -48,6 +52,39 @@ public class AnimalGroup : AuditableEntity
     public void Deactivate()
     {
         IsActive = false;
+    }
+
+    /// <summary>
+    /// Reactivates a group previously deactivated. Idempotent: calling
+    /// <see cref="Activate"/> on an already active group is a no-op.
+    /// </summary>
+    public void Activate()
+    {
+        IsActive = true;
+    }
+
+    /// <summary>
+    /// Changes the group's tracking mode. ADR-0025 sec.3: only allowed while the
+    /// group is active; the "no membership, no events" guard lives in the handler
+    /// because it requires queries against other tables the entity does not see.
+    /// Idempotent when the requested mode equals the current one. A retroactive
+    /// change after events have been recorded would re-write the past (Art. 1) or
+    /// fabricate identity within an anonymous lot (ADR-0015 sec.7 "trampa").
+    /// </summary>
+    public void ChangeTrackingMode(TrackingMode newMode)
+    {
+        if (newMode == TrackingMode)
+        {
+            return;
+        }
+
+        if (!IsActive)
+        {
+            throw new DomainException(
+                "No se puede cambiar el modo de seguimiento de un grupo inactivo.");
+        }
+
+        TrackingMode = newMode;
     }
 
     public GroupMembership AddMember(Guid animalId, DateOnly joinedAt)
@@ -71,5 +108,26 @@ public class AnimalGroup : AuditableEntity
             throw new DomainException("El animal no es un miembro activo de este grupo.");
 
         activeMembership.Close(leftAt);
+    }
+
+    /// <summary>
+    /// The cascade closure of ADR-0015 sec.7: when a <see cref="TrackingMode.Headcount"/>
+    /// lot's disposition reaches zero, every remaining active membership closes at once,
+    /// in bulk — never one animal chosen out of the anonymous rest. Returns the animal ids
+    /// that were closed, so the caller can mark each one disposed with lot scope. A no-op
+    /// on a group with nothing active is legal: the caller decides whether that is
+    /// noteworthy.
+    /// </summary>
+    public IReadOnlyList<Guid> CloseAllActiveMemberships(DateOnly closedAt)
+    {
+        var active = _memberships.Where(m => m.IsActive).ToList();
+        var animalIds = active.Select(m => m.AnimalId).ToList();
+
+        foreach (var membership in active)
+        {
+            membership.Close(closedAt);
+        }
+
+        return animalIds;
     }
 }

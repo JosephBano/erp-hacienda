@@ -30,6 +30,10 @@ namespace Hato.Modules.Inventory.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
+                    b.Property<decimal>("AppliedFactor")
+                        .HasColumnType("numeric(18,6)")
+                        .HasColumnName("applied_factor");
+
                     b.Property<Guid?>("BatchId")
                         .HasColumnType("uuid")
                         .HasColumnName("batch_id");
@@ -63,9 +67,13 @@ namespace Hato.Modules.Inventory.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(500)")
                         .HasColumnName("notes");
 
-                    b.Property<decimal>("Quantity")
-                        .HasColumnType("numeric")
-                        .HasColumnName("quantity");
+                    b.Property<decimal>("QuantityInBaseUnit")
+                        .HasColumnType("numeric(18,3)")
+                        .HasColumnName("quantity_in_base_unit");
+
+                    b.Property<decimal>("QuantityRecorded")
+                        .HasColumnType("numeric(18,3)")
+                        .HasColumnName("quantity_recorded");
 
                     b.Property<Guid?>("RecordedById")
                         .HasColumnType("uuid")
@@ -76,6 +84,12 @@ namespace Hato.Modules.Inventory.Infrastructure.Persistence.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)")
                         .HasColumnName("recorded_by_label");
+
+                    b.Property<string>("UnitRecorded")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("unit_recorded");
 
                     b.Property<DateTimeOffset?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")
@@ -218,6 +232,63 @@ namespace Hato.Modules.Inventory.Infrastructure.Persistence.Migrations
                     b.ToTable("inventory_items", "inventory");
                 });
 
+            modelBuilder.Entity("Hato.Modules.Inventory.Domain.UnitConversion", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by");
+
+                    b.Property<DateTimeOffset?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("deleted_at");
+
+                    b.Property<decimal>("Factor")
+                        .HasColumnType("numeric(18,6)")
+                        .HasColumnName("factor");
+
+                    b.Property<string>("FromUnit")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("from_unit");
+
+                    b.Property<Guid>("InventoryItemId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("inventory_item_id");
+
+                    b.Property<string>("ToUnit")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("to_unit");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by");
+
+                    b.HasKey("Id")
+                        .HasName("p_k_unit_conversions");
+
+                    b.HasIndex("InventoryItemId", "FromUnit", "ToUnit")
+                        .IsUnique()
+                        .HasDatabaseName("i_x_unit_conversions_inventory_item_id_from_unit_to_unit");
+
+                    b.ToTable("unit_conversions", "inventory");
+                });
+
             modelBuilder.Entity("Hato.Modules.Inventory.Domain.GroupFeedConsumption", b =>
                 {
                     b.HasOne("Hato.Modules.Inventory.Domain.InventoryItem", null)
@@ -236,6 +307,16 @@ namespace Hato.Modules.Inventory.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("f_k_inventory_batches_inventory_items_inventory_item_id");
+                });
+
+            modelBuilder.Entity("Hato.Modules.Inventory.Domain.UnitConversion", b =>
+                {
+                    b.HasOne("Hato.Modules.Inventory.Domain.InventoryItem", null)
+                        .WithMany()
+                        .HasForeignKey("InventoryItemId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("f_k_unit_conversions_inventory_items_inventory_item_id");
                 });
 
             modelBuilder.Entity("Hato.Modules.Inventory.Domain.InventoryItem", b =>

@@ -7,13 +7,23 @@ namespace Hato.Modules.Livestock.Application.Events;
 
 public record AnimalEventDto(
     Guid Id,
-    Guid AnimalId,
+    Guid? AnimalId,
+    Guid? GroupId,
     EventType EventType,
     DateTimeOffset OccurredAt,
     string RecordedBy,
+    Guid? RecordedById,
     decimal? Cost,
     string PayloadJson,
-    Guid? RelatedEventId);
+    Guid? RelatedEventId,
+    int? AffectedCount,
+    Guid? CauseId,
+    // 3.5a.2-A structured treatment payload (mirrors AnimalEvent properties).
+    Guid? RouteId,
+    string? Reason,
+    Guid? BatchId,
+    Guid? HealthPlanItemId,
+    Guid? AppliedByUserId);
 
 public record WithdrawalPeriodDto(
     Guid Id,
@@ -42,12 +52,21 @@ public class GetAnimalEventsHandler(ILivestockDbContext dbContext)
         return events.Select(e => new AnimalEventDto(
             e.Id,
             e.AnimalId,
+            e.GroupId,
             e.EventType,
             e.OccurredAt,
             e.RecordedBy,
+            e.RecordedById,
             e.Cost,
             e.PayloadJson,
-            e.RelatedEventId
+            e.RelatedEventId,
+            e.AffectedCount,
+            e.CauseId,
+            e.RouteId,
+            e.Reason,
+            e.BatchId,
+            e.HealthPlanItemId,
+            e.AppliedByUserId
         )).ToList();
     }
 }

@@ -31,6 +31,18 @@ public static class InventoryEndpoints
             return Results.Created($"/api/v1/inventory/items/{itemId}/batches/{id}", new { id });
         });
 
+        // Per-item unit conversions (PLAN-FASE-3-5-PORCINO.md sec.3.5a.5). The
+        // field-app reaches these through the pull once the sync layer is wired;
+        // today the admin-web / swagger tooling is the consumer.
+        group.MapPost("/items/{itemId:guid}/unit-conversions", async (
+            Guid itemId,
+            RegisterUnitConversionCommand command,
+            ISender sender) =>
+        {
+            var id = await sender.Send(command with { InventoryItemId = itemId });
+            return Results.Created($"/api/v1/inventory/items/{itemId}/unit-conversions/{id}", new { id });
+        });
+
         group.MapPost("/feed-consumptions", async (RecordGroupFeedConsumptionCommand command, ISender sender) =>
         {
             var id = await sender.Send(command);
@@ -40,3 +52,4 @@ public static class InventoryEndpoints
 }
 
 public record CreateBatchRequest(string BatchNumber, decimal Quantity, decimal CostPerUnit, DateOnly? ExpirationDate);
+public record RegisterUnitConversionRequest(string FromUnit, string ToUnit, decimal Factor);

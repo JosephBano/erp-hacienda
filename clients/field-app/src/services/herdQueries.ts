@@ -7,6 +7,7 @@ import {
   AnimalIdentifier,
   Breed,
   InventoryItem,
+  MortalityCause,
   Species,
   WithdrawalPeriod,
 } from '../database/models';
@@ -22,6 +23,7 @@ export interface HerdMember {
   breedId?: string;
   categoryId?: string;
   birthDate?: string;
+  motherId?: string;
 }
 
 /**
@@ -80,6 +82,7 @@ export async function loadHerd(database: Database, date = todayIso()): Promise<H
       breedId: animal.breedId,
       categoryId: animal.categoryId,
       birthDate: animal.birthDate,
+      motherId: animal.motherId,
     }))
     .sort((a, b) => a.label.localeCompare(b.label));
 }
@@ -121,6 +124,50 @@ export async function loadMedications(database: Database) {
     .filter((item) => !item.isDeleted && /medic/i.test(item.category))
     .map((item) => ({ itemId: item.id, name: item.name }))
     .sort((a, b) => a.name.localeCompare(b.name));
+}
+
+/** The mortality causes catalog (3.5a.3), for the "baja con causa" picker. */
+export async function loadMortalityCauses(database: Database) {
+  const causes = await database.get<MortalityCause>('mortality_causes').query().fetch();
+
+  return causes
+    .filter((cause) => !cause.isDeleted && cause.isActive)
+    .map((cause) => ({ causeId: cause.id, name: cause.name }))
+    .sort((a, b) => a.name.localeCompare(b.name));
+}
+
+/**
+ * The administration routes catalog (3.5a.2-A). The picker in
+ * TreatScreen / VaccinateScreen uses this to build the structured
+ * treatment payload offline.
+ */
+export async function loadAdministrationRoutes(database: Database) {
+  const routes = await database
+    .get<import('../database/models').AdministrationRoute>('administration_routes')
+    .query()
+    .fetch();
+
+  return routes
+    .filter((r) => !r.isDeleted && r.isActive)
+    .map((r) => ({ routeId: r.id, key: r.key, labelEs: r.labelEs }))
+    .sort((a, b) => a.labelEs.localeCompare(b.labelEs));
+}
+
+/**
+ * The treatment reasons catalog (3.5a.2-A). The three values
+ * (scheduled/curative/preventive) are what separate "vacuna de
+ * calendario" from "vacuna porque se enfermó" on the herd's history.
+ */
+export async function loadTreatmentReasons(database: Database) {
+  const reasons = await database
+    .get<import('../database/models').TreatmentReason>('treatment_reasons')
+    .query()
+    .fetch();
+
+  return reasons
+    .filter((r) => !r.isDeleted && r.isActive)
+    .map((r) => ({ reasonId: r.id, key: r.key, labelEs: r.labelEs }))
+    .sort((a, b) => a.labelEs.localeCompare(b.labelEs));
 }
 
 function todayIso(): string {

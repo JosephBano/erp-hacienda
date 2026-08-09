@@ -26,7 +26,11 @@ Español para dominio y docs, inglés para código.
 4. **No toques `main` ni `develop` directamente.** Rama `feature/<módulo>-<descripción>`
    desde `develop`, PR con descripción de qué y por qué.
 5. **Todo PR incluye pruebas.** Dominio → unitarias (xUnit). Persistencia/API → integración
-   con Testcontainers (PostgreSQL real, no InMemory para verificar comportamiento final).
+   contra PostgreSQL real, nunca InMemory para verificar comportamiento final. El servidor lo
+   resuelve `TestDatabase` (en `tests/Hato.TestSupport`): Testcontainers por defecto, o el
+   servidor de `HATO_TEST_POSTGRES` si esa variable existe. Si Docker no te levanta
+   contenedores, usá la variable — correr la suite entera antes de pushear no es opcional
+   (ver README, "Las pruebas de integración y su PostgreSQL").
 6. **Dinero = `decimal`. Cantidades con unidad. Fechas en UTC en persistencia**, zona
    `America/Guayaquil` solo en presentación.
 7. **Migraciones EF Core para todo cambio de esquema.** Nunca edites una migración ya
@@ -67,8 +71,30 @@ Español para dominio y docs, inglés para código.
 
 `SOUL.md` (por qué) · `CONSTITUTION.md` (reglas) · `GLOSSARY.md` (lenguaje) ·
 `ARCHITECTURE.md` (módulos y modelo) · `ROADMAP.md` (fases y estado actual) ·
-`LEGAL-ECUADOR.md` (cumplimiento) · `docs/adr/` (decisiones) · `BACKLOG.md` (ideas y deuda,
-crear cuando haga falta).
+`LEGAL-ECUADOR.md` (cumplimiento) · `docs/adr/` (decisiones) · `docs/planes/` (planes de
+ejecución por fase) · `docs/diagramas/` (diagramas ER en Mermaid) · `BACKLOG.md` (ideas y
+deuda).
+
+## Convenciones de `docs/` (no las improvises)
+
+Estas reglas existen porque el nombrado ya derivó una vez: los ADR 0001–0009 nacieron como
+`ADR-000N-*.md` y del 0010 en adelante alguien pasó a `00NN-*.md`, dejando dos formatos
+conviviendo. Se unificó al corto — la carpeta ya dice `adr`, repetir el prefijo en cada
+archivo es ruido.
+
+- **ADRs** → `docs/adr/NNNN-titulo-en-kebab-case.md`. Cuatro dígitos, **sin** prefijo `ADR-`
+  en el nombre del archivo. El número no se reutiliza jamás, ni siquiera si el ADR se
+  rechaza. La plantilla es `docs/adr/TEMPLATE.md` y no lleva número porque no es un ADR.
+  Dentro del documento el título **sí** dice `# ADR-NNNN — …`.
+- **Planes de ejecución** → `docs/planes/`. Uno por fase.
+- **Diagramas** → `docs/diagramas/`, en `.mermaid`. Los diagramas embebidos en un `.md` se
+  quedan donde están; acá van los completos por núcleo.
+- **El resto de los documentos vive en la raíz de `docs/`**, en `MAYÚSCULAS.md`. No se crean
+  subcarpetas nuevas sin una razón que se pueda escribir en una línea.
+- Al mover o renombrar un documento, **arreglá las referencias en el mismo commit**. Ojo con
+  las citas en prosa desde el código (`PLAN-FASE-3-4 sec.2.2` aparece en ~14 archivos de
+  `src/`, `tests/` y `clients/`): son por nombre, no por ruta, así que mover no las rompe
+  pero **renombrar sí**.
 
 ## Advertencias de dominio que te ahorrarán errores
 

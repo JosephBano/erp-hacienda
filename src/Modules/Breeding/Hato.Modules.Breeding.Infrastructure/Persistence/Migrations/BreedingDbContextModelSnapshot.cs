@@ -78,6 +78,10 @@ namespace Hato.Modules.Breeding.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(500)")
                         .HasColumnName("notes");
 
+                    b.Property<Guid?>("NursingCohortId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("nursing_cohort_id");
+
                     b.Property<Guid?>("PregnancyId")
                         .HasColumnType("uuid")
                         .HasColumnName("pregnancy_id");
@@ -110,6 +114,9 @@ namespace Hato.Modules.Breeding.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("DamId")
                         .HasDatabaseName("i_x_birthings_dam_id");
+
+                    b.HasIndex("NursingCohortId")
+                        .HasDatabaseName("i_x_birthings_nursing_cohort_id");
 
                     b.ToTable("birthings", "breeding");
                 });
@@ -191,6 +198,70 @@ namespace Hato.Modules.Breeding.Infrastructure.Persistence.Migrations
                         {
                             t.HasCheckConstraint("CK_BreedingService_SireOrStraw", "(sire_animal_id IS NOT NULL AND straw_id IS NULL) OR (sire_animal_id IS NULL AND straw_id IS NOT NULL)");
                         });
+                });
+
+            modelBuilder.Entity("Hato.Modules.Breeding.Domain.NursingCohort", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateOnly?>("ClosedAt")
+                        .HasColumnType("date")
+                        .HasColumnName("closed_at");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by");
+
+                    b.Property<DateTimeOffset?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("deleted_at");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("notes");
+
+                    b.Property<Guid>("SpeciesId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("species_id");
+
+                    b.Property<DateOnly>("StartedAt")
+                        .HasColumnType("date")
+                        .HasColumnName("started_at");
+
+                    b.Property<DateOnly?>("SortedAt")
+                        .HasColumnType("date")
+                        .HasColumnName("sorted_at");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by");
+
+                    b.Property<DateOnly?>("WeanedAt")
+                        .HasColumnType("date")
+                        .HasColumnName("weaned_at");
+
+                    b.HasKey("Id")
+                        .HasName("p_k_nursing_cohorts");
+
+                    b.HasIndex("StartedAt")
+                        .HasDatabaseName("i_x_nursing_cohorts_started_at");
+
+                    b.HasIndex("SpeciesId", "ClosedAt")
+                        .HasDatabaseName("i_x_nursing_cohorts_species_id_closed_at");
+
+                    b.ToTable("nursing_cohorts", "breeding");
                 });
 
             modelBuilder.Entity("Hato.Modules.Breeding.Domain.Pregnancy", b =>
@@ -415,6 +486,15 @@ namespace Hato.Modules.Breeding.Infrastructure.Persistence.Migrations
                         {
                             t.HasCheckConstraint("CK_SemenStraw_CurrentQuantityNotNegative", "current_quantity >= 0");
                         });
+                });
+
+            modelBuilder.Entity("Hato.Modules.Breeding.Domain.Birthing", b =>
+                {
+                    b.HasOne("Hato.Modules.Breeding.Domain.NursingCohort", null)
+                        .WithMany()
+                        .HasForeignKey("NursingCohortId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("f_k_birthings_nursing_cohorts_nursing_cohort_id");
                 });
 #pragma warning restore 612, 618
         }

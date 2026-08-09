@@ -20,7 +20,14 @@ public static class AnimalEventsEndpoints
                 request.Cost,
                 request.MilkWithdrawalDays,
                 request.MeatWithdrawalDays,
-                request.RelatedEventId);
+                request.RelatedEventId,
+                request.CauseId,
+                request.RouteId,
+                request.Reason,
+                request.BatchId,
+                request.HealthPlanItemId,
+                request.RecordedById,
+                request.AppliedByUserId);
 
             var eventId = await sender.Send(command);
             return Results.Created($"/api/v1/animals/{animalId}/events/{eventId}", new { id = eventId });
@@ -49,4 +56,13 @@ public record RecordAnimalEventRequest(
     decimal? Cost = null,
     int? MilkWithdrawalDays = null,
     int? MeatWithdrawalDays = null,
-    Guid? RelatedEventId = null);
+    Guid? RelatedEventId = null,
+    Guid? CauseId = null,
+    // 3.5a.2-A structured treatment payload. See RecordAnimalEventCommand
+    // for the rationale on each field.
+    Guid? RouteId = null,
+    string? Reason = null,
+    Guid? BatchId = null,
+    Guid? HealthPlanItemId = null,
+    Guid? RecordedById = null,
+    Guid? AppliedByUserId = null);

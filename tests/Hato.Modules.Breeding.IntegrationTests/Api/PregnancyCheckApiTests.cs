@@ -16,7 +16,7 @@ public class PregnancyCheckApiTests(BreedingApiFactory factory) : IClassFixture<
     [Fact]
     public async Task RecordPositiveCheck_ForPorcineDam_UsesSpeciesGestationDays_NotBovineDefault()
     {
-        var speciesResponse = await _client.PostAsJsonAsync("/api/v1/species", new { name = "Porcino", gestationDays = 114 });
+        var speciesResponse = await _client.PostAsJsonAsync("/api/v1/species", new { name = $"Porcino-{Guid.NewGuid():N}", gestationDays = 114 });
         speciesResponse.EnsureSuccessStatusCode();
         var speciesId = (await speciesResponse.Content.ReadFromJsonAsync<CreatedId>())!.Id;
 

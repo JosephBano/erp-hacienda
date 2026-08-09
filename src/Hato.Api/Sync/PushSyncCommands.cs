@@ -186,7 +186,7 @@ public class PushSyncBatchCommandHandler(
 
     /// <summary>
     /// Routes an operation to the same command the web API would use. Adding a new field
-    /// flow means adding a case here — and a push test for it (PLAN-FASE-3-4 §2.2).
+    /// flow means adding a case here — and a push test for it (PLAN-FASE-3-4 sec.2.2).
     /// </summary>
     private async Task<string?> ExecuteAsync(
         SyncPushOperationDto operation, string payloadJson, string? deviceId, CancellationToken cancellationToken)
@@ -203,6 +203,13 @@ public class PushSyncBatchCommandHandler(
             case "recordanimalevent":
                 {
                     var command = Deserialize<RecordAnimalEventCommand>(payloadJson, "evento");
+                    var id = await sender.Send(command, cancellationToken);
+                    return id.ToString();
+                }
+
+            case "recordgroupevent":
+                {
+                    var command = Deserialize<RecordGroupEventCommand>(payloadJson, "evento de lote");
                     var id = await sender.Send(command, cancellationToken);
                     return id.ToString();
                 }
@@ -259,6 +266,23 @@ public class PushSyncBatchCommandHandler(
                     var result = await sender.Send(command, cancellationToken);
                     LogConflicts(result, operation.ClientOperationId, deviceId);
                     return result.AnimalId.ToString();
+                }
+
+            case "recordcorrection":
+                {
+                    // Field correction flow (PLAN-FASE-3-5-PORCINO.md sec.3.5a.8, ADR-0017).
+                    // The original event must already exist on the server and the
+                    // correction must arrive on the same calendar day; the handler checks
+                    // both. The push op is the always-routed path so the outbox can
+                    // stay dumb — it only knows the operation type.
+                    var payload = Deserialize<RecordCorrectionPushPayload>(payloadJson, "corrección");
+                    var command = new RecordCorrectionCommand(
+                        payload.OriginalEventId,
+                        operation.OccurredAt,
+                        payload.RecordedBy,
+                        payload.Reason);
+                    var id = await sender.Send(command, cancellationToken);
+                    return id.ToString();
                 }
 
             default:
@@ -336,3 +360,15 @@ public record UpdateAnimalPushPayload(
     Guid? CategoryId,
     DateOnly? BirthDate,
     DateTimeOffset? KnownUpdatedAt = null);
+
+/// <summary>
+/// Field correction payload (3.5a.8). The original event id is the
+/// <c>resultRef</c> the device got back when it pushed the original op, so the
+/// server can resolve the correction without an extra round trip. The reason is
+/// the operator's free-text explanation; the server stores it under the event
+/// payload as JSONB.
+/// </summary>
+public record RecordCorrectionPushPayload(
+    Guid OriginalEventId,
+    string RecordedBy,
+    string Reason);

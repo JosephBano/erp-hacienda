@@ -19,6 +19,14 @@ public class Birthing : AuditableEntity
     public DateOnly? WeanedAt { get; private set; }
     public int? WeanedCount { get; private set; }
 
+    /// <summary>
+    /// Cohort this birth belongs to (PLAN-FASE-3-5-PORCINO.md sec.3.5a.4). The cohort
+    /// is the unit of weaning: <c>weaning_date = max(BirthDate) + DaysOfLactation</c>
+    /// across every Birthing in the cohort, not litter by litter. Set once and never
+    /// moved: rewriting the cohort would rewrite the weaning day the farmer already saw.
+    /// </summary>
+    public Guid? NursingCohortId { get; private set; }
+
     private Birthing() { } // EF Core
 
     public static Birthing Create(
@@ -33,7 +41,8 @@ public class Birthing : AuditableEntity
         string? notes = null,
         Guid? sireAnimalId = null,
         Guid? fatherStrawId = null,
-        List<OffspringBirthInfo>? offspring = null)
+        List<OffspringBirthInfo>? offspring = null,
+        Guid? nursingCohortId = null)
     {
         if (damId == Guid.Empty)
             throw new DomainException("Dam ID is required for a birthing event.");
@@ -57,6 +66,7 @@ public class Birthing : AuditableEntity
             Mummified = mummified,
             LitterWeight = litterWeight,
             Notes = notes?.Trim(),
+            NursingCohortId = nursingCohortId,
             CreatedAt = DateTimeOffset.UtcNow
         };
 

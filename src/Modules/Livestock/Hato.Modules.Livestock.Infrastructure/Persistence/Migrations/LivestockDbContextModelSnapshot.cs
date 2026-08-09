@@ -23,6 +23,67 @@ namespace Hato.Modules.Livestock.Infrastructure.Persistence.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("Hato.Modules.Livestock.Domain.AdministrationRoute", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by");
+
+                    b.Property<Guid?>("DefaultUnitId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("default_unit_id");
+
+                    b.Property<DateTimeOffset?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("deleted_at");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_active");
+
+                    b.Property<string>("Key")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("key");
+
+                    b.Property<string>("LabelEs")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("label_es");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by");
+
+                    b.HasKey("Id")
+                        .HasName("p_k_administration_routes");
+
+                    b.HasIndex("IsActive")
+                        .HasDatabaseName("i_x_administration_routes_is_active");
+
+                    b.HasIndex("Key")
+                        .IsUnique()
+                        .HasDatabaseName("i_x_administration_routes_key")
+                        .HasFilter("deleted_at IS NULL");
+
+                    b.ToTable("administration_routes", "livestock");
+                });
+
             modelBuilder.Entity("Hato.Modules.Livestock.Domain.Animal", b =>
                 {
                     b.Property<Guid>("Id")
@@ -33,6 +94,10 @@ namespace Hato.Modules.Livestock.Infrastructure.Persistence.Migrations
                     b.Property<DateOnly?>("BirthDate")
                         .HasColumnType("date")
                         .HasColumnName("birth_date");
+
+                    b.Property<decimal?>("BirthWeightKg")
+                        .HasColumnType("numeric(8,3)")
+                        .HasColumnName("birth_weight_kg");
 
                     b.Property<Guid?>("BirthingId")
                         .HasColumnType("uuid")
@@ -57,6 +122,10 @@ namespace Hato.Modules.Livestock.Infrastructure.Persistence.Migrations
                     b.Property<DateTimeOffset?>("DeletedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("deleted_at");
+
+                    b.Property<DateTimeOffset?>("DisposedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("disposed_at");
 
                     b.Property<Guid?>("FatherAnimalId")
                         .HasColumnType("uuid")
@@ -169,9 +238,25 @@ namespace Hato.Modules.Livestock.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
-                    b.Property<Guid>("AnimalId")
+                    b.Property<int?>("AffectedCount")
+                        .HasColumnType("integer")
+                        .HasColumnName("affected_count");
+
+                    b.Property<Guid?>("AnimalId")
                         .HasColumnType("uuid")
                         .HasColumnName("animal_id");
+
+                    b.Property<Guid?>("AppliedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("applied_by_user_id");
+
+                    b.Property<Guid?>("BatchId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("batch_id");
+
+                    b.Property<Guid?>("CauseId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("cause_id");
 
                     b.Property<decimal?>("Cost")
                         .HasColumnType("numeric")
@@ -195,6 +280,14 @@ namespace Hato.Modules.Livestock.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(30)")
                         .HasColumnName("event_type");
 
+                    b.Property<Guid?>("GroupId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("group_id");
+
+                    b.Property<Guid?>("HealthPlanItemId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("health_plan_item_id");
+
                     b.Property<DateTimeOffset>("OccurredAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("occurred_at");
@@ -203,6 +296,11 @@ namespace Hato.Modules.Livestock.Infrastructure.Persistence.Migrations
                         .IsRequired()
                         .HasColumnType("jsonb")
                         .HasColumnName("payload_json");
+
+                    b.Property<string>("Reason")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("reason");
 
                     b.Property<Guid?>("RecordedById")
                         .HasColumnType("uuid")
@@ -218,6 +316,10 @@ namespace Hato.Modules.Livestock.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("related_event_id");
 
+                    b.Property<Guid?>("RouteId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("route_id");
+
                     b.Property<DateTimeOffset?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updated_at");
@@ -229,13 +331,39 @@ namespace Hato.Modules.Livestock.Infrastructure.Persistence.Migrations
                     b.HasKey("Id")
                         .HasName("p_k_animal_events");
 
+                    b.HasIndex("AppliedByUserId")
+                        .HasDatabaseName("i_x_animal_events_applied_by_user_id");
+
+                    b.HasIndex("BatchId")
+                        .HasDatabaseName("i_x_animal_events_batch_id");
+
+                    b.HasIndex("CauseId")
+                        .HasDatabaseName("i_x_animal_events_cause_id");
+
+                    b.HasIndex("HealthPlanItemId")
+                        .HasDatabaseName("i_x_animal_events_health_plan_item_id");
+
+                    b.HasIndex("Reason")
+                        .HasDatabaseName("i_x_animal_events_reason");
+
                     b.HasIndex("RecordedById")
                         .HasDatabaseName("i_x_animal_events_recorded_by_id");
+
+                    b.HasIndex("RouteId")
+                        .HasDatabaseName("i_x_animal_events_route_id");
 
                     b.HasIndex("AnimalId", "OccurredAt")
                         .HasDatabaseName("i_x_animal_events_animal_id_occurred_at");
 
-                    b.ToTable("animal_events", "livestock");
+                    b.HasIndex("GroupId", "OccurredAt")
+                        .HasDatabaseName("i_x_animal_events_group_id_occurred_at");
+
+                    b.ToTable("animal_events", "livestock", t =>
+                        {
+                            t.HasCheckConstraint("CK_AnimalEvent_AffectedCountPositive", "affected_count IS NULL OR affected_count > 0");
+
+                            t.HasCheckConstraint("CK_AnimalEvent_AnimalXorGroup", "(animal_id IS NOT NULL) <> (group_id IS NOT NULL)");
+                        });
                 });
 
             modelBuilder.Entity("Hato.Modules.Livestock.Domain.AnimalGroup", b =>
@@ -275,6 +403,12 @@ namespace Hato.Modules.Livestock.Infrastructure.Persistence.Migrations
                     b.Property<Guid?>("SpeciesId")
                         .HasColumnType("uuid")
                         .HasColumnName("species_id");
+
+                    b.Property<string>("TrackingMode")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("tracking_mode");
 
                     b.Property<DateTimeOffset?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")
@@ -456,7 +590,7 @@ namespace Hato.Modules.Livestock.Infrastructure.Persistence.Migrations
                     b.ToTable("group_memberships", "livestock");
                 });
 
-            modelBuilder.Entity("Hato.Modules.Livestock.Domain.Species", b =>
+            modelBuilder.Entity("Hato.Modules.Livestock.Domain.HealthPlan", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -470,6 +604,298 @@ namespace Hato.Modules.Livestock.Infrastructure.Persistence.Migrations
                     b.Property<Guid?>("CreatedBy")
                         .HasColumnType("uuid")
                         .HasColumnName("created_by");
+
+                    b.Property<DateTimeOffset?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("deleted_at");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_active");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)")
+                        .HasColumnName("name");
+
+                    b.Property<Guid>("SpeciesId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("species_id");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by");
+
+                    b.HasKey("Id")
+                        .HasName("p_k_health_plans");
+
+                    b.HasIndex("SpeciesId")
+                        .HasDatabaseName("i_x_health_plans_species_id");
+
+                    b.HasIndex("Name", "SpeciesId")
+                        .IsUnique()
+                        .HasDatabaseName("i_x_health_plans_name_species_id")
+                        .HasFilter("deleted_at IS NULL");
+
+                    b.ToTable("health_plans", "livestock");
+                });
+
+            modelBuilder.Entity("Hato.Modules.Livestock.Domain.HealthPlanAssignment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid?>("AnimalId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("animal_id");
+
+                    b.Property<DateTimeOffset>("AssignedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("assigned_at");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by");
+
+                    b.Property<DateTimeOffset?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("deleted_at");
+
+                    b.Property<Guid?>("GroupId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("group_id");
+
+                    b.Property<Guid>("HealthPlanId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("health_plan_id");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_active");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by");
+
+                    b.HasKey("Id")
+                        .HasName("p_k_health_plan_assignments");
+
+                    b.HasIndex("AnimalId")
+                        .HasDatabaseName("i_x_health_plan_assignments_animal_id");
+
+                    b.HasIndex("GroupId")
+                        .HasDatabaseName("i_x_health_plan_assignments_group_id");
+
+                    b.HasIndex("HealthPlanId")
+                        .HasDatabaseName("i_x_health_plan_assignments_health_plan_id");
+
+                    b.HasIndex("IsActive")
+                        .HasDatabaseName("i_x_health_plan_assignments_is_active");
+
+                    b.ToTable("health_plan_assignments", "livestock", t =>
+                        {
+                            t.HasCheckConstraint("CK_HealthPlanAssignment_AnimalXorGroup", "(animal_id IS NOT NULL) <> (group_id IS NOT NULL)");
+                        });
+                });
+
+            modelBuilder.Entity("Hato.Modules.Livestock.Domain.HealthPlanItem", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Anchor")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("anchor");
+
+                    b.Property<int>("AnchorOffsetDays")
+                        .HasColumnType("integer")
+                        .HasColumnName("anchor_offset_days");
+
+                    b.Property<Guid?>("AppliesToCategoryId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("applies_to_category_id");
+
+                    b.Property<string>("AppliesToSex")
+                        .HasMaxLength(1)
+                        .HasColumnType("character varying(1)")
+                        .HasColumnName("applies_to_sex");
+
+                    b.Property<int>("ComplianceWindowDays")
+                        .HasColumnType("integer")
+                        .HasColumnName("compliance_window_days");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by");
+
+                    b.Property<DateTimeOffset?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("deleted_at");
+
+                    b.Property<decimal?>("DoseQuantity")
+                        .HasColumnType("numeric(12,3)")
+                        .HasColumnName("dose_quantity");
+
+                    b.Property<Guid?>("DoseUnitId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("dose_unit_id");
+
+                    b.Property<string>("EventType")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("character varying(60)")
+                        .HasColumnName("event_type");
+
+                    b.Property<Guid>("HealthPlanId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("health_plan_id");
+
+                    b.Property<Guid?>("InventoryItemId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("inventory_item_id");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_active");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)")
+                        .HasColumnName("name");
+
+                    b.Property<int?>("Repetitions")
+                        .HasColumnType("integer")
+                        .HasColumnName("repetitions");
+
+                    b.Property<Guid?>("RouteId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("route_id");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by");
+
+                    b.HasKey("Id")
+                        .HasName("p_k_health_plan_items");
+
+                    b.HasIndex("AppliesToCategoryId")
+                        .HasDatabaseName("i_x_health_plan_items_applies_to_category_id");
+
+                    b.HasIndex("EventType")
+                        .HasDatabaseName("i_x_health_plan_items_event_type");
+
+                    b.HasIndex("HealthPlanId")
+                        .HasDatabaseName("i_x_health_plan_items_health_plan_id");
+
+                    b.HasIndex("IsActive")
+                        .HasDatabaseName("i_x_health_plan_items_is_active");
+
+                    b.HasIndex("RouteId")
+                        .HasDatabaseName("i_x_health_plan_items_route_id");
+
+                    b.ToTable("health_plan_items", "livestock", t =>
+                        {
+                            t.HasCheckConstraint("CK_HealthPlanItem_OffsetOrRepetition", "anchor_offset_days <> 0 OR repetitions IS NOT NULL");
+                        });
+                });
+
+            modelBuilder.Entity("Hato.Modules.Livestock.Domain.MortalityCause", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by");
+
+                    b.Property<DateTimeOffset?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("deleted_at");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_active");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("name");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by");
+
+                    b.HasKey("Id")
+                        .HasName("p_k_mortality_causes");
+
+                    b.HasIndex("Name")
+                        .IsUnique()
+                        .HasDatabaseName("i_x_mortality_causes_name");
+
+                    b.ToTable("mortality_causes", "livestock");
+                });
+
+            modelBuilder.Entity("Hato.Modules.Livestock.Domain.Species", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<int?>("CohortWindowDays")
+                        .HasColumnType("integer")
+                        .HasColumnName("cohort_window_days");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by");
+
+                    b.Property<int?>("DaysOfLactation")
+                        .HasColumnType("integer")
+                        .HasColumnName("days_of_lactation");
 
                     b.Property<DateTimeOffset?>("DeletedAt")
                         .HasColumnType("timestamp with time zone")
@@ -508,6 +934,63 @@ namespace Hato.Modules.Livestock.Infrastructure.Persistence.Migrations
                         .HasFilter("deleted_at IS NULL");
 
                     b.ToTable("species", "livestock");
+                });
+
+            modelBuilder.Entity("Hato.Modules.Livestock.Domain.TreatmentReason", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by");
+
+                    b.Property<DateTimeOffset?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("deleted_at");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_active");
+
+                    b.Property<string>("Key")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("key");
+
+                    b.Property<string>("LabelEs")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("label_es");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by");
+
+                    b.HasKey("Id")
+                        .HasName("p_k_treatment_reasons");
+
+                    b.HasIndex("IsActive")
+                        .HasDatabaseName("i_x_treatment_reasons_is_active");
+
+                    b.HasIndex("Key")
+                        .IsUnique()
+                        .HasDatabaseName("i_x_treatment_reasons_key")
+                        .HasFilter("deleted_at IS NULL");
+
+                    b.ToTable("treatment_reasons", "livestock");
                 });
 
             modelBuilder.Entity("Hato.Modules.Livestock.Domain.WithdrawalPeriod", b =>
@@ -621,8 +1104,31 @@ namespace Hato.Modules.Livestock.Infrastructure.Persistence.Migrations
                         .WithMany()
                         .HasForeignKey("AnimalId")
                         .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired()
                         .HasConstraintName("f_k_animal_events_animals_animal_id");
+
+                    b.HasOne("Hato.Modules.Livestock.Domain.MortalityCause", null)
+                        .WithMany()
+                        .HasForeignKey("CauseId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("f_k_animal_events_mortality_causes_cause_id");
+
+                    b.HasOne("Hato.Modules.Livestock.Domain.AnimalGroup", null)
+                        .WithMany()
+                        .HasForeignKey("GroupId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("f_k_animal_events_animal_groups_group_id");
+
+                    b.HasOne("Hato.Modules.Livestock.Domain.HealthPlanItem", null)
+                        .WithMany()
+                        .HasForeignKey("HealthPlanItemId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("f_k_animal_events_health_plan_items_health_plan_item_id");
+
+                    b.HasOne("Hato.Modules.Livestock.Domain.AdministrationRoute", null)
+                        .WithMany()
+                        .HasForeignKey("RouteId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("f_k_animal_events_administration_routes_route_id");
                 });
 
             modelBuilder.Entity("Hato.Modules.Livestock.Domain.AnimalGroup", b =>
@@ -671,6 +1177,60 @@ namespace Hato.Modules.Livestock.Infrastructure.Persistence.Migrations
                         .HasConstraintName("f_k_group_memberships_animal_groups_group_id");
                 });
 
+            modelBuilder.Entity("Hato.Modules.Livestock.Domain.HealthPlan", b =>
+                {
+                    b.HasOne("Hato.Modules.Livestock.Domain.Species", null)
+                        .WithMany()
+                        .HasForeignKey("SpeciesId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("f_k_health_plans_species_species_id");
+                });
+
+            modelBuilder.Entity("Hato.Modules.Livestock.Domain.HealthPlanAssignment", b =>
+                {
+                    b.HasOne("Hato.Modules.Livestock.Domain.Animal", null)
+                        .WithMany()
+                        .HasForeignKey("AnimalId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("f_k_health_plan_assignments_animals_animal_id");
+
+                    b.HasOne("Hato.Modules.Livestock.Domain.AnimalGroup", null)
+                        .WithMany()
+                        .HasForeignKey("GroupId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("f_k_health_plan_assignments_animal_groups_group_id");
+
+                    b.HasOne("Hato.Modules.Livestock.Domain.HealthPlan", null)
+                        .WithMany()
+                        .HasForeignKey("HealthPlanId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("f_k_health_plan_assignments_health_plans_health_plan_id");
+                });
+
+            modelBuilder.Entity("Hato.Modules.Livestock.Domain.HealthPlanItem", b =>
+                {
+                    b.HasOne("Hato.Modules.Livestock.Domain.AnimalCategory", null)
+                        .WithMany()
+                        .HasForeignKey("AppliesToCategoryId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("f_k_health_plan_items_animal_categories_applies_to_category_id");
+
+                    b.HasOne("Hato.Modules.Livestock.Domain.HealthPlan", null)
+                        .WithMany("Items")
+                        .HasForeignKey("HealthPlanId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("f_k_health_plan_items_health_plans_health_plan_id");
+
+                    b.HasOne("Hato.Modules.Livestock.Domain.AdministrationRoute", null)
+                        .WithMany()
+                        .HasForeignKey("RouteId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("f_k_health_plan_items_administration_routes_route_id");
+                });
+
             modelBuilder.Entity("Hato.Modules.Livestock.Domain.WithdrawalPeriod", b =>
                 {
                     b.HasOne("Hato.Modules.Livestock.Domain.Animal", null)
@@ -696,6 +1256,11 @@ namespace Hato.Modules.Livestock.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Hato.Modules.Livestock.Domain.AnimalGroup", b =>
                 {
                     b.Navigation("Memberships");
+                });
+
+            modelBuilder.Entity("Hato.Modules.Livestock.Domain.HealthPlan", b =>
+                {
+                    b.Navigation("Items");
                 });
 #pragma warning restore 612, 618
         }

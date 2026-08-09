@@ -10,6 +10,7 @@ public interface IBreedingDbContext
     DbSet<PregnancyCheck> PregnancyChecks { get; }
     DbSet<Pregnancy> Pregnancies { get; }
     DbSet<Birthing> Birthings { get; }
+    DbSet<NursingCohort> NursingCohorts { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

@@ -1,4 +1,5 @@
 using Hato.Modules.Breeding.Application.Birthings;
+using Hato.Modules.Breeding.Application.Cohorts;
 using Hato.Modules.Breeding.Application.Pregnancies;
 using Hato.Modules.Breeding.Application.PregnancyChecks;
 using Hato.Modules.Breeding.Application.Services;
@@ -56,6 +57,45 @@ public static class BreedingEndpoints
             return Results.Ok(birthing);
         });
 
+        // ----- Nursing cohorts (PLAN-FASE-3-5-PORCINO.md sec.3.5a.4) -----
+        // Weaning is recorded at the cohort level rather than litter by litter. The
+        // command computes the date from the species' DaysOfLactation setting and
+        // walks every birthings row to record the per-birthing weaning event
+        // (Art. 1: those are the immutable history; the cohort is the calendar view
+        // that binds them together).
+        group.MapPost("/cohorts/{cohortId:guid}/wean", async (
+            Guid cohortId,
+            RecordCohortWeaningCommand command,
+            ISender sender) =>
+        {
+            var commandWithCohort = command with { NursingCohortId = cohortId };
+            var cohort = await sender.Send(commandWithCohort);
+            return Results.Ok(cohort);
+        });
+
+        // 3.5a.4 task 4: classifies a weaned nursing cohort by weight into N
+        // headcount engorde lots (ADR-0023). The clinic document is the source
+        // for the (animal → group, weight) assignment payload: the operator
+        // weighs each animal on the day and the panel sends the list in one
+        // request. The handler emits N individual WeightSorted events and M
+        // GroupWeightSorting events in the same transaction.
+        group.MapPost("/cohorts/{cohortId:guid}/classify-by-weight", async (
+            Guid cohortId,
+            ClassifyCohortByWeightRequest request,
+            ISender sender) =>
+        {
+            var assignments = request.Assignments
+                .Select(a => new WeightSortingAssignment(
+                    a.AnimalId, a.TargetGroupId, a.WeightKg))
+                .ToList();
+
+            var command = new ClassifyCohortByWeightCommand(
+                cohortId, request.SortingDate, assignments, request.Notes);
+
+            var result = await sender.Send(command);
+            return Results.Ok(result);
+        });
+
         group.MapGet("/pedigree/{animalId:guid}", async (Guid animalId, ISender sender) =>
         {
             var pedigree = await sender.Send(new Hato.Modules.Breeding.Application.Pedigree.GetPedigreeQuery(animalId));
@@ -69,3 +109,13 @@ public static class BreedingEndpoints
         });
     }
 }
+
+public record ClassifyCohortByWeightRequest(
+    DateOnly SortingDate,
+    List<ClassifyCohortByWeightAssignmentDto> Assignments,
+    string? Notes = null);
+
+public record ClassifyCohortByWeightAssignmentDto(
+    Guid AnimalId,
+    Guid TargetGroupId,
+    decimal WeightKg);

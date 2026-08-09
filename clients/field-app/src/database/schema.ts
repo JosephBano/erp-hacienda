@@ -13,7 +13,7 @@ import { appSchema, tableSchema } from '@nozbe/watermelondb';
  * representable locally, otherwise a record deleted on the server would live on in the
  * employee's list forever.
  */
-export const SCHEMA_VERSION = 4;
+export const SCHEMA_VERSION = 8;
 
 export const schema = appSchema({
   version: SCHEMA_VERSION,
@@ -56,6 +56,10 @@ export const schema = appSchema({
         { name: 'description', type: 'string', isOptional: true },
         { name: 'species_id', type: 'string', isOptional: true },
         { name: 'is_active', type: 'boolean' },
+        // ADR-0015: Individual | Headcount. Evaluated locally (Art. 9) so the app can
+        // tell a field screen "this lot doesn't know which animal is which" without
+        // a round trip.
+        { name: 'tracking_mode', type: 'string' },
         { name: 'is_deleted', type: 'boolean' },
       ],
     }),
@@ -150,6 +154,69 @@ export const schema = appSchema({
       columns: [
         { name: 'key', type: 'string', isIndexed: true },
         { name: 'value', type: 'string' },
+      ],
+    }),
+    // ADR-0019: a per-module on/off flag owned by the product owner, not derived from any
+    // other data. Default visibility for a module whose row is absent is "shown" so a
+    // fresh install does not silently lose a surface; the seed that flips Production off
+    // for the pig pilot comes through the pull, not a migration.
+    // 3.5a.3: the mortality causes catalog (Art. 8), so "baja con causa" offers the list
+    // offline instead of blocking on a round trip the field may not have.
+    tableSchema({
+      name: 'mortality_causes',
+      columns: [
+        { name: 'name', type: 'string' },
+        { name: 'is_active', type: 'boolean' },
+        { name: 'is_deleted', type: 'boolean' },
+      ],
+    }),
+    tableSchema({
+      name: 'farm_modules',
+      columns: [
+        { name: 'key', type: 'string', isIndexed: true },
+        { name: 'enabled', type: 'boolean' },
+        { name: 'disabled_reason', type: 'string', isOptional: true },
+        { name: 'updated_at', type: 'number' },
+        { name: 'updated_by', type: 'string' },
+      ],
+    }),
+    // 3.5a.2-C (ADR-0016 + 3.5a.2-A): catalogs required by VaccinateScreen and
+    // TreatScreen. Mirrored so the field can build a structured treatment
+    // payload offline without a round trip to the server (Art. 9).
+    tableSchema({
+      name: 'administration_routes',
+      columns: [
+        { name: 'key', type: 'string', isIndexed: true },
+        { name: 'label_es', type: 'string' },
+        { name: 'is_active', type: 'boolean' },
+        { name: 'is_deleted', type: 'boolean' },
+      ],
+    }),
+    tableSchema({
+      name: 'treatment_reasons',
+      columns: [
+        { name: 'key', type: 'string', isIndexed: true },
+        { name: 'label_es', type: 'string' },
+        { name: 'is_active', type: 'boolean' },
+        { name: 'is_deleted', type: 'boolean' },
+      ],
+    }),
+    // 3.5a.6 (ADR-0022): plausibility ranges for offline validation of
+    // weights and milk volumes. The validator (see plausibilityService) is
+    // fail-open: a missing row for the (species, category, magnitude)
+    // combination returns pass, not block.
+    tableSchema({
+      name: 'plausibility_ranges',
+      columns: [
+        { name: 'species_id', type: 'string', isIndexed: true },
+        { name: 'category_id', type: 'string', isOptional: true, isIndexed: true },
+        { name: 'magnitude', type: 'string', isIndexed: true },
+        { name: 'plausible_min', type: 'number', isOptional: true },
+        { name: 'plausible_max', type: 'number', isOptional: true },
+        { name: 'absolute_min', type: 'number', isOptional: true },
+        { name: 'absolute_max', type: 'number', isOptional: true },
+        { name: 'is_active', type: 'boolean' },
+        { name: 'is_deleted', type: 'boolean' },
       ],
     }),
   ],

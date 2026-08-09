@@ -24,7 +24,11 @@ export function BigButton({
   hint,
 }: {
   label: string;
-  onPress: () => void;
+  /**
+   * Optional when the button is disabled/busy — disabled surfaces (e.g. a non-yet-shipped
+   * feature stub) cannot be tapped, so onPress would be dead code if required.
+   */
+  onPress?: () => void;
   tone?: ButtonTone;
   disabled?: boolean;
   busy?: boolean;
@@ -148,8 +152,29 @@ export function Body({
   );
 }
 
-export function Card({ children, style }: { children: React.ReactNode; style?: ViewStyle }) {
-  return <View style={[styles.card, style]}>{children}</View>;
+export function Card({
+  children,
+  style,
+  testID,
+  onPress,
+}: {
+  children: React.ReactNode;
+  style?: ViewStyle;
+  testID?: string;
+  /**
+   * Optional: makes the card a pressable row. Used by TodayScreen for the
+   * "lo que registré hoy" entries that route to a future corrections flow.
+   */
+  onPress?: () => void;
+}) {
+  if (onPress) {
+    return (
+      <Pressable testID={testID} onPress={onPress} style={({ pressed }) => [styles.card, style, pressed && { opacity: 0.85 }]}>
+        {children}
+      </Pressable>
+    );
+  }
+  return <View testID={testID} style={[styles.card, style]}>{children}</View>;
 }
 
 /**

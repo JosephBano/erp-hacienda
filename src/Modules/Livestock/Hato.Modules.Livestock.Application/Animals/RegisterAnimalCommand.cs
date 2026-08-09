@@ -41,7 +41,9 @@ public class RegisterAnimalHandler(ILivestockDbContext dbContext) : IRequestHand
         }
 
         var animal = Animal.Register(
-            request.SpeciesId, request.Sex, request.BirthDate, request.BreedId, request.CategoryId, request.Id);
+            request.SpeciesId, request.Sex, request.BirthDate, request.BreedId, request.CategoryId,
+            birthWeightKg: null,
+            id: request.Id);
 
         dbContext.Animals.Add(animal);
         await dbContext.SaveChangesAsync(cancellationToken);

@@ -25,7 +25,8 @@ public class AnimalRegistrationService(ILivestockDbContext dbContext) : IAnimalR
             sex,
             request.BirthDate,
             dam.BreedId,
-            request.CategoryId);
+            request.CategoryId,
+            request.BirthWeightKg);
 
         offspring.SetGenealogy(request.DamId, request.FatherAnimalId, request.FatherStrawId, request.BirthingId);
 
@@ -36,6 +37,36 @@ public class AnimalRegistrationService(ILivestockDbContext dbContext) : IAnimalR
         await dbContext.SaveChangesAsync(cancellationToken);
 
         return offspring.Id;
+    }
+
+    public async Task<Guid?> GetSpeciesAsync(Guid animalId, CancellationToken cancellationToken)
+    {
+        return await dbContext.Animals
+            .AsNoTracking()
+            .Where(a => a.Id == animalId && a.DeletedAt == null)
+            .Select(a => (Guid?)a.SpeciesId)
+            .FirstOrDefaultAsync(cancellationToken);
+    }
+
+    public async Task<int> CountPreweaningDeathsAsync(Guid birthingId, CancellationToken cancellationToken)
+    {
+        var offspringIds = await dbContext.Animals
+            .AsNoTracking()
+            .Where(a => a.BirthingId == birthingId && a.DeletedAt == null)
+            .Select(a => a.Id)
+            .ToListAsync(cancellationToken);
+
+        if (offspringIds.Count == 0)
+        {
+            return 0;
+        }
+
+        return await dbContext.AnimalEvents
+            .AsNoTracking()
+            .CountAsync(e => e.EventType == EventType.Disposal
+                          && e.AnimalId.HasValue
+                          && offspringIds.Contains(e.AnimalId.Value),
+                      cancellationToken);
     }
 
     private static Sex ParseSex(string sex) => sex.Trim().ToUpperInvariant() switch

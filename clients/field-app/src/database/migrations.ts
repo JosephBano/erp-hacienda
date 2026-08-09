@@ -1,7 +1,7 @@
 import { schemaMigrations, createTable, addColumns } from '@nozbe/watermelondb/Schema/migrations';
 
 /**
- * Versioned local migrations (PLAN-FASE-3-4 §3.B).
+ * Versioned local migrations (PLAN-FASE-3-4 sec.3.B).
  *
  * A phone in the field cannot be wiped and re-seeded to pick up a schema change: it may
  * be carrying a week of unsynced records. Every schema bump therefore needs a migration
@@ -103,6 +103,92 @@ export const migrations = schemaMigrations({
         addColumns({
           table: 'species',
           columns: [{ name: 'is_milkable', type: 'boolean' }],
+        }),
+      ],
+    },
+    {
+      toVersion: 5,
+      steps: [
+        // ADR-0019: per-module visibility flag. The table starts empty — defaulting
+        // visibility to "shown" for any module without a row keeps the upgrade silent.
+        createTable({
+          name: 'farm_modules',
+          columns: [
+            { name: 'key', type: 'string', isIndexed: true },
+            { name: 'enabled', type: 'boolean' },
+            { name: 'disabled_reason', type: 'string', isOptional: true },
+            { name: 'updated_at', type: 'number' },
+            { name: 'updated_by', type: 'string' },
+          ],
+        }),
+      ],
+    },
+    {
+      toVersion: 6,
+      steps: [
+        // ADR-0015: a group by headcount knows how many members it has, not which ones.
+        // Existing local rows default to '' until the next pull overwrites them with the
+        // real value — the same fail-silent-then-corrected pattern toVersion 4 used for
+        // is_milkable.
+        addColumns({
+          table: 'animal_groups',
+          columns: [{ name: 'tracking_mode', type: 'string' }],
+        }),
+      ],
+    },
+    {
+      toVersion: 7,
+      steps: [
+        // 3.5a.3: mortality causes catalog, pulled down so the disposal form works
+        // offline the same way the medication and lot pickers already do.
+        createTable({
+          name: 'mortality_causes',
+          columns: [
+            { name: 'name', type: 'string' },
+            { name: 'is_active', type: 'boolean' },
+            { name: 'is_deleted', type: 'boolean' },
+          ],
+        }),
+      ],
+    },
+    {
+      toVersion: 8,
+      steps: [
+        // 3.5a.2-C (ADR-0016 + 3.5a.2-A): catalogs that the structured
+        // treatment payload needs. Mirrored locally so the field app can
+        // build the payload without a round-trip (Art. 9).
+        createTable({
+          name: 'administration_routes',
+          columns: [
+            { name: 'key', type: 'string', isIndexed: true },
+            { name: 'label_es', type: 'string' },
+            { name: 'is_active', type: 'boolean' },
+            { name: 'is_deleted', type: 'boolean' },
+          ],
+        }),
+        createTable({
+          name: 'treatment_reasons',
+          columns: [
+            { name: 'key', type: 'string', isIndexed: true },
+            { name: 'label_es', type: 'string' },
+            { name: 'is_active', type: 'boolean' },
+            { name: 'is_deleted', type: 'boolean' },
+          ],
+        }),
+        // 3.5a.6 (ADR-0022): plausibility ranges for offline validation.
+        createTable({
+          name: 'plausibility_ranges',
+          columns: [
+            { name: 'species_id', type: 'string', isIndexed: true },
+            { name: 'category_id', type: 'string', isOptional: true, isIndexed: true },
+            { name: 'magnitude', type: 'string', isIndexed: true },
+            { name: 'plausible_min', type: 'number', isOptional: true },
+            { name: 'plausible_max', type: 'number', isOptional: true },
+            { name: 'absolute_min', type: 'number', isOptional: true },
+            { name: 'absolute_max', type: 'number', isOptional: true },
+            { name: 'is_active', type: 'boolean' },
+            { name: 'is_deleted', type: 'boolean' },
+          ],
         }),
       ],
     },

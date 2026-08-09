@@ -5,7 +5,11 @@ using MediatR;
 
 namespace Hato.Modules.Livestock.Application.AnimalGroups;
 
-public record CreateAnimalGroupCommand(string Name, string? Description, Guid? SpeciesId) : IRequest<Guid>;
+public record CreateAnimalGroupCommand(
+    string Name,
+    string? Description,
+    Guid? SpeciesId,
+    TrackingMode TrackingMode = TrackingMode.Individual) : IRequest<Guid>;
 
 public class CreateAnimalGroupValidator : AbstractValidator<CreateAnimalGroupCommand>
 {
@@ -20,7 +24,7 @@ public class CreateAnimalGroupHandler(ILivestockDbContext dbContext) : IRequestH
 {
     public async Task<Guid> Handle(CreateAnimalGroupCommand request, CancellationToken cancellationToken)
     {
-        var group = AnimalGroup.Create(request.Name, request.Description, request.SpeciesId);
+        var group = AnimalGroup.Create(request.Name, request.Description, request.SpeciesId, request.TrackingMode);
 
         dbContext.AnimalGroups.Add(group);
         await dbContext.SaveChangesAsync(cancellationToken);

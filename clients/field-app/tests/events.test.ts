@@ -119,6 +119,72 @@ describe('EventService', () => {
     });
   });
 
+  describe('group events', () => {
+    it('queues a group weighing with no affected count required', async () => {
+      await service.recordGroupEvent({
+        groupId: 'group-a',
+        eventType: 'Weighing',
+        payload: { sampleCount: 10, avgKg: 45.2, minKg: 38, maxKg: 52 },
+      });
+
+      const [entry] = await outbox.pending();
+
+      expect(entry.operationType).toBe('recordGroupEvent');
+      expect(entry.payload).toMatchObject({ groupId: 'group-a', eventType: 'Weighing' });
+    });
+
+    it('queues a group disposal with its affected count', async () => {
+      await service.recordGroupEvent({
+        groupId: 'group-a',
+        eventType: 'Disposal',
+        affectedCount: 4,
+        payload: { count: 4, causeId: null },
+      });
+
+      const [entry] = await outbox.pending();
+      expect(entry.payload).toMatchObject({ groupId: 'group-a', eventType: 'Disposal', affectedCount: 4 });
+    });
+
+    it('refuses a group disposal with no affected count', async () => {
+      await expect(
+        service.recordGroupEvent({ groupId: 'group-a', eventType: 'Disposal', payload: {} }),
+      ).rejects.toThrow(/cabezas/i);
+    });
+
+    it('refuses a group event with no group', async () => {
+      await expect(
+        service.recordGroupEvent({ groupId: '', eventType: 'Weighing', payload: {} }),
+      ).rejects.toThrow(/lote/i);
+    });
+  });
+
+  describe('disposals', () => {
+    it('queues a disposal with its cause as a top-level field', async () => {
+      await service.recordDisposal({ animalId: 'piglet-1', causeId: 'cause-1' });
+
+      const [entry] = await outbox.pending();
+
+      expect(entry.operationType).toBe('recordAnimalEvent');
+      expect(entry.payload).toMatchObject({
+        animalId: 'piglet-1',
+        eventType: 'Disposal',
+        causeId: 'cause-1',
+      });
+    });
+
+    it('refuses a disposal with no cause', async () => {
+      await expect(
+        service.recordDisposal({ animalId: 'piglet-1', causeId: '' }),
+      ).rejects.toThrow(/causa/i);
+    });
+
+    it('refuses a disposal with no animal', async () => {
+      await expect(
+        service.recordDisposal({ animalId: '', causeId: 'cause-1' }),
+      ).rejects.toThrow(/animal/i);
+    });
+  });
+
   describe('moves', () => {
     it('queues a move as the operation the server understands', async () => {
       await service.recordGroupMove({

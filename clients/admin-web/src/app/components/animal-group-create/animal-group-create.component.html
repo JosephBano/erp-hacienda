@@ -1,0 +1,107 @@
+<div class="page-container">
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Nuevo lote</h1>
+      <p class="subtitle">Crea un grupo de manejo. Podrás agregar miembros y registrar eventos después.</p>
+    </div>
+  </div>
+
+  <div class="alert alert-danger" *ngIf="errorMessage()">{{ errorMessage() }}</div>
+
+  <form class="glass-card" (ngSubmit)="submit()" #groupForm="ngForm" novalidate>
+    <div class="form-grid">
+      <label class="form-label" for="group-name">Nombre <span class="required">*</span></label>
+      <input
+        id="group-name"
+        type="text"
+        class="form-input"
+        [(ngModel)]="name"
+        name="name"
+        required
+        maxlength="100"
+        data-testid="group-name-input"
+        placeholder="Vacas en ordeño, Engorde marzo-2026, etc."
+      />
+
+      <label class="form-label" for="group-description">Descripción</label>
+      <textarea
+        id="group-description"
+        class="form-input"
+        [(ngModel)]="description"
+        name="description"
+        maxlength="500"
+        rows="3"
+        data-testid="group-description-input"
+        placeholder="Notas operativas (opcional)"
+      ></textarea>
+
+      <label class="form-label" for="group-species">Especie</label>
+      <select
+        id="group-species"
+        class="form-input"
+        [(ngModel)]="speciesId"
+        name="speciesId"
+        data-testid="group-species-select"
+      >
+        <option value="">Sin especie</option>
+        @for (s of species(); track s.id) {
+          <option [value]="s.id">{{ s.name }}</option>
+        }
+      </select>
+    </div>
+
+    <fieldset class="tracking-mode-fieldset">
+      <legend class="form-label">Modo de seguimiento</legend>
+      <p class="hint-text">
+        Elegí cómo el sistema va a tratar a los miembros de este lote. Esto define qué clase de eventos podés registrar y cómo se atribuyen.
+      </p>
+
+      <label class="radio-row">
+        <input
+          type="radio"
+          name="trackingMode"
+          value="Individual"
+          [(ngModel)]="trackingMode"
+          data-testid="tracking-mode-individual"
+        />
+        <span class="radio-text">
+          <strong>Individual</strong>
+          <span class="radio-sub">El sistema conoce a cada miembro por separado (arete, SIFAE, RFID). Usá este modo para ganado identificado: los eventos pueden ser por animal o por lote, y el linaje se mantiene.</span>
+        </span>
+      </label>
+
+      <label class="radio-row">
+        <input
+          type="radio"
+          name="trackingMode"
+          value="Headcount"
+          [(ngModel)]="trackingMode"
+          data-testid="tracking-mode-headcount"
+        />
+        <span class="radio-text">
+          <strong>Por conteo (sin identificar)</strong>
+          <span class="radio-sub">El sistema solo sabe cuántas cabezas hay, no cuáles. Usá este modo para lotes sin identificación (lechones al destete, pollos de engorde, terneros sin arete). Los eventos se registran sobre el lote completo.</span>
+        </span>
+      </label>
+
+      <div class="warning-block">
+        <app-icon name="alert" size="sm" ariaLabel="Advertencia"></app-icon>
+        <span>
+          <strong>Atención:</strong> una vez que el grupo tenga miembros activos o eventos registrados, no se puede cambiar el modo. Si te equivocaste, desactivá este grupo y creá uno nuevo con el modo correcto.
+        </span>
+      </div>
+    </fieldset>
+
+    <div class="form-actions">
+      <button type="button" class="btn-secondary" (click)="cancel()" data-testid="cancel-button">Cancelar</button>
+      <button
+        type="submit"
+        class="btn-primary"
+        [disabled]="!canSubmit()"
+        data-testid="submit-button"
+      >
+        @if (submitting()) { Creando… } @else { Crear lote }
+      </button>
+    </div>
+  </form>
+</div>

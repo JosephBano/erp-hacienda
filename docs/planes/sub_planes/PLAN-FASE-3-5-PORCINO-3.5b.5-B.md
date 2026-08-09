@@ -1,0 +1,192 @@
+# PLAN-FASE-3-5-PORCINO-3.5b.5-B.md — Absorción de SelectionCriterion
+
+> **Sub-plan extraído de `PLAN-FASE-3-5-PORCINO.md` sec.3.5b.5.**
+> Este archivo **es ejecutable de forma independiente** del macro plan y de sus
+> pares 3.5b.5-A (núcleo de AnimalTrait) y 3.5b.5-C (advertencias y versionado).
+> Depende de A mergeada.
+
+- **Rama Git:** `feature/livestock-selection-criterion-deprecation`
+- **ADR que la respalda:** [ADR-0018](../adr/0018-caracteristicas-observables-del-animal.md) sec.5 ("Absorbe `SelectionCriterion` y elimina `MaternalBehaviorAssessment`")
+- **Pares del split:**
+  - [`3.5b.5-A`](./PLAN-FASE-3-5-PORCINO-3.5b.5-B.md) (rama `feature/livestock-animal-traits-core`): núcleo de AnimalTrait y TraitObservation — **requerido**.
+  - [`3.5b.5-C`](./PLAN-FASE-3-5-PORCINO-3.5b.5-C.md) (rama `feature/livestock-trait-alerts-and-versioning`): advertencias visibles y versionado.
+- **Fuente original:** [`PLAN-FASE-3-5-PORCINO.md` sec.3.5b.5](../PLAN-FASE-3-5-PORCINO.md#45--featurelivestock-animal-traits--estructural-adr-0018)
+
+---
+
+## Por qué existe esta sub-rama
+
+`SelectionCriterion` modelaba la evaluación de futuras madres como un subsistema
+aparte: una tabla con tipos conteo / escala 1–5 / escala 1–10, ligada a una
+sesión de evaluación y a una decisión de "pasarla a reproductora o no". Era, en
+efecto, **una copia específica de porcinos** del mecanismo general de rasgos, y
+la Constitución lo prohíbe por dos lados:
+
+- **Art. 8:** "toda configuración por especie, raza o producto va a datos, no a
+  código". Una tabla paralela para cerdas es un `if (especie == 'cerdo')`
+  estructural: el conocimiento "cerda" vive en la forma de la tabla, no en su
+  contenido.
+- **ADR-0018 sec.3:** los juicios sobre un animal son **un** mecanismo, no dos.
+  Mezclar "evaluación de futura madre" con "calificación materna" ya estaba
+  mal; tenerlas en dos esquemas es peor.
+
+Esta sub-rama cierra el ciclo: drena `SelectionCriterion` y `MaternalBehaviorAssessment`
+hacia `AnimalTrait` y `TraitObservation`. La evaluación de futura madre pasa a
+ser "capturar el conjunto de características morfológicas en una sesión y
+registrar una decisión" — exactamente lo que el macro plan y el ADR-0018 sec.5
+fijan como destino.
+
+## Por qué no se hace en la misma sub-rama que el núcleo
+
+La absorción de `SelectionCriterion` requiere **datos sembrados con valores de
+ejemplo** para hacer un dry run creíble. Mezclar eso con la introducción del
+núcleo (que parte de tabla vacía) crea un PR donde el reviewer no sabe si un
+test pasa porque el núcleo funciona o porque la migración mintió.
+
+Separar las dos sub-ramas permite leer los diffs con claridad: A introduce el
+núcleo contra una base vacía; B drena `SelectionCriterion` y `MaternalBehaviorAssessment`
+contra datos sembrados que el reviewer puede contrastar con la realidad de la
+finca.
+
+## Decisiones tomadas en el macro plan y que aplican a esta sub-rama
+
+- sec.3.5b.5 punto 5: "Absorbe `SelectionCriterion`". La semilla inicial de
+  características morfológicas a confirmar con el cliente (sec.7-A) — la
+  confirmación **no bloquea** esta sub-rama: las cardinalidades son
+  configurables en la BD, las etiquetas se ajustan después.
+- sec.3.5b.5 nota del macro: el "aplasta crías" no entra como
+  característica — es una **medición** a través del evento de mortalidad con
+  causa (3.5a.3). Esta sub-rama respeta esa decisión.
+
+## Tareas
+
+1. **Catálogo de destino (cargado en esta sub-rama):** sembrar las
+   características morfológicas que el macro plan sec.4.5 propone como punto de
+   partida (a confirmar con el cliente):
+   - **Tetas funcionales** — `ConteoAcotado`, min 6, max 24, kind `Morfológica`,
+     `is_visible_as_alert = false`, seed global (sin `species_id`).
+   - **Asimetría de tetas** — `Booleano`, kind `Morfológica`, seed global.
+   - **Aplomos y calidad de pezuña** — `EscalaOrdinal { bueno, regular, malo }`,
+     kind `Morfológica`, seed global.
+   - **Desarrollo vulvar** — `EscalaOrdinal { inmaduro, normal, desarrollado }`,
+     kind `Morfológica`, `applies_to_category_id = cerda-reproductora`.
+   - **Condición corporal** — `EscalaOrdinal { flaca, normal, gorda }`,
+     kind `Morfológica`, seed global.
+   - **Temperamento** — `EscalaOrdinal { manso, normal, nervioso, agresivo }`,
+     kind `Conductual`, `is_visible_as_alert = true` (candidato a alerta en la
+     ficha), seed global.
+   - **Hernia** — `Booleano`, kind `Morfológica`,
+     `is_visible_as_alert = true`.
+
+   Las semillas se insertan en la migración de esta sub-rama con `version = 1`
+   y `is_active = true`. Si la tarjeta de sec.7-A del cliente modifica la lista,
+   se ajustan en una migración siguiente (no acá).
+2. **Drenaje de `SelectionCriterion`:** un script de migración de datos
+   transforma cada fila existente en una `trait_observations` + un eventual
+   `animal_traits` cuando el nombre no existía. **Idempotencia** explícita con
+   columna `migrated_from_criterion_id` en `trait_observations` (UNIQUE) para
+   no duplicar al reintentar.
+3. **Conversión de valores:**
+   - `SelectionCriterion.value_type = count` → `ConteoAcotado` de AnimalTrait,
+     llevando el `value_count` directamente.
+   - `SelectionCriterion.value_type = scale_1_5` → `EscalaOrdinal` con
+     `levels = [muy_malo, malo, regular, bueno, muy_bueno]`. La etiqueta se
+     deduce del valor numérico (1 → muy_malo, 5 → muy_bueno).
+   - `SelectionCriterion.value_type = scale_1_10` → `EscalaOrdinal` con 10
+     niveles; cada observación mantiene el valor original sin pérdida.
+   - **Sesión (`CriterionSession`)** se reemplaza por la
+     `observation_context_type = 'gilt_evaluation'` y el `observation_context_id
+     = session_id`. La decisión ("pasarla a reproductora") se persiste como una
+     observación de tipo booleano sobre `BuenaMadre` (`MaternalIndex` la lee
+     más tarde, sin tabla propia).
+4. **Drenaje de `MaternalBehaviorAssessment`:** tabla se queda vacía al
+   finalizar este PR (no se rompe ningún consumidor porque el código que la
+   leía ya no existe o se reescribe para consumir `trait_observations`). La
+   tabla se elimina en una **migración de tabla completa** que corre **sólo
+   cuando la verificación de "vacía" pasa**. Si la tabla todavía contiene
+   filas, la migración falla ruidosamente.
+5. **UI de sesión de evaluación** en `admin-web`: pantalla que lista
+   candidatas a futura madre, abre una sesión, captura el conjunto de
+   morfológicas con sliders o inputs según `value_type`, registra la decisión.
+   Es la materialización del párrafo 5 del macro plan (sesión + conjunto de
+   morfológicas + decisión).
+6. **GiltEvaluation como etiqueta del glosario** materializada en la BD:
+   `trait_observations` cuyo `observation_context_type = 'gilt_evaluation'`
+   más la decisión booleana ya mencionada. No se introduce un nuevo agregado;
+   las consultas consumen `trait_observations` directamente.
+7. **Pruebas críticas** (detalladas más abajo).
+
+## Pruebas
+
+Las pruebas mínimas obligatorias:
+
+1. **Drenaje exacto.** Sembrar `SelectionCriterion` con N filas (con
+   distribución no uniforme entre los tres `value_type`) y verificar que cada
+   fila se traduce a **una** `trait_observations` con el mismo dato (o un dato
+   representativo equivalente para escalas). Cobertura: 100%.
+2. **Idempotencia del drenaje.** Re-ejecutar el script sobre datos ya
+   migrados: **cero filas nuevas**. La UNIQUE en
+   `migrated_from_criterion_id` lo garantiza; el test verifica que la cuenta
+   final es exactamente N.
+3. **`MaternalBehaviorAssessment` queda vacía y se elimina.** Sembrar datos,
+   ejecutar todo el código que llama a la entidad, verificar que quedó
+   vacía; la migración de DROP corre; el post-condition es "la tabla no
+   existe en el catálogo".
+4. **Sesión → `gilt_evaluation` context.** Crear una sesión en la UI,
+   capturar 4 morfológicas, registrar la decisión. Verificar que las 5 filas
+   tienen `observation_context_type = 'gilt_evaluation'` y comparten
+   `observation_context_id` de la sesión.
+5. **Las cardinalidades críticas están seedeadas con versiones activas.**
+   Lista sembrada incluye al menos `Tetas funcionales` y `Hernia`; ambas
+   `is_active = true`, `version = 1`.
+6. **Catálogo editable por panel.** Crear una nueva característica
+   morfológica desde el panel; verificar que pasa al pull del móvil sin tocar
+   código.
+7. **Regresión: el cálculo del índice de madre (sec.4.6) lee lo drenado.**
+   Sembrar madres con datos originales en `SelectionCriterion`, ejecutar el
+   cálculo del `MaternalIndex` post-drenaje; comparar con el cálculo
+   pre-drenaje (golden test con valores escritos a mano). Diferencias
+   permitidas: ninguna.
+
+Adicional recomendado:
+
+- Auditoría: el `who` que drena y el `when`.
+- Backup pre-migración como salvaguarda (BACKUPS.md ya cubre el procedimiento
+  general).
+
+## Lo que NO incluye (queda para 3.5b.5-C y sec.4.6)
+
+- **`visible_como_advertencia`** en la ficha del animal del móvil → va en
+  [`3.5b.5-C`](./PLAN-FASE-3-5-PORCINO-3.5b.5-C.md).
+- **Versionado de definiciones usadas** → también 3.5b.5-C.
+- El **cálculo del `MaternalIndex`** con pesos configurables → vive en el
+  macro plan sec.4.6 (sub-rama independiente de esta fase).
+- Las **semillas complementarias de comportamiento** ("patea en la manga",
+  "se escapa del corral") no entran en esta sub-rama — se siembran
+  progresivamente con input del cliente.
+
+## Cómo probarlo
+
+```bash
+git fetch origin
+git switch feature/livestock-selection-criterion-deprecation
+
+# Backup antes de la migración
+./scripts/backup-pre-migration.sh
+
+dotnet test --configuration Release
+dotnet ef database update --project src/Modules/Livestock/Hato.Modules.Livestock.Infrastructure --startup-project src/Hato.Api
+
+# Confirmar que MaternalBehaviorAssessment ya no existe en el esquema
+psql -d hato -c "\\d maternal_behavior_assessments"  # debe decir "no existe"
+```
+
+## Riesgos específicos de esta sub-rama
+
+| Riesgo | Mitigación |
+|---|---|
+| Pérdida de datos durante el drenaje | Golden test #7 + backup pre-migración (BACKUPS.md). El test detecta cualquier diff. |
+| `MaternalBehaviorAssessment` tiene filas residuales que no se migraron | Test #3 falla ruidosamente; la migración DROP no corre. |
+| Catálogo semilla inconsistente con sec.7-A del cliente | Las semillas son punto de partida configurable; ajustar con una migración siguiente no es trabajo de esta rama. |
+| La UI de sesión exige tocar 8+ campos y rompe la promesa de los 3 toques | Esta UI vive en `admin-web`, no en field-app; el estándar de los 3 toques aplica a campo (3.5a). El admin puede ser más profundo. |
+| Decisión "pasarla a reproductora" como observación booleana se pierde semánticamente | El `observation_context_type = 'gilt_evaluation'` preserva el contexto; el cálculo del índice (sec.4.6) sabe distinguir. |

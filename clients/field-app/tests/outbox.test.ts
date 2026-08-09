@@ -38,6 +38,54 @@ describe('Outbox', () => {
 
     // Straight from the table: nothing here can be served out of the enqueueing
     // instance's memory.
+  });
+
+  /**
+   * 3.5a.9-B: "Lo que registré hoy" lists the entries created today regardless of
+   * status. The day-boundary is local-midnight so an operator who walks past noon is not
+   * watching yesterday's list.
+   */
+  it('today() returns every entry from this calendar day', async () => {
+    const outbox = new Outbox(database);
+
+    // Today (queued at "now").
+    await outbox.enqueue('recordMilking', { totalLiters: 8 });
+
+    // Yesterday: enqueue first, then rewind the queued_at column directly. The public
+    // enqueue API stamps queued_at = Date.now() on purpose (PLAN-FASE-3-4 sec. 2.2) —
+    // simulating yesterday needs to bypass that contract.
+    await outbox.enqueue('recordMilking', { totalLiters: 5 });
+    await database.write(async () => {
+      const rows = await database.get('sync_outbox').query().fetch();
+      const yesterdayStamp = Date.now() - 24 * 60 * 60 * 1000;
+      await rows[1].update((row: any) => {
+        row.queuedAt = yesterdayStamp;
+      });
+    });
+
+    const result = await outbox.today();
+
+    expect(result).toHaveLength(1);
+    expect(result[0].payload).toMatchObject({ totalLiters: 8 });
+  });
+
+  it('today() newest first', async () => {
+    const outbox = new Outbox(database);
+
+    await outbox.enqueue('recordMilking', { totalLiters: 5 }, new Date('2026-08-06T05:00:00.000Z').toISOString());
+    await outbox.enqueue('recordMilking', { totalLiters: 7 }, new Date('2026-08-06T15:00:00.000Z').toISOString());
+
+    const result = await outbox.today();
+
+    expect(result.map((e) => e.payload)).toEqual([{ totalLiters: 7 }, { totalLiters: 5 }]);
+  });
+
+  it('stores a queued operation in the database, not in the service', async () => {
+    const outbox = new Outbox(database);
+    const entry = await outbox.enqueue('recordMilking', { totalLiters: 12 });
+
+    // Straight from the table: nothing here can be served out of the enqueueing
+    // instance's memory.
     const rows = await database.get('sync_outbox').query().fetch();
     expect(rows).toHaveLength(1);
 

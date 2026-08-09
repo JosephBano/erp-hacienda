@@ -46,6 +46,48 @@ export interface AnimalCategoryDto {
   name: string;
 }
 
+export interface SpeciesLactationDto {
+  speciesId: string;
+  daysOfLactation?: number | null;
+  cohortWindowDays?: number | null;
+}
+
+export interface MortalityCauseDto {
+  id: string;
+  name: string;
+  isActive: boolean;
+}
+
+export interface AdministrationRouteDto {
+  id: string;
+  key: string;
+  labelEs: string;
+  isActive: boolean;
+}
+
+export interface TreatmentReasonDto {
+  id: string;
+  key: string;
+  labelEs: string;
+  isActive: boolean;
+}
+
+export interface InventoryItemDto {
+  id: string;
+  name: string;
+  category: string;
+  unit: string;
+  minStock: number;
+  description?: string | null;
+  totalStock: number;
+}
+
+export interface FarmModuleDto {
+  key: string;
+  enabled: boolean;
+  disabledReason?: string | null;
+}
+
 export interface RegisterAnimalRequest {
   speciesId: string;
   sex: 'Male' | 'Female';
@@ -258,6 +300,58 @@ export interface SyncConflictDto {
   detectedAt: string;
 }
 
+// --- ADR-0025: Animal groups (lotes / grupos de manejo) ---
+//
+// Server shape from PR1 (AnimalGroupDto in src/Modules/Livestock/.../GetAnimalGroupQueries.cs).
+// LiveHeadCount and SpeciesName are server-side derived fields; do not rely on the
+// client to compute them.
+
+export interface GroupMembershipDto {
+  id: string;
+  animalId: string;
+  joinedAt: string;     // ISO date (DateOnly)
+  leftAt?: string | null;
+  isActive: boolean;
+}
+
+export interface AnimalGroupDto {
+  id: string;
+  name: string;
+  description?: string | null;
+  speciesId?: string | null;
+  speciesName?: string | null;       // PR1 server-side
+  isActive: boolean;
+  trackingMode: 'Individual' | 'Headcount';
+  liveHeadCount: number;             // PR1 server-side
+  memberships: GroupMembershipDto[];
+}
+
+export interface AnimalGroupSummaryDto {
+  groupId: string;
+  liveHeadCount: number;
+  headsAffectedByDiagnosis: number;
+  lastVaccinationAt?: string | null;
+  lastDisposalAt?: string | null;
+  lastTreatmentAt?: string | null;
+}
+
+export interface CreateAnimalGroupRequest {
+  name: string;
+  description?: string | null;
+  speciesId?: string | null;
+  trackingMode?: 'Individual' | 'Headcount';
+}
+
+export interface UpdateAnimalGroupRequest {
+  name: string;
+  description?: string | null;
+  speciesId?: string | null;
+}
+
+export interface ChangeTrackingModeRequest {
+  trackingMode: 'Individual' | 'Headcount';
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -453,5 +547,143 @@ export class ApiService {
 
   dismissAlert(id: string): Observable<void> {
     return this.http.post<void>(`${this.baseUrl}/alerts/${id}/dismiss`, {});
+  }
+
+  // --- Catalog generic methods (PR3) ---
+
+  getMortalityCauses(includeInactive = false): Observable<MortalityCauseDto[]> {
+    let params = new HttpParams();
+    if (includeInactive) params = params.set('includeInactive', 'true');
+    return this.http.get<MortalityCauseDto[]>(`${this.baseUrl}/mortality-causes`, { params });
+  }
+
+  createMortalityCause(name: string): Observable<{ id: string }> {
+    return this.http.post<{ id: string }>(`${this.baseUrl}/mortality-causes`, { name });
+  }
+
+  deactivateMortalityCause(id: string): Observable<void> {
+    return this.http.delete<void>(`${this.baseUrl}/mortality-causes/${id}`);
+  }
+
+  getAdministrationRoutes(includeInactive = false): Observable<AdministrationRouteDto[]> {
+    let params = new HttpParams();
+    if (includeInactive) params = params.set('includeInactive', 'true');
+    return this.http.get<AdministrationRouteDto[]>(`${this.baseUrl}/administration-routes`, { params });
+  }
+
+  createAdministrationRoute(data: { key: string; labelEs: string }): Observable<{ id: string }> {
+    return this.http.post<{ id: string }>(`${this.baseUrl}/administration-routes`, data);
+  }
+
+  deactivateAdministrationRoute(id: string): Observable<void> {
+    return this.http.delete<void>(`${this.baseUrl}/administration-routes/${id}`);
+  }
+
+  activateAdministrationRoute(id: string): Observable<void> {
+    return this.http.post<void>(`${this.baseUrl}/administration-routes/${id}/activate`, {});
+  }
+
+  updateAdministrationRouteLabel(id: string, labelEs: string): Observable<void> {
+    return this.http.patch<void>(`${this.baseUrl}/administration-routes/${id}/label`, { labelEs });
+  }
+
+  getTreatmentReasons(includeInactive = false): Observable<TreatmentReasonDto[]> {
+    let params = new HttpParams();
+    if (includeInactive) params = params.set('includeInactive', 'true');
+    return this.http.get<TreatmentReasonDto[]>(`${this.baseUrl}/treatment-reasons`, { params });
+  }
+
+  createTreatmentReason(data: { key: string; labelEs: string }): Observable<{ id: string }> {
+    return this.http.post<{ id: string }>(`${this.baseUrl}/treatment-reasons`, data);
+  }
+
+  deactivateTreatmentReason(id: string): Observable<void> {
+    return this.http.delete<void>(`${this.baseUrl}/treatment-reasons/${id}`);
+  }
+
+  activateTreatmentReason(id: string): Observable<void> {
+    return this.http.post<void>(`${this.baseUrl}/treatment-reasons/${id}/activate`, {});
+  }
+
+  updateTreatmentReasonLabel(id: string, labelEs: string): Observable<void> {
+    return this.http.patch<void>(`${this.baseUrl}/treatment-reasons/${id}/label`, { labelEs });
+  }
+
+  getInventoryItems(category?: string): Observable<InventoryItemDto[]> {
+    let params = new HttpParams();
+    if (category) params = params.set('category', category);
+    return this.http.get<InventoryItemDto[]>(`${this.baseUrl}/inventory/items`, { params });
+  }
+
+  createInventoryItem(data: {
+    name: string;
+    category: string;
+    unit: string;
+    minStock?: number;
+    description?: string;
+  }): Observable<{ id: string }> {
+    return this.http.post<{ id: string }>(`${this.baseUrl}/inventory/items`, data);
+  }
+
+  getFarmModules(): Observable<FarmModuleDto[]> {
+    return this.http.get<FarmModuleDto[]>(`${this.baseUrl}/farm-modules`);
+  }
+
+  setFarmModuleEnabled(key: string, enabled: boolean, disabledReason?: string): Observable<FarmModuleDto> {
+    return this.http.patch<FarmModuleDto>(`${this.baseUrl}/farm-modules/${key}`, {
+      enabled,
+      disabledReason,
+    });
+  }
+
+  getSpeciesLactation(speciesId: string): Observable<SpeciesLactationDto> {
+    return this.http.get<SpeciesLactationDto>(`${this.baseUrl}/species/${speciesId}/lactation`);
+  }
+
+  updateSpeciesLactation(speciesId: string, data: {
+    daysOfLactation?: number | null;
+    cohortWindowDays?: number | null;
+  }): Observable<void> {
+    return this.http.patch<void>(`${this.baseUrl}/species/${speciesId}/lactation`, data);
+  }
+
+  // --- Animal Groups (ADR-0025 PR3) ---
+  //
+  // Endpoint contract from PR2 (AnimalGroupsEndpoints.cs in src/Hato.Api/Endpoints).
+  // All write verbs require `livestock.animals.write` (same gate as animals).
+  // Reads are open to any authenticated user, matching AnimalsEndpoints.
+
+  getAnimalGroups(includeInactive = false): Observable<AnimalGroupDto[]> {
+    let params = new HttpParams();
+    if (includeInactive) params = params.set('includeInactive', 'true');
+    return this.http.get<AnimalGroupDto[]>(`${this.baseUrl}/animal-groups`, { params });
+  }
+
+  getAnimalGroupById(id: string): Observable<AnimalGroupDto> {
+    return this.http.get<AnimalGroupDto>(`${this.baseUrl}/animal-groups/${id}`);
+  }
+
+  getAnimalGroupSummary(id: string): Observable<AnimalGroupSummaryDto> {
+    return this.http.get<AnimalGroupSummaryDto>(`${this.baseUrl}/animal-groups/${id}/summary`);
+  }
+
+  createAnimalGroup(data: CreateAnimalGroupRequest): Observable<{ id: string }> {
+    return this.http.post<{ id: string }>(`${this.baseUrl}/animal-groups`, data);
+  }
+
+  updateAnimalGroup(id: string, data: UpdateAnimalGroupRequest): Observable<void> {
+    return this.http.put<void>(`${this.baseUrl}/animal-groups/${id}`, data);
+  }
+
+  deactivateAnimalGroup(id: string): Observable<void> {
+    return this.http.delete<void>(`${this.baseUrl}/animal-groups/${id}`);
+  }
+
+  activateAnimalGroup(id: string): Observable<void> {
+    return this.http.post<void>(`${this.baseUrl}/animal-groups/${id}/activate`, {});
+  }
+
+  changeAnimalGroupTrackingMode(id: string, trackingMode: 'Individual' | 'Headcount'): Observable<void> {
+    return this.http.patch<void>(`${this.baseUrl}/animal-groups/${id}/tracking-mode`, { trackingMode });
   }
 }

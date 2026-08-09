@@ -8,15 +8,21 @@ import { BirthService } from './services/birthService';
 import { EventService } from './services/eventService';
 import { HttpSyncApi } from './services/syncApi';
 import { MilkingService } from './services/milkingService';
+import { ModuleVisibility } from './services/moduleVisibility';
 import { Outbox } from './services/outbox';
 import { SyncEngine } from './services/syncEngine';
-import { loadGroups, loadHerd, loadMedications } from './services/herdQueries';
+import { loadGroups, loadHerd, loadMedications, loadMortalityCauses } from './services/herdQueries';
+import { ActivitiesHub } from './screens/ActivitiesHub';
 import { AnimalEditScreen } from './screens/AnimalEditScreen';
+import { AnimalSubjectScreen } from './screens/AnimalSubjectScreen';
 import { BirthScreen } from './screens/BirthScreen';
 import { EventsScreen } from './screens/EventsScreen';
+import { HomeScreen } from './screens/HomeScreen';
 import { LoginScreen } from './screens/LoginScreen';
 import { MilkingScreen } from './screens/MilkingScreen';
 import { SyncStatusScreen } from './screens/SyncStatusScreen';
+import { TodayScreen } from './screens/TodayScreen';
+import type { TabKey } from './screens/navigation';
 import { BigButton, Body, Screen, Title } from './ui/components';
 import { theme } from './ui/theme';
 
@@ -28,7 +34,7 @@ import { theme } from './ui/theme';
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://10.0.2.2:5282';
 const DEVICE_ID = 'field-device';
 
-type Tab = 'home' | 'milking' | 'events' | 'birth' | 'editAnimal' | 'sync';
+type Tab = TabKey;
 
 /**
  * Composition root of the field app.
@@ -42,16 +48,18 @@ export default function App() {
   const auth = useMemo(() => new AuthService(API_BASE_URL), []);
   const outbox = useMemo(() => new Outbox(database), [database]);
 
-  const engine = useMemo(() => {
-    const api = new HttpSyncApi({
-      baseUrl: API_BASE_URL,
-      getToken: () => auth.token(),
-      refreshToken: () => auth.refresh(),
-      deviceId: DEVICE_ID,
-    });
+  const api = useMemo(
+    () =>
+      new HttpSyncApi({
+        baseUrl: API_BASE_URL,
+        getToken: () => auth.token(),
+        refreshToken: () => auth.refresh(),
+        deviceId: DEVICE_ID,
+      }),
+    [auth],
+  );
 
-    return new SyncEngine(database, api);
-  }, [auth, database]);
+  const engine = useMemo(() => new SyncEngine(database, api), [api, database]);
 
   const milking = useMemo(() => new MilkingService(database), [database]);
   const events = useMemo(() => new EventService(database), [database]);
@@ -66,20 +74,58 @@ export default function App() {
   const [herd, setHerd] = useState<Awaited<ReturnType<typeof loadHerd>>>([]);
   const [groups, setGroups] = useState<Awaited<ReturnType<typeof loadGroups>>>([]);
   const [medications, setMedications] = useState<Awaited<ReturnType<typeof loadMedications>>>([]);
+  const [mortalityCauses, setMortalityCauses] = useState<Awaited<ReturnType<typeof loadMortalityCauses>>>([]);
+  // ADR-0019: the production module is on by default; the pull flips it off for the
+  // pig pilot. ModuleVisibility answers from the local DB with no network, so this is
+  // offline-safe by construction.
+  const [productionOn, setProductionOn] = useState(true);
+  // 3.5a.9-B: state that lives at the App level so the activity tree can lean on it.
+  // selectedAnimalId is set when the operator picks an animal in the picker screen;
+  // todayEntries drives "Lo que registré hoy". eventsInitialAnimalId and
+  // eventsInitialActivity let the activity tree (3.5a.9-B) skip both the animal
+  // picker and the activity menu when entering EventsScreen.
+  const [selectedAnimalId, setSelectedAnimalId] = useState<string | null>(null);
+  const [eventsInitialAnimalId, setEventsInitialAnimalId] = useState<string | undefined>(undefined);
+  const [eventsInitialActivity, setEventsInitialActivity] = useState<'treatment' | 'weight' | 'move' | 'disposal' | undefined>(undefined);
+  const [todayEntries, setTodayEntries] = useState<
+    {
+      clientOperationId: string;
+      operationType: string;
+      occurredAt: string;
+      status: 'pending' | 'synced' | 'rejected' | 'cancelled';
+      resultRef?: string;
+    }[]
+  >([]);
+
+  const visibility = useMemo(() => new ModuleVisibility(database, api), [database, api]);
 
   const refresh = useCallback(async () => {
-    const [nextHerd, nextGroups, nextMedications, stats] = await Promise.all([
+    const [nextHerd, nextGroups, nextMedications, nextMortalityCauses, stats, productionVisible, today] = await Promise.all([
       loadHerd(database),
       loadGroups(database),
       loadMedications(database),
+      loadMortalityCauses(database),
       outbox.stats(),
+      visibility.canShow('production'),
+      outbox.today(),
     ]);
 
     setHerd(nextHerd);
     setGroups(nextGroups);
     setMedications(nextMedications);
+    setMortalityCauses(nextMortalityCauses);
     setPending(stats.pending);
-  }, [database, outbox]);
+    setProductionOn(productionVisible);
+    setTodayEntries(
+      today.map((entry) => ({
+        clientOperationId: entry.clientOperationId,
+        operationType: entry.operationType,
+        occurredAt: entry.occurredAt,
+        status: entry.status as 'pending' | 'synced' | 'rejected' | 'cancelled',
+        resultRef: entry.resultRef,
+      })),
+    );
+  }, [database, outbox, visibility]);
 
   useEffect(() => {
     void (async () => {
@@ -131,18 +177,65 @@ export default function App() {
 
       <View style={styles.content}>
         {tab === 'home' ? (
-          <Screen testID="home-screen">
-            <Title>{`Hola, ${auth.currentSession()?.fullName ?? ''}`}</Title>
-            <Body testID="home-pending">{`${pending} registro(s) sin enviar`}</Body>
-            <BigButton testID="go-milking" label="Ordeño" onPress={() => setTab('milking')} />
-            <BigButton testID="go-events" label="Eventos" tone="neutral" onPress={() => setTab('events')} />
-            <BigButton testID="go-birth" label="Parto" tone="neutral" onPress={() => setTab('birth')} />
-            <BigButton testID="go-edit-animal" label="Editar animal" tone="neutral" onPress={() => setTab('editAnimal')} />
-            <BigButton testID="go-sync" label="Sincronización" tone="neutral" onPress={() => setTab('sync')} />
-          </Screen>
+          <ActivitiesHub
+            pending={pending}
+            onSelect={(route) => {
+              // ActivitiesHub's routes map 1:1 to the existing TabKey vocabulary, with
+              // the two new subjects (animal-subject, today) declared in navigation.ts.
+              // Module visibility continues to gate MilkingScreen at the render level,
+              // not here: the route exists in the nav vocabulary regardless of state.
+              setTab(route as Tab);
+              if (route !== 'animal-subject') {
+                setSelectedAnimalId(null);
+              }
+              // Pre-selection is one-shot. As soon as the operator leaves the events
+              // tab for any reason, the next arrival there should be a clean slate.
+              if (route !== 'events') {
+                setEventsInitialAnimalId(undefined);
+                setEventsInitialActivity(undefined);
+              }
+            }}
+          />
         ) : null}
 
-        {tab === 'milking' ? (
+        {tab === 'animal-subject' ? (
+          <AnimalSubjectScreen
+            animals={herd.map((member) => ({ animalId: member.animalId, label: member.label }))}
+            recentIds={[]}
+            selectedAnimalId={selectedAnimalId ?? undefined}
+            onSelectAnimal={(animalId) => setSelectedAnimalId(animalId)}
+            onClearSelection={() => setSelectedAnimalId(null)}
+            onActivity={(animalId, activity) => {
+              // All animal activities route through EventsScreen with both the animal
+              // and the activity pre-selected. Plan: the operator has already chosen
+              // subject + animal + activity on the activity tree; the form they reach
+              // here is the same one they would have reached by tapping through the
+              // menu — fewer steps, no behaviour change. 'disposal' joined this path in
+              // 3.5a.3 once the mortality causes catalog existed to back it.
+              setSelectedAnimalId(animalId);
+              setEventsInitialAnimalId(animalId);
+              setEventsInitialActivity(activity);
+              setTab('events');
+            }}
+          />
+        ) : null}
+
+        {tab === 'today' ? (
+          <TodayScreen
+            entries={todayEntries}
+            outbox={outbox}
+            events={events}
+            onChanged={() => void refresh()}
+          />
+        ) : null}
+
+        {/*
+          Defense in depth: HomeScreen hides the entry, but if `tab === 'milking'` ever
+          ended up set while the module was off — a stale state across a sign-out, a
+          deep-link we have not built yet — we still do not render the screen. The data
+          path stays open (OutboxService is independent of this branch).
+        */}
+        {tab === 'milking' && productionOn ? (
           <MilkingScreen
             service={milking}
             candidates={herd}
@@ -157,7 +250,10 @@ export default function App() {
             animals={herd}
             groups={groups}
             medications={medications}
+            mortalityCauses={mortalityCauses}
             onRecorded={refresh}
+            initialAnimalId={eventsInitialAnimalId}
+            initialActivity={eventsInitialActivity}
           />
         ) : null}
 
@@ -174,12 +270,29 @@ export default function App() {
           <AnimalEditScreen database={database} service={animalEdits} animals={herd} onQueued={refresh} />
         ) : null}
 
-        {tab === 'sync' ? <SyncStatusScreen engine={engine} outbox={outbox} /> : null}
+        {tab === 'sync' ? (
+          <SyncStatusScreen
+            engine={engine}
+            outbox={outbox}
+            visibility={visibility}
+            onModulesChanged={refresh}
+          />
+        ) : null}
       </View>
 
       {tab !== 'home' ? (
         <View style={styles.footer}>
-          <BigButton testID="go-home" label="Inicio" tone="neutral" onPress={() => setTab('home')} />
+          <BigButton
+            testID="go-home"
+            label="Inicio"
+            tone="neutral"
+            onPress={() => {
+              setTab('home');
+              setSelectedAnimalId(null);
+              setEventsInitialAnimalId(undefined);
+              setEventsInitialActivity(undefined);
+            }}
+          />
         </View>
       ) : null}
     </SafeAreaView>

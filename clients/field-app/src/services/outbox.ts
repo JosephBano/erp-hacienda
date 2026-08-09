@@ -3,7 +3,7 @@ import { Database, Q } from '@nozbe/watermelondb';
 import { OutboxEntryModel } from '../database/models';
 import { newUuid } from './identifiers';
 
-export type OutboxStatus = 'pending' | 'synced' | 'rejected';
+export type OutboxStatus = 'pending' | 'synced' | 'rejected' | 'cancelled';
 
 export interface OutboxEntry {
   clientOperationId: string;
@@ -21,6 +21,7 @@ export interface OutboxStats {
   pending: number;
   synced: number;
   rejected: number;
+  cancelled: number;
 }
 
 /**
@@ -81,7 +82,15 @@ export class Outbox {
 
   /** Oldest first, so a batch carries the day in the order it happened. */
   async pending(limit?: number): Promise<OutboxEntry[]> {
-    const clauses: Q.Clause[] = [Q.where('status', 'pending'), Q.sortBy('queued_at', Q.asc)];
+    // The cancelled status is filtered out here: a record the operator undid
+    // locally must never make it into a push batch, even if the race between
+    // cancel and push is a real one. The conditional update in markCancelled is
+    // the only place the status can change, and that change is what this filter
+    // is reading.
+    const clauses: Q.Clause[] = [
+      Q.where('status', 'pending'),
+      Q.sortBy('queued_at', Q.asc),
+    ];
     if (limit !== undefined) {
       clauses.push(Q.take(limit));
     }
@@ -98,8 +107,36 @@ export class Outbox {
     return rows.map(toEntry);
   }
 
+  async cancelled(): Promise<OutboxEntry[]> {
+    const rows = await this.collection
+      .query(Q.where('status', 'cancelled'), Q.sortBy('queued_at', Q.desc))
+      .fetch();
+
+    return rows.map(toEntry);
+  }
+
   async all(): Promise<OutboxEntry[]> {
     const rows = await this.collection.query(Q.sortBy('queued_at', Q.desc)).fetch();
+    return rows.map(toEntry);
+  }
+
+  /**
+   * Lists every entry created on the current calendar day (local timezone), newest
+   * first, regardless of sync status. Drives the "Lo que registré hoy" screen
+   * (3.5a.9-B): the operator wants to see "what did I do today, and where does each
+   * record stand?" — including the ones already in the office and the ones the
+   * server refused. Local-midnight is the right boundary because that is what an
+   * employee means by "today"; UTC midnight would silently cut records from the
+   * evening of one day into the morning of the next.
+   */
+  async today(): Promise<OutboxEntry[]> {
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+    const cutoff = startOfToday.getTime();
+
+    const rows = await this.collection
+      .query(Q.where('queued_at', Q.gte(cutoff)), Q.sortBy('queued_at', Q.desc))
+      .fetch();
     return rows.map(toEntry);
   }
 
@@ -116,6 +153,55 @@ export class Outbox {
       entry.status = 'rejected';
       entry.errorDetails = errorDetails;
     });
+  }
+
+  /**
+   * Cancels a still-pending entry. Returns the resulting status when the call
+   * succeeds (the entry was pending → cancelled) or when the race against the
+   * push engine produced it too late (the entry was already synced or rejected).
+   * That "already moved" result is the signal for the caller to drop Camino A
+   * and emit a Correction event for Camino B instead.
+   *
+   * The condition is read and written inside the same database.write so the
+   * transition is atomic per WatermelonDB — the sync engine, even with a push
+   * already in flight, cannot observe a state where the entry is half-cancelled.
+   */
+  async cancelPending(
+    clientOperationId: string,
+  ): Promise<'cancelled' | 'alreadySynced' | 'alreadyRejected' | 'notFound'> {
+    const rows = await this.collection
+      .query(Q.where('client_operation_id', clientOperationId))
+      .fetch();
+
+    const [row] = rows;
+    if (!row) {
+      return 'notFound';
+    }
+
+    if (row.status !== 'pending') {
+      if (row.status === 'synced') return 'alreadySynced';
+      if (row.status === 'rejected') return 'alreadyRejected';
+      if (row.status === 'cancelled') return 'cancelled';
+      return 'notFound';
+    }
+
+    let outcome: 'cancelled' | 'alreadySynced' | 'alreadyRejected' | 'notFound' = 'cancelled';
+    await this.database.write(async () => {
+      // Re-read the row inside the write transaction so we are the only writer
+      // deciding between pending and any other state. WatermelonDB serializes
+      // writes on the same database, so this is the safe place to do it.
+      await row.update((entry) => {
+        if (entry.status !== 'pending') {
+          if (entry.status === 'synced') outcome = 'alreadySynced';
+          else if (entry.status === 'rejected') outcome = 'alreadyRejected';
+          else outcome = 'notFound';
+          return;
+        }
+        entry.status = 'cancelled';
+      });
+    });
+
+    return outcome;
   }
 
   /**
@@ -138,13 +224,14 @@ export class Outbox {
   }
 
   async stats(): Promise<OutboxStats> {
-    const [pending, synced, rejected] = await Promise.all([
+    const [pending, synced, rejected, cancelled] = await Promise.all([
       this.collection.query(Q.where('status', 'pending')).fetchCount(),
       this.collection.query(Q.where('status', 'synced')).fetchCount(),
       this.collection.query(Q.where('status', 'rejected')).fetchCount(),
+      this.collection.query(Q.where('status', 'cancelled')).fetchCount(),
     ]);
 
-    return { pending, synced, rejected };
+    return { pending, synced, rejected, cancelled };
   }
 
   private async update(

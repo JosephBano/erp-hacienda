@@ -24,6 +24,13 @@ export interface WeightInput {
   notes?: string;
 }
 
+export interface DisposalInput {
+  animalId: string;
+  causeId: string;
+  notes?: string;
+  occurredAt?: string;
+}
+
 export interface GroupMoveInput {
   animalId: string;
   toGroupId: string;
@@ -38,6 +45,27 @@ export interface RegisterAnimalInput {
   birthDate?: string;
   breedId?: string;
   categoryId?: string;
+}
+
+/**
+ * A group event never names an animal (ADR-0015): "the lot ate 3 sacks" or "12 were
+ * sold" is the whole fact. `affectedCount` is required for `Disposal` — it is what the
+ * server's `LiveHeadCount` subtracts and what decides whether the lot closes — and
+ * optional for the rest (a sample weighing's size lives in `payload` instead).
+ */
+export interface GroupEventInput {
+  groupId: string;
+  eventType: 'Weighing' | 'Treatment' | 'Vaccination' | 'Diagnosis' | 'Disposal';
+  payload: Record<string, unknown>;
+  affectedCount?: number;
+  cost?: number;
+  occurredAt?: string;
+}
+
+export interface CorrectionInput {
+  originalEventId: string;
+  reason: string;
+  occurredAt?: string;
 }
 
 export interface QueuedEvent {
@@ -119,6 +147,64 @@ export class EventService {
     return { clientOperationId: entry.clientOperationId };
   }
 
+  /**
+   * Records an event whose subject is a lot by count, not an animal (ADR-0015). Used for
+   * sample weighings, group mortality/disposal, group diagnosis ("one of these is sick,
+   * unidentified") and group treatment/vaccination.
+   */
+  async recordGroupEvent(input: GroupEventInput): Promise<QueuedEvent> {
+    if (!input.groupId) throw new Error('El lote es obligatorio.');
+    if (input.eventType === 'Disposal' && !(input.affectedCount && input.affectedCount > 0)) {
+      throw new Error('Una baja de lote debe declarar cuántas cabezas incluye.');
+    }
+
+    const occurredAt = input.occurredAt ?? new Date().toISOString();
+
+    const entry = await this.outbox.enqueue(
+      'recordGroupEvent',
+      {
+        groupId: input.groupId,
+        eventType: input.eventType,
+        occurredAt,
+        recordedBy: 'field-app',
+        cost: input.cost,
+        affectedCount: input.affectedCount,
+        payloadJson: JSON.stringify(input.payload),
+      },
+      occurredAt,
+    );
+
+    return { clientOperationId: entry.clientOperationId };
+  }
+
+  /**
+   * "Baja con causa" for a single, identified animal (3.5a.3) — the piglet is still
+   * within its lactation cohort, still a real row with a real mother, so this is a plain
+   * animal-subject event, not a group one. The mother is resolved by the caller from the
+   * already-synced herd (Animal.motherId), not looked up here.
+   */
+  async recordDisposal(input: DisposalInput): Promise<QueuedEvent> {
+    if (!input.animalId) throw new Error('El animal es obligatorio.');
+    if (!input.causeId) throw new Error('La causa de mortalidad es obligatoria.');
+
+    const occurredAt = input.occurredAt ?? new Date().toISOString();
+
+    const entry = await this.outbox.enqueue(
+      'recordAnimalEvent',
+      {
+        animalId: input.animalId,
+        eventType: 'Disposal',
+        occurredAt,
+        recordedBy: 'field-app',
+        causeId: input.causeId,
+        payloadJson: JSON.stringify({ notes: input.notes }),
+      },
+      occurredAt,
+    );
+
+    return { clientOperationId: entry.clientOperationId };
+  }
+
   async recordGroupMove(input: GroupMoveInput): Promise<QueuedEvent> {
     if (!input.animalId) throw new Error('El animal es obligatorio.');
     if (!input.toGroupId) throw new Error('El lote de destino es obligatorio.');
@@ -131,6 +217,37 @@ export class EventService {
       fromGroupId: input.fromGroupId,
       movedOn,
     });
+
+    return { clientOperationId: entry.clientOperationId };
+  }
+
+  /**
+   * Records a field correction (PLAN-FASE-3-5-PORCINO.md sec.3.5a.8, ADR-0017).
+   *
+   * The original event id is the server's id (the `resultRef` the phone received
+   * when the original op was Accepted). The server rejects corrections that
+   * arrive on a different UTC calendar day than the original, so the window is
+   * local-midnight to UTC-midnight: the phone may not always know the server's
+   * offset, but for the local operator "I typed it wrong five minutes ago" is
+   * what the day-boundary is asking about.
+   */
+  async recordCorrection(input: CorrectionInput): Promise<QueuedEvent> {
+    if (!input.originalEventId) throw new Error('El evento a corregir es obligatorio.');
+    if (!input.reason || input.reason.trim().length === 0) {
+      throw new Error('La razón de la corrección es obligatoria.');
+    }
+
+    const occurredAt = input.occurredAt ?? new Date().toISOString();
+
+    const entry = await this.outbox.enqueue(
+      'recordCorrection',
+      {
+        originalEventId: input.originalEventId,
+        recordedBy: 'field-app',
+        reason: input.reason.trim(),
+      },
+      occurredAt,
+    );
 
     return { clientOperationId: entry.clientOperationId };
   }

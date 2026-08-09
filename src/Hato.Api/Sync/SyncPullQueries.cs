@@ -35,7 +35,15 @@ public record SyncCollectionsDto(
     List<SyncBreedDto> Breeds,
     List<SyncCategoryDto> AnimalCategories,
     List<SyncInventoryItemDto> InventoryItems,
-    List<SyncWithdrawalPeriodDto> WithdrawalPeriods);
+    List<SyncWithdrawalPeriodDto> WithdrawalPeriods,
+    List<SyncMortalityCauseDto> MortalityCauses,
+    List<SyncFarmModuleDto> FarmModules,
+    List<SyncAdministrationRouteDto> AdministrationRoutes,
+    List<SyncTreatmentReasonDto> TreatmentReasons,
+    List<SyncHealthPlanDto> HealthPlans,
+    List<SyncHealthPlanItemDto> HealthPlanItems,
+    List<SyncHealthPlanAssignmentDto> HealthPlanAssignments,
+    List<SyncPlausibilityRangeDto> PlausibilityRanges);
 
 public record SyncAnimalDto(
     Guid Id,
@@ -72,6 +80,7 @@ public record SyncAnimalGroupDto(
     string? Description,
     Guid? SpeciesId,
     bool IsActive,
+    string TrackingMode,
     DateTimeOffset CreatedAt,
     DateTimeOffset? UpdatedAt,
     bool IsDeleted) : ISyncRow;
@@ -138,6 +147,128 @@ public record SyncWithdrawalPeriodDto(
     DateTimeOffset? UpdatedAt,
     bool IsDeleted) : ISyncRow;
 
+/// <summary>
+/// The mortality causes catalog (Art. 8, 3.5a.3), so "baja con causa" can offer the list
+/// offline instead of blocking on a round trip the field may not have.
+/// </summary>
+public record SyncMortalityCauseDto(
+    Guid Id,
+    string Name,
+    bool IsActive,
+    DateTimeOffset CreatedAt,
+    DateTimeOffset? UpdatedAt,
+    bool IsDeleted) : ISyncRow;
+
+/// <summary>
+/// Module on/off rows (ADR-0019). The phone already has a local table; this
+/// collection is the server's view of the same data, so the toggle the operator
+/// presses in the panel can land on the field without a deploy and without a
+/// network round-trip at navigation time.
+/// </summary>
+public record SyncFarmModuleDto(
+    Guid Id,
+    string Key,
+    bool Enabled,
+    string? DisabledReason,
+    DateTimeOffset CreatedAt,
+    DateTimeOffset? UpdatedAt,
+    bool IsDeleted) : ISyncRow;
+
+/// <summary>
+/// The administration routes catalog (3.5a.2-A). The field app uses these to
+/// populate the "via de administración" picker when registering a treatment
+/// offline — without them it cannot build a structured treatment payload
+/// (PLAN-FASE-3-5-PORCINO-3.5a.2-A sec.7).
+/// </summary>
+public record SyncAdministrationRouteDto(
+    Guid Id,
+    string Key,
+    string LabelEs,
+    bool IsActive,
+    DateTimeOffset CreatedAt,
+    DateTimeOffset? UpdatedAt,
+    bool IsDeleted) : ISyncRow;
+
+/// <summary>
+/// The treatment reason catalog (3.5a.2-A): scheduled / curative / preventive.
+/// Distinguishing them is what separates "vacuna de calendario" from "vacuna
+/// porque se enfermó" on the herd's history.
+/// </summary>
+public record SyncTreatmentReasonDto(
+    Guid Id,
+    string Key,
+    string LabelEs,
+    bool IsActive,
+    DateTimeOffset CreatedAt,
+    DateTimeOffset? UpdatedAt,
+    bool IsDeleted) : ISyncRow;
+
+/// <summary>
+/// Health plan catalog (3.5b.1, ADR-0016). The field-app needs the cronogram
+/// locally so it can resolve theoretical dates offline and stamp the
+/// <c>health_plan_item_id</c> on a treatment when the user is in the corral.
+/// </summary>
+public record SyncHealthPlanDto(
+    Guid Id,
+    string Name,
+    Guid SpeciesId,
+    bool IsActive,
+    DateTimeOffset CreatedAt,
+    DateTimeOffset? UpdatedAt,
+    bool IsDeleted) : ISyncRow;
+
+public record SyncHealthPlanItemDto(
+    Guid Id,
+    Guid HealthPlanId,
+    string Name,
+    string EventType,
+    string Anchor,
+    int AnchorOffsetDays,
+    int ComplianceWindowDays,
+    Guid? InventoryItemId,
+    Guid? RouteId,
+    decimal? DoseQuantity,
+    Guid? DoseUnitId,
+    int? Repetitions,
+    Guid? AppliesToCategoryId,
+    string? AppliesToSex,
+    bool IsActive,
+    DateTimeOffset CreatedAt,
+    DateTimeOffset? UpdatedAt,
+    bool IsDeleted) : ISyncRow;
+
+public record SyncHealthPlanAssignmentDto(
+    Guid Id,
+    Guid HealthPlanId,
+    Guid? AnimalId,
+    Guid? GroupId,
+    DateTimeOffset AssignedAt,
+    bool IsActive,
+    DateTimeOffset CreatedAt,
+    DateTimeOffset? UpdatedAt,
+    bool IsDeleted) : ISyncRow;
+
+/// <summary>
+/// Plausibility range catalog (3.5a.6, ADR-0022). The field-app uses these to
+/// validate weights, milk volumes and future magnitudes locally before enqueuing
+/// the operation. The ranges reach the device via the pull so the validation
+/// works offline (Art. 9). Bounds are decimal? because any of the four may be
+/// unconfigured — the evaluator handles nulls as fail-open.
+/// </summary>
+public record SyncPlausibilityRangeDto(
+    Guid Id,
+    Guid SpeciesId,
+    Guid? CategoryId,
+    string Magnitude,
+    decimal? PlausibleMin,
+    decimal? PlausibleMax,
+    decimal? AbsoluteMin,
+    decimal? AbsoluteMax,
+    bool IsActive,
+    DateTimeOffset CreatedAt,
+    DateTimeOffset? UpdatedAt,
+    bool IsDeleted) : ISyncRow;
+
 public record GetSyncPullQuery(
     string? Since = null,
     string? Collections = null,
@@ -146,6 +277,7 @@ public record GetSyncPullQuery(
 public class GetSyncPullQueryHandler(
     ILivestockDbContext livestockDb,
     IInventoryDbContext inventoryDb,
+    IPeopleDbContext peopleDb,
     IUserPermissionsReader permissionsReader,
     ICurrentUser currentUser)
     : IRequestHandler<GetSyncPullQuery, SyncPullResponseDto>
@@ -154,11 +286,12 @@ public class GetSyncPullQueryHandler(
     public const int MaxBatchSize = 1000;
 
     /// <summary>
-    /// The permission a role needs to read each collection (PLAN-FASE-3-4 §3.A, pull task
+    /// The permission a role needs to read each collection (PLAN-FASE-3-4 sec.3.A, pull task
     /// 4: "el empleado solo baja lo que le corresponde"). Reference tables (species,
     /// breeds, categories) sit under the same permission as animals: they exist to
     /// support working with animals, so a role with no livestock access has no use for
-    /// them either.
+    /// them either. The farm_modules list sits behind the Settings read bit so the
+    /// visibility check is consistent with the panel-toggle screen.
     /// </summary>
     private static readonly Dictionary<string, string> RequiredPermissionByCollection =
         new(StringComparer.OrdinalIgnoreCase)
@@ -172,6 +305,14 @@ public class GetSyncPullQueryHandler(
             ["animalCategories"] = SystemPermissions.LivestockAnimalsRead,
             ["withdrawalPeriods"] = SystemPermissions.LivestockAnimalsRead,
             ["inventoryItems"] = SystemPermissions.InventoryItemsRead,
+            ["mortalityCauses"] = SystemPermissions.LivestockAnimalsRead,
+            ["farmModules"] = SystemPermissions.SettingsFarmModulesRead,
+            ["administrationRoutes"] = SystemPermissions.LivestockAnimalsRead,
+            ["treatmentReasons"] = SystemPermissions.LivestockAnimalsRead,
+            ["healthPlans"] = SystemPermissions.LivestockAnimalsRead,
+            ["healthPlanItems"] = SystemPermissions.LivestockAnimalsRead,
+            ["healthPlanAssignments"] = SystemPermissions.LivestockAnimalsRead,
+            ["plausibilityRanges"] = SystemPermissions.LivestockAnimalsRead,
         };
 
     public async Task<SyncPullResponseDto> Handle(GetSyncPullQuery request, CancellationToken cancellationToken)
@@ -216,7 +357,7 @@ public class GetSyncPullQueryHandler(
         var groups = await ReadAsync(
             effective, "animalGroups", livestockDb.AnimalGroups, since, limit, frontier,
             g => new SyncAnimalGroupDto(
-                g.Id, g.Name, g.Description, g.SpeciesId, g.IsActive,
+                g.Id, g.Name, g.Description, g.SpeciesId, g.IsActive, g.TrackingMode.ToString(),
                 g.CreatedAt, g.UpdatedAt, g.DeletedAt != null),
             cancellationToken);
 
@@ -259,9 +400,67 @@ public class GetSyncPullQueryHandler(
                 w.CreatedAt, w.UpdatedAt, w.DeletedAt != null),
             cancellationToken);
 
+        var mortalityCauses = await ReadAsync(
+            effective, "mortalityCauses", livestockDb.MortalityCauses, since, limit, frontier,
+            c => new SyncMortalityCauseDto(
+                c.Id, c.Name, c.IsActive, c.CreatedAt, c.UpdatedAt, c.DeletedAt != null),
+            cancellationToken);
+
+        var farmModules = await ReadAsync(
+            effective, "farmModules", peopleDb.FarmModules, since, limit, frontier,
+            m => new SyncFarmModuleDto(
+                m.Id, m.Key, m.Enabled, m.DisabledReason, m.CreatedAt, m.UpdatedAt, false),
+            cancellationToken);
+
+        var administrationRoutes = await ReadAsync(
+            effective, "administrationRoutes", livestockDb.AdministrationRoutes, since, limit, frontier,
+            r => new SyncAdministrationRouteDto(
+                r.Id, r.Key, r.LabelEs, r.IsActive, r.CreatedAt, r.UpdatedAt, r.DeletedAt != null),
+            cancellationToken);
+
+        var treatmentReasons = await ReadAsync(
+            effective, "treatmentReasons", livestockDb.TreatmentReasons, since, limit, frontier,
+            r => new SyncTreatmentReasonDto(
+                r.Id, r.Key, r.LabelEs, r.IsActive, r.CreatedAt, r.UpdatedAt, r.DeletedAt != null),
+            cancellationToken);
+
+        var healthPlans = await ReadAsync(
+            effective, "healthPlans", livestockDb.HealthPlans, since, limit, frontier,
+            p => new SyncHealthPlanDto(
+                p.Id, p.Name, p.SpeciesId, p.IsActive, p.CreatedAt, p.UpdatedAt, p.DeletedAt != null),
+            cancellationToken);
+
+        var healthPlanItems = await ReadAsync(
+            effective, "healthPlanItems", livestockDb.HealthPlanItems, since, limit, frontier,
+            i => new SyncHealthPlanItemDto(
+                i.Id, i.HealthPlanId, i.Name, i.EventType, i.Anchor.ToString(),
+                i.AnchorOffsetDays, i.ComplianceWindowDays,
+                i.InventoryItemId, i.RouteId, i.DoseQuantity, i.DoseUnitId,
+                i.Repetitions, i.AppliesToCategoryId, i.AppliesToSex, i.IsActive,
+                i.CreatedAt, i.UpdatedAt, i.DeletedAt != null),
+            cancellationToken);
+
+        var healthPlanAssignments = await ReadAsync(
+            effective, "healthPlanAssignments", livestockDb.HealthPlanAssignments, since, limit, frontier,
+            a => new SyncHealthPlanAssignmentDto(
+                a.Id, a.HealthPlanId, a.AnimalId, a.GroupId, a.AssignedAt,
+                a.IsActive, a.CreatedAt, a.UpdatedAt, a.DeletedAt != null),
+            cancellationToken);
+
+        var plausibilityRanges = await ReadAsync(
+            effective, "plausibilityRanges", livestockDb.PlausibilityRanges, since, limit, frontier,
+            r => new SyncPlausibilityRangeDto(
+                r.Id, r.SpeciesId, r.CategoryId, r.Magnitude,
+                r.PlausibleMin, r.PlausibleMax, r.AbsoluteMin, r.AbsoluteMax,
+                r.IsActive, r.CreatedAt, r.UpdatedAt, r.DeletedAt != null),
+            cancellationToken);
+
         var collections = new SyncCollectionsDto(
             animals, identifiers, groups, memberships,
-            speciesList, breeds, categories, items, withdrawals);
+            speciesList, breeds, categories, items, withdrawals, mortalityCauses, farmModules,
+            administrationRoutes, treatmentReasons,
+            healthPlans, healthPlanItems, healthPlanAssignments,
+            plausibilityRanges);
 
         return new SyncPullResponseDto(frontier.Next.Format(), frontier.HasMore, collections);
     }

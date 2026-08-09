@@ -23,6 +23,72 @@ public class AnimalTests
     }
 
     [Fact]
+    public void Register_WithPositiveBirthWeight_StoresIt()
+    {
+        var animal = Animal.Register(SpeciesId, Sex.Female, birthWeightKg: 1.4m);
+
+        Assert.Equal(1.4m, animal.BirthWeightKg);
+    }
+
+    [Fact]
+    public void Register_WithoutBirthWeight_LeavesItNull()
+    {
+        var animal = Animal.Register(SpeciesId, Sex.Female);
+
+        Assert.Null(animal.BirthWeightKg);
+    }
+
+    [Fact]
+    public void Register_WithZeroOrNegativeBirthWeight_Throws()
+    {
+        Assert.Throws<DomainException>(() =>
+            Animal.Register(SpeciesId, Sex.Female, birthWeightKg: 0m));
+        Assert.Throws<DomainException>(() =>
+            Animal.Register(SpeciesId, Sex.Female, birthWeightKg: -0.1m));
+    }
+
+    [Fact]
+    public void Dispose_SetsDisposedAt()
+    {
+        var animal = Animal.Register(SpeciesId, Sex.Female);
+        var occurredAt = new DateTimeOffset(2026, 8, 7, 12, 0, 0, TimeSpan.Zero);
+
+        animal.Dispose(occurredAt);
+
+        Assert.Equal(occurredAt, animal.DisposedAt);
+    }
+
+    [Fact]
+    public void Dispose_Twice_Throws()
+    {
+        var animal = Animal.Register(SpeciesId, Sex.Female);
+        animal.Dispose(DateTimeOffset.UtcNow);
+
+        Assert.Throws<DomainException>(() => animal.Dispose(DateTimeOffset.UtcNow));
+    }
+
+    [Fact]
+    public void Dispose_AfterLotCascade_Throws()
+    {
+        var animal = Animal.Register(SpeciesId, Sex.Female);
+        animal.CloseViaLotDisposal(DateTimeOffset.UtcNow);
+
+        // A second individual disposal must not silently overwrite the cascade's flag.
+        Assert.Throws<DomainException>(() => animal.Dispose(DateTimeOffset.UtcNow));
+    }
+
+    [Fact]
+    public void CloseViaLotDisposal_AfterIndividualDispose_Throws()
+    {
+        var animal = Animal.Register(SpeciesId, Sex.Female);
+        animal.Dispose(DateTimeOffset.UtcNow);
+
+        // A late cascade (e.g. an offline record that syncs after the individual sale)
+        // must not silently overwrite the individual disposal.
+        Assert.Throws<DomainException>(() => animal.CloseViaLotDisposal(DateTimeOffset.UtcNow));
+    }
+
+    [Fact]
     public void Register_WithoutTagOrRegistration_IsStillValid()
     {
         // Domain warning in AGENTS.md: an animal can be fully valid with no tag/SIFAE.
@@ -146,5 +212,31 @@ public class AnimalTests
 
         Assert.Throws<DomainException>(
             () => animal.Update(Guid.NewGuid(), null, null, DateTimeOffset.UtcNow));
+    }
+
+    /// <summary>
+    /// ADR-0015 sec.7: the cascade closure marks an animal disposed "with lot scope" —
+    /// it really left, the system just cannot say more than that. Distinct from
+    /// <see cref="Animal.Delete"/>, which tombstones a mis-registration.
+    /// </summary>
+    [Fact]
+    public void CloseViaLotDisposal_SetsDisposedAt_WithoutTouchingDeletedAt()
+    {
+        var animal = Animal.Register(SpeciesId, Sex.Male);
+        var disposedAt = new DateTimeOffset(2026, 6, 1, 0, 0, 0, TimeSpan.Zero);
+
+        animal.CloseViaLotDisposal(disposedAt);
+
+        Assert.Equal(disposedAt, animal.DisposedAt);
+        Assert.False(animal.IsDeleted);
+    }
+
+    [Fact]
+    public void CloseViaLotDisposal_CalledTwice_Throws()
+    {
+        var animal = Animal.Register(SpeciesId, Sex.Male);
+        animal.CloseViaLotDisposal(DateTimeOffset.UtcNow);
+
+        Assert.Throws<DomainException>(() => animal.CloseViaLotDisposal(DateTimeOffset.UtcNow));
     }
 }

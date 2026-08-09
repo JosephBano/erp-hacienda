@@ -1,0 +1,260 @@
+<div class="page-container">
+  <div *ngIf="loading()" class="glass-card">
+    <p class="text-muted">Cargando lote…</p>
+  </div>
+
+  <div class="alert alert-danger" *ngIf="errorMessage() && !loading() && !notFound()">{{ errorMessage() }}</div>
+
+  <div *ngIf="notFound()" class="glass-card">
+    <h2>Lote no encontrado</h2>
+    <p class="text-muted">El lote solicitado no existe o no tienes permiso para verlo.</p>
+    <button type="button" class="btn-secondary" (click)="goBack()">Volver al listado</button>
+  </div>
+
+  @if (group(); as g) {
+    <div class="page-header">
+      <div>
+        <button type="button" class="btn-link" (click)="goBack()" data-testid="back-link">
+          <app-icon name="arrow-left" size="sm" ariaLabel="Volver"></app-icon>
+          Volver al listado
+        </button>
+        <h1 class="page-title">{{ g.name }}</h1>
+        <p class="subtitle" *ngIf="g.description">{{ g.description }}</p>
+        <p class="subtitle text-muted" *ngIf="!g.description">(Sin descripción)</p>
+      </div>
+      <span class="badge" [class.badge-success]="g.isActive" [class.badge-danger]="!g.isActive">
+        {{ statusBadgeLabel(g.isActive) }}
+      </span>
+    </div>
+
+    <div class="alert alert-success" *ngIf="successMessage()">{{ successMessage() }}</div>
+
+    <div class="summary-grid" data-testid="summary-grid">
+      <div class="summary-card glass-card">
+        <span class="summary-label">Cabezas vivas</span>
+        <span class="summary-value" data-testid="live-head-count">{{ summary()?.liveHeadCount ?? '—' }}</span>
+      </div>
+      <div class="summary-card glass-card">
+        <span class="summary-label">Afectadas por diagnóstico</span>
+        <span class="summary-value">{{ summary()?.headsAffectedByDiagnosis ?? '—' }}</span>
+      </div>
+      <div class="summary-card glass-card">
+        <span class="summary-label">Última vacunación</span>
+        <span class="summary-value">{{ formatDate(summary()?.lastVaccinationAt) }}</span>
+      </div>
+      <div class="summary-card glass-card">
+        <span class="summary-label">Última baja</span>
+        <span class="summary-value">{{ formatDate(summary()?.lastDisposalAt) }}</span>
+      </div>
+      <div class="summary-card glass-card">
+        <span class="summary-label">Último tratamiento</span>
+        <span class="summary-value">{{ formatDate(summary()?.lastTreatmentAt) }}</span>
+      </div>
+    </div>
+
+    <div class="glass-card">
+      <div class="card-header">
+        <h2>Datos del lote</h2>
+        <button
+          *ngIf="!editing() && g.isActive"
+          type="button"
+          class="btn-secondary btn-sm"
+          (click)="startEdit()"
+          data-testid="edit-button"
+        >
+          <app-icon name="edit" size="sm" ariaLabel="Editar"></app-icon>
+          <span>Editar nombre y datos</span>
+        </button>
+      </div>
+
+      <!-- TrackingMode change -->
+      <ng-container *ngIf="g.isActive">
+        <div class="card-header">
+          <h2>Modo de seguimiento</h2>
+        </div>
+        <p class="hint-text">
+          Cambiá entre <strong>Individual</strong> y <strong>Por conteo</strong>. Solo posible mientras el grupo esté vacío.
+        </p>
+        <div *ngIf="requestingTrackingModeChange() as req" class="warning-block" data-testid="tracking-mode-confirm">
+          <app-icon name="alert" size="sm" ariaLabel="Advertencia"></app-icon>
+          <span>
+            Cambiar el modo va a fallar si el grupo ya tiene miembros activos o eventos registrados. Si querés intentarlo, el servidor va a rechazarlo con el motivo exacto.
+          </span>
+          <button
+            type="button"
+            class="btn-primary btn-sm"
+            (click)="confirmTrackingModeChange()"
+            [disabled]="changingTrackingMode()"
+            data-testid="confirm-tracking-mode"
+          >
+            <span *ngIf="changingTrackingMode()">Cambiando…</span>
+            <span *ngIf="!changingTrackingMode()">{{ trackingModeButtonLabel(req.newMode) }}</span>
+          </button>
+          <button type="button" class="btn-secondary btn-sm" (click)="cancelTrackingModeChange()" data-testid="cancel-tracking-mode">Cancelar</button>
+        </div>
+        <div *ngIf="!requestingTrackingModeChange()" class="action-row">
+          <button
+            *ngIf="g.trackingMode === 'Individual'"
+            type="button"
+            class="btn-secondary btn-sm"
+            (click)="requestTrackingModeChange('Headcount')"
+            data-testid="change-to-headcount"
+          >Cambiar a Por conteo</button>
+          <button
+            *ngIf="g.trackingMode !== 'Individual'"
+            type="button"
+            class="btn-secondary btn-sm"
+            (click)="requestTrackingModeChange('Individual')"
+            data-testid="change-to-individual"
+          >Cambiar a Individual</button>
+        </div>
+      </ng-container>
+
+      <div *ngIf="!editing()" class="readonly-grid">
+        <div>
+          <span class="form-label">Especie</span>
+          <p class="value">{{ g.speciesName ?? 'Sin especie' }}</p>
+        </div>
+        <div>
+          <span class="form-label">Modo de seguimiento</span>
+          <p class="value">{{ trackingModeLabel(g.trackingMode) }}</p>
+        </div>
+      </div>
+
+      <div *ngIf="editing()">
+        <div class="alert alert-danger" *ngIf="editErrorMessage()">{{ editErrorMessage() }}</div>
+        <div class="form-grid">
+          <label class="form-label" for="edit-name">Nombre <span class="required">*</span></label>
+          <input
+            id="edit-name"
+            type="text"
+            class="form-input"
+            [(ngModel)]="editName"
+            name="editName"
+            required
+            maxlength="100"
+            data-testid="edit-name-input"
+          />
+          <label class="form-label" for="edit-description">Descripción</label>
+          <textarea
+            id="edit-description"
+            class="form-input"
+            [(ngModel)]="editDescription"
+            name="editDescription"
+            maxlength="500"
+            rows="3"
+            data-testid="edit-description-input"
+          ></textarea>
+          <label class="form-label" for="edit-species">Especie</label>
+          <select
+            id="edit-species"
+            class="form-input"
+            [(ngModel)]="editSpeciesId"
+            name="editSpeciesId"
+            data-testid="edit-species-select"
+          >
+            <option value="">Sin especie</option>
+            <option *ngFor="let s of species()" [value]="s.id">{{ s.name }}</option>
+          </select>
+        </div>
+        <div class="form-actions">
+          <button type="button" class="btn-secondary" (click)="cancelEdit()" data-testid="cancel-edit">Cancelar</button>
+          <button
+            type="button"
+            class="btn-primary"
+            (click)="saveEdit()"
+            [disabled]="editSubmitting()"
+            data-testid="save-edit"
+          >
+            <span *ngIf="editSubmitting()">Guardando…</span>
+            <span *ngIf="!editSubmitting()">Guardar cambios</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="glass-card">
+      <div class="card-header">
+        <h2>Estado</h2>
+      </div>
+      <p *ngIf="g.isActive">El lote está activo. Desactivarlo lo oculta del listado por defecto, pero conserva todo el historial y es reversible.</p>
+      <p *ngIf="!g.isActive">El lote está inactivo. Reactivarlo lo devuelve al listado por defecto.</p>
+
+      <div *ngIf="g.isActive && confirmingDeactivate()" class="warning-block">
+        <app-icon name="alert" size="sm" ariaLabel="Advertencia"></app-icon>
+        <span>¿Desactivar este lote? La operación es reversible con "Reactivar".</span>
+        <button type="button" class="btn-danger btn-sm" (click)="confirmDeactivate()" data-testid="confirm-deactivate-detail">Confirmar desactivación</button>
+        <button type="button" class="btn-secondary btn-sm" (click)="cancelDeactivate()" data-testid="cancel-deactivate-detail">Cancelar</button>
+      </div>
+      <div *ngIf="g.isActive && !confirmingDeactivate()" class="action-row">
+        <button type="button" class="btn-secondary btn-sm" (click)="startDeactivate()" data-testid="deactivate-detail">Desactivar lote</button>
+      </div>
+
+      <div *ngIf="!g.isActive && confirmingReactivate()" class="warning-block">
+        <app-icon name="alert" size="sm" ariaLabel="Advertencia"></app-icon>
+        <span>¿Reactivar este lote?</span>
+        <button type="button" class="btn-primary btn-sm" (click)="confirmReactivate()" data-testid="confirm-reactivate-detail">Confirmar reactivación</button>
+        <button type="button" class="btn-secondary btn-sm" (click)="cancelReactivate()" data-testid="cancel-reactivate-detail">Cancelar</button>
+      </div>
+      <div *ngIf="!g.isActive && !confirmingReactivate()" class="action-row">
+        <button type="button" class="btn-primary btn-sm" (click)="startReactivate()" data-testid="reactivate-detail">Reactivar lote</button>
+      </div>
+    </div>
+
+    <div class="glass-card">
+      <div class="card-header">
+        <h2>Miembros activos ({{ activeMemberships().length }})</h2>
+      </div>
+      <p *ngIf="activeMemberships().length === 0" class="text-muted">
+        Sin miembros activos. La asignación de animales a grupos se hace vía endpoints de miembros.
+      </p>
+      <div *ngIf="activeMemberships().length > 0" class="table-container inner-table">
+        <table class="responsive-table">
+          <thead>
+            <tr>
+              <th>Animal (ID)</th>
+              <th>Ingresó</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let m of activeMemberships(); trackBy: trackById">
+              <td [attr.data-label]="'Animal'">{{ m.animalId }}</td>
+              <td [attr.data-label]="'Ingresó'">{{ formatDate(m.joinedAt) }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <details *ngIf="closedMemberships().length > 0" class="closed-members">
+        <summary>Histórico ({{ closedMemberships().length }})</summary>
+        <div class="table-container inner-table">
+          <table class="responsive-table">
+            <thead>
+              <tr>
+                <th>Animal (ID)</th>
+                <th>Ingresó</th>
+                <th>Salió</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let m of closedMemberships(); trackBy: trackById">
+                <td>{{ m.animalId }}</td>
+                <td>{{ formatDate(m.joinedAt) }}</td>
+                <td>{{ formatDate(m.leftAt) }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </details>
+    </div>
+
+    <div class="glass-card">
+      <div class="card-header">
+        <h2>Eventos del grupo</h2>
+      </div>
+      <p class="text-muted">
+        Los eventos grupales (pesaje muestral, mortalidad de lote, vacunación, diagnóstico grupal) se registran desde los endpoints correspondientes y aparecen en la ficha del animal cuando aplique.
+      </p>
+    </div>
+  }
+</div>

@@ -1,0 +1,62 @@
+<div class="page-container">
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Lotes y Grupos</h1>
+      <p class="subtitle">Conjuntos de manejo y costeo. Cada lote tiene un modo de seguimiento (Individual o Por conteo) y un conteo de cabezas vivas derivado de eventos.</p>
+    </div>
+    <button type="button" class="btn-primary" (click)="goNew()">
+      <app-icon name="plus" size="sm" ariaLabel="Crear nuevo lote"></app-icon>
+      <span>Nuevo lote</span>
+    </button>
+  </div>
+
+  <div class="alert alert-success" *ngIf="successMessage()">{{ successMessage() }}</div>
+  <div class="alert alert-danger" *ngIf="errorMessage()">{{ errorMessage() }}</div>
+
+  <div class="filter-toolbar">
+    <label class="form-label">
+      <input
+        type="checkbox"
+        [checked]="includeInactive()"
+        (change)="onIncludeInactiveChange(!!$any($event.target).checked)"
+        data-testid="include-inactive-toggle"
+      />
+      Incluir lotes inactivos
+    </label>
+    <button type="button" class="btn-secondary btn-sm" (click)="loadGroups()" data-testid="reload-button">
+      <app-icon name="search" size="sm" ariaLabel="Recargar"></app-icon>
+      <span>Recargar</span>
+    </button>
+  </div>
+
+  <app-catalog-table
+    [rows]="groups()"
+    [columns]="columns()"
+    [actions]="actions"
+    [rowInactive]="isInactive"
+    emptyMessage="No hay lotes registrados."
+    (action)="onAction($event)">
+  </app-catalog-table>
+
+  <!-- Two-step deactivate confirmation -->
+  <div class="confirm-bar" *ngIf="confirmingDeactivateId() as id">
+    <span>¿Desactivar este lote? La operación es reversible con "Reactivar".</span>
+    <button type="button" class="btn-danger btn-sm" (click)="confirmDeactivate()" data-testid="confirm-deactivate">
+      Confirmar desactivación
+    </button>
+    <button type="button" class="btn-secondary btn-sm" (click)="cancelDeactivate()" data-testid="cancel-deactivate">
+      Cancelar
+    </button>
+  </div>
+
+  <!-- Two-step reactivate confirmation -->
+  <div class="confirm-bar" *ngIf="confirmingReactivateId() as id">
+    <span>¿Reactivar este lote?</span>
+    <button type="button" class="btn-primary btn-sm" (click)="confirmReactivate()" data-testid="confirm-reactivate">
+      Confirmar reactivación
+    </button>
+    <button type="button" class="btn-secondary btn-sm" (click)="cancelReactivate()" data-testid="cancel-reactivate">
+      Cancelar
+    </button>
+  </div>
+</div>

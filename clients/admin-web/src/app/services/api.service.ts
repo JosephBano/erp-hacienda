@@ -300,6 +300,58 @@ export interface SyncConflictDto {
   detectedAt: string;
 }
 
+// --- ADR-0025: Animal groups (lotes / grupos de manejo) ---
+//
+// Server shape from PR1 (AnimalGroupDto in src/Modules/Livestock/.../GetAnimalGroupQueries.cs).
+// LiveHeadCount and SpeciesName are server-side derived fields; do not rely on the
+// client to compute them.
+
+export interface GroupMembershipDto {
+  id: string;
+  animalId: string;
+  joinedAt: string;     // ISO date (DateOnly)
+  leftAt?: string | null;
+  isActive: boolean;
+}
+
+export interface AnimalGroupDto {
+  id: string;
+  name: string;
+  description?: string | null;
+  speciesId?: string | null;
+  speciesName?: string | null;       // PR1 server-side
+  isActive: boolean;
+  trackingMode: 'Individual' | 'Headcount';
+  liveHeadCount: number;             // PR1 server-side
+  memberships: GroupMembershipDto[];
+}
+
+export interface AnimalGroupSummaryDto {
+  groupId: string;
+  liveHeadCount: number;
+  headsAffectedByDiagnosis: number;
+  lastVaccinationAt?: string | null;
+  lastDisposalAt?: string | null;
+  lastTreatmentAt?: string | null;
+}
+
+export interface CreateAnimalGroupRequest {
+  name: string;
+  description?: string | null;
+  speciesId?: string | null;
+  trackingMode?: 'Individual' | 'Headcount';
+}
+
+export interface UpdateAnimalGroupRequest {
+  name: string;
+  description?: string | null;
+  speciesId?: string | null;
+}
+
+export interface ChangeTrackingModeRequest {
+  trackingMode: 'Individual' | 'Headcount';
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -593,5 +645,45 @@ export class ApiService {
     cohortWindowDays?: number | null;
   }): Observable<void> {
     return this.http.patch<void>(`${this.baseUrl}/species/${speciesId}/lactation`, data);
+  }
+
+  // --- Animal Groups (ADR-0025 PR3) ---
+  //
+  // Endpoint contract from PR2 (AnimalGroupsEndpoints.cs in src/Hato.Api/Endpoints).
+  // All write verbs require `livestock.animals.write` (same gate as animals).
+  // Reads are open to any authenticated user, matching AnimalsEndpoints.
+
+  getAnimalGroups(includeInactive = false): Observable<AnimalGroupDto[]> {
+    let params = new HttpParams();
+    if (includeInactive) params = params.set('includeInactive', 'true');
+    return this.http.get<AnimalGroupDto[]>(`${this.baseUrl}/animal-groups`, { params });
+  }
+
+  getAnimalGroupById(id: string): Observable<AnimalGroupDto> {
+    return this.http.get<AnimalGroupDto>(`${this.baseUrl}/animal-groups/${id}`);
+  }
+
+  getAnimalGroupSummary(id: string): Observable<AnimalGroupSummaryDto> {
+    return this.http.get<AnimalGroupSummaryDto>(`${this.baseUrl}/animal-groups/${id}/summary`);
+  }
+
+  createAnimalGroup(data: CreateAnimalGroupRequest): Observable<{ id: string }> {
+    return this.http.post<{ id: string }>(`${this.baseUrl}/animal-groups`, data);
+  }
+
+  updateAnimalGroup(id: string, data: UpdateAnimalGroupRequest): Observable<void> {
+    return this.http.put<void>(`${this.baseUrl}/animal-groups/${id}`, data);
+  }
+
+  deactivateAnimalGroup(id: string): Observable<void> {
+    return this.http.delete<void>(`${this.baseUrl}/animal-groups/${id}`);
+  }
+
+  activateAnimalGroup(id: string): Observable<void> {
+    return this.http.post<void>(`${this.baseUrl}/animal-groups/${id}/activate`, {});
+  }
+
+  changeAnimalGroupTrackingMode(id: string, trackingMode: 'Individual' | 'Headcount'): Observable<void> {
+    return this.http.patch<void>(`${this.baseUrl}/animal-groups/${id}/tracking-mode`, { trackingMode });
   }
 }

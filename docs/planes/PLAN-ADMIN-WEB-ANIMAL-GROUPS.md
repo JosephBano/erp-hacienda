@@ -9,8 +9,8 @@
 
 - **Rama Git del plan:** `docs/plan-admin-web-animal-groups` (este archivo).
 - **ADR que respalda:** [ADR-0025](../adr/0025-gestion-administrativa-grupos.md).
-- **Estado al 2026-08-08:** ADR propuesto en PR #78. Plan listo para arrancar en cuanto
-  el ADR se acepte.
+- **Estado al 2026-08-08:** ADR mergeado en PR #78; plan ejecutado en PR #80
+  (dominio), PR #81 (endpoints), PR #82 (frontend) y PR #83 (fix post-review).
 - **Compuerta:** ninguna externa (no depende del cliente, no hay conversación previa
   pendiente). El desacople del piloto (ADR-0024) habilita la entrada de UI
   administrativa sin esperar 3.5a.7.

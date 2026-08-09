@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Database } from '@nozbe/watermelondb';
 
 import { theme } from '../ui/theme';
 import {
@@ -13,6 +14,7 @@ import {
   Title,
 } from '../ui/components';
 import type { DailySummary, MilkingShift, MilkingService } from '../services/milkingService';
+import { evaluatePlausibility } from '../services/plausibilityService';
 
 export interface MilkingCandidate {
   animalId: string;
@@ -21,6 +23,14 @@ export interface MilkingCandidate {
   withheldUntil?: string;
   /** Whether the animal's species has the milking flag set. Used to filter the picker. */
   speciesIsMilkable: boolean;
+  /**
+   * Needed to evaluate plausibility (ADR-0022) locally against
+   * `plausibility_ranges`. Optional so existing callers/tests that do not
+   * care about the check keep working — an undefined speciesId simply never
+   * matches a range, which is the fail-open contract anyway.
+   */
+  speciesId?: string;
+  categoryId?: string | null;
 }
 
 /**
@@ -34,11 +44,18 @@ export interface MilkingCandidate {
  */
 export function MilkingScreen({
   service,
+  database,
   candidates,
   recordedBy,
   onRecorded,
 }: {
   service: MilkingService;
+  /**
+   * The local WatermelonDB handle, used to evaluate plausibility (ADR-0022)
+   * against the mirrored `plausibility_ranges` table. Never used to reach
+   * the network — the check is 100% local (Art. 9).
+   */
+  database: Database;
   candidates: MilkingCandidate[];
   /** Identity to stamp on the outbox payload; the server requires it non-empty. */
   recordedBy: string;
@@ -50,6 +67,12 @@ export function MilkingScreen({
   const [summary, setSummary] = useState<DailySummary | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  /**
+   * Set when `evaluatePlausibility` returns 'confirm' for the typed value:
+   * holds the number itself so the confirm button can submit it directly,
+   * without depending on `liters` still holding the same text (ADR-0022 sec.2).
+   */
+  const [pendingConfirmation, setPendingConfirmation] = useState<number | null>(null);
 
   const refreshSummary = useCallback(async () => {
     setSummary(await service.dailySummary());
@@ -59,24 +82,65 @@ export function MilkingScreen({
     void refreshSummary();
   }, [refreshSummary]);
 
+  const submit = useCallback(
+    async (value: number, isPlausibilityConfirmed: boolean) => {
+      if (!selected) return;
+
+      setBusy(true);
+      setError(null);
+      try {
+        await service.recordIndividualYield(
+          selected.animalId,
+          shift,
+          value,
+          recordedBy,
+          undefined,
+          isPlausibilityConfirmed,
+        );
+        setSelected(null);
+        setLiters('');
+        setPendingConfirmation(null);
+        await refreshSummary();
+        onRecorded?.();
+      } catch (caught) {
+        setError((caught as Error).message);
+      } finally {
+        setBusy(false);
+      }
+    },
+    [onRecorded, recordedBy, refreshSummary, selected, service, shift],
+  );
+
   const record = async () => {
     if (!selected) return;
 
-    const value = Number(liters.replace(',', '.'));
-    setBusy(true);
     setError(null);
+    const value = Number(liters.replace(',', '.'));
 
-    try {
-      await service.recordIndividualYield(selected.animalId, shift, value, recordedBy);
-      setSelected(null);
-      setLiters('');
-      await refreshSummary();
-      onRecorded?.();
-    } catch (caught) {
-      setError((caught as Error).message);
-    } finally {
-      setBusy(false);
+    // Only values that could plausibly be a real milking are worth checking
+    // against the ranges; NaN/negative/zero are the input guardrail's job
+    // (`assertVolume` in milkingService.ts) and produce their own message.
+    if (Number.isFinite(value) && value > 0 && selected.speciesId) {
+      const verdict = await evaluatePlausibility(database, {
+        speciesId: selected.speciesId,
+        categoryId: selected.categoryId ?? null,
+        magnitude: 'milk_liters',
+        value,
+      });
+
+      if (verdict === 'block') {
+        setError(
+          `${value} L está fuera de lo posible para este animal. Verifica el dato.`,
+        );
+        return;
+      }
+      if (verdict === 'confirm') {
+        setPendingConfirmation(value);
+        return;
+      }
     }
+
+    await submit(value, false);
   };
 
   return (
@@ -115,13 +179,38 @@ export function MilkingScreen({
               onChangeText={setLiters}
               placeholder="0.0"
             />
-            <BigButton testID="confirm-milking" label="Registrar" onPress={record} busy={busy} />
+
+            {pendingConfirmation !== null ? (
+              <>
+                <Notice
+                  tone="warning"
+                  text={`${pendingConfirmation} L es mucho más de lo normal para este animal. ¿Es correcto?`}
+                />
+                <BigButton
+                  testID="milking-confirm-plausibility"
+                  label="Sí, registrar"
+                  onPress={() => void submit(pendingConfirmation, true)}
+                  busy={busy}
+                />
+                <BigButton
+                  testID="milking-cancel-plausibility"
+                  label="No, revisar"
+                  tone="neutral"
+                  onPress={() => setPendingConfirmation(null)}
+                />
+              </>
+            ) : (
+              <BigButton testID="confirm-milking" label="Registrar" onPress={record} busy={busy} />
+            )}
+
             <BigButton
               testID="cancel-milking"
               label="Cancelar"
               tone="neutral"
               onPress={() => {
                 setSelected(null);
+                setLiters('');
+                setPendingConfirmation(null);
                 setError(null);
               }}
             />

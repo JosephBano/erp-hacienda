@@ -117,6 +117,27 @@ describe('EventService', () => {
         /peso/i,
       );
     });
+
+    /**
+     * ADR-0022 sec.5: the confirmation of an improbable value is persisted on the
+     * payload, not just shown and forgotten. Default is false so a value that
+     * never triggered the dialog does not falsely claim a confirmation.
+     */
+    it('defaults isPlausibilityConfirmed to false when not stamped by the screen', async () => {
+      await service.recordWeight({ animalId: 'cow-1', weightKg: 420 });
+
+      const [entry] = await outbox.pending();
+      const payload = JSON.parse((entry.payload as any).payloadJson);
+      expect(payload).toMatchObject({ isPlausibilityConfirmed: false });
+    });
+
+    it('carries isPlausibilityConfirmed through to the outbox payload when set', async () => {
+      await service.recordWeight({ animalId: 'cow-1', weightKg: 420, isPlausibilityConfirmed: true });
+
+      const [entry] = await outbox.pending();
+      const payload = JSON.parse((entry.payload as any).payloadJson);
+      expect(payload).toMatchObject({ isPlausibilityConfirmed: true });
+    });
   });
 
   describe('group events', () => {

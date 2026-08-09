@@ -22,6 +22,13 @@ export interface WeightInput {
   weightKg: number;
   occurredAt?: string;
   notes?: string;
+  /**
+   * Set by `EventsScreen` when the operator explicitly confirmed a weight the
+   * plausibility check (ADR-0022, 3.5a.6) flagged as improbable for this
+   * animal's species/category. Carried into the payload so the server-side
+   * audit can distinguish a confirmed outlier from an unreviewed one.
+   */
+  isPlausibilityConfirmed?: boolean;
 }
 
 export interface DisposalInput {
@@ -139,7 +146,11 @@ export class EventService {
         eventType: 'Weighing',
         occurredAt,
         recordedBy: 'field-app',
-        payloadJson: JSON.stringify({ weightKg: input.weightKg, notes: input.notes }),
+        payloadJson: JSON.stringify({
+          weightKg: input.weightKg,
+          notes: input.notes,
+          isPlausibilityConfirmed: input.isPlausibilityConfirmed ?? false,
+        }),
       },
       occurredAt,
     );

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
+import { Database } from '@nozbe/watermelondb';
 
 import { theme } from '../ui/theme';
 import {
@@ -14,12 +15,21 @@ import {
   Title,
 } from '../ui/components';
 import type { EventService } from '../services/eventService';
+import { evaluatePlausibility } from '../services/plausibilityService';
 
 export interface AnimalOption {
   animalId: string;
   label: string;
   /** Resolved automatically for "Baja con causa" (3.5a.3) while the animal is still its own row. */
   motherId?: string;
+  /**
+   * Needed to evaluate plausibility (ADR-0022) for the weight form. Optional
+   * so screens that build a trimmed-down AnimalOption (e.g. BirthScreen's
+   * dam/sire pickers) are unaffected — an undefined speciesId simply never
+   * matches a range, which is the fail-open contract anyway.
+   */
+  speciesId?: string;
+  categoryId?: string | null;
 }
 
 export interface GroupOption {
@@ -49,6 +59,7 @@ export type EventMode = 'menu' | 'treatment' | 'weight' | 'move' | 'disposal';
 /** Treatments, weighings, lot moves and individual disposals — recorded from the paddock. */
 export function EventsScreen({
   service,
+  database,
   animals,
   groups,
   medications,
@@ -58,6 +69,12 @@ export function EventsScreen({
   initialActivity,
 }: {
   service: EventService;
+  /**
+   * The local WatermelonDB handle, used to evaluate plausibility (ADR-0022)
+   * against the mirrored `plausibility_ranges` table for the weight form.
+   * Never used to reach the network — the check is 100% local (Art. 9).
+   */
+  database: Database;
   animals: AnimalOption[];
   groups: GroupOption[];
   medications: MedicationOption[];
@@ -80,6 +97,12 @@ export function EventsScreen({
   const [error, setError] = useState<string | null>(null);
   const [confirmation, setConfirmation] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  /**
+   * Set when `evaluatePlausibility` returns 'confirm' for the typed weight:
+   * holds the number itself so the confirm button submits it directly,
+   * without depending on `weight` still holding the same text (ADR-0022 sec.2).
+   */
+  const [weightPendingConfirmation, setWeightPendingConfirmation] = useState<number | null>(null);
 
   /**
    * Pre-selection bridge. When the activity tree hands us an animal, we set it on
@@ -109,6 +132,7 @@ export function EventsScreen({
     setWeight('');
     setCause(null);
     setError(null);
+    setWeightPendingConfirmation(null);
   };
 
   const run = async (action: () => Promise<unknown>, done: string) => {
@@ -124,6 +148,42 @@ export function EventsScreen({
     } finally {
       setBusy(false);
     }
+  };
+
+  /**
+   * Plausibility gate for the weight form (ADR-0022, 3.5a.6). Runs entirely
+   * offline against the local `plausibility_ranges` mirror: 'pass' (or no
+   * range configured — fail-open) submits immediately, 'confirm' shows the
+   * dialog below, 'block' stops the entry before it reaches the outbox.
+   */
+  const recordWeight = async () => {
+    if (!animal) return;
+
+    setError(null);
+    const value = Number(weight.replace(',', '.'));
+
+    if (Number.isFinite(value) && value > 0 && animal.speciesId) {
+      const verdict = await evaluatePlausibility(database, {
+        speciesId: animal.speciesId,
+        categoryId: animal.categoryId ?? null,
+        magnitude: 'weight_kg',
+        value,
+      });
+
+      if (verdict === 'block') {
+        setError(`${value} kg está fuera de lo posible para este animal. Verifica el dato.`);
+        return;
+      }
+      if (verdict === 'confirm') {
+        setWeightPendingConfirmation(value);
+        return;
+      }
+    }
+
+    await run(
+      () => service.recordWeight({ animalId: animal.animalId, weightKg: value }),
+      'Pesaje registrado.',
+    );
   };
 
   if (mode === 'menu') {
@@ -234,21 +294,44 @@ export function EventsScreen({
               {mode === 'weight' ? (
                 <>
                   <NumberField label="Peso (kg)" testID="weight-input" value={weight} onChangeText={setWeight} />
-                  <BigButton
-                    testID="confirm-weight"
-                    label="Registrar pesaje"
-                    busy={busy}
-                    onPress={() =>
-                      run(
-                        () =>
-                          service.recordWeight({
-                            animalId: animal.animalId,
-                            weightKg: Number(weight.replace(',', '.')),
-                          }),
-                        'Pesaje registrado.',
-                      )
-                    }
-                  />
+
+                  {weightPendingConfirmation !== null ? (
+                    <>
+                      <Notice
+                        tone="warning"
+                        text={`${weightPendingConfirmation} kg es mucho más de lo normal para este animal. ¿Es correcto?`}
+                      />
+                      <BigButton
+                        testID="weight-confirm-plausibility"
+                        label="Sí, registrar"
+                        busy={busy}
+                        onPress={() =>
+                          run(
+                            () =>
+                              service.recordWeight({
+                                animalId: animal.animalId,
+                                weightKg: weightPendingConfirmation,
+                                isPlausibilityConfirmed: true,
+                              }),
+                            'Pesaje registrado.',
+                          )
+                        }
+                      />
+                      <BigButton
+                        testID="weight-cancel-plausibility"
+                        label="No, revisar"
+                        tone="neutral"
+                        onPress={() => setWeightPendingConfirmation(null)}
+                      />
+                    </>
+                  ) : (
+                    <BigButton
+                      testID="confirm-weight"
+                      label="Registrar pesaje"
+                      busy={busy}
+                      onPress={() => void recordWeight()}
+                    />
+                  )}
                 </>
               ) : null}
 

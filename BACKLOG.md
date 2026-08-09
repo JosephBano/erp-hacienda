@@ -43,6 +43,26 @@
   en una pantalla genérica "Catálogos" que reutilice un componente tabla
   parametrizable.
 
+### [UI] Pantalla dedicada de gestión de grupos (animal-groups)
+
+- **Estado (2026-08-08)**: ✅ CERRADO en merge de PR #82 + fix post-review
+  #83. Cubre: listar con `LiveHeadCount`/`SpeciesName` server-side (3–4 queries
+  agregadas, no N+1), crear, detalle con resumen (5 tarjetas + miembros +
+  eventos), edición inline, cambio de `TrackingMode` con guarda (409 si tiene
+  actividad), desactivar/reactivar (reversible). Endurecimiento colateral:
+  `POST /`, `POST /events`, `POST /members`, `DELETE /members/{id}` también
+  exigen `livestock.animals.write` (gap preexistente cerrado). 18 specs vitest
+  + 13 integration nuevos.
+- **ADR**: `docs/adr/0025-gestion-administrativa-grupos.md`.
+- **Plan**: `docs/planes/PLAN-ADMIN-WEB-ANIMAL-GROUPS.md`.
+- **Nota**: el disparador original "cuando se priorice trabajo de UI admin-web"
+  queda **parcialmente satisfecho** para `animalGroups` pero **no** para los
+  catálogos puros (especies, causas de mortalidad, ítems de inventario); esos
+  siguen pendientes en el ítem hermano de arriba.
+- **Disparador**: N/A — ítem cerrado. El disparador original del ítem "[UI]
+  admin-web: pantallas de catálogos que faltan" se mantiene para los catálogos
+  que faltan.
+
 ### [mobile] Carrera cancelar↔push — la prueba del lado JS
 
 - **Archivo**: `clients/field-app/src/services/outbox.ts:189–202` (mitigación
@@ -178,6 +198,56 @@
 - **Disparador**: cuando el cliente pida ajustar la lista de causas (sec.7-B del plan
   dice que su lista puede diferir de la semilla estándar) y editarla vía API directa
   deje de ser suficiente.
+
+### [UI] `ConfirmDialogComponent` reutilizable
+
+- **Causa raíz**: el PR #82 (pantalla de grupos) usa patrón de botón de dos
+  pasos para la única acción destructiva (`deactivate`). Si aparece una segunda
+  acción destructiva en admin-web, replicar el patrón se vuelve ruido.
+- **Trabajo a hacer**: cuando se presente la segunda acción destructiva en
+  admin-web, factorizar el patrón a un componente reutilizable con API mínima
+  (`open(title, body, confirmLabel, cancelLabel): Observable<boolean>`), en el
+  estilo de `IconComponent` / `CatalogTableComponent`.
+- **Disparador**: cuando aparezca la segunda acción destructiva en admin-web
+  (ej. "Eliminar rol con asignaciones").
+
+### [UI] Icono "grupo/lote" dedicado en `IconComponent`
+
+- **Causa raíz**: el PR #82 usa `'tag'` como placeholder del icono de grupo en
+  el sidebar y en la lista, con un TODO. El `IconComponent` no tiene glyph
+  dedicado para "grupo/lote".
+- **Trabajo a hacer**: cuando un diseñador provea el icono, agregarlo al set
+  cerrado de `IconComponent` y reemplazar el placeholder en los componentes de
+  animal-groups.
+- **Disparador**: cuando un diseñador provea el icono.
+
+### [perf] Índice en `AnimalGroup.IsActive`
+
+- **Causa raíz**: el listado default del backend (`GET /api/v1/animal-groups`)
+  filtra por `is_active = true`. La columna no tiene índice. Con <100 grupos
+  es invisible; con >500 fincas en producción va a doler.
+- **Trabajo a hacer**: migración EF Core que agregue `IX_animal_groups_is_active`
+  sobre la columna. Backfill no necesario (es columna booleana). Validar con
+  `EXPLAIN ANALYZE` antes y después.
+- **Disparador**: deploys con >500 grupos activos.
+
+### [UI] Refactors de mantenibilidad post-#82/#83
+
+- **Causa raíz**: la revisión del PR #83 (fix post-review de la pantalla de
+  grupos) dejó cuatro oportunidades de mantenimiento no bloqueantes:
+  1. Helper `errorFrom` duplicado en 3 componentes → extraer a
+     `shared/error-format.ts`.
+  2. Rutas con `permissionGuard` repetido → considerar wrapper o
+     `data: { permission: ... }` en `app.routes.ts`.
+  3. Sidebar "Administración" label vs sub-items → alinear la condición.
+  4. `ApiExceptionHandler` filtra `exception.Message` → evaluar sanitizar
+     `Detail` para no filtrar internals.
+- **Trabajo a hacer**: agrupar (decisión: agrupar porque los cuatro son de
+  mantenibilidad, no de funcionalidad) en un PR único que ataque los cuatro
+  con sus tests. Cada uno individualmente es chico; juntos caben en un PR
+  sin riesgo.
+- **Disparador**: próximo barrido de admin-web, o antes si alguno se cruza con
+  otro trabajo de UI.
 
 ## Reglas para este archivo
 

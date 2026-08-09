@@ -1,4 +1,5 @@
 using Hato.Modules.Inventory.Application.Consumptions;
+using Hato.Modules.Inventory.Application.FeedStages;
 using Hato.Modules.Inventory.Application.Items;
 using Hato.Modules.Inventory.Domain;
 using MediatR;
@@ -47,6 +48,15 @@ public static class InventoryEndpoints
         {
             var id = await sender.Send(command);
             return Results.Created($"/api/v1/inventory/feed-consumptions/{id}", new { id });
+        });
+
+        // Feed stage catalog (PLAN-FASE-3-5-PORCINO.md sec.3.5a.5 task 3): preiniciador,
+        // iniciador, crecimiento, engorde, gestación, lactancia. Listing only for now —
+        // no consumer needs to create/deactivate stages yet (see BACKLOG.md).
+        group.MapGet("/feed-stages", async (bool? includeInactive, ISender sender) =>
+        {
+            var stages = await sender.Send(new GetFeedStagesQuery(includeInactive ?? false));
+            return Results.Ok(stages);
         });
     }
 }

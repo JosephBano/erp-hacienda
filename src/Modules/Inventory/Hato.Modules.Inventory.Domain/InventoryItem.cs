@@ -15,6 +15,15 @@ public class InventoryItem : AuditableEntity
     public decimal MinStock { get; private set; }
     public string? Description { get; private set; }
 
+    /// <summary>
+    /// Feeding stage (PLAN-FASE-3-5-PORCINO.md sec.3.5a.5 task 3): preiniciador, iniciador,
+    /// crecimiento, engorde, gestación, lactancia — see <see cref="FeedStage"/>. Only
+    /// meaningful for items of <see cref="ItemCategory.Feed"/>; the invariant is enforced in
+    /// <see cref="Create"/>, not left to callers (Art. 8: the classification is data, but the
+    /// rule that restricts it to feed items is domain, not UI).
+    /// </summary>
+    public Guid? FeedStageId { get; private set; }
+
     public IReadOnlyCollection<InventoryBatch> Batches => _batches.AsReadOnly();
 
     private InventoryItem()
@@ -23,18 +32,25 @@ public class InventoryItem : AuditableEntity
         Unit = null!;
     }
 
-    private InventoryItem(string name, ItemCategory category, string unit, decimal minStock, string? description)
+    private InventoryItem(
+        string name, ItemCategory category, string unit, decimal minStock, string? description, Guid? feedStageId)
     {
         Name = name;
         Category = category;
         Unit = unit;
         MinStock = minStock;
         Description = description;
+        FeedStageId = feedStageId;
         CreatedAt = DateTimeOffset.UtcNow;
     }
 
     public static InventoryItem Create(
-        string name, ItemCategory category, string unit, decimal minStock = 0, string? description = null)
+        string name,
+        ItemCategory category,
+        string unit,
+        decimal minStock = 0,
+        string? description = null,
+        Guid? feedStageId = null)
     {
         if (string.IsNullOrWhiteSpace(name))
             throw new DomainException("El nombre del ítem de inventario no puede estar vacío.");
@@ -45,7 +61,25 @@ public class InventoryItem : AuditableEntity
         if (minStock < 0)
             throw new DomainException("El stock mínimo no puede ser negativo.");
 
-        return new InventoryItem(name.Trim(), category, unit.Trim(), minStock, description?.Trim());
+        if (feedStageId.HasValue && category != ItemCategory.Feed)
+            throw new DomainException(
+                "La etapa de alimento (feed_stage) solo aplica a ítems de categoría 'Feed'.");
+
+        return new InventoryItem(name.Trim(), category, unit.Trim(), minStock, description?.Trim(), feedStageId);
+    }
+
+    /// <summary>
+    /// Changes (or clears, with <c>null</c>) the feeding stage of an existing item. Same
+    /// invariant as <see cref="Create"/>: a non-<see cref="ItemCategory.Feed"/> item cannot
+    /// declare a stage.
+    /// </summary>
+    public void SetFeedStage(Guid? feedStageId)
+    {
+        if (feedStageId.HasValue && Category != ItemCategory.Feed)
+            throw new DomainException(
+                "La etapa de alimento (feed_stage) solo aplica a ítems de categoría 'Feed'.");
+
+        FeedStageId = feedStageId;
     }
 
     public InventoryBatch AddBatch(string batchNumber, decimal quantity, decimal costPerUnit, DateOnly? expirationDate = null)

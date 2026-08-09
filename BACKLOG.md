@@ -39,9 +39,16 @@
   existe; falta el componente Angular.
 - **Pantalla de ítems de inventario + conversiones de unidad**. El endpoint
   existe; falta el componente Angular.
-- **Disparador**: cuando se priorice trabajo de UI admin-web, agrupar las tres
-  en una pantalla genérica "Catálogos" que reutilice un componente tabla
-  parametrizable.
+- **Catálogo de etapas de alimento (`feed_stages`, 3.5a.5 task 3)**. Solo
+  existe `GET /api/v1/inventory/feed-stages` (listar) — el dominio
+  (`FeedStage.Create/Activate/Deactivate`) soporta el ciclo completo pero no
+  se expusieron `POST`/`activate`/`deactivate`/label update porque no hay
+  panel que los consuma todavía (alcance acotado a la tarea 3 del plan).
+  Cuando se construya la pantalla, agregar esos endpoints siguiendo
+  `AdministrationRoutesEndpoints.cs` como plantilla exacta.
+- **Disparador**: cuando se priorice trabajo de UI admin-web, agrupar las
+  cuatro en una pantalla genérica "Catálogos" que reutilice un componente
+  tabla parametrizable.
 
 ### [UI] Pantalla dedicada de gestión de grupos (animal-groups)
 
@@ -186,6 +193,38 @@
   alimento del período"), agregar `SyncAnimalEventDto` + `ReadAsync` en
   `SyncPullQueries.cs` y su entrada en `TABLE_BY_COLLECTION`.
 - **Disparador**: arranque de 3.5a.7 (`feature/field-app-lot-registration`).
+
+### [mobile] `feed_stages` (y `unit_conversions`) sin viajar en el sync pull (3.5a.5 task 3)
+
+- **Archivos**: `src/Hato.Api/Sync/SyncPullQueries.cs` (`SyncCollectionsDto`,
+  `RequiredPermissionByCollection`, `GetSyncPullQueryHandler.Handle`);
+  `clients/field-app/src/services/syncEngine.ts` (mapa de colecciones →
+  tablas WatermelonDB); `src/Hato.Api/Endpoints/InventoryEndpoints.cs`
+  (`GET /api/v1/inventory/feed-stages`, único endpoint hoy).
+- **Causa raíz**: el mismo razonamiento que ya dejó afuera `unit_conversions`
+  (3.5a.5 tasks 1/2, mergeadas sin entrada en el pull): hoy ningún flujo del
+  móvil consume el catálogo. La tarea 4 de 3.5a.5 (registro de consumo en
+  sacos) ya está implementada y no necesita `feed_stage` — resuelve la
+  conversión saco↔kg, no la clasificación del ítem. `inventory_items` sí
+  viaja en el pull (con `feed_stage_id`, si se agrega a `SyncInventoryItemDto`
+  cuando corresponda) pero el catálogo de etapas en sí no tiene consumidor
+  todavía: no hay pantalla en el móvil que filtre o muestre "preiniciador /
+  iniciador / …". Agregar la colección ahora sería construir sin consumidor,
+  el mismo criterio que ya se aplicó al backlog de `groupEvents`.
+- **Trabajo a hacer**: cuando 3.5a.7 (`feature/field-app-lot-registration`,
+  tarea 5 "consumo de alimento del lote en sacos") o cualquier pantalla de
+  catálogos del móvil necesite mostrar/filtrar por etapa de alimento,
+  agregar `SyncFeedStageDto` (mismo shape que `SyncAdministrationRouteDto`:
+  `Id, Key, LabelEs, IsActive, CreatedAt, UpdatedAt, IsDeleted`) +
+  `ReadAsync(..., "feedStages", inventoryDb.FeedStages, ...)` +  su entrada
+  en `RequiredPermissionByCollection` (sugerido:
+  `SystemPermissions.InventoryItemsRead`, el mismo permiso que ya protege
+  `inventoryItems`) + la entrada correspondiente en `syncEngine.ts`. De paso,
+  evaluar si conviene resolver `unit_conversions` en el mismo PR — comparten
+  causa y consumidor futuro.
+- **Disparador**: primera pantalla del móvil (o de admin-web con necesidad de
+  offline) que necesite listar o filtrar ítems de inventario por etapa de
+  alimento.
 
 ### [docs] `mortality_causes` sin pantalla de administración en admin-web (3.5a.3)
 

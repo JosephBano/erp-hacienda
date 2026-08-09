@@ -13,6 +13,7 @@ public class InventoryDbContext(DbContextOptions<InventoryDbContext> options)
     public DbSet<InventoryBatch> InventoryBatches => Set<InventoryBatch>();
     public DbSet<GroupFeedConsumption> GroupFeedConsumptions => Set<GroupFeedConsumption>();
     public DbSet<UnitConversion> UnitConversions => Set<UnitConversion>();
+    public DbSet<FeedStage> FeedStages => Set<FeedStage>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

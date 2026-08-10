@@ -8,7 +8,8 @@ import { ActivitiesHub } from '../src/screens/ActivitiesHub';
  * XOR animal/group that ADR-0015 put into animal_events). The routes are deliberate:
  * an animal activity (treatment, weighing, move) reaches EventsScreen with the animal
  * pre-selected; a birth is BirthScreen; "today" is a brand-new screen that lists the
- * outbox entries the operator recorded on this phone today.
+ * outbox entries the operator recorded on this phone today; a lot activity (3.5a.7)
+ * reaches LotSubjectScreen with the lot subject picker.
  *
  * Subject order is the macro-plan question that the client meeting answers
  * (PLAN-FASE-3-5-PORCINO sec. 7-C). For now the order is the responsible default of
@@ -30,14 +31,11 @@ describe('ActivitiesHub', () => {
     expect(await screen.findByTestId('subject-animal')).toBeTruthy();
     expect(screen.getByTestId('subject-birth')).toBeTruthy();
     expect(screen.getByTestId('subject-today')).toBeTruthy();
-    // The fourth subject ("lote") is shown as a stub pending 3.5a.7 tasks 1–5
-    // (pesaje muestral, baja con causa, vacunación de lote, diagnóstico grupal,
-    // consumo de alimento). It has a different testID because its action is not yet
-    // a real route. 3.5a.1 (group events) already merged in PR #54, so the
-    // dependency that motivated the original stub comment is no longer the gate —
-    // the gate is now the activities themselves, plus their TapBudget per
-    // ADR-0021.
-    expect(screen.getByTestId('subject-lot-stub')).toBeTruthy();
+    // The fourth subject ("lote") became a real route in 3.5a.7 tasks 1–5 (pesaje
+    // muestral, baja con causa, vacunación/tratamiento de lote, diagnóstico grupal,
+    // consumo de alimento), closing the compuerta ADR-0021 left open for the second
+    // level of this branch.
+    expect(screen.getByTestId('subject-lot')).toBeTruthy();
   });
 
   it('orders the subjects by the daily-frequency default (animal first, lot last)', async () => {
@@ -46,12 +44,21 @@ describe('ActivitiesHub', () => {
     // Subjects in the Subjects card only — the "Más opciones" card carries a different
     // set of testIDs (subject-events / subject-edit / subject-sync) and is not part
     // of the order this rule is about. Tab order in testIDs: animal < today < birth
-    // < lot-stub. The test reads the array of testIDs in DOM order — if the order
+    // < lot. The test reads the array of testIDs in DOM order — if the order
     // is wrong, this assertion fails.
     const order = screen
       .getAllByTestId(/^subject-(animal|today|birth|lot)/)
       .map((node) => node.props.testID);
-    expect(order).toEqual(['subject-animal', 'subject-today', 'subject-birth', 'subject-lot-stub']);
+    expect(order).toEqual(['subject-animal', 'subject-today', 'subject-birth', 'subject-lot']);
+  });
+
+  it('routes the lot subject to the lot-activity flow', async () => {
+    const onSelect = jest.fn();
+    await render(<ActivitiesHub pending={0} onSelect={onSelect} />);
+
+    fireEvent.press(await screen.findByTestId('subject-lot'));
+
+    expect(onSelect).toHaveBeenCalledWith('lot-subject');
   });
 
   it('routes the animal subject to the animal-activity flow', async () => {

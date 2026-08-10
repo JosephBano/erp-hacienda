@@ -300,6 +300,21 @@
 - **Disparador**: próximo barrido de admin-web, o antes si alguno se cruza con
   otro trabajo de UI.
 
+### [docs] Orden de actividades del sujeto "lote" pendiente de validar con el operador (sec.7-C)
+
+- **Causa raíz**: 3.5a.7 (`feature/field-app-lot-registration`) implementó las seis
+  actividades del sujeto "lote" (`LotSubjectScreen.tsx`) sin la conversación con el
+  cliente que `PLAN-FASE-3-5-PORCINO.md` sec.2.3/sec.7-C exige para fijar el orden por
+  frecuencia real. El orden usado (alimento, pesaje muestral, vacunar, tratar,
+  diagnóstico, baja) es el supuesto explícito documentado en el código de
+  `LotSubjectScreen.tsx` — "alimento es lo más frecuente" según el propio plan — no una
+  medición con el operador parado en el corral.
+- **Trabajo a hacer**: cuando el cliente responda sec.7-C, actualizar el orden de los
+  seis `BigButton` en `LotSubjectScreen.tsx` (y el de `ActivitiesHub.tsx` si el orden de
+  los cuatro sujetos también cambia) en un commit dedicado, con el test de orden
+  actualizado a propósito — nunca como un efecto colateral de otro cambio.
+- **Disparador**: la sesión con el cliente de sec.7-C (`PLAN-FASE-3-5-PORCINO.md`).
+
 ## Reglas para este archivo
 
 - Cada ítem lleva un prefijo `[categoría]` (cosmético / tests / deuda / docs / ops).

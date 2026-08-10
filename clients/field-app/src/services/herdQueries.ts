@@ -92,8 +92,30 @@ export async function loadGroups(database: Database) {
 
   return groups
     .filter((group) => !group.isDeleted && group.isActive)
-    .map((group) => ({ groupId: group.id, label: group.name }))
+    .map((group) => ({
+      groupId: group.id,
+      label: group.name,
+      // speciesId feeds the group-weighing plausibility check (ADR-0022); trackingMode
+      // lets the lot subject screen distinguish a headcount lot (3.5a.7's audience) from
+      // an individually-tracked one, without a network round trip (Art. 9).
+      speciesId: group.speciesId,
+      trackingMode: group.trackingMode,
+    }))
     .sort((a, b) => a.label.localeCompare(b.label));
+}
+
+/**
+ * The feed items catalog (3.5a.7 task 5, ADR-0008 mirror pattern), filtered to the
+ * "Feed" category the server's `ItemCategory` enum serializes verbatim through the pull
+ * (`SyncPullQueries.cs`: `i.Category.ToString()`). Mirrors `loadMedications`.
+ */
+export async function loadFeedItems(database: Database) {
+  const items = await database.get<InventoryItem>('inventory_items').query().fetch();
+
+  return items
+    .filter((item) => !item.isDeleted && item.category === 'Feed')
+    .map((item) => ({ itemId: item.id, name: item.name, unit: item.unit }))
+    .sort((a, b) => a.name.localeCompare(b.name));
 }
 
 export async function loadBreeds(database: Database, speciesId: string) {

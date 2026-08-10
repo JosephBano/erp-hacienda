@@ -39,6 +39,19 @@ public class TreatmentCourseApplication : AuditableEntity
     /// <see cref="AdministeredDoseAmount"/> is omitted.</summary>
     public string? Notes { get; private set; }
 
+    /// <summary>
+    /// True when the operator explicitly confirmed a value the local plausibility
+    /// check (ADR-0022) flagged as improbable for this animal's species/category
+    /// before this application was pushed — the same contract
+    /// <c>Weighing</c>/<c>Milking</c> already carry inside their JSON payload
+    /// (<c>is_plausibility_confirmed</c>), lifted to a real column here because
+    /// <see cref="TreatmentCourseApplication"/> has no free-form payload field to
+    /// hide it in. Defaults to <c>false</c>: legacy applications (pre-dating
+    /// ADR-0022) and applications the panel creates directly carry no confirmation
+    /// because no plausibility check ran against them.
+    /// </summary>
+    public bool IsPlausibilityConfirmed { get; private set; }
+
     private TreatmentCourseApplication() { }
 
     private TreatmentCourseApplication(
@@ -50,7 +63,8 @@ public class TreatmentCourseApplication : AuditableEntity
         bool isEstimated,
         decimal? administeredDoseAmount,
         string? administeredDoseUnit,
-        string? notes)
+        string? notes,
+        bool isPlausibilityConfirmed)
     {
         TreatmentCourseId = treatmentCourseId;
         ApplicationNo = applicationNo;
@@ -61,6 +75,7 @@ public class TreatmentCourseApplication : AuditableEntity
         AdministeredDoseAmount = administeredDoseAmount;
         AdministeredDoseUnit = administeredDoseUnit;
         Notes = string.IsNullOrWhiteSpace(notes) ? null : notes.Trim();
+        IsPlausibilityConfirmed = isPlausibilityConfirmed;
     }
 
     internal static TreatmentCourseApplication Create(
@@ -72,7 +87,8 @@ public class TreatmentCourseApplication : AuditableEntity
         bool isEstimated,
         decimal? administeredDoseAmount,
         string? administeredDoseUnit,
-        string? notes)
+        string? notes,
+        bool isPlausibilityConfirmed = false)
     {
         if (applicationNo <= 0)
             throw new DomainException("El número de aplicación debe ser mayor a cero.");
@@ -83,7 +99,7 @@ public class TreatmentCourseApplication : AuditableEntity
         return new TreatmentCourseApplication(
             treatmentCourseId, applicationNo, appliedAt,
             calculatedDoseAmount, calculatedDoseUnit?.Trim(), isEstimated,
-            administeredDoseAmount, administeredDoseUnit?.Trim(), notes);
+            administeredDoseAmount, administeredDoseUnit?.Trim(), notes, isPlausibilityConfirmed);
     }
 
     /// <summary>

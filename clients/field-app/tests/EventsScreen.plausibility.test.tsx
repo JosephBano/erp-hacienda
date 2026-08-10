@@ -66,7 +66,6 @@ describe('EventsScreen weight plausibility (ADR-0022)', () => {
         database={database}
         animals={[animal]}
         groups={[]}
-        medications={[]}
         initialAnimalId={animal.animalId}
         initialActivity="weight"
       />,

@@ -224,5 +224,21 @@ export const migrations = schemaMigrations({
         }),
       ],
     },
+    {
+      toVersion: 10,
+      steps: [
+        // 3.5a.2-C: dose-form catalog, mirrored so VaccinateScreen/TreatScreen
+        // can resolve a DoseKindId offline for createTreatmentCourse (Art. 9).
+        createTable({
+          name: 'dose_kinds',
+          columns: [
+            { name: 'key', type: 'string', isIndexed: true },
+            { name: 'label_es', type: 'string' },
+            { name: 'is_active', type: 'boolean' },
+            { name: 'is_deleted', type: 'boolean' },
+          ],
+        }),
+      ],
+    },
   ],
 });

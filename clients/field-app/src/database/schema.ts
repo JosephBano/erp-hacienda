@@ -13,7 +13,7 @@ import { appSchema, tableSchema } from '@nozbe/watermelondb';
  * representable locally, otherwise a record deleted on the server would live on in the
  * employee's list forever.
  */
-export const SCHEMA_VERSION = 9;
+export const SCHEMA_VERSION = 10;
 
 export const schema = appSchema({
   version: SCHEMA_VERSION,
@@ -194,6 +194,18 @@ export const schema = appSchema({
     }),
     tableSchema({
       name: 'treatment_reasons',
+      columns: [
+        { name: 'key', type: 'string', isIndexed: true },
+        { name: 'label_es', type: 'string' },
+        { name: 'is_active', type: 'boolean' },
+        { name: 'is_deleted', type: 'boolean' },
+      ],
+    }),
+    // 3.5a.2-C: dose-form catalog (absolute / per_weight / per_head, 3.5a.2-B),
+    // mirrored so VaccinateScreen/TreatScreen can resolve a DoseKindId for
+    // createTreatmentCourse offline instead of hardcoding the seed's GUIDs.
+    tableSchema({
+      name: 'dose_kinds',
       columns: [
         { name: 'key', type: 'string', isIndexed: true },
         { name: 'label_es', type: 'string' },

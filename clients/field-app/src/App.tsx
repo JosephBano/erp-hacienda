@@ -11,7 +11,7 @@ import { MilkingService } from './services/milkingService';
 import { ModuleVisibility } from './services/moduleVisibility';
 import { Outbox } from './services/outbox';
 import { SyncEngine } from './services/syncEngine';
-import { loadGroups, loadHerd, loadMedications, loadMortalityCauses } from './services/herdQueries';
+import { loadGroups, loadHerd, loadMortalityCauses, loadTreatmentProducts } from './services/herdQueries';
 import { ActivitiesHub } from './screens/ActivitiesHub';
 import { AnimalEditScreen } from './screens/AnimalEditScreen';
 import { AnimalSubjectScreen } from './screens/AnimalSubjectScreen';
@@ -22,6 +22,8 @@ import { LoginScreen } from './screens/LoginScreen';
 import { MilkingScreen } from './screens/MilkingScreen';
 import { SyncStatusScreen } from './screens/SyncStatusScreen';
 import { TodayScreen } from './screens/TodayScreen';
+import { TreatScreen } from './screens/TreatScreen';
+import { VaccinateScreen } from './screens/VaccinateScreen';
 import type { TabKey } from './screens/navigation';
 import { BigButton, Body, Screen, Title } from './ui/components';
 import { theme } from './ui/theme';
@@ -73,7 +75,7 @@ export default function App() {
   const [pending, setPending] = useState(0);
   const [herd, setHerd] = useState<Awaited<ReturnType<typeof loadHerd>>>([]);
   const [groups, setGroups] = useState<Awaited<ReturnType<typeof loadGroups>>>([]);
-  const [medications, setMedications] = useState<Awaited<ReturnType<typeof loadMedications>>>([]);
+  const [treatmentProducts, setTreatmentProducts] = useState<Awaited<ReturnType<typeof loadTreatmentProducts>>>([]);
   const [mortalityCauses, setMortalityCauses] = useState<Awaited<ReturnType<typeof loadMortalityCauses>>>([]);
   // ADR-0019: the production module is on by default; the pull flips it off for the
   // pig pilot. ModuleVisibility answers from the local DB with no network, so this is
@@ -86,7 +88,7 @@ export default function App() {
   // picker and the activity menu when entering EventsScreen.
   const [selectedAnimalId, setSelectedAnimalId] = useState<string | null>(null);
   const [eventsInitialAnimalId, setEventsInitialAnimalId] = useState<string | undefined>(undefined);
-  const [eventsInitialActivity, setEventsInitialActivity] = useState<'treatment' | 'weight' | 'move' | 'disposal' | undefined>(undefined);
+  const [eventsInitialActivity, setEventsInitialActivity] = useState<'weight' | 'move' | 'disposal' | undefined>(undefined);
   const [todayEntries, setTodayEntries] = useState<
     {
       clientOperationId: string;
@@ -100,10 +102,10 @@ export default function App() {
   const visibility = useMemo(() => new ModuleVisibility(database, api), [database, api]);
 
   const refresh = useCallback(async () => {
-    const [nextHerd, nextGroups, nextMedications, nextMortalityCauses, stats, productionVisible, today] = await Promise.all([
+    const [nextHerd, nextGroups, nextTreatmentProducts, nextMortalityCauses, stats, productionVisible, today] = await Promise.all([
       loadHerd(database),
       loadGroups(database),
-      loadMedications(database),
+      loadTreatmentProducts(database),
       loadMortalityCauses(database),
       outbox.stats(),
       visibility.canShow('production'),
@@ -112,7 +114,7 @@ export default function App() {
 
     setHerd(nextHerd);
     setGroups(nextGroups);
-    setMedications(nextMedications);
+    setTreatmentProducts(nextTreatmentProducts);
     setMortalityCauses(nextMortalityCauses);
     setPending(stats.pending);
     setProductionOn(productionVisible);
@@ -206,13 +208,24 @@ export default function App() {
             onSelectAnimal={(animalId) => setSelectedAnimalId(animalId)}
             onClearSelection={() => setSelectedAnimalId(null)}
             onActivity={(animalId, activity) => {
-              // All animal activities route through EventsScreen with both the animal
+              // weight/move/disposal route through EventsScreen with both the animal
               // and the activity pre-selected. Plan: the operator has already chosen
               // subject + animal + activity on the activity tree; the form they reach
               // here is the same one they would have reached by tapping through the
               // menu — fewer steps, no behaviour change. 'disposal' joined this path in
               // 3.5a.3 once the mortality causes catalog existed to back it.
+              //
+              // 'treatment' is the one activity AnimalSubjectScreen still offers that
+              // moved out of EventsScreen in 3.5a.2-C: it now opens TreatScreen
+              // directly. TreatScreen owns its own animal picker (it needs to, to
+              // keep its four-tap budget testable in isolation), so the
+              // pre-selection is not threaded through here — a known, accepted
+              // UX gap tracked in BACKLOG.md, not a broken flow.
               setSelectedAnimalId(animalId);
+              if (activity === 'treatment') {
+                setTab('treat');
+                return;
+              }
               setEventsInitialAnimalId(animalId);
               setEventsInitialActivity(activity);
               setTab('events');
@@ -251,11 +264,32 @@ export default function App() {
             database={database}
             animals={herd}
             groups={groups}
-            medications={medications}
             mortalityCauses={mortalityCauses}
             onRecorded={refresh}
             initialAnimalId={eventsInitialAnimalId}
             initialActivity={eventsInitialActivity}
+          />
+        ) : null}
+
+        {tab === 'vaccinate' ? (
+          <VaccinateScreen
+            service={events}
+            database={database}
+            animals={herd}
+            products={treatmentProducts}
+            onRecorded={refresh}
+            onCancel={() => setTab('home')}
+          />
+        ) : null}
+
+        {tab === 'treat' ? (
+          <TreatScreen
+            service={events}
+            database={database}
+            animals={herd}
+            products={treatmentProducts}
+            onRecorded={refresh}
+            onCancel={() => setTab('home')}
           />
         ) : null}
 

@@ -76,7 +76,7 @@ export function AnimalSubjectScreen({
         <Title>{animal?.label ?? selectedAnimalId}</Title>
         <BigButton
           testID="activity-treatment"
-          label="Tratamiento o vacuna"
+          label="Tratamiento (animal enfermo)"
           onPress={() => onActivity(selectedAnimalId, 'treatment')}
         />
         <BigButton

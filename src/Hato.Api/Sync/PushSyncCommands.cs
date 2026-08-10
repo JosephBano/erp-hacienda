@@ -4,6 +4,7 @@ using Hato.Modules.Breeding.Application.Birthings;
 using Hato.Modules.Livestock.Application.AnimalGroups;
 using Hato.Modules.Livestock.Application.Animals;
 using Hato.Modules.Livestock.Application.Events;
+using Hato.Modules.Livestock.Application.TreatmentCourses;
 using Hato.Modules.People.Application.Abstractions;
 using Hato.Modules.People.Domain;
 using Hato.Modules.Production.Application.Milking;
@@ -60,10 +61,20 @@ public class PushSyncBatchCommandHandler(
     /// </summary>
     public const int MaxBatchSize = 500;
 
+    // UnmappedMemberHandling.Disallow closes the exact hole 3.5a.2-C was written to
+    // fix (see PLAN-FASE-3-5-PORCINO-3.5a.2-C): before this, an operation with a
+    // field the target command does not declare — `reasonId` instead of `reason`,
+    // a stray `doseKg` — was silently dropped and the push still answered
+    // "Accepted", because `Deserialize<T>` just ignored what it did not recognise.
+    // That is precisely the failure mode that produced a false-positive close on an
+    // earlier phase (a dropped `motherId`, no error, no signal). Disallow turns an
+    // unknown field into a loud `JsonException` → 400 the device's problems tray can
+    // show, instead of a record silently missing data on the server.
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         PropertyNameCaseInsensitive = true,
         Converters = { new JsonStringEnumConverter() },
+        UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow,
     };
 
     public async Task<PushSyncBatchResponseDto> Handle(
@@ -203,6 +214,22 @@ public class PushSyncBatchCommandHandler(
             case "recordanimalevent":
                 {
                     var command = Deserialize<RecordAnimalEventCommand>(payloadJson, "evento");
+                    var id = await sender.Send(command, cancellationToken);
+                    return id.ToString();
+                }
+
+            case "createtreatmentcourse":
+                {
+                    // 3.5a.2-C: VaccinateScreen and TreatScreen push a real
+                    // TreatmentCourse instead of overloading recordAnimalEvent's
+                    // legacy free-text dose migration (that path exists purely for
+                    // backward compat, see RecordAnimalEventCommand). The command's
+                    // field names ARE the wire contract; deserializing straight into
+                    // it (rather than through a separate payload record) is what
+                    // keeps the mobile payload and the accepted shape from drifting
+                    // apart silently — the exact defect this sub-branch exists to
+                    // close (an unmapped field discarded without a trace).
+                    var command = Deserialize<CreateTreatmentCourseCommand>(payloadJson, "serie de tratamiento");
                     var id = await sender.Send(command, cancellationToken);
                     return id.ToString();
                 }

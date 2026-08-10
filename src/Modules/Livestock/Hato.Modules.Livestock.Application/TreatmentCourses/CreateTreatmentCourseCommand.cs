@@ -28,7 +28,12 @@ public record CreateTreatmentCourseCommand(
     string? AdministeredDoseUnit = null,
     string? ApplicationNotes = null,
     int? MilkWithdrawalDays = null,
-    int? MeatWithdrawalDays = null) : IRequest<Guid>;
+    int? MeatWithdrawalDays = null,
+    // ADR-0022 / PLAN-FASE-3-5-PORCINO-3.5a.2-C: set when the field-app's local
+    // plausibility check flagged the first application's dose as improbable and
+    // the operator explicitly confirmed it. False for the panel and for legacy
+    // callers, which never ran the check.
+    bool IsPlausibilityConfirmed = false) : IRequest<Guid>;
 
 public class CreateTreatmentCourseValidator : AbstractValidator<CreateTreatmentCourseCommand>
 {
@@ -101,7 +106,8 @@ public class CreateTreatmentCourseHandler(ILivestockDbContext dbContext)
             isEstimated: resolved.IsEstimated,
             administeredDoseAmount: request.AdministeredDoseAmount,
             administeredDoseUnit: request.AdministeredDoseUnit,
-            notes: CombineNotes(resolved.AutoNote, request.ApplicationNotes));
+            notes: CombineNotes(resolved.AutoNote, request.ApplicationNotes),
+            isPlausibilityConfirmed: request.IsPlausibilityConfirmed);
 
         dbContext.TreatmentCourses.Add(course);
 

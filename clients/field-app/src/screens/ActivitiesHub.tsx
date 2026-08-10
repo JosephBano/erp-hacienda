@@ -20,6 +20,8 @@ export type ActivityRoute =
   | 'birth'
   | 'today'
   | 'events'
+  | 'vaccinate'
+  | 'treat'
   | 'editAnimal'
   | 'sync'
   | 'milking';
@@ -83,8 +85,20 @@ export function ActivitiesHub({ pending, onSelect }: ActivitiesHubProps) {
       <Card>
         <Body muted>{'Más opciones'}</Body>
         <BigButton
+          testID="subject-vaccinate"
+          label="Vacunar"
+          tone="neutral"
+          onPress={() => onSelect('vaccinate')}
+        />
+        <BigButton
+          testID="subject-treat"
+          label="Tratar animal enfermo"
+          tone="neutral"
+          onPress={() => onSelect('treat')}
+        />
+        <BigButton
           testID="subject-events"
-          label="Eventos (tratamiento, pesaje, movimiento)"
+          label="Eventos (pesaje, movimiento, baja)"
           tone="neutral"
           onPress={() => onSelect('events')}
         />

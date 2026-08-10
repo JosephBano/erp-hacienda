@@ -4,6 +4,29 @@
 > bloqueante, o lo que descubrimos mientras hacemos otra cosa, se anota acá.
 > Un ítem del BACKLOG no es una tarea: es algo a discutir antes de actuar.
 
+## Pendiente 3.5a.2-C (UI de tratamiento/vacunación en field-app)
+
+### [mobile] `VaccinateScreen` asume la primera vía activa en vez de la del producto
+
+`InventoryItem` no declara todavía una vía de administración preferida por
+producto — ese campo pertenece al módulo Inventory (Art. 6, fuera de alcance
+de esta sub-rama). Mientras tanto `VaccinateScreen` (3.5a.2-C) toma la primera
+fila activa de `administration_routes` como default, no editable, para no
+sumar un cuarto toque. Cuando Inventory agregue "vía preferida" al ítem, este
+default debería leerlo de ahí en vez de la primera fila del catálogo.
+
+### [mobile] `AnimalSubjectScreen` no pre-selecciona el animal al abrir `TreatScreen`
+
+El botón "Tratamiento (animal enfermo)" de `AnimalSubjectScreen` sigue
+enrutando a `TreatScreen`, pero `TreatScreen` es autocontenida (tiene su
+propio picker de animal, necesario para que su prueba de "cuatro toques" sea
+aislable) y no acepta todavía un `initialAnimalId` como sí hace
+`EventsScreen`. El operario que llega por ese camino re-selecciona el animal
+que ya había elegido — un toque de más en ese camino específico, no en el
+camino principal (ActivitiesHub → Tratar/Vacunar) que 3.5a.2-C mide. Agregar
+`initialAnimalId` a `TreatScreen`/`VaccinateScreen` (mismo patrón que
+`EventsScreen`) cierra esto.
+
 ## Pendiente post-barrido 2026-08-07 (ADR-0020)
 
 > El barrido integral cerró los P0/P1 del informe post-mortem y entregó 3.5a.5

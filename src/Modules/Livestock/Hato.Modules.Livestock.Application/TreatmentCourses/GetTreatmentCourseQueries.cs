@@ -53,7 +53,8 @@ public class GetTreatmentCourseByIdHandler(ILivestockDbContext dbContext)
                 a.IsEstimated,
                 a.AdministeredDoseAmount,
                 a.AdministeredDoseUnit,
-                a.Notes))
+                a.Notes,
+                a.IsPlausibilityConfirmed))
             .ToList());
 }
 

@@ -36,19 +36,19 @@ describe('EventsScreen', () => {
     }) as unknown as typeof fetch;
   });
 
-  it('starts at the menu with the three event options', async () => {
+  // Treatment and vaccination moved to TreatScreen/VaccinateScreen (3.5a.2-C);
+  // this menu now covers weighing, lot moves and disposal only.
+  it('starts at the menu with the event options', async () => {
     await render(
       <EventsScreen
         service={service}
         database={database}
         animals={[]}
         groups={[]}
-        medications={[]}
       />,
     );
 
-    expect(await screen.findByTestId('mode-treatment')).toBeTruthy();
-    expect(screen.getByTestId('mode-weight')).toBeTruthy();
+    expect(await screen.findByTestId('mode-weight')).toBeTruthy();
     expect(screen.getByTestId('mode-move')).toBeTruthy();
     expect(screen.getByTestId('mode-disposal')).toBeTruthy();
     expect(screen.queryByTestId('events-animal-empty')).toBeNull();
@@ -69,7 +69,6 @@ describe('EventsScreen', () => {
         database={database}
         animals={animals}
         groups={[]}
-        medications={[]}
         initialAnimalId="a-1"
         initialActivity="weight"
       />,
@@ -90,7 +89,6 @@ describe('EventsScreen', () => {
         database={database}
         animals={animals}
         groups={[]}
-        medications={[]}
         initialAnimalId="a-1"
       />,
     );
@@ -98,7 +96,7 @@ describe('EventsScreen', () => {
     // Pre-selecting just the animal does not collapse the activity menu — the caller
     // chose the animal, but the activity is still the operator's choice. The menu
     // remains visible; the picker is reached once they tap an activity.
-    expect(await screen.findByTestId('mode-treatment')).toBeTruthy();
+    expect(await screen.findByTestId('mode-weight')).toBeTruthy();
   });
 
   it('still shows the menu when only initialActivity is set', async () => {
@@ -109,7 +107,6 @@ describe('EventsScreen', () => {
         database={database}
         animals={animals}
         groups={[]}
-        medications={[]}
         initialActivity="weight"
       />,
     );
@@ -129,7 +126,6 @@ describe('EventsScreen', () => {
         database={database}
         animals={animals}
         groups={[]}
-        medications={[]}
         mortalityCauses={[{ causeId: 'cause-1', name: 'Aplastamiento' }]}
         initialAnimalId="a-1"
         initialActivity="disposal"
@@ -151,7 +147,6 @@ describe('EventsScreen', () => {
         database={database}
         animals={animals}
         groups={[]}
-        medications={[]}
         mortalityCauses={[{ causeId: 'cause-1', name: 'Aplastamiento' }]}
         initialAnimalId="piglet-1"
         initialActivity="disposal"
@@ -169,7 +164,6 @@ describe('EventsScreen', () => {
         database={database}
         animals={animals}
         groups={[]}
-        medications={[]}
         mortalityCauses={[]}
         initialAnimalId="a-1"
         initialActivity="disposal"

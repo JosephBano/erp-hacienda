@@ -77,6 +77,7 @@ public class TreatmentCourseApplicationConfiguration : IEntityTypeConfiguration<
         builder.Property(a => a.AdministeredDoseUnit).HasMaxLength(20).IsRequired(false);
 
         builder.Property(a => a.Notes).HasColumnType("text").IsRequired(false);
+        builder.Property(a => a.IsPlausibilityConfirmed).IsRequired().HasDefaultValue(false);
 
         builder.HasIndex(a => new { a.TreatmentCourseId, a.ApplicationNo }).IsUnique();
         builder.HasIndex(a => a.AppliedAt);

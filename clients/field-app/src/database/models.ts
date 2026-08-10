@@ -191,6 +191,21 @@ export class TreatmentReason extends Model {
 }
 
 /**
+ * Mirror of the server's `dose_kinds` catalog (3.5a.2-B: absolute / per_weight /
+ * per_head). `VaccinateScreen` and `TreatScreen` (3.5a.2-C) resolve `doseKindId`
+ * from here to build the `createTreatmentCourse` payload offline (Art. 9),
+ * instead of hardcoding the seed's stable GUIDs client-side.
+ */
+export class DoseKind extends Model {
+  static table = 'dose_kinds';
+
+  @text('key') declare key: string;
+  @text('label_es') declare labelEs: string;
+  @field('is_active') declare isActive: boolean;
+  @field('is_deleted') declare isDeleted: boolean;
+}
+
+/**
  * Mirror of the server's `plausibility_ranges` catalog (3.5a.6, ADR-0022).
  * The four bounds classify a recorded value into pass/confirm/block. The
  * evaluator (`plausibilityService`) is fail-open: a missing row for the
@@ -257,6 +272,7 @@ export const modelClasses = [
   MortalityCause,
   AdministrationRoute,
   TreatmentReason,
+  DoseKind,
   PlausibilityRange,
   AnimalEvent,
 ];

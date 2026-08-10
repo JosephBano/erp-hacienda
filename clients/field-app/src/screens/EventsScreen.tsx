@@ -11,7 +11,6 @@ import {
   Notice,
   NumberField,
   Screen,
-  TextField,
   Title,
 } from '../ui/components';
 import type { EventService } from '../services/eventService';
@@ -37,32 +36,31 @@ export interface GroupOption {
   label: string;
 }
 
-export interface MedicationOption {
-  itemId: string;
-  name: string;
-  milkWithdrawalDays?: number;
-  meatWithdrawalDays?: number;
-}
-
 export interface MortalityCauseOption {
   causeId: string;
   name: string;
 }
 
 /**
- * The five states the screen can be in. 'menu' is the picker of activity types;
- * the other four are the dedicated forms. Pre-selection from the activity tree
+ * The states the screen can be in. 'menu' is the picker of activity types; the
+ * others are the dedicated forms. Pre-selection from the activity tree
  * (3.5a.9-B) lands directly in one of them, skipping the menu.
+ *
+ * Treatment (curative) and vaccination moved to their own screens
+ * (`TreatScreen` / `VaccinateScreen`, 3.5a.2-C): the free-text `dose` field
+ * this screen used to have here was the Art. 10 violation that sub-branch
+ * exists to close, and mixing the "record a structured treatment" intention
+ * into this generic picker was exactly what cost the three-taps rule for
+ * vaccination.
  */
-export type EventMode = 'menu' | 'treatment' | 'weight' | 'move' | 'disposal';
+export type EventMode = 'menu' | 'weight' | 'move' | 'disposal';
 
-/** Treatments, weighings, lot moves and individual disposals — recorded from the paddock. */
+/** Weighings, lot moves and individual disposals — recorded from the paddock. */
 export function EventsScreen({
   service,
   database,
   animals,
   groups,
-  medications,
   mortalityCauses,
   onRecorded,
   initialAnimalId,
@@ -77,7 +75,6 @@ export function EventsScreen({
   database: Database;
   animals: AnimalOption[];
   groups: GroupOption[];
-  medications: MedicationOption[];
   mortalityCauses?: MortalityCauseOption[];
   onRecorded?: () => void;
   /**
@@ -86,12 +83,10 @@ export function EventsScreen({
    * chose two screens ago. Undefined means: show the full menu (legacy path).
    */
   initialAnimalId?: string;
-  initialActivity?: 'treatment' | 'weight' | 'move' | 'disposal';
+  initialActivity?: 'weight' | 'move' | 'disposal';
 }) {
   const [mode, setMode] = useState<EventMode>('menu');
   const [animal, setAnimal] = useState<AnimalOption | null>(null);
-  const [medication, setMedication] = useState<MedicationOption | null>(null);
-  const [dose, setDose] = useState('');
   const [weight, setWeight] = useState('');
   const [cause, setCause] = useState<MortalityCauseOption | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -127,8 +122,6 @@ export function EventsScreen({
   const reset = () => {
     setMode('menu');
     setAnimal(null);
-    setMedication(null);
-    setDose('');
     setWeight('');
     setCause(null);
     setError(null);
@@ -191,8 +184,7 @@ export function EventsScreen({
       <Screen testID="events-screen">
         <Title>Registrar evento</Title>
         {confirmation ? <Body muted>{confirmation}</Body> : null}
-        <BigButton testID="mode-treatment" label="Tratamiento" onPress={() => setMode('treatment')} />
-        <BigButton testID="mode-weight" label="Pesaje" tone="neutral" onPress={() => setMode('weight')} />
+        <BigButton testID="mode-weight" label="Pesaje" onPress={() => setMode('weight')} />
         <BigButton testID="mode-move" label="Cambio de lote" tone="neutral" onPress={() => setMode('move')} />
         <BigButton testID="mode-disposal" label="Baja con causa" tone="neutral" onPress={() => setMode('disposal')} />
       </Screen>
@@ -200,7 +192,6 @@ export function EventsScreen({
   }
 
   const titleByMode: Record<Exclude<EventMode, 'menu'>, string> = {
-    treatment: 'Tratamiento',
     weight: 'Pesaje',
     move: 'Cambio de lote',
     disposal: 'Baja con causa',
@@ -237,59 +228,6 @@ export function EventsScreen({
           <ScrollView contentContainerStyle={styles.bodyScroll}>
             <Card>
               <Body>{animal.label}</Body>
-
-              {mode === 'treatment' ? (
-                <View style={styles.listInner}>
-                  {!medication ? (
-                    medications.length === 0 ? (
-                      <Body muted>
-                        No hay medicamentos en el inventario. Agregue medicamentos desde el panel
-                        y sincronice para poder registrar tratamientos.
-                      </Body>
-                    ) : (
-                      medications.map((option) => (
-                        <BigButton
-                          key={option.itemId}
-                          testID={`medication-${option.itemId}`}
-                          label={option.name}
-                          tone="neutral"
-                          onPress={() => setMedication(option)}
-                        />
-                      ))
-                    )
-                  ) : (
-                    <>
-                      <Body muted>{medication.name}</Body>
-                      {medication.milkWithdrawalDays ? (
-                        <Notice
-                          tone="warning"
-                          text={`Al registrar, la leche queda no vendible por ${medication.milkWithdrawalDays} día(s).`}
-                        />
-                      ) : null}
-                      <TextField label="Dosis" testID="dose-input" value={dose} onChangeText={setDose} />
-                      <BigButton
-                        testID="confirm-treatment"
-                        label="Registrar tratamiento"
-                        busy={busy}
-                        onPress={() =>
-                          run(
-                            () =>
-                              service.recordTreatment({
-                                animalId: animal.animalId,
-                                medicationId: medication.itemId,
-                                medicationName: medication.name,
-                                dose,
-                                milkWithdrawalDays: medication.milkWithdrawalDays,
-                                meatWithdrawalDays: medication.meatWithdrawalDays,
-                              }),
-                            'Tratamiento registrado.',
-                          )
-                        }
-                      />
-                    </>
-                  )}
-                </View>
-              ) : null}
 
               {mode === 'weight' ? (
                 <>

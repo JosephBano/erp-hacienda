@@ -144,7 +144,8 @@ public class TreatmentCourse : AuditableEntity
         bool isEstimated,
         decimal? administeredDoseAmount,
         string? administeredDoseUnit,
-        string? notes)
+        string? notes,
+        bool isPlausibilityConfirmed = false)
     {
         if (_applications.Any(a => a.ApplicationNo == applicationNo))
             throw new DomainException(
@@ -152,7 +153,7 @@ public class TreatmentCourse : AuditableEntity
 
         var application = TreatmentCourseApplication.Create(
             Id, applicationNo, appliedAt, calculatedDoseAmount, calculatedDoseUnit,
-            isEstimated, administeredDoseAmount, administeredDoseUnit, notes);
+            isEstimated, administeredDoseAmount, administeredDoseUnit, notes, isPlausibilityConfirmed);
 
         _applications.Add(application);
 

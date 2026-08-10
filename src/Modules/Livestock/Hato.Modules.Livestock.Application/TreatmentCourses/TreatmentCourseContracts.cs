@@ -9,7 +9,8 @@ public record TreatmentCourseApplicationDto(
     bool IsEstimated,
     decimal? AdministeredDoseAmount,
     string? AdministeredDoseUnit,
-    string? Notes);
+    string? Notes,
+    bool IsPlausibilityConfirmed);
 
 public record TreatmentCourseDto(
     Guid Id,

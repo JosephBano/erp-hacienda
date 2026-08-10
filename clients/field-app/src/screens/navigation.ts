@@ -12,6 +12,10 @@
  * 3.5a.7 adds the lot-subject pair, mirroring the animal-subject shape:
  *  - 'lot-subject' opens the picker/activities for a single headcount lot.
  *  - 'lot-events' opens the form for the chosen lot + activity (ADR-0015).
+ *
+ * 3.5a.2-C split "tratamiento o vacuna" (previously a mode inside `events`)
+ * into two destinations of their own: 'vaccinate' (three taps, scheduled
+ * path) and 'treat' (four taps, curative path).
  */
 export type TabKey =
   | 'home'
@@ -21,6 +25,8 @@ export type TabKey =
   | 'today'
   | 'milking'
   | 'events'
+  | 'vaccinate'
+  | 'treat'
   | 'birth'
   | 'editAnimal'
   | 'sync';

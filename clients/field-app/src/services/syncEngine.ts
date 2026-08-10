@@ -325,6 +325,8 @@ const TABLE_BY_COLLECTION: Record<string, string> = {
   administrationRoutes: 'administration_routes',
   // 3.5a.2-A: catalog of treatment reasons (scheduled, curative, preventive).
   treatmentReasons: 'treatment_reasons',
+  // 3.5a.2-B/C: dose-form catalog (absolute, per_weight, per_head).
+  doseKinds: 'dose_kinds',
   // 3.5a.6 (ADR-0022): plausibility ranges for offline validation.
   plausibilityRanges: 'plausibility_ranges',
   // 3.5a.1 (ADR-0015) + BACKLOG "AnimalEvent grupal aún no viaja en el pull":

@@ -4,7 +4,7 @@ import { evaluatePlausibility, PlausibilityVerdict } from '../src/services/plaus
  * Smoke test that the plausibility round-trip is idempotent: a value
  * that passes once passes on a second evaluation, and the verdict
  * type narrows correctly. This guards the integration with the
- * TreatmentFormScreen, which evaluates twice in the confirm-dialog
+ * TreatScreen, which evaluates twice in the confirm-dialog
  * flow (once before showing the dialog, once after the user accepts).
  */
 

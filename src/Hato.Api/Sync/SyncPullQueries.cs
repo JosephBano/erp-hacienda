@@ -40,6 +40,7 @@ public record SyncCollectionsDto(
     List<SyncFarmModuleDto> FarmModules,
     List<SyncAdministrationRouteDto> AdministrationRoutes,
     List<SyncTreatmentReasonDto> TreatmentReasons,
+    List<SyncDoseKindDto> DoseKinds,
     List<SyncHealthPlanDto> HealthPlans,
     List<SyncHealthPlanItemDto> HealthPlanItems,
     List<SyncHealthPlanAssignmentDto> HealthPlanAssignments,
@@ -186,6 +187,21 @@ public record SyncFarmModuleDto(
 /// (PLAN-FASE-3-5-PORCINO-3.5a.2-A sec.7).
 /// </summary>
 public record SyncAdministrationRouteDto(
+    Guid Id,
+    string Key,
+    string LabelEs,
+    bool IsActive,
+    DateTimeOffset CreatedAt,
+    DateTimeOffset? UpdatedAt,
+    bool IsDeleted) : ISyncRow;
+
+/// <summary>
+/// The dose-form catalog (3.5a.2-B: absolute / per_weight / per_head), mirrored so
+/// <c>VaccinateScreen</c> and <c>TreatScreen</c> (3.5a.2-C) can resolve a
+/// <c>DoseKindId</c> for <c>createTreatmentCourse</c> offline (Art. 9) instead of
+/// hardcoding the seed's stable GUIDs client-side.
+/// </summary>
+public record SyncDoseKindDto(
     Guid Id,
     string Key,
     string LabelEs,
@@ -355,6 +371,7 @@ public class GetSyncPullQueryHandler(
             ["farmModules"] = SystemPermissions.SettingsFarmModulesRead,
             ["administrationRoutes"] = SystemPermissions.LivestockAnimalsRead,
             ["treatmentReasons"] = SystemPermissions.LivestockAnimalsRead,
+            ["doseKinds"] = SystemPermissions.LivestockAnimalsRead,
             ["healthPlans"] = SystemPermissions.LivestockAnimalsRead,
             ["healthPlanItems"] = SystemPermissions.LivestockAnimalsRead,
             ["healthPlanAssignments"] = SystemPermissions.LivestockAnimalsRead,
@@ -471,6 +488,12 @@ public class GetSyncPullQueryHandler(
                 r.Id, r.Key, r.LabelEs, r.IsActive, r.CreatedAt, r.UpdatedAt, r.DeletedAt != null),
             cancellationToken);
 
+        var doseKinds = await ReadAsync(
+            effective, "doseKinds", livestockDb.DoseKinds, since, limit, frontier,
+            k => new SyncDoseKindDto(
+                k.Id, k.Key, k.LabelEs, k.IsActive, k.CreatedAt, k.UpdatedAt, k.DeletedAt != null),
+            cancellationToken);
+
         var healthPlans = await ReadAsync(
             effective, "healthPlans", livestockDb.HealthPlans, since, limit, frontier,
             p => new SyncHealthPlanDto(
@@ -515,7 +538,7 @@ public class GetSyncPullQueryHandler(
         var collections = new SyncCollectionsDto(
             animals, identifiers, groups, memberships,
             speciesList, breeds, categories, items, withdrawals, mortalityCauses, farmModules,
-            administrationRoutes, treatmentReasons,
+            administrationRoutes, treatmentReasons, doseKinds,
             healthPlans, healthPlanItems, healthPlanAssignments,
             plausibilityRanges, animalEvents);
 

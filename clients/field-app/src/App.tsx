@@ -13,7 +13,14 @@ import { MilkingService } from './services/milkingService';
 import { ModuleVisibility } from './services/moduleVisibility';
 import { Outbox } from './services/outbox';
 import { SyncEngine } from './services/syncEngine';
-import { loadFeedItems, loadGroups, loadHerd, loadMedications, loadMortalityCauses } from './services/herdQueries';
+import {
+  loadFeedItems,
+  loadGroups,
+  loadHerd,
+  loadMedications,
+  loadMortalityCauses,
+  loadTreatmentProducts,
+} from './services/herdQueries';
 import { ActivitiesHub } from './screens/ActivitiesHub';
 import { AnimalEditScreen } from './screens/AnimalEditScreen';
 import { AnimalSubjectScreen } from './screens/AnimalSubjectScreen';
@@ -26,6 +33,8 @@ import { LotSubjectScreen, type LotActivity } from './screens/LotSubjectScreen';
 import { MilkingScreen } from './screens/MilkingScreen';
 import { SyncStatusScreen } from './screens/SyncStatusScreen';
 import { TodayScreen } from './screens/TodayScreen';
+import { TreatScreen } from './screens/TreatScreen';
+import { VaccinateScreen } from './screens/VaccinateScreen';
 import type { TabKey } from './screens/navigation';
 import { BigButton, Body, Screen, Title } from './ui/components';
 import { theme } from './ui/theme';
@@ -84,6 +93,7 @@ export default function App() {
   const [pending, setPending] = useState(0);
   const [herd, setHerd] = useState<Awaited<ReturnType<typeof loadHerd>>>([]);
   const [groups, setGroups] = useState<Awaited<ReturnType<typeof loadGroups>>>([]);
+  const [treatmentProducts, setTreatmentProducts] = useState<Awaited<ReturnType<typeof loadTreatmentProducts>>>([]);
   const [medications, setMedications] = useState<Awaited<ReturnType<typeof loadMedications>>>([]);
   const [mortalityCauses, setMortalityCauses] = useState<Awaited<ReturnType<typeof loadMortalityCauses>>>([]);
   const [feedItems, setFeedItems] = useState<Awaited<ReturnType<typeof loadFeedItems>>>([]);
@@ -98,7 +108,7 @@ export default function App() {
   // picker and the activity menu when entering EventsScreen.
   const [selectedAnimalId, setSelectedAnimalId] = useState<string | null>(null);
   const [eventsInitialAnimalId, setEventsInitialAnimalId] = useState<string | undefined>(undefined);
-  const [eventsInitialActivity, setEventsInitialActivity] = useState<'treatment' | 'weight' | 'move' | 'disposal' | undefined>(undefined);
+  const [eventsInitialActivity, setEventsInitialActivity] = useState<'weight' | 'move' | 'disposal' | undefined>(undefined);
   // 3.5a.7: same shape as the animal-subject state above, for the "Un lote" branch.
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
   const [lotEventsGroupId, setLotEventsGroupId] = useState<string | undefined>(undefined);
@@ -116,9 +126,10 @@ export default function App() {
   const visibility = useMemo(() => new ModuleVisibility(database, api), [database, api]);
 
   const refresh = useCallback(async () => {
-    const [nextHerd, nextGroups, nextMedications, nextMortalityCauses, nextFeedItems, stats, productionVisible, today] = await Promise.all([
+    const [nextHerd, nextGroups, nextTreatmentProducts, nextMedications, nextMortalityCauses, nextFeedItems, stats, productionVisible, today] = await Promise.all([
       loadHerd(database),
       loadGroups(database),
+      loadTreatmentProducts(database),
       loadMedications(database),
       loadMortalityCauses(database),
       loadFeedItems(database),
@@ -129,6 +140,7 @@ export default function App() {
 
     setHerd(nextHerd);
     setGroups(nextGroups);
+    setTreatmentProducts(nextTreatmentProducts);
     setMedications(nextMedications);
     setMortalityCauses(nextMortalityCauses);
     setFeedItems(nextFeedItems);
@@ -233,13 +245,24 @@ export default function App() {
             onSelectAnimal={(animalId) => setSelectedAnimalId(animalId)}
             onClearSelection={() => setSelectedAnimalId(null)}
             onActivity={(animalId, activity) => {
-              // All animal activities route through EventsScreen with both the animal
+              // weight/move/disposal route through EventsScreen with both the animal
               // and the activity pre-selected. Plan: the operator has already chosen
               // subject + animal + activity on the activity tree; the form they reach
               // here is the same one they would have reached by tapping through the
               // menu — fewer steps, no behaviour change. 'disposal' joined this path in
               // 3.5a.3 once the mortality causes catalog existed to back it.
+              //
+              // 'treatment' is the one activity AnimalSubjectScreen still offers that
+              // moved out of EventsScreen in 3.5a.2-C: it now opens TreatScreen
+              // directly. TreatScreen owns its own animal picker (it needs to, to
+              // keep its four-tap budget testable in isolation), so the
+              // pre-selection is not threaded through here — a known, accepted
+              // UX gap tracked in BACKLOG.md, not a broken flow.
               setSelectedAnimalId(animalId);
+              if (activity === 'treatment') {
+                setTab('treat');
+                return;
+              }
               setEventsInitialAnimalId(animalId);
               setEventsInitialActivity(activity);
               setTab('events');
@@ -317,11 +340,32 @@ export default function App() {
             database={database}
             animals={herd}
             groups={groups}
-            medications={medications}
             mortalityCauses={mortalityCauses}
             onRecorded={refresh}
             initialAnimalId={eventsInitialAnimalId}
             initialActivity={eventsInitialActivity}
+          />
+        ) : null}
+
+        {tab === 'vaccinate' ? (
+          <VaccinateScreen
+            service={events}
+            database={database}
+            animals={herd}
+            products={treatmentProducts}
+            onRecorded={refresh}
+            onCancel={() => setTab('home')}
+          />
+        ) : null}
+
+        {tab === 'treat' ? (
+          <TreatScreen
+            service={events}
+            database={database}
+            animals={herd}
+            products={treatmentProducts}
+            onRecorded={refresh}
+            onCancel={() => setTab('home')}
           />
         ) : null}
 

@@ -26,7 +26,8 @@ public static class TreatmentCoursesEndpoints
                 request.AdministeredDoseUnit,
                 request.ApplicationNotes,
                 request.MilkWithdrawalDays,
-                request.MeatWithdrawalDays);
+                request.MeatWithdrawalDays,
+                request.IsPlausibilityConfirmed);
 
             var id = await sender.Send(command);
             return Results.Created($"/api/v1/treatment-courses/{id}", new { id });
@@ -88,7 +89,8 @@ public record CreateTreatmentCourseRequest(
     string? AdministeredDoseUnit = null,
     string? ApplicationNotes = null,
     int? MilkWithdrawalDays = null,
-    int? MeatWithdrawalDays = null);
+    int? MeatWithdrawalDays = null,
+    bool IsPlausibilityConfirmed = false);
 
 public record AddTreatmentCourseApplicationRequest(
     DateTimeOffset AppliedAt,

@@ -4,7 +4,13 @@
 > bloqueante, o lo que descubrimos mientras hacemos otra cosa, se anota acá.
 > Un ítem del BACKLOG no es una tarea: es algo a discutir antes de actuar.
 
-## Pendiente 3.5a.2-C (UI de tratamiento/vacunación en field-app)
+## Pendiente 3.5a.2-C — sub-rama cerrada, ítems abiertos
+
+> La sub-rama 3.5a.2-C mergeó a `integration/fase-3-5-wave-1` el 2026-08-09
+> (commit `5a54e1d` → `90ca99b` vía `feature/field-app-treatment-ui`,
+> `TreatScreen` + `VaccinateScreen` + sync pull). Estos dos ítems son mejoras
+> de UX que quedaron abiertas a propósito — ninguna es bloqueante para el
+> criterio de salida de 3.5a.2-C.
 
 ### [mobile] `VaccinateScreen` asume la primera vía activa en vez de la del producto
 
@@ -27,30 +33,37 @@ camino principal (ActivitiesHub → Tratar/Vacunar) que 3.5a.2-C mide. Agregar
 `initialAnimalId` a `TreatScreen`/`VaccinateScreen` (mismo patrón que
 `EventsScreen`) cierra esto.
 
-## Pendiente post-barrido 2026-08-07 (ADR-0020)
+## Pendiente post-barrido 2026-08-07 (ADR-0021)
 
 > El barrido integral cerró los P0/P1 del informe post-mortem y entregó 3.5a.5
 > y la tarea 6 de 3.5a.7. Lo que queda fuera del barrido, documentado en
-> `docs/adr/0020-…md`, es lo siguiente:
+> `docs/adr/0021-cierre-retroactivo-compuerta-3-5a-9-B.md`, es lo siguiente:
 
 ### [3.5a] Reactivar el criterio de salida — sin esto no hay piloto
 
 - **3.5a.2 (treatment detail)** — sub-ramas A/B/C ya escritas en
-  `docs/planes/sub_planes/PLAN-FASE-3-5-PORCINO-3.5a.2-{A,B,C}.md`. Sin esta rama
-  no se puede registrar un tratamiento con vía y motivo (lo que el cliente
-  pidió explícitamente).
+  `docs/planes/sub_planes/PLAN-FASE-3-5-PORCINO-3.5a.2-{A,B,C}.md`. **A y B ya
+  mergeadas a integración** (A: `feature/livestock-treatment-dose-logic` →
+  PR para catalogos y payload; B: parte de la misma ola). **C mergeada
+  2026-08-09** vía `feature/field-app-treatment-ui` →
+  `integration/fase-3-5-wave-1` (commit `fa668f4`/`90ca99b`). Solo quedan los
+  dos ítems de mejora UX listados arriba en este mismo archivo (VaccinateScreen
+  default route y AnimalSubjectScreen pre-selección).
 - **3.5a.4 task 4 (clasificación por peso)** — sin esto, los lechones no se
   reparten en lotes de engorde por tamaño y la camada deja de seguirse dentro
-  del sistema. Pieza que cierra el criterio de salida de 3.5a.
-- **3.5a.6 (plausibility ranges)** — sin esta rama, la tarea 1 de 3.5a.7
-  (pesaje muestral) no se puede entregar sin un `if` por especie (Art. 8).
-- **3.5a.7 tasks 1, 2, 3, 4, 5 (UI del móvil)** — bloqueadas por la compuerta
-  sec.2.3 del macro plan: árbol de actividades dibujado y toques contados con
-  el cliente antes de escribir cualquier pantalla. Sin esa conversación previa,
-  la UI nueva de lote es un menú de botones y la promesa de los 3 toques muere.
+  del sistema. Pieza que cierra el criterio de salida de 3.5a. Sigue abierto.
+- **3.5a.6 (plausibility ranges)** — **mergeada** vía `feature/livestock-plausibility-ranges`
+  (PR #73). Sin esta rama, la tarea 1 de 3.5a.7 (pesaje muestral) no se podía
+  entregar sin un `if` por especie (Art. 8). CERRADO.
+- **3.5a.7 tasks 1, 2, 3, 4, 5 (UI del móvil)** — tasks 1–5 mergeadas a
+  integración vía `feature/field-app-lot-registration` (commit `b794c82`).
+  Sigue pendiente la conversación de frecuencias con el cliente (sec.7-C,
+  documentada abajo en `[docs] Orden de actividades del sujeto "lote"
+  pendiente de validar con el operador`).
 - **Disparador**: cuando el cliente pida abrir el piloto real contra el sistema,
-  abrir este ADR-0020 y arrancar por 3.5a.2-A. La cadena (3.5a.2 → 3.5a.6 →
-  3.5a.7 tasks 1–5) es el orden mínimo que cumple el criterio de salida.
+  abrir [ADR-0024](./docs/adr/0024-pilot-decoupling-from-3-5a.md) y arrancar por
+  3.5a.4 task 4. La cadena (3.5a.4 task 4 + sec.7-C) es lo mínimo que queda
+  para cerrar el criterio de salida completo de 3.5a.
 
 ### [UI] admin-web: pantallas de catálogos que faltan
 
@@ -114,7 +127,8 @@ camino principal (ActivitiesHub → Tratar/Vacunar) que 3.5a.2-C mide. Agregar
 ## Pendiente 3.5b — diferido del barrido 2026-08-07
 
 > 3.5b está fuera del alcance del barrido integral del 2026-08-07 (lo deja
-> sentado [ADR-0020](./docs/adr/0020-fase-3-5-estado-al-cierre-del-barrido-p0-p1.md)),
+> sentado [ADR-0021](./docs/adr/0021-cierre-retroactivo-compuerta-3-5a-9-B.md) ·
+> que a su vez reemplaza a [ADR-0020](./docs/adr/0020-fase-3-5-estado-al-cierre-del-barrido-p0-p1.md)),
 > pero hay **una pieza concreta** que el barrido de 3.5a.2-A dejó sembrada y
 > que tiene que cerrarse con la primera rama de 3.5b. Lo siguiente es
 > trazabilidad, no trabajo del barrido actual.
@@ -203,31 +217,6 @@ camino principal (ActivitiesHub → Tratar/Vacunar) que 3.5a.2-C mide. Agregar
   `with-observables` (bajo costo si el patrón es estable). Volver a `npm ci` sin flag
   cuando se resuelva.
 - **Riesgo de no actuar**: ninguno operacional. Es deuda visible en el workflow.
-
-### [deuda] `AnimalEvent` grupal aún no viaja en el pull (3.5a.1)
-
-- **Estado (2026-08-09)**: ✅ CERRADO en `feature/sync-animal-event-pull` (pendiente de
-  merge a `develop`; desbloquea el arranque paralelo de 3.5a.7). Agrega
-  `SyncAnimalEventDto` + su `ReadAsync` en `src/Hato.Api/Sync/SyncPullQueries.cs`, con
-  entrada `animalEvents` en `TABLE_BY_COLLECTION` (gated por `livestock.animals.read`,
-  igual que el resto de las colecciones de soporte de animales). Un solo DTO carga
-  tanto eventos de sujeto animal como de sujeto lote — `AnimalId`/`GroupId` opcionales,
-  espejando el XOR que el dominio y el CHECK de BD ya imponen (ADR-0015 sec.2); no se
-  inventa un `animalId` falso para los eventos de lote (la trampa que el ADR-0015
-  existe para evitar). Del lado móvil: tabla `animal_events` en
-  `clients/field-app/src/database/schema.ts` (versión 9), modelo `AnimalEvent` en
-  `models.ts`, migración `toVersion: 9` en `migrations.ts` (un teléfono en el campo no
-  se reinstala sin perder la cola), y entrada en `TABLE_BY_COLLECTION` de
-  `clients/field-app/src/services/syncEngine.ts`. Pruebas: 6 nuevas de integración en
-  `tests/Hato.Sync.IntegrationTests/SyncPullAnimalEventsTests.cs` (evento animal,
-  evento de lote, baja de lote con `affectedCount`, permiso, empate de cursor en el
-  mismo instante, paginación incremental sin pérdidas ni duplicados) + 3 nuevas del
-  lado móvil (`schema.test.ts`, `syncEngine.test.ts`).
-- **Archivos**: `src/Hato.Api/Sync/SyncPullQueries.cs`,
-  `clients/field-app/src/database/{schema,models,migrations}.ts`,
-  `clients/field-app/src/services/syncEngine.ts`,
-  `tests/Hato.Sync.IntegrationTests/SyncPullAnimalEventsTests.cs`.
-- **Disparador**: N/A — ítem cerrado.
 
 ### [mobile] `feed_stages` (y `unit_conversions`) sin viajar en el sync pull (3.5a.5 task 3)
 

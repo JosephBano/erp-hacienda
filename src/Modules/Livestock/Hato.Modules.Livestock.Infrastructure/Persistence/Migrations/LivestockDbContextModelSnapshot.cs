@@ -874,6 +874,84 @@ namespace Hato.Modules.Livestock.Infrastructure.Persistence.Migrations
                     b.ToTable("mortality_causes", "livestock");
                 });
 
+            modelBuilder.Entity("Hato.Modules.Livestock.Domain.PlausibilityRange", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<decimal?>("AbsoluteMax")
+                        .HasColumnType("numeric(12,3)")
+                        .HasColumnName("absolute_max");
+
+                    b.Property<decimal?>("AbsoluteMin")
+                        .HasColumnType("numeric(12,3)")
+                        .HasColumnName("absolute_min");
+
+                    b.Property<Guid?>("CategoryId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("category_id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by");
+
+                    b.Property<DateTimeOffset?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("deleted_at");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_active");
+
+                    b.Property<string>("Magnitude")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("magnitude");
+
+                    b.Property<decimal?>("PlausibleMax")
+                        .HasColumnType("numeric(12,3)")
+                        .HasColumnName("plausible_max");
+
+                    b.Property<decimal?>("PlausibleMin")
+                        .HasColumnType("numeric(12,3)")
+                        .HasColumnName("plausible_min");
+
+                    b.Property<Guid>("SpeciesId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("species_id");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by");
+
+                    b.HasKey("Id")
+                        .HasName("p_k_plausibility_ranges");
+
+                    b.HasIndex("CategoryId")
+                        .HasDatabaseName("i_x_plausibility_ranges_category_id");
+
+                    b.HasIndex("IsActive")
+                        .HasDatabaseName("i_x_plausibility_ranges_is_active");
+
+                    b.HasIndex("SpeciesId", "CategoryId", "Magnitude")
+                        .IsUnique()
+                        .HasDatabaseName("i_x_plausibility_ranges_species_id_category_id_magnitude")
+                        .HasFilter("deleted_at IS NULL");
+
+                    b.ToTable("plausibility_ranges", "livestock");
+                });
+
             modelBuilder.Entity("Hato.Modules.Livestock.Domain.Species", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1229,6 +1307,22 @@ namespace Hato.Modules.Livestock.Infrastructure.Persistence.Migrations
                         .HasForeignKey("RouteId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .HasConstraintName("f_k_health_plan_items_administration_routes_route_id");
+                });
+
+            modelBuilder.Entity("Hato.Modules.Livestock.Domain.PlausibilityRange", b =>
+                {
+                    b.HasOne("Hato.Modules.Livestock.Domain.AnimalCategory", null)
+                        .WithMany()
+                        .HasForeignKey("CategoryId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("f_k_plausibility_ranges_animal_categories_category_id");
+
+                    b.HasOne("Hato.Modules.Livestock.Domain.Species", null)
+                        .WithMany()
+                        .HasForeignKey("SpeciesId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("f_k_plausibility_ranges_species_species_id");
                 });
 
             modelBuilder.Entity("Hato.Modules.Livestock.Domain.WithdrawalPeriod", b =>

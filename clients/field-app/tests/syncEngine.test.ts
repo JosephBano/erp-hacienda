@@ -394,6 +394,63 @@ describe('SyncEngine', () => {
       expect(await database.get('animals').query().fetchCount()).toBe(0);
     });
 
+    /**
+     * 3.5a.1 (ADR-0015) + BACKLOG "AnimalEvent grupal aún no viaja en el pull": the
+     * event history now lands in the local `animal_events` table. Both an
+     * animal-subject and a group-subject row must arrive intact, with the XOR
+     * honoured — nobody invents a fake `animalId` for the lot event.
+     */
+    it('writes both animal-subject and group-subject events into the local table', async () => {
+      api.pullHandler = async () => ({
+        cursor: 'cursor-1',
+        hasMore: false,
+        collections: {
+          animalEvents: [
+            {
+              id: 'evt-animal-1',
+              animalId: 'an-1',
+              groupId: null,
+              eventType: 'Weighing',
+              occurredAt: '2026-08-01T00:00:00Z',
+              recordedBy: 'Operario',
+              payloadJson: '{"kg":45}',
+              affectedCount: null,
+              createdAt: '2026-08-01T00:00:00Z',
+              updatedAt: null,
+              isDeleted: false,
+            },
+            {
+              id: 'evt-group-1',
+              animalId: null,
+              groupId: 'grp-1',
+              eventType: 'GroupVaccination',
+              occurredAt: '2026-08-02T00:00:00Z',
+              recordedBy: 'Operario',
+              payloadJson: '{"head_count":42}',
+              affectedCount: 42,
+              createdAt: '2026-08-02T00:00:00Z',
+              updatedAt: null,
+              isDeleted: false,
+            },
+          ],
+        },
+      });
+
+      await engine.syncNow();
+
+      const events = await database.get('animal_events').query().fetch();
+      expect(events).toHaveLength(2);
+
+      const animalEvent = events.find((e) => e.id === 'evt-animal-1') as any;
+      expect(animalEvent.animalId).toBe('an-1');
+      expect(animalEvent.groupId).toBeFalsy();
+
+      const groupEvent = events.find((e) => e.id === 'evt-group-1') as any;
+      expect(groupEvent.groupId).toBe('grp-1');
+      expect(groupEvent.animalId).toBeFalsy();
+      expect(groupEvent.affectedCount).toBe(42);
+    });
+
     it('resumes from the stored cursor rather than downloading the herd again', async () => {
       api.pullHandler = async () => ({ cursor: 'cursor-42', hasMore: false, collections: {} });
 

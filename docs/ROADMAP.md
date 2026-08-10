@@ -146,13 +146,18 @@ móvil, incluyendo días sin señal, sin pérdida ni duplicación de datos.
 ## Fase 3.5 — Adaptación porcina (insertada 2026-08-05)
 
 > **Desacople del inicio del piloto del cierre completo del bloque 3.5a (ADR-0024,
-> 2026-08-08).** El inicio del piloto real no exige cerrar 3.5a como bloque: exige
-> un sub-conjunto mínimo de captura + tratamiento + primer nivel del árbol + visibilidad
-> de módulos + rangos de plausibilidad, todos mergeados a develop. Lo que falta
-> (3.5a.7.1–5 UI del sujeto "lote", 3.5a.8 correcciones desde el teléfono, 3.5a.3
-> causas de muerte) queda como deuda rastreable en `BACKLOG.md`, no como bloqueo.
+> 2026-08-07; ADR-0021, 2026-08-07, sobre la compuerta sec.2.3).** El inicio del piloto
+> real no exige cerrar 3.5a como bloque: exige un sub-conjunto mínimo de captura +
+> tratamiento + primer nivel del árbol + visibilidad de módulos + rangos de plausibilidad,
+> todos mergeados a integration. **Estado al 2026-08-09:** 3.5a.2 (A/B/C) mergeado
+> (B/C vía `feature/livestock-treatment-dose-logic` + `feature/field-app-treatment-ui`),
+> 3.5a.6 mergeado (PR #73), 3.5a.7 tasks 1–5 mergeado
+> (`feature/field-app-lot-registration`). Lo que queda como deuda rastreable
+> (no bloqueo): 3.5a.8 correcciones desde el teléfono, 3.5a.3 causas de muerte
+> (la lógica de dominio está; falta la pantalla de admin-web), 3.5a.4 task 4
+> (clasificación por peso — pieza que cierra el criterio de salida completo de 3.5a).
 > El criterio completo de salida de 3.5a sigue exigiendo clasificación por peso +
-> tratamiento con vía/motivo + corrección desde el teléfono como bloque.
+> tratamento con vía/motivo + corrección desde el teléfono como bloque.
 
 **Objetivo:** que el sistema represente el negocio real del cliente del piloto, que no es
 una lechería sino una **granja porcina**.

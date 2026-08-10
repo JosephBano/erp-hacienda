@@ -17,11 +17,53 @@ export interface TreatmentInput {
   occurredAt?: string;
 }
 
+/**
+ * Input for `recordTreatmentCourse` (3.5a.2-C): the field-app's side of
+ * `createTreatmentCourse`, which lands directly in
+ * `CreateTreatmentCourseCommand` on the server. **Field names here are the
+ * wire contract, not a convenience shape** — `PushSyncCommands.Deserialize`
+ * runs with `UnmappedMemberHandling.Disallow`, so a renamed or invented field
+ * fails loudly instead of being dropped in silence (the defect this sub-plan
+ * exists to close). Keep this interface's keys in lockstep with
+ * `CreateTreatmentCourseCommand`'s parameter names (camelCase vs PascalCase
+ * only — System.Text.Json matches case-insensitively).
+ */
+export interface TreatmentCourseInput {
+  animalId: string;
+  startsAt?: string;
+  routeId: string;
+  /** Wire-format key from the `treatment_reasons` catalog: scheduled | curative | preventive. */
+  reason?: string;
+  productId?: string;
+  doseKindId: string;
+  doseFactorAmount: number;
+  doseFactorUnit: string;
+  notes?: string;
+  administeredDoseAmount?: number;
+  administeredDoseUnit?: string;
+  applicationNotes?: string;
+  milkWithdrawalDays?: number;
+  meatWithdrawalDays?: number;
+  /**
+   * Set when the operator confirmed a dose the local plausibility check
+   * (ADR-0022) flagged as improbable. Persisted server-side on the first
+   * application's `is_plausibility_confirmed` column.
+   */
+  isPlausibilityConfirmed?: boolean;
+}
+
 export interface WeightInput {
   animalId: string;
   weightKg: number;
   occurredAt?: string;
   notes?: string;
+  /**
+   * Set by `EventsScreen` when the operator explicitly confirmed a weight the
+   * plausibility check (ADR-0022, 3.5a.6) flagged as improbable for this
+   * animal's species/category. Carried into the payload so the server-side
+   * audit can distinguish a confirmed outlier from an unreviewed one.
+   */
+  isPlausibilityConfirmed?: boolean;
 }
 
 export interface DisposalInput {
@@ -60,6 +102,13 @@ export interface GroupEventInput {
   affectedCount?: number;
   cost?: number;
   occurredAt?: string;
+  /**
+   * Mortality cause for a lot disposal (3.5a.7 task 2). Carried as its own field —
+   * not buried in `payload` — because `RecordGroupEventCommand.CauseId` is what the
+   * server validates against the `mortality_causes` catalog and stamps on the row;
+   * mirrors how `recordDisposal` (individual) already passes `causeId` top-level.
+   */
+  causeId?: string;
 }
 
 export interface CorrectionInput {
@@ -124,6 +173,59 @@ export class EventService {
     return { clientOperationId: entry.clientOperationId };
   }
 
+  /**
+   * Records a treatment or vaccination as a `TreatmentCourse` with its first
+   * application (3.5a.2-C), the path `VaccinateScreen` and `TreatScreen` both
+   * use. Pushed as `createTreatmentCourse`, routed server-side straight into
+   * `CreateTreatmentCourseCommand` — see the doc comment on
+   * `TreatmentCourseInput` for why the field names here cannot drift from the
+   * command's without the push silently dropping data.
+   */
+  async recordTreatmentCourse(input: TreatmentCourseInput): Promise<QueuedEvent> {
+    if (!input.animalId) throw new Error('El animal es obligatorio.');
+    if (!input.routeId) throw new Error('La vía de administración es obligatoria.');
+    if (!input.doseKindId) throw new Error('La forma de dosis es obligatoria.');
+    if (!Number.isFinite(input.doseFactorAmount) || input.doseFactorAmount <= 0) {
+      throw new Error('El factor de dosis debe ser mayor que cero.');
+    }
+    if (!input.doseFactorUnit || input.doseFactorUnit.trim().length === 0) {
+      throw new Error('El factor de dosis requiere una unidad explícita (Art. 10).');
+    }
+
+    const startsAt = input.startsAt ?? new Date().toISOString();
+
+    const entry = await this.outbox.enqueue(
+      'createTreatmentCourse',
+      {
+        animalId: input.animalId,
+        startsAt,
+        routeId: input.routeId,
+        reason: input.reason,
+        productId: input.productId,
+        doseKindId: input.doseKindId,
+        doseFactorAmount: input.doseFactorAmount,
+        doseFactorUnit: input.doseFactorUnit,
+        notes: input.notes,
+        administeredDoseAmount: input.administeredDoseAmount,
+        administeredDoseUnit: input.administeredDoseUnit,
+        applicationNotes: input.applicationNotes,
+        milkWithdrawalDays: input.milkWithdrawalDays,
+        meatWithdrawalDays: input.meatWithdrawalDays,
+        isPlausibilityConfirmed: input.isPlausibilityConfirmed ?? false,
+      },
+      startsAt,
+    );
+
+    await this.applyLocalWithdrawal(
+      input.animalId,
+      startsAt,
+      input.milkWithdrawalDays ?? 0,
+      input.meatWithdrawalDays ?? 0,
+    );
+
+    return { clientOperationId: entry.clientOperationId };
+  }
+
   async recordWeight(input: WeightInput): Promise<QueuedEvent> {
     if (!input.animalId) throw new Error('El animal es obligatorio.');
     if (!Number.isFinite(input.weightKg) || input.weightKg <= 0) {
@@ -139,7 +241,11 @@ export class EventService {
         eventType: 'Weighing',
         occurredAt,
         recordedBy: 'field-app',
-        payloadJson: JSON.stringify({ weightKg: input.weightKg, notes: input.notes }),
+        payloadJson: JSON.stringify({
+          weightKg: input.weightKg,
+          notes: input.notes,
+          isPlausibilityConfirmed: input.isPlausibilityConfirmed ?? false,
+        }),
       },
       occurredAt,
     );
@@ -169,6 +275,7 @@ export class EventService {
         recordedBy: 'field-app',
         cost: input.cost,
         affectedCount: input.affectedCount,
+        causeId: input.causeId,
         payloadJson: JSON.stringify(input.payload),
       },
       occurredAt,

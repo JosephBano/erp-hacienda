@@ -23,6 +23,63 @@ namespace Hato.Modules.Inventory.Infrastructure.Persistence.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("Hato.Modules.Inventory.Domain.FeedStage", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by");
+
+                    b.Property<DateTimeOffset?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("deleted_at");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_active");
+
+                    b.Property<string>("Key")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("key");
+
+                    b.Property<string>("LabelEs")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("label_es");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by");
+
+                    b.HasKey("Id")
+                        .HasName("p_k_feed_stages");
+
+                    b.HasIndex("IsActive")
+                        .HasDatabaseName("i_x_feed_stages_is_active");
+
+                    b.HasIndex("Key")
+                        .IsUnique()
+                        .HasDatabaseName("i_x_feed_stages_key")
+                        .HasFilter("deleted_at IS NULL");
+
+                    b.ToTable("feed_stages", "inventory");
+                });
+
             modelBuilder.Entity("Hato.Modules.Inventory.Domain.GroupFeedConsumption", b =>
                 {
                     b.Property<Guid>("Id")
@@ -202,6 +259,10 @@ namespace Hato.Modules.Inventory.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(500)")
                         .HasColumnName("description");
 
+                    b.Property<Guid?>("FeedStageId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("feed_stage_id");
+
                     b.Property<decimal>("MinStock")
                         .HasColumnType("numeric")
                         .HasColumnName("min_stock");
@@ -228,6 +289,9 @@ namespace Hato.Modules.Inventory.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id")
                         .HasName("p_k_inventory_items");
+
+                    b.HasIndex("FeedStageId")
+                        .HasDatabaseName("i_x_inventory_items_feed_stage_id");
 
                     b.ToTable("inventory_items", "inventory");
                 });
@@ -307,6 +371,15 @@ namespace Hato.Modules.Inventory.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("f_k_inventory_batches_inventory_items_inventory_item_id");
+                });
+
+            modelBuilder.Entity("Hato.Modules.Inventory.Domain.InventoryItem", b =>
+                {
+                    b.HasOne("Hato.Modules.Inventory.Domain.FeedStage", null)
+                        .WithMany()
+                        .HasForeignKey("FeedStageId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("f_k_inventory_items_feed_stages_feed_stage_id");
                 });
 
             modelBuilder.Entity("Hato.Modules.Inventory.Domain.UnitConversion", b =>

@@ -1,9 +1,11 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Hato.Modules.Breeding.Application.Birthings;
+using Hato.Modules.Inventory.Application.Consumptions;
 using Hato.Modules.Livestock.Application.AnimalGroups;
 using Hato.Modules.Livestock.Application.Animals;
 using Hato.Modules.Livestock.Application.Events;
+using Hato.Modules.Livestock.Application.TreatmentCourses;
 using Hato.Modules.People.Application.Abstractions;
 using Hato.Modules.People.Domain;
 using Hato.Modules.Production.Application.Milking;
@@ -60,10 +62,20 @@ public class PushSyncBatchCommandHandler(
     /// </summary>
     public const int MaxBatchSize = 500;
 
+    // UnmappedMemberHandling.Disallow closes the exact hole 3.5a.2-C was written to
+    // fix (see PLAN-FASE-3-5-PORCINO-3.5a.2-C): before this, an operation with a
+    // field the target command does not declare — `reasonId` instead of `reason`,
+    // a stray `doseKg` — was silently dropped and the push still answered
+    // "Accepted", because `Deserialize<T>` just ignored what it did not recognise.
+    // That is precisely the failure mode that produced a false-positive close on an
+    // earlier phase (a dropped `motherId`, no error, no signal). Disallow turns an
+    // unknown field into a loud `JsonException` → 400 the device's problems tray can
+    // show, instead of a record silently missing data on the server.
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         PropertyNameCaseInsensitive = true,
         Converters = { new JsonStringEnumConverter() },
+        UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow,
     };
 
     public async Task<PushSyncBatchResponseDto> Handle(
@@ -207,9 +219,48 @@ public class PushSyncBatchCommandHandler(
                     return id.ToString();
                 }
 
+            case "createtreatmentcourse":
+                {
+                    // 3.5a.2-C: VaccinateScreen and TreatScreen push a real
+                    // TreatmentCourse instead of overloading recordAnimalEvent's
+                    // legacy free-text dose migration (that path exists purely for
+                    // backward compat, see RecordAnimalEventCommand). The command's
+                    // field names ARE the wire contract; deserializing straight into
+                    // it (rather than through a separate payload record) is what
+                    // keeps the mobile payload and the accepted shape from drifting
+                    // apart silently — the exact defect this sub-branch exists to
+                    // close (an unmapped field discarded without a trace).
+                    var command = Deserialize<CreateTreatmentCourseCommand>(payloadJson, "serie de tratamiento");
+                    var id = await sender.Send(command, cancellationToken);
+                    return id.ToString();
+                }
+
             case "recordgroupevent":
                 {
                     var command = Deserialize<RecordGroupEventCommand>(payloadJson, "evento de lote");
+                    var id = await sender.Send(command, cancellationToken);
+                    return id.ToString();
+                }
+
+            case "recordfeedconsumption":
+                {
+                    // 3.5a.7 task 5: "el lote comió N sacos" is not an AnimalEvent — it is
+                    // an Inventory-module write (GroupFeedConsumption) so the batch
+                    // decrements and the cost-prorate engine reads kilograms regardless of
+                    // what unit the operator typed ("bug del saco",
+                    // PLAN-FASE-3-5-PORCINO.md sec.3.5a.5). Routed to the same command the
+                    // POST /api/v1/inventory/feed-consumptions endpoint uses.
+                    var payload = Deserialize<RecordFeedConsumptionPushPayload>(payloadJson, "consumo de alimento");
+                    var consumedAt = payload.ConsumedAt ?? DateOnly.FromDateTime(operation.OccurredAt.UtcDateTime);
+                    var command = new RecordGroupFeedConsumptionCommand(
+                        payload.GroupId,
+                        payload.InventoryItemId,
+                        payload.Quantity,
+                        consumedAt,
+                        payload.RecordedBy,
+                        payload.Unit,
+                        payload.BatchId,
+                        payload.Notes);
                     var id = await sender.Send(command, cancellationToken);
                     return id.ToString();
                 }
@@ -372,3 +423,21 @@ public record RecordCorrectionPushPayload(
     Guid OriginalEventId,
     string RecordedBy,
     string Reason);
+
+/// <summary>
+/// 3.5a.7 task 5 push payload. Field names mirror <see cref="RecordGroupFeedConsumptionCommand"/>
+/// exactly (case-insensitively, per <c>JsonOptions</c> above) so a rename on either side is
+/// caught by <c>SyncPushFeedConsumptionTests</c> instead of being silently dropped — the
+/// same class of bug that closed the pilot in false in Fase 3, because this deserializer has
+/// no <c>UnmappedMemberHandling.Disallow</c>. <paramref name="ConsumedAt"/> is optional: the
+/// phone may omit it and mean "the day this was recorded", exactly like <c>MoveAnimalPayload.MovedOn</c>.
+/// </summary>
+public record RecordFeedConsumptionPushPayload(
+    Guid GroupId,
+    Guid InventoryItemId,
+    decimal Quantity,
+    string RecordedBy,
+    string? Unit = null,
+    Guid? BatchId = null,
+    string? Notes = null,
+    DateOnly? ConsumedAt = null);

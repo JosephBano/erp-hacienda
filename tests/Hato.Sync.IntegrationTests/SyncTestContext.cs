@@ -210,6 +210,21 @@ public class SyncTestContext
         response.EnsureSuccessStatusCode();
     }
 
+    /// <summary>Seeds an inventory item (category "Feed" by default) for 3.5a.7 task 5 tests.</summary>
+    public async Task<Guid> CreateInventoryItemAsync(string category = "Feed", string unit = "kg", string name = "Balanceado")
+    {
+        var response = await Client.PostAsJsonAsync("/api/v1/inventory/items", new
+        {
+            name = $"{name}-{Guid.NewGuid():N}",
+            category,
+            unit,
+        });
+        response.EnsureSuccessStatusCode();
+
+        var body = await response.Content.ReadFromJsonAsync<JsonElement>();
+        return body.GetProperty("id").GetGuid();
+    }
+
     /// <summary>
     /// Pushes a single operation and returns its per-operation result. Passing the same
     /// <paramref name="clientOperationId"/> twice is how a double tap or a retry after a

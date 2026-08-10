@@ -191,6 +191,21 @@ export class TreatmentReason extends Model {
 }
 
 /**
+ * Mirror of the server's `dose_kinds` catalog (3.5a.2-B: absolute / per_weight /
+ * per_head). `VaccinateScreen` and `TreatScreen` (3.5a.2-C) resolve `doseKindId`
+ * from here to build the `createTreatmentCourse` payload offline (Art. 9),
+ * instead of hardcoding the seed's stable GUIDs client-side.
+ */
+export class DoseKind extends Model {
+  static table = 'dose_kinds';
+
+  @text('key') declare key: string;
+  @text('label_es') declare labelEs: string;
+  @field('is_active') declare isActive: boolean;
+  @field('is_deleted') declare isDeleted: boolean;
+}
+
+/**
  * Mirror of the server's `plausibility_ranges` catalog (3.5a.6, ADR-0022).
  * The four bounds classify a recorded value into pass/confirm/block. The
  * evaluator (`plausibilityService`) is fail-open: a missing row for the
@@ -211,6 +226,35 @@ export class PlausibilityRange extends Model {
   @field('is_deleted') declare isDeleted: boolean;
 }
 
+/**
+ * Mirror of the server's `animal_events` history (3.5a.1, ADR-0015). Exactly one of
+ * `animalId` / `groupId` is set, never both and never neither — the same XOR the
+ * domain and the DB CHECK enforce server-side. Consumers (e.g. the lot record's
+ * "última vacunación, alimento del período") must branch on which one is present
+ * instead of assuming `animalId` is always populated.
+ */
+export class AnimalEvent extends Model {
+  static table = 'animal_events';
+
+  @text('animal_id') animalId?: string;
+  @text('group_id') groupId?: string;
+  @text('event_type') declare eventType: string;
+  @text('occurred_at') declare occurredAt: string;
+  @text('recorded_by') declare recordedBy: string;
+  @text('recorded_by_id') recordedById?: string;
+  @text('payload_json') declare payloadJson: string;
+  @field('cost') cost?: number;
+  @text('related_event_id') relatedEventId?: string;
+  @field('affected_count') affectedCount?: number;
+  @text('cause_id') causeId?: string;
+  @text('route_id') routeId?: string;
+  @text('reason') reason?: string;
+  @text('batch_id') batchId?: string;
+  @text('health_plan_item_id') healthPlanItemId?: string;
+  @text('applied_by_user_id') appliedByUserId?: string;
+  @field('is_deleted') declare isDeleted: boolean;
+}
+
 export const modelClasses = [
   Animal,
   AnimalIdentifier,
@@ -228,5 +272,7 @@ export const modelClasses = [
   MortalityCause,
   AdministrationRoute,
   TreatmentReason,
+  DoseKind,
   PlausibilityRange,
+  AnimalEvent,
 ];

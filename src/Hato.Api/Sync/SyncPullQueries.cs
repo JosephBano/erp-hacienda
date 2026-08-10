@@ -40,10 +40,12 @@ public record SyncCollectionsDto(
     List<SyncFarmModuleDto> FarmModules,
     List<SyncAdministrationRouteDto> AdministrationRoutes,
     List<SyncTreatmentReasonDto> TreatmentReasons,
+    List<SyncDoseKindDto> DoseKinds,
     List<SyncHealthPlanDto> HealthPlans,
     List<SyncHealthPlanItemDto> HealthPlanItems,
     List<SyncHealthPlanAssignmentDto> HealthPlanAssignments,
-    List<SyncPlausibilityRangeDto> PlausibilityRanges);
+    List<SyncPlausibilityRangeDto> PlausibilityRanges,
+    List<SyncAnimalEventDto> AnimalEvents);
 
 public record SyncAnimalDto(
     Guid Id,
@@ -139,7 +141,11 @@ public record SyncInventoryItemDto(
 public record SyncWithdrawalPeriodDto(
     Guid Id,
     Guid AnimalId,
-    Guid EventId,
+    // Nullable since 3.5a.2-B: a period anchored to a TreatmentCourse carries
+    // TreatmentCourseId instead (see WithdrawalPeriod's Event-xor-Course invariant).
+    // The field-app mirror table update for this new shape is 3.5a.2-C scope.
+    Guid? EventId,
+    Guid? TreatmentCourseId,
     string Target,
     DateOnly StartsAt,
     DateOnly EndsAt,
@@ -181,6 +187,21 @@ public record SyncFarmModuleDto(
 /// (PLAN-FASE-3-5-PORCINO-3.5a.2-A sec.7).
 /// </summary>
 public record SyncAdministrationRouteDto(
+    Guid Id,
+    string Key,
+    string LabelEs,
+    bool IsActive,
+    DateTimeOffset CreatedAt,
+    DateTimeOffset? UpdatedAt,
+    bool IsDeleted) : ISyncRow;
+
+/// <summary>
+/// The dose-form catalog (3.5a.2-B: absolute / per_weight / per_head), mirrored so
+/// <c>VaccinateScreen</c> and <c>TreatScreen</c> (3.5a.2-C) can resolve a
+/// <c>DoseKindId</c> for <c>createTreatmentCourse</c> offline (Art. 9) instead of
+/// hardcoding the seed's stable GUIDs client-side.
+/// </summary>
+public record SyncDoseKindDto(
     Guid Id,
     string Key,
     string LabelEs,
@@ -269,6 +290,47 @@ public record SyncPlausibilityRangeDto(
     DateTimeOffset? UpdatedAt,
     bool IsDeleted) : ISyncRow;
 
+/// <summary>
+/// The animal/group event history (3.5a.1, ADR-0015), gated by
+/// <c>livestock.animals.read</c> like the rest of the animal-support collections.
+///
+/// This is the deuda from BACKLOG.md ("AnimalEvent grupal aún no viaja en el pull"):
+/// 3.5a.1 built the group-subject mechanism (push, domain, DB CHECK) but nothing pulled
+/// it back down until 3.5a.7 needed "última vacunación, alimento del período" on the lot
+/// record. One collection carries both animal- and group-subject events, mirroring the
+/// same XOR the domain and the DB CHECK already enforce (ADR-0015 sec.2) — <see
+/// cref="AnimalId"/> and <see cref="GroupId"/> are never both set and never both null.
+/// Faking an <c>animalId</c> on a group event to keep the wire shape uniform is exactly
+/// the synthetic data ADR-0015 exists to prevent, so the DTO stays honest about the
+/// subject the same way <see cref="SyncHealthPlanAssignmentDto"/> already does.
+///
+/// Events are append-only (Art. 1): a correction is a new row referencing the original
+/// via <see cref="RelatedEventId"/>, never an edit. So <see cref="UpdatedAt"/> is always
+/// null and <see cref="IsDeleted"/> is always false — there is nothing to overwrite or
+/// tombstone, only a growing log for the cursor to walk.
+/// </summary>
+public record SyncAnimalEventDto(
+    Guid Id,
+    Guid? AnimalId,
+    Guid? GroupId,
+    string EventType,
+    DateTimeOffset OccurredAt,
+    string RecordedBy,
+    Guid? RecordedById,
+    string PayloadJson,
+    decimal? Cost,
+    Guid? RelatedEventId,
+    int? AffectedCount,
+    Guid? CauseId,
+    Guid? RouteId,
+    string? Reason,
+    Guid? BatchId,
+    Guid? HealthPlanItemId,
+    Guid? AppliedByUserId,
+    DateTimeOffset CreatedAt,
+    DateTimeOffset? UpdatedAt,
+    bool IsDeleted) : ISyncRow;
+
 public record GetSyncPullQuery(
     string? Since = null,
     string? Collections = null,
@@ -309,10 +371,12 @@ public class GetSyncPullQueryHandler(
             ["farmModules"] = SystemPermissions.SettingsFarmModulesRead,
             ["administrationRoutes"] = SystemPermissions.LivestockAnimalsRead,
             ["treatmentReasons"] = SystemPermissions.LivestockAnimalsRead,
+            ["doseKinds"] = SystemPermissions.LivestockAnimalsRead,
             ["healthPlans"] = SystemPermissions.LivestockAnimalsRead,
             ["healthPlanItems"] = SystemPermissions.LivestockAnimalsRead,
             ["healthPlanAssignments"] = SystemPermissions.LivestockAnimalsRead,
             ["plausibilityRanges"] = SystemPermissions.LivestockAnimalsRead,
+            ["animalEvents"] = SystemPermissions.LivestockAnimalsRead,
         };
 
     public async Task<SyncPullResponseDto> Handle(GetSyncPullQuery request, CancellationToken cancellationToken)
@@ -396,7 +460,7 @@ public class GetSyncPullQueryHandler(
         var withdrawals = await ReadAsync(
             effective, "withdrawalPeriods", livestockDb.WithdrawalPeriods, since, limit, frontier,
             w => new SyncWithdrawalPeriodDto(
-                w.Id, w.AnimalId, w.EventId, w.Target.ToString(), w.StartsAt, w.EndsAt,
+                w.Id, w.AnimalId, w.EventId, w.TreatmentCourseId, w.Target.ToString(), w.StartsAt, w.EndsAt,
                 w.CreatedAt, w.UpdatedAt, w.DeletedAt != null),
             cancellationToken);
 
@@ -422,6 +486,12 @@ public class GetSyncPullQueryHandler(
             effective, "treatmentReasons", livestockDb.TreatmentReasons, since, limit, frontier,
             r => new SyncTreatmentReasonDto(
                 r.Id, r.Key, r.LabelEs, r.IsActive, r.CreatedAt, r.UpdatedAt, r.DeletedAt != null),
+            cancellationToken);
+
+        var doseKinds = await ReadAsync(
+            effective, "doseKinds", livestockDb.DoseKinds, since, limit, frontier,
+            k => new SyncDoseKindDto(
+                k.Id, k.Key, k.LabelEs, k.IsActive, k.CreatedAt, k.UpdatedAt, k.DeletedAt != null),
             cancellationToken);
 
         var healthPlans = await ReadAsync(
@@ -455,12 +525,22 @@ public class GetSyncPullQueryHandler(
                 r.IsActive, r.CreatedAt, r.UpdatedAt, r.DeletedAt != null),
             cancellationToken);
 
+        var animalEvents = await ReadAsync(
+            effective, "animalEvents", livestockDb.AnimalEvents, since, limit, frontier,
+            e => new SyncAnimalEventDto(
+                e.Id, e.AnimalId, e.GroupId, e.EventType.ToString(), e.OccurredAt,
+                e.RecordedByLabel, e.RecordedById, e.PayloadJson, e.Cost, e.RelatedEventId,
+                e.AffectedCount, e.CauseId, e.RouteId, e.Reason, e.BatchId,
+                e.HealthPlanItemId, e.AppliedByUserId,
+                e.CreatedAt, e.UpdatedAt, e.DeletedAt != null),
+            cancellationToken);
+
         var collections = new SyncCollectionsDto(
             animals, identifiers, groups, memberships,
             speciesList, breeds, categories, items, withdrawals, mortalityCauses, farmModules,
-            administrationRoutes, treatmentReasons,
+            administrationRoutes, treatmentReasons, doseKinds,
             healthPlans, healthPlanItems, healthPlanAssignments,
-            plausibilityRanges);
+            plausibilityRanges, animalEvents);
 
         return new SyncPullResponseDto(frontier.Next.Format(), frontier.HasMore, collections);
     }

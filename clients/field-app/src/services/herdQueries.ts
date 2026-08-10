@@ -6,6 +6,7 @@ import {
   AnimalGroup,
   AnimalIdentifier,
   Breed,
+  DoseKind,
   InventoryItem,
   MortalityCause,
   Species,
@@ -92,8 +93,30 @@ export async function loadGroups(database: Database) {
 
   return groups
     .filter((group) => !group.isDeleted && group.isActive)
-    .map((group) => ({ groupId: group.id, label: group.name }))
+    .map((group) => ({
+      groupId: group.id,
+      label: group.name,
+      // speciesId feeds the group-weighing plausibility check (ADR-0022); trackingMode
+      // lets the lot subject screen distinguish a headcount lot (3.5a.7's audience) from
+      // an individually-tracked one, without a network round trip (Art. 9).
+      speciesId: group.speciesId,
+      trackingMode: group.trackingMode,
+    }))
     .sort((a, b) => a.label.localeCompare(b.label));
+}
+
+/**
+ * The feed items catalog (3.5a.7 task 5, ADR-0008 mirror pattern), filtered to the
+ * "Feed" category the server's `ItemCategory` enum serializes verbatim through the pull
+ * (`SyncPullQueries.cs`: `i.Category.ToString()`). Mirrors `loadMedications`.
+ */
+export async function loadFeedItems(database: Database) {
+  const items = await database.get<InventoryItem>('inventory_items').query().fetch();
+
+  return items
+    .filter((item) => !item.isDeleted && item.category === 'Feed')
+    .map((item) => ({ itemId: item.id, name: item.name, unit: item.unit }))
+    .sort((a, b) => a.name.localeCompare(b.name));
 }
 
 export async function loadBreeds(database: Database, speciesId: string) {
@@ -122,8 +145,42 @@ export async function loadMedications(database: Database) {
 
   return items
     .filter((item) => !item.isDeleted && /medic/i.test(item.category))
-    .map((item) => ({ itemId: item.id, name: item.name }))
+    // `unit` rides along so VaccinateScreen/TreatScreen (3.5a.2-C) can build a
+    // structured dose without asking the operator to type a unit the product
+    // already declares (the "unidad es del producto, no del operario" rule).
+    .map((item) => ({ itemId: item.id, name: item.name, unit: item.unit }))
     .sort((a, b) => a.name.localeCompare(b.name));
+}
+
+/**
+ * The full inventory catalog for the treatment/vaccination product picker
+ * (3.5a.2-C): unlike `loadMedications`, this is not filtered by category —
+ * a "product" here can be a vaccine, a dewormer or anything else the panel
+ * stocked, and the catalog does not carry a code-level notion of "vaccine"
+ * vs. "medication" (Art. 8: that distinction, if it ever matters, is a data
+ * column, not a regex in this file).
+ */
+export async function loadTreatmentProducts(database: Database) {
+  const items = await database.get<InventoryItem>('inventory_items').query().fetch();
+
+  return items
+    .filter((item) => !item.isDeleted)
+    .map((item) => ({ itemId: item.id, name: item.name, unit: item.unit }))
+    .sort((a, b) => a.name.localeCompare(b.name));
+}
+
+/**
+ * The dose-form catalog (3.5a.2-B/C): `absolute` / `per_weight` / `per_head`.
+ * `VaccinateScreen` needs the `per_head` row's id to build a
+ * `createTreatmentCourse` payload without a round trip.
+ */
+export async function loadDoseKinds(database: Database) {
+  const kinds = await database.get<DoseKind>('dose_kinds').query().fetch();
+
+  return kinds
+    .filter((k) => !k.isDeleted && k.isActive)
+    .map((k) => ({ doseKindId: k.id, key: k.key, labelEs: k.labelEs }))
+    .sort((a, b) => a.labelEs.localeCompare(b.labelEs));
 }
 
 /** The mortality causes catalog (3.5a.3), for the "baja con causa" picker. */

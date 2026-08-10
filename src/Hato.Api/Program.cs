@@ -56,6 +56,7 @@ app.MapMortalityCausesEndpoints();
 app.MapAdministrationRoutesEndpoints();
 app.MapTreatmentReasonsEndpoints();
 app.MapHealthPlansEndpoints();
+app.MapTreatmentCoursesEndpoints();
 app.MapPlausibilityRangesEndpoints();
 app.MapMilkingEndpoints();
 app.MapInventoryEndpoints();

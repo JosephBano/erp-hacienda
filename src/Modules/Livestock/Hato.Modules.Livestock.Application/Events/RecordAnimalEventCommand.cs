@@ -1,3 +1,4 @@
+using System.Text.Json;
 using FluentValidation;
 using Hato.Modules.Livestock.Application.Abstractions;
 using Hato.Modules.Livestock.Domain;
@@ -147,6 +148,17 @@ public class RecordAnimalEventHandler(ILivestockDbContext dbContext)
 
         dbContext.AnimalEvents.Add(animalEvent);
 
+        // 3.5a.2-B task 9: backward-compat migration. A treatment event with a
+        // legacy free-text `dose` in its payload — pre-dating TreatmentCourse — is
+        // synthesised into a one-application course at the first push that touches
+        // it. The original event is never rewritten beyond the
+        // MigratedToCourseId marker (Art. 1); the raw dose stays exactly as typed
+        // in PayloadJson.
+        if (request.EventType == EventType.Treatment)
+        {
+            await TryMigrateLegacyDoseAsync(dbContext, animalEvent, cancellationToken);
+        }
+
         // Process Withdrawal Period if specified (e.g. for TreatmentEvent)
         var startDate = DateOnly.FromDateTime(occurredAtUtc.UtcDateTime);
 
@@ -173,5 +185,79 @@ public class RecordAnimalEventHandler(ILivestockDbContext dbContext)
         await dbContext.SaveChangesAsync(cancellationToken);
 
         return animalEvent.Id;
+    }
+
+    /// <summary>
+    /// 3.5a.2-B task 9. Legacy shape: <c>{"dose": 10, "unit": "ml"}</c> — the
+    /// free-form pair that predates <see cref="TreatmentCourse"/>'s structured
+    /// <c>DoseKind</c> + factor. A payload without both a numeric <c>dose</c> and a
+    /// non-empty <c>unit</c> is left alone: there is nothing coherent to migrate,
+    /// and Art. 1 forbids inventing one.
+    /// </summary>
+    private static async Task TryMigrateLegacyDoseAsync(
+        ILivestockDbContext dbContext, AnimalEvent animalEvent, CancellationToken cancellationToken)
+    {
+        if (animalEvent.AnimalId is not { } animalId) return;
+        if (animalEvent.MigratedToCourseId is not null) return;
+
+        decimal? doseAmount = null;
+        string? doseUnit = null;
+
+        using (var document = JsonDocument.Parse(animalEvent.PayloadJson))
+        {
+            foreach (var property in document.RootElement.EnumerateObject())
+            {
+                if (string.Equals(property.Name, "dose", StringComparison.OrdinalIgnoreCase)
+                    && property.Value.ValueKind == JsonValueKind.Number)
+                {
+                    doseAmount = property.Value.GetDecimal();
+                }
+                else if (string.Equals(property.Name, "unit", StringComparison.OrdinalIgnoreCase)
+                    && property.Value.ValueKind == JsonValueKind.String)
+                {
+                    doseUnit = property.Value.GetString();
+                }
+            }
+        }
+
+        if (doseAmount is not (> 0) || string.IsNullOrWhiteSpace(doseUnit)) return;
+
+        if (animalEvent.RouteId is not { } routeId)
+        {
+            // A legacy event may predate the route catalogue entirely (3.5a.2-A). The
+            // synthetic course still needs a valid route FK; skip the migration rather
+            // than invent one — the event stays un-migrated until it is corrected.
+            return;
+        }
+
+        var absoluteDoseKind = await dbContext.DoseKinds
+            .AsNoTracking()
+            .FirstOrDefaultAsync(k => k.Key == DoseKind.Keys.Absolute && k.IsActive, cancellationToken);
+        if (absoluteDoseKind is null) return;
+
+        var course = TreatmentCourse.CreateForAnimal(
+            animalId,
+            animalEvent.OccurredAt,
+            routeId: routeId,
+            reason: animalEvent.Reason,
+            productId: null,
+            doseKindId: absoluteDoseKind.Id,
+            doseFactorAmount: doseAmount.Value,
+            doseFactorUnit: doseUnit!,
+            notes: "Migrado automáticamente desde un registro legado con dosis libre.",
+            isSynthetic: true);
+
+        course.AddApplication(
+            applicationNo: 1,
+            appliedAt: animalEvent.OccurredAt,
+            calculatedDoseAmount: null,
+            calculatedDoseUnit: null,
+            isEstimated: false,
+            administeredDoseAmount: doseAmount,
+            administeredDoseUnit: doseUnit,
+            notes: "Dosis administrada tal como fue registrada en el evento original.");
+
+        dbContext.TreatmentCourses.Add(course);
+        animalEvent.MarkMigratedToCourse(course.Id);
     }
 }

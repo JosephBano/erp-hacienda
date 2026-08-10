@@ -13,7 +13,7 @@ import { appSchema, tableSchema } from '@nozbe/watermelondb';
  * representable locally, otherwise a record deleted on the server would live on in the
  * employee's list forever.
  */
-export const SCHEMA_VERSION = 8;
+export const SCHEMA_VERSION = 10;
 
 export const schema = appSchema({
   version: SCHEMA_VERSION,
@@ -201,6 +201,18 @@ export const schema = appSchema({
         { name: 'is_deleted', type: 'boolean' },
       ],
     }),
+    // 3.5a.2-C: dose-form catalog (absolute / per_weight / per_head, 3.5a.2-B),
+    // mirrored so VaccinateScreen/TreatScreen can resolve a DoseKindId for
+    // createTreatmentCourse offline instead of hardcoding the seed's GUIDs.
+    tableSchema({
+      name: 'dose_kinds',
+      columns: [
+        { name: 'key', type: 'string', isIndexed: true },
+        { name: 'label_es', type: 'string' },
+        { name: 'is_active', type: 'boolean' },
+        { name: 'is_deleted', type: 'boolean' },
+      ],
+    }),
     // 3.5a.6 (ADR-0022): plausibility ranges for offline validation of
     // weights and milk volumes. The validator (see plausibilityService) is
     // fail-open: a missing row for the (species, category, magnitude)
@@ -216,6 +228,35 @@ export const schema = appSchema({
         { name: 'absolute_min', type: 'number', isOptional: true },
         { name: 'absolute_max', type: 'number', isOptional: true },
         { name: 'is_active', type: 'boolean' },
+        { name: 'is_deleted', type: 'boolean' },
+      ],
+    }),
+    // 3.5a.1 (ADR-0015) + BACKLOG "AnimalEvent grupal aún no viaja en el pull": the
+    // event history now travels on the pull, which is what 3.5a.7's lot record
+    // ("última vacunación, alimento del período") needs. One table carries both
+    // animal- and group-subject events — `animal_id` XOR `group_id`, mirroring the
+    // DB CHECK the server already enforces (ADR-0015 sec.2). Both columns stay
+    // optional on purpose: forcing a fake `animal_id` on a group event to keep the
+    // row uniform would be exactly the synthetic data ADR-0015 exists to prevent.
+    tableSchema({
+      name: 'animal_events',
+      columns: [
+        { name: 'animal_id', type: 'string', isOptional: true, isIndexed: true },
+        { name: 'group_id', type: 'string', isOptional: true, isIndexed: true },
+        { name: 'event_type', type: 'string', isIndexed: true },
+        { name: 'occurred_at', type: 'string', isIndexed: true },
+        { name: 'recorded_by', type: 'string' },
+        { name: 'recorded_by_id', type: 'string', isOptional: true },
+        { name: 'payload_json', type: 'string' },
+        { name: 'cost', type: 'number', isOptional: true },
+        { name: 'related_event_id', type: 'string', isOptional: true },
+        { name: 'affected_count', type: 'number', isOptional: true },
+        { name: 'cause_id', type: 'string', isOptional: true },
+        { name: 'route_id', type: 'string', isOptional: true },
+        { name: 'reason', type: 'string', isOptional: true },
+        { name: 'batch_id', type: 'string', isOptional: true },
+        { name: 'health_plan_item_id', type: 'string', isOptional: true },
+        { name: 'applied_by_user_id', type: 'string', isOptional: true },
         { name: 'is_deleted', type: 'boolean' },
       ],
     }),

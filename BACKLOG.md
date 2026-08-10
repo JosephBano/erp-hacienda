@@ -4,30 +4,66 @@
 > bloqueante, o lo que descubrimos mientras hacemos otra cosa, se anota acá.
 > Un ítem del BACKLOG no es una tarea: es algo a discutir antes de actuar.
 
-## Pendiente post-barrido 2026-08-07 (ADR-0020)
+## Pendiente 3.5a.2-C — sub-rama cerrada, ítems abiertos
+
+> La sub-rama 3.5a.2-C mergeó a `integration/fase-3-5-wave-1` el 2026-08-09
+> (commit `5a54e1d` → `90ca99b` vía `feature/field-app-treatment-ui`,
+> `TreatScreen` + `VaccinateScreen` + sync pull). Estos dos ítems son mejoras
+> de UX que quedaron abiertas a propósito — ninguna es bloqueante para el
+> criterio de salida de 3.5a.2-C.
+
+### [mobile] `VaccinateScreen` asume la primera vía activa en vez de la del producto
+
+`InventoryItem` no declara todavía una vía de administración preferida por
+producto — ese campo pertenece al módulo Inventory (Art. 6, fuera de alcance
+de esta sub-rama). Mientras tanto `VaccinateScreen` (3.5a.2-C) toma la primera
+fila activa de `administration_routes` como default, no editable, para no
+sumar un cuarto toque. Cuando Inventory agregue "vía preferida" al ítem, este
+default debería leerlo de ahí en vez de la primera fila del catálogo.
+
+### [mobile] `AnimalSubjectScreen` no pre-selecciona el animal al abrir `TreatScreen`
+
+El botón "Tratamiento (animal enfermo)" de `AnimalSubjectScreen` sigue
+enrutando a `TreatScreen`, pero `TreatScreen` es autocontenida (tiene su
+propio picker de animal, necesario para que su prueba de "cuatro toques" sea
+aislable) y no acepta todavía un `initialAnimalId` como sí hace
+`EventsScreen`. El operario que llega por ese camino re-selecciona el animal
+que ya había elegido — un toque de más en ese camino específico, no en el
+camino principal (ActivitiesHub → Tratar/Vacunar) que 3.5a.2-C mide. Agregar
+`initialAnimalId` a `TreatScreen`/`VaccinateScreen` (mismo patrón que
+`EventsScreen`) cierra esto.
+
+## Pendiente post-barrido 2026-08-07 (ADR-0021)
 
 > El barrido integral cerró los P0/P1 del informe post-mortem y entregó 3.5a.5
 > y la tarea 6 de 3.5a.7. Lo que queda fuera del barrido, documentado en
-> `docs/adr/0020-…md`, es lo siguiente:
+> `docs/adr/0021-cierre-retroactivo-compuerta-3-5a-9-B.md`, es lo siguiente:
 
 ### [3.5a] Reactivar el criterio de salida — sin esto no hay piloto
 
 - **3.5a.2 (treatment detail)** — sub-ramas A/B/C ya escritas en
-  `docs/planes/sub_planes/PLAN-FASE-3-5-PORCINO-3.5a.2-{A,B,C}.md`. Sin esta rama
-  no se puede registrar un tratamiento con vía y motivo (lo que el cliente
-  pidió explícitamente).
+  `docs/planes/sub_planes/PLAN-FASE-3-5-PORCINO-3.5a.2-{A,B,C}.md`. **A y B ya
+  mergeadas a integración** (A: `feature/livestock-treatment-dose-logic` →
+  PR para catalogos y payload; B: parte de la misma ola). **C mergeada
+  2026-08-09** vía `feature/field-app-treatment-ui` →
+  `integration/fase-3-5-wave-1` (commit `fa668f4`/`90ca99b`). Solo quedan los
+  dos ítems de mejora UX listados arriba en este mismo archivo (VaccinateScreen
+  default route y AnimalSubjectScreen pre-selección).
 - **3.5a.4 task 4 (clasificación por peso)** — sin esto, los lechones no se
   reparten en lotes de engorde por tamaño y la camada deja de seguirse dentro
-  del sistema. Pieza que cierra el criterio de salida de 3.5a.
-- **3.5a.6 (plausibility ranges)** — sin esta rama, la tarea 1 de 3.5a.7
-  (pesaje muestral) no se puede entregar sin un `if` por especie (Art. 8).
-- **3.5a.7 tasks 1, 2, 3, 4, 5 (UI del móvil)** — bloqueadas por la compuerta
-  sec.2.3 del macro plan: árbol de actividades dibujado y toques contados con
-  el cliente antes de escribir cualquier pantalla. Sin esa conversación previa,
-  la UI nueva de lote es un menú de botones y la promesa de los 3 toques muere.
+  del sistema. Pieza que cierra el criterio de salida de 3.5a. Sigue abierto.
+- **3.5a.6 (plausibility ranges)** — **mergeada** vía `feature/livestock-plausibility-ranges`
+  (PR #73). Sin esta rama, la tarea 1 de 3.5a.7 (pesaje muestral) no se podía
+  entregar sin un `if` por especie (Art. 8). CERRADO.
+- **3.5a.7 tasks 1, 2, 3, 4, 5 (UI del móvil)** — tasks 1–5 mergeadas a
+  integración vía `feature/field-app-lot-registration` (commit `b794c82`).
+  Sigue pendiente la conversación de frecuencias con el cliente (sec.7-C,
+  documentada abajo en `[docs] Orden de actividades del sujeto "lote"
+  pendiente de validar con el operador`).
 - **Disparador**: cuando el cliente pida abrir el piloto real contra el sistema,
-  abrir este ADR-0020 y arrancar por 3.5a.2-A. La cadena (3.5a.2 → 3.5a.6 →
-  3.5a.7 tasks 1–5) es el orden mínimo que cumple el criterio de salida.
+  abrir [ADR-0024](./docs/adr/0024-pilot-decoupling-from-3-5a.md) y arrancar por
+  3.5a.4 task 4. La cadena (3.5a.4 task 4 + sec.7-C) es lo mínimo que queda
+  para cerrar el criterio de salida completo de 3.5a.
 
 ### [UI] admin-web: pantallas de catálogos que faltan
 
@@ -39,9 +75,16 @@
   existe; falta el componente Angular.
 - **Pantalla de ítems de inventario + conversiones de unidad**. El endpoint
   existe; falta el componente Angular.
-- **Disparador**: cuando se priorice trabajo de UI admin-web, agrupar las tres
-  en una pantalla genérica "Catálogos" que reutilice un componente tabla
-  parametrizable.
+- **Catálogo de etapas de alimento (`feed_stages`, 3.5a.5 task 3)**. Solo
+  existe `GET /api/v1/inventory/feed-stages` (listar) — el dominio
+  (`FeedStage.Create/Activate/Deactivate`) soporta el ciclo completo pero no
+  se expusieron `POST`/`activate`/`deactivate`/label update porque no hay
+  panel que los consuma todavía (alcance acotado a la tarea 3 del plan).
+  Cuando se construya la pantalla, agregar esos endpoints siguiendo
+  `AdministrationRoutesEndpoints.cs` como plantilla exacta.
+- **Disparador**: cuando se priorice trabajo de UI admin-web, agrupar las
+  cuatro en una pantalla genérica "Catálogos" que reutilice un componente
+  tabla parametrizable.
 
 ### [UI] Pantalla dedicada de gestión de grupos (animal-groups)
 
@@ -84,7 +127,8 @@
 ## Pendiente 3.5b — diferido del barrido 2026-08-07
 
 > 3.5b está fuera del alcance del barrido integral del 2026-08-07 (lo deja
-> sentado [ADR-0020](./docs/adr/0020-fase-3-5-estado-al-cierre-del-barrido-p0-p1.md)),
+> sentado [ADR-0021](./docs/adr/0021-cierre-retroactivo-compuerta-3-5a-9-B.md) ·
+> que a su vez reemplaza a [ADR-0020](./docs/adr/0020-fase-3-5-estado-al-cierre-del-barrido-p0-p1.md)),
 > pero hay **una pieza concreta** que el barrido de 3.5a.2-A dejó sembrada y
 > que tiene que cerrarse con la primera rama de 3.5b. Lo siguiente es
 > trazabilidad, no trabajo del barrido actual.
@@ -174,18 +218,37 @@
   cuando se resuelva.
 - **Riesgo de no actuar**: ninguno operacional. Es deuda visible en el workflow.
 
-### [deuda] `AnimalEvent` grupal aún no viaja en el pull (3.5a.1)
+### [mobile] `feed_stages` (y `unit_conversions`) sin viajar en el sync pull (3.5a.5 task 3)
 
-- **Archivos**: `src/Hato.Api/Sync/SyncPullQueries.cs`, `clients/field-app/src/services/syncEngine.ts`.
-- **Causa**: 3.5a.1 agrega el mecanismo de evento grupal (push, dominio, CHECK de BD) pero
-  ningún flujo del móvil todavía necesita leer el historial de eventos de un lote — la
-  compuerta de `PLAN-FASE-3-5-PORCINO.md` sec.2.3 bloquea las pantallas nuevas hasta que
-  el árbol de actividades esté cerrado con el cliente (3.5a.7/3.5a.9-B). Agregar una
-  colección `groupEvents`/`animalEvents` al pull ahora sería construir sin consumidor.
-- **Trabajo a hacer**: cuando 3.5a.7 escriba la ficha del lote ("última vacunación,
-  alimento del período"), agregar `SyncAnimalEventDto` + `ReadAsync` en
-  `SyncPullQueries.cs` y su entrada en `TABLE_BY_COLLECTION`.
-- **Disparador**: arranque de 3.5a.7 (`feature/field-app-lot-registration`).
+- **Archivos**: `src/Hato.Api/Sync/SyncPullQueries.cs` (`SyncCollectionsDto`,
+  `RequiredPermissionByCollection`, `GetSyncPullQueryHandler.Handle`);
+  `clients/field-app/src/services/syncEngine.ts` (mapa de colecciones →
+  tablas WatermelonDB); `src/Hato.Api/Endpoints/InventoryEndpoints.cs`
+  (`GET /api/v1/inventory/feed-stages`, único endpoint hoy).
+- **Causa raíz**: el mismo razonamiento que ya dejó afuera `unit_conversions`
+  (3.5a.5 tasks 1/2, mergeadas sin entrada en el pull): hoy ningún flujo del
+  móvil consume el catálogo. La tarea 4 de 3.5a.5 (registro de consumo en
+  sacos) ya está implementada y no necesita `feed_stage` — resuelve la
+  conversión saco↔kg, no la clasificación del ítem. `inventory_items` sí
+  viaja en el pull (con `feed_stage_id`, si se agrega a `SyncInventoryItemDto`
+  cuando corresponda) pero el catálogo de etapas en sí no tiene consumidor
+  todavía: no hay pantalla en el móvil que filtre o muestre "preiniciador /
+  iniciador / …". Agregar la colección ahora sería construir sin consumidor,
+  el mismo criterio que ya se aplicó al backlog de `groupEvents`.
+- **Trabajo a hacer**: cuando 3.5a.7 (`feature/field-app-lot-registration`,
+  tarea 5 "consumo de alimento del lote en sacos") o cualquier pantalla de
+  catálogos del móvil necesite mostrar/filtrar por etapa de alimento,
+  agregar `SyncFeedStageDto` (mismo shape que `SyncAdministrationRouteDto`:
+  `Id, Key, LabelEs, IsActive, CreatedAt, UpdatedAt, IsDeleted`) +
+  `ReadAsync(..., "feedStages", inventoryDb.FeedStages, ...)` +  su entrada
+  en `RequiredPermissionByCollection` (sugerido:
+  `SystemPermissions.InventoryItemsRead`, el mismo permiso que ya protege
+  `inventoryItems`) + la entrada correspondiente en `syncEngine.ts`. De paso,
+  evaluar si conviene resolver `unit_conversions` en el mismo PR — comparten
+  causa y consumidor futuro.
+- **Disparador**: primera pantalla del móvil (o de admin-web con necesidad de
+  offline) que necesite listar o filtrar ítems de inventario por etapa de
+  alimento.
 
 ### [docs] `mortality_causes` sin pantalla de administración en admin-web (3.5a.3)
 
@@ -248,6 +311,21 @@
   sin riesgo.
 - **Disparador**: próximo barrido de admin-web, o antes si alguno se cruza con
   otro trabajo de UI.
+
+### [docs] Orden de actividades del sujeto "lote" pendiente de validar con el operador (sec.7-C)
+
+- **Causa raíz**: 3.5a.7 (`feature/field-app-lot-registration`) implementó las seis
+  actividades del sujeto "lote" (`LotSubjectScreen.tsx`) sin la conversación con el
+  cliente que `PLAN-FASE-3-5-PORCINO.md` sec.2.3/sec.7-C exige para fijar el orden por
+  frecuencia real. El orden usado (alimento, pesaje muestral, vacunar, tratar,
+  diagnóstico, baja) es el supuesto explícito documentado en el código de
+  `LotSubjectScreen.tsx` — "alimento es lo más frecuente" según el propio plan — no una
+  medición con el operador parado en el corral.
+- **Trabajo a hacer**: cuando el cliente responda sec.7-C, actualizar el orden de los
+  seis `BigButton` en `LotSubjectScreen.tsx` (y el de `ActivitiesHub.tsx` si el orden de
+  los cuatro sujetos también cambia) en un commit dedicado, con el test de orden
+  actualizado a propósito — nunca como un efecto colateral de otro cambio.
+- **Disparador**: la sesión con el cliente de sec.7-C (`PLAN-FASE-3-5-PORCINO.md`).
 
 ## Reglas para este archivo
 

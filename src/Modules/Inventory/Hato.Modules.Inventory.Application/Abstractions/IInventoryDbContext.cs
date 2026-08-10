@@ -9,6 +9,7 @@ public interface IInventoryDbContext
     DbSet<InventoryBatch> InventoryBatches { get; }
     DbSet<GroupFeedConsumption> GroupFeedConsumptions { get; }
     DbSet<UnitConversion> UnitConversions { get; }
+    DbSet<FeedStage> FeedStages { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken);
 }

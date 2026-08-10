@@ -6,12 +6,21 @@ import { AnimalEditService } from './services/animalEditService';
 import { AuthService } from './services/authService';
 import { BirthService } from './services/birthService';
 import { EventService } from './services/eventService';
+import { FeedConsumptionService } from './services/feedConsumptionService';
+import { HttpAnimalGroupsApi } from './services/animalGroupsApi';
 import { HttpSyncApi } from './services/syncApi';
 import { MilkingService } from './services/milkingService';
 import { ModuleVisibility } from './services/moduleVisibility';
 import { Outbox } from './services/outbox';
 import { SyncEngine } from './services/syncEngine';
-import { loadGroups, loadHerd, loadMedications, loadMortalityCauses } from './services/herdQueries';
+import {
+  loadFeedItems,
+  loadGroups,
+  loadHerd,
+  loadMedications,
+  loadMortalityCauses,
+  loadTreatmentProducts,
+} from './services/herdQueries';
 import { ActivitiesHub } from './screens/ActivitiesHub';
 import { AnimalEditScreen } from './screens/AnimalEditScreen';
 import { AnimalSubjectScreen } from './screens/AnimalSubjectScreen';
@@ -19,9 +28,13 @@ import { BirthScreen } from './screens/BirthScreen';
 import { EventsScreen } from './screens/EventsScreen';
 import { HomeScreen } from './screens/HomeScreen';
 import { LoginScreen } from './screens/LoginScreen';
+import { LotEventsScreen } from './screens/LotEventsScreen';
+import { LotSubjectScreen, type LotActivity } from './screens/LotSubjectScreen';
 import { MilkingScreen } from './screens/MilkingScreen';
 import { SyncStatusScreen } from './screens/SyncStatusScreen';
 import { TodayScreen } from './screens/TodayScreen';
+import { TreatScreen } from './screens/TreatScreen';
+import { VaccinateScreen } from './screens/VaccinateScreen';
 import type { TabKey } from './screens/navigation';
 import { BigButton, Body, Screen, Title } from './ui/components';
 import { theme } from './ui/theme';
@@ -63,8 +76,15 @@ export default function App() {
 
   const milking = useMemo(() => new MilkingService(database), [database]);
   const events = useMemo(() => new EventService(database), [database]);
+  const feedConsumption = useMemo(() => new FeedConsumptionService(database), [database]);
   const births = useMemo(() => new BirthService(database), [database]);
   const animalEdits = useMemo(() => new AnimalEditService(database), [database]);
+  // 3.5a.7 task 6 (already delivered server-side): best-effort read of the lot record.
+  // Never on the path of a registration — LotEventsScreen never touches this (Art. 9).
+  const animalGroupsApi = useMemo(
+    () => new HttpAnimalGroupsApi({ baseUrl: API_BASE_URL, getToken: () => auth.token() }),
+    [auth],
+  );
 
   const [ready, setReady] = useState(false);
   const [authenticated, setAuthenticated] = useState(false);
@@ -73,8 +93,10 @@ export default function App() {
   const [pending, setPending] = useState(0);
   const [herd, setHerd] = useState<Awaited<ReturnType<typeof loadHerd>>>([]);
   const [groups, setGroups] = useState<Awaited<ReturnType<typeof loadGroups>>>([]);
+  const [treatmentProducts, setTreatmentProducts] = useState<Awaited<ReturnType<typeof loadTreatmentProducts>>>([]);
   const [medications, setMedications] = useState<Awaited<ReturnType<typeof loadMedications>>>([]);
   const [mortalityCauses, setMortalityCauses] = useState<Awaited<ReturnType<typeof loadMortalityCauses>>>([]);
+  const [feedItems, setFeedItems] = useState<Awaited<ReturnType<typeof loadFeedItems>>>([]);
   // ADR-0019: the production module is on by default; the pull flips it off for the
   // pig pilot. ModuleVisibility answers from the local DB with no network, so this is
   // offline-safe by construction.
@@ -86,7 +108,11 @@ export default function App() {
   // picker and the activity menu when entering EventsScreen.
   const [selectedAnimalId, setSelectedAnimalId] = useState<string | null>(null);
   const [eventsInitialAnimalId, setEventsInitialAnimalId] = useState<string | undefined>(undefined);
-  const [eventsInitialActivity, setEventsInitialActivity] = useState<'treatment' | 'weight' | 'move' | 'disposal' | undefined>(undefined);
+  const [eventsInitialActivity, setEventsInitialActivity] = useState<'weight' | 'move' | 'disposal' | undefined>(undefined);
+  // 3.5a.7: same shape as the animal-subject state above, for the "Un lote" branch.
+  const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
+  const [lotEventsGroupId, setLotEventsGroupId] = useState<string | undefined>(undefined);
+  const [lotEventsActivity, setLotEventsActivity] = useState<LotActivity | undefined>(undefined);
   const [todayEntries, setTodayEntries] = useState<
     {
       clientOperationId: string;
@@ -100,11 +126,13 @@ export default function App() {
   const visibility = useMemo(() => new ModuleVisibility(database, api), [database, api]);
 
   const refresh = useCallback(async () => {
-    const [nextHerd, nextGroups, nextMedications, nextMortalityCauses, stats, productionVisible, today] = await Promise.all([
+    const [nextHerd, nextGroups, nextTreatmentProducts, nextMedications, nextMortalityCauses, nextFeedItems, stats, productionVisible, today] = await Promise.all([
       loadHerd(database),
       loadGroups(database),
+      loadTreatmentProducts(database),
       loadMedications(database),
       loadMortalityCauses(database),
+      loadFeedItems(database),
       outbox.stats(),
       visibility.canShow('production'),
       outbox.today(),
@@ -112,8 +140,10 @@ export default function App() {
 
     setHerd(nextHerd);
     setGroups(nextGroups);
+    setTreatmentProducts(nextTreatmentProducts);
     setMedications(nextMedications);
     setMortalityCauses(nextMortalityCauses);
+    setFeedItems(nextFeedItems);
     setPending(stats.pending);
     setProductionOn(productionVisible);
     setTodayEntries(
@@ -194,6 +224,15 @@ export default function App() {
                 setEventsInitialAnimalId(undefined);
                 setEventsInitialActivity(undefined);
               }
+              // 'lot-events' is never a hub route (ActivitiesHub only ever emits
+              // 'lot-subject'; the picker's own onActivity is what advances to
+              // 'lot-events'), so any hub selection other than 'lot-subject' means the
+              // operator left the lot branch and the pre-selection should reset.
+              if (route !== 'lot-subject') {
+                setSelectedGroupId(null);
+                setLotEventsGroupId(undefined);
+                setLotEventsActivity(undefined);
+              }
             }}
           />
         ) : null}
@@ -206,17 +245,67 @@ export default function App() {
             onSelectAnimal={(animalId) => setSelectedAnimalId(animalId)}
             onClearSelection={() => setSelectedAnimalId(null)}
             onActivity={(animalId, activity) => {
-              // All animal activities route through EventsScreen with both the animal
+              // weight/move/disposal route through EventsScreen with both the animal
               // and the activity pre-selected. Plan: the operator has already chosen
               // subject + animal + activity on the activity tree; the form they reach
               // here is the same one they would have reached by tapping through the
               // menu — fewer steps, no behaviour change. 'disposal' joined this path in
               // 3.5a.3 once the mortality causes catalog existed to back it.
+              //
+              // 'treatment' is the one activity AnimalSubjectScreen still offers that
+              // moved out of EventsScreen in 3.5a.2-C: it now opens TreatScreen
+              // directly. TreatScreen owns its own animal picker (it needs to, to
+              // keep its four-tap budget testable in isolation), so the
+              // pre-selection is not threaded through here — a known, accepted
+              // UX gap tracked in BACKLOG.md, not a broken flow.
               setSelectedAnimalId(animalId);
+              if (activity === 'treatment') {
+                setTab('treat');
+                return;
+              }
               setEventsInitialAnimalId(animalId);
               setEventsInitialActivity(activity);
               setTab('events');
             }}
+          />
+        ) : null}
+
+        {tab === 'lot-subject' ? (
+          <LotSubjectScreen
+            lots={groups.map((group) => ({ groupId: group.groupId, label: group.label }))}
+            selectedGroupId={selectedGroupId ?? undefined}
+            onSelectLot={(groupId) => setSelectedGroupId(groupId)}
+            onClearSelection={() => setSelectedGroupId(null)}
+            onActivity={(groupId, activity) => {
+              // Same shape as the animal-subject → EventsScreen handoff: the operator
+              // already chose subject + lot + activity, so the destination form opens
+              // with both pre-selected.
+              setSelectedGroupId(groupId);
+              setLotEventsGroupId(groupId);
+              setLotEventsActivity(activity);
+              setTab('lot-events');
+            }}
+            animalGroupsApi={animalGroupsApi}
+          />
+        ) : null}
+
+        {tab === 'lot-events' && lotEventsGroupId && lotEventsActivity ? (
+          <LotEventsScreen
+            service={events}
+            feedService={feedConsumption}
+            database={database}
+            lots={groups.map((group) => ({
+              groupId: group.groupId,
+              label: group.label,
+              speciesId: group.speciesId ?? undefined,
+            }))}
+            feedItems={feedItems}
+            medications={medications}
+            mortalityCauses={mortalityCauses}
+            groupId={lotEventsGroupId}
+            activity={lotEventsActivity}
+            onRecorded={refresh}
+            onBack={() => setTab('lot-subject')}
           />
         ) : null}
 
@@ -238,6 +327,7 @@ export default function App() {
         {tab === 'milking' && productionOn ? (
           <MilkingScreen
             service={milking}
+            database={database}
             candidates={herd}
             recordedBy={auth.currentSession()?.email ?? 'field-app'}
             onRecorded={refresh}
@@ -247,13 +337,35 @@ export default function App() {
         {tab === 'events' ? (
           <EventsScreen
             service={events}
+            database={database}
             animals={herd}
             groups={groups}
-            medications={medications}
             mortalityCauses={mortalityCauses}
             onRecorded={refresh}
             initialAnimalId={eventsInitialAnimalId}
             initialActivity={eventsInitialActivity}
+          />
+        ) : null}
+
+        {tab === 'vaccinate' ? (
+          <VaccinateScreen
+            service={events}
+            database={database}
+            animals={herd}
+            products={treatmentProducts}
+            onRecorded={refresh}
+            onCancel={() => setTab('home')}
+          />
+        ) : null}
+
+        {tab === 'treat' ? (
+          <TreatScreen
+            service={events}
+            database={database}
+            animals={herd}
+            products={treatmentProducts}
+            onRecorded={refresh}
+            onCancel={() => setTab('home')}
           />
         ) : null}
 
@@ -291,6 +403,9 @@ export default function App() {
               setSelectedAnimalId(null);
               setEventsInitialAnimalId(undefined);
               setEventsInitialActivity(undefined);
+              setSelectedGroupId(null);
+              setLotEventsGroupId(undefined);
+              setLotEventsActivity(undefined);
             }}
           />
         </View>

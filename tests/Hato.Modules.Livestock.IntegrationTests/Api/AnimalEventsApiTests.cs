@@ -90,7 +90,14 @@ public class AnimalEventsApiTests(HatoApiFactory factory) : IClassFixture<HatoAp
         });
         recordResponse.EnsureSuccessStatusCode();
 
-        var withdrawalResponse = await _client.GetAsync($"/api/v1/animals/{animalId}/withdrawal-periods");
+        // The endpoint defaults `targetDate` to DateTime.UtcNow and filters the
+        // response to withdrawals whose window covers it. The hardcoded `occurredAt`
+        // above is in 2026-08; once the wall clock has passed the 7-day window the
+        // withdrawal is no longer "active" and a date-less GET would return [].
+        // Pin `targetDate` to the day we just anchored the window on — same
+        // convention as TreatmentCourseApiTests (line 448 et seq.).
+        var withdrawalResponse = await _client.GetAsync(
+            $"/api/v1/animals/{animalId}/withdrawal-periods?targetDate={expectedUtcDate:yyyy-MM-dd}");
         withdrawalResponse.EnsureSuccessStatusCode();
         var withdrawals = await withdrawalResponse.Content.ReadFromJsonAsync<List<WithdrawalPeriodDto>>();
 

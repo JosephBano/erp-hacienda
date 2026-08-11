@@ -123,6 +123,7 @@ public static class PeopleModule
             options.AddPolicy("LivestockSpeciesManage", p => p.RequirePermission(SystemPermissions.LivestockSpeciesManage));
             options.AddPolicy("LivestockTreatmentsConfigure", p => p.RequirePermission(SystemPermissions.LivestockTreatmentsConfigure));
             options.AddPolicy("SettingsFarmModulesRead", p => p.RequirePermission(SystemPermissions.SettingsFarmModulesRead));
+            options.AddPolicy("SettingsFarmModulesManage", p => p.RequirePermission(SystemPermissions.SettingsFarmModulesManage));
             options.AddPolicy("InventoryFeedStagesManage", p => p.RequirePermission(SystemPermissions.InventoryFeedStagesManage));
         });
 

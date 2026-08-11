@@ -14,6 +14,7 @@ import { LoginComponent } from './components/login/login.component';
 import { AnimalGroupsListComponent } from './components/animal-groups-list/animal-groups-list.component';
 import { AnimalGroupCreateComponent } from './components/animal-group-create/animal-group-create.component';
 import { AnimalGroupDetailComponent } from './components/animal-group-detail/animal-group-detail.component';
+import { InventoryItemDetailComponent } from './components/inventory-item-detail/inventory-item-detail.component';
 import { authGuard } from './guards/auth.guard';
 import { permissionGuard } from './guards/permission.guard';
 
@@ -40,6 +41,11 @@ export const routes: Routes = [
     path: 'animal-groups/:id',
     component: AnimalGroupDetailComponent,
     canActivate: [authGuard, permissionGuard('livestock.animals.write')]
+  },
+  {
+    path: 'inventory/items/:id',
+    component: InventoryItemDetailComponent,
+    canActivate: [authGuard, permissionGuard('inventory.items.write')]
   },
   {
     path: 'roles',

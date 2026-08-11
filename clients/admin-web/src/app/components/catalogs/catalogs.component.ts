@@ -1,5 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
+import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { ApiService, AdministrationRouteDto, AnimalCategoryDto, BreedDto, FarmModuleDto, InventoryItemDto, MortalityCauseDto, SpeciesDto, TreatmentReasonDto } from '../../services/api.service';
 import { CatalogTableComponent, CatalogColumn, CatalogAction } from '../../shared/catalog-table/catalog-table.component';
@@ -33,6 +34,7 @@ interface Tab {
 })
 export class CatalogsComponent implements OnInit {
   private api = inject(ApiService);
+  private router = inject(Router);
 
   readonly tabs: Tab[] = [
     { key: 'species', label: 'Especies' },
@@ -119,6 +121,10 @@ export class CatalogsComponent implements OnInit {
     { key: 'category', label: 'Categoría' },
     { key: 'unit', label: 'Unidad' },
     { key: 'totalStock', label: 'Stock' },
+  ];
+
+  readonly inventoryActions: CatalogAction<InventoryItemDto>[] = [
+    { label: 'Detalle', iconName: 'search' },
   ];
 
   readonly mortalityActions: CatalogAction<MortalityCauseDto>[] = [
@@ -212,6 +218,10 @@ export class CatalogsComponent implements OnInit {
       next: (data) => this.farmModules.set(data),
       error: (err: unknown) => this.handleError(err, 'módulos de la finca'),
     });
+  }
+
+  onInventoryAction(event: { action: CatalogAction<InventoryItemDto>; row: InventoryItemDto }): void {
+    if (event.action.label === 'Detalle') this.router.navigate(['/inventory/items', event.row.id]);
   }
 
   onMortalityAction(event: { action: CatalogAction<MortalityCauseDto>; row: MortalityCauseDto }): void {

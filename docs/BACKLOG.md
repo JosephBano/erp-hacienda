@@ -26,10 +26,13 @@
   sólo si el piloto real muestra que los rechazos son frecuentes y no triviales de
   re-capturar a mano.
 
-- **`ng test` de `admin-web` está roto**, sin relación con nada de este trabajo:
+- ~~**`ng test` de `admin-web` está roto**, sin relación con nada de este trabajo:~~
   `app.component.spec.ts` importa un símbolo `App` que no existe (`AppComponent` es el
-  nombre real). Bajo prioridad — no bloquea CI porque el pipeline no corre `ng test` — pero
-  hay que arreglarlo antes de que el panel dependa de esa suite para algo real.
+  nombre real).~~ **Resuelto** el 2026-08-11 por `feature/admin-web-inventory-detail` (PR
+  en curso): el spec importa `AppComponent` correctamente y la suite corre verde
+  (13 archivos, 68 tests passing). ~~Bajo prioridad — no bloquea CI porque el pipeline
+  no corre `ng test` — pero hay que arreglarlo antes de que el panel dependa de esa suite
+  para algo real.~~
 
 ## De Fase 2 (heredado, seguía pendiente)
 
@@ -76,6 +79,20 @@
   **Disparador:** un ítem real del cronograma del cliente que no se pueda expresar con las
   cuatro.
 
+### Cerradas en `feature/admin-web-inventory-detail` (PR en curso, 2026-08-11)
+
+- **UI admin-web para `InventoryItem`, `InventoryBatch`, `UnitConversion`, `FeedStage`.**
+  ADR-0020 lo declaraba como deuda pendiente ("Pantallas de catálogos que faltan"), y
+  quedaba como deuda rastreable de "P2/P3 del informe post-mortem". La nueva pantalla
+  `/inventory/items/:id` muestra los datos del ítem, los lotes (con creación inline), las
+  conversiones de unidad (con creación inline), y — sólo para `Category=Feed` — la etapa
+  de alimento. La pestaña `inventory` de `/catalogs` ahora tiene una acción "Detalle"
+  que navega ahí. **Estado:** mergeada en este PR; pendiente `BACKLOG.md` se cierra acá.
+  **Lo que sigue faltando (deuda explícita, no resuelto en este PR):**
+  desactivación/eliminación de lotes (no hay endpoint en el backend), edición del nombre/
+  descripción del ítem (sólo lectura hoy), admin CRUD de feed-stages más allá de activar/
+  desactivar (no hay pantalla; el panel sólo se conecta vía curl).
+
 ### Deuda explícita por desacople del piloto (ADR-0024, 2026-08-08)
 
 > Estas piezas viven como **deuda rastreable** porque el inicio del piloto real no las
@@ -85,15 +102,12 @@
 > tarea concreta de la rama o sub-plan correspondiente.
 
 - **3.5a.7.1–5 — UI del sujeto "lote" (pesaje muestral, baja con causa, vacunación de
-  lote, diagnóstico grupal, consumo en sacos).** Sin estas pantallas, el flujo viejo
-  (`recordAnimalEvent` con `GroupId` directo) cubre la captura grupal a través de las
-  pantallas individuales — documentado como deuda, no como UX. La pieza 3.5a.7 tarea 6
-  (endpoint ficha del lote) sí está mergeada (PR #66). **Disparador:** (a) el cliente
-  responde las preguntas de `PLAN-FASE-3-5-PORCINO.md` sec.7-C (frecuencias reales), y/o
-  (b) la compuerta sec.2.3 se cierra para el segundo nivel del árbol (vía ADR-0021 o un
-  sucesor). Cuando ocurra cualquiera de los dos, 3.5a.7.1–5 sale del backlog y entra a
-  la rama `feature/field-app-lot-registration` con `TapBudget` validado contra el
-  operador.
+  lote, diagnóstico grupal, consumo en sacos).** Mergeada al `develop` por PR #88
+  (rama `feature/field-app-lot-registration`, commit `04ff02f`, 2026-08-09), con
+  `TapBudget` validado. Lo que queda pendiente es el **reorden** de las seis actividades
+  del sujeto lote cuando el cliente responda sec.7-C del plan con las frecuencias reales.
+  **Disparador:** respuesta del cliente a `PLAN-FASE-3-5-PORCINO.md` sec.7-C. Cuando
+  ocurra, este ítem sale del backlog y entra a la tarea explícita de reorden.
 
 - **3.5a.8 — Corrección de registros desde el teléfono (ADR-0017).** Sin esto, la
   corrección durante el piloto se hace por re-registro manual (lo que el criterio

@@ -2,6 +2,8 @@ using Hato.Modules.Inventory.Application.Consumptions;
 using Hato.Modules.Inventory.Application.FeedStages;
 using Hato.Modules.Inventory.Application.Items;
 using Hato.Modules.Inventory.Domain;
+using Hato.Modules.People.Domain;
+using Hato.Modules.People.Infrastructure.Authorization;
 using MediatR;
 
 namespace Hato.Api.Endpoints;
@@ -23,6 +25,21 @@ public static class InventoryEndpoints
             var items = await sender.Send(new GetInventoryItemsQuery(category));
             return Results.Ok(items);
         });
+
+        group.MapGet("/items/{itemId:guid}", async (Guid itemId, ISender sender) =>
+            Results.Ok(await sender.Send(new GetInventoryItemByIdQuery(itemId))));
+
+        group.MapGet("/items/{itemId:guid}/batches", async (Guid itemId, ISender sender) =>
+            Results.Ok(await sender.Send(new GetInventoryBatchesQuery(itemId))));
+
+        group.MapGet("/items/{itemId:guid}/unit-conversions", async (Guid itemId, ISender sender) =>
+            Results.Ok(await sender.Send(new GetInventoryUnitConversionsQuery(itemId))));
+
+        group.MapPost("/items/{itemId:guid}/feed-stage", async (Guid itemId, SetInventoryItemFeedStageCommand command, ISender sender) =>
+        {
+            await sender.Send(command with { InventoryItemId = itemId });
+            return Results.NoContent();
+        }).RequireAuthorization(policy => policy.RequirePermission(SystemPermissions.InventoryItemsManage));
 
         group.MapPost("/items/{itemId:guid}/batches", async (Guid itemId, CreateBatchRequest request, ISender sender) =>
         {
@@ -53,6 +70,24 @@ public static class InventoryEndpoints
         // Feed stage catalog (PLAN-FASE-3-5-PORCINO.md sec.3.5a.5 task 3): preiniciador,
         // iniciador, crecimiento, engorde, gestación, lactancia. Listing only for now —
         // no consumer needs to create/deactivate stages yet (see BACKLOG.md).
+        group.MapPost("/feed-stages", async (CreateFeedStageCommand command, ISender sender) =>
+        {
+            var id = await sender.Send(command);
+            return Results.Created($"/api/v1/inventory/feed-stages/{id}", new { id });
+        }).RequireAuthorization(policy => policy.RequirePermission(SystemPermissions.InventoryFeedStagesManage));
+
+        group.MapPost("/feed-stages/{id:guid}/deactivate", async (Guid id, ISender sender) =>
+        {
+            await sender.Send(new DeactivateFeedStageCommand(id));
+            return Results.NoContent();
+        }).RequireAuthorization(policy => policy.RequirePermission(SystemPermissions.InventoryFeedStagesManage));
+
+        group.MapPost("/feed-stages/{id:guid}/activate", async (Guid id, ISender sender) =>
+        {
+            await sender.Send(new ActivateFeedStageCommand(id));
+            return Results.NoContent();
+        }).RequireAuthorization(policy => policy.RequirePermission(SystemPermissions.InventoryFeedStagesManage));
+
         group.MapGet("/feed-stages", async (bool? includeInactive, ISender sender) =>
         {
             var stages = await sender.Send(new GetFeedStagesQuery(includeInactive ?? false));

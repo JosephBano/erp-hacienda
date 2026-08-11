@@ -74,16 +74,28 @@ People…) nacen bajo `src/Modules/` con la misma forma, cada uno cuando su fase
 
 Requisitos: .NET SDK 8, Docker.
 
-Ninguna credencial vive en el repositorio, ni siquiera las de desarrollo: la contraseña
-de PostgreSQL sale de tu `.env` local y la cadena de conexión, de los *user secrets*
-de .NET.
+Ninguna credencial vive en el repositorio, ni siquiera las de desarrollo: el `.env` local
+es la **única fuente** del puerto y la contraseña del PostgreSQL. La cadena de conexión
+sale de los *user secrets* de .NET (si corres el backend fuera de Docker) o de las
+variables de entorno del servicio `api` (si lo corres dentro).
 
 ```bash
-cp .env.example .env                  # y elige tu contraseña local
-docker compose up -d                  # PostgreSQL en localhost:5432
+cp .env.example .env                  # completa POSTGRES_PASSWORD y, si hace falta, POSTGRES_PORT
+docker compose up -d                  # PostgreSQL en localhost:${POSTGRES_PORT:-5432}
+```
+
+`POSTGRES_PORT` define el **puerto en tu máquina** mapeado al 5432 interno del contenedor.
+Cámbialo solo si 5432 ya está ocupado en tu equipo (en este repo es habitual por
+otros proyectos). El backend, dentro de la red de compose, habla con `postgres:5432`,
+así que mover el puerto del host no toca ninguna línea del código del backend.
+
+### Opción A — backend local, DB en contenedor
+
+```bash
+set -a; . ./.env; set +a              # trae POSTGRES_PASSWORD y POSTGRES_PORT del .env
 
 dotnet user-secrets set "ConnectionStrings:HatoDb" \
-  "Host=localhost;Port=5432;Database=hato;Username=hato;Password=<la del .env>" \
+  "Host=localhost;Port=${POSTGRES_PORT};Database=hato;Username=hato;Password=${POSTGRES_PASSWORD}" \
   --project src/Hato.Api
 
 dotnet tool restore                   # dotnet-ef
@@ -94,8 +106,20 @@ dotnet ef database update \
   --project src/Modules/Livestock/Hato.Modules.Livestock.Infrastructure \
   --startup-project src/Hato.Api
 
-dotnet run --project src/Hato.Api     # health check en /health
+dotnet run --project src/Hato.Api     # health check en http://localhost:5xxx/health
 ```
+
+### Opción B — backend y DB en contenedores (todo el stack)
+
+```bash
+docker compose up -d --build          # api + postgres, api en http://localhost:8080/health
+bash scripts/smoke-api-container.sh   # verificación end-to-end del contenedor (sube, golpea /health, baja)
+```
+
+`ASPNETCORE_ENVIRONMENT=Development` y la cadena de conexión del `api` se fijan en
+`docker-compose.yml`; los valores vienen del mismo `.env`. Para producción real (TLS,
+JWT signing key, CORS restrictivo) ese archivo se sustituye por una variante — fuera
+del alcance de este PR.
 
 ### Las pruebas de integración y su PostgreSQL
 

@@ -7,7 +7,7 @@ services:
       POSTGRES_USER: hato
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?define POSTGRES_PASSWORD en .env (ver .env.example)}
     ports:
-      - "5432:5432"
+      - "${POSTGRES_PORT:-5432}:5432"
     volumes:
       - hato-pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -15,6 +15,50 @@ services:
       interval: 5s
       timeout: 3s
       retries: 10
+
+  migrate:
+    container_name: hato-migrate
+    build:
+      context: .
+      dockerfile: src/Hato.Api/migrate.Dockerfile
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?define POSTGRES_PASSWORD en .env (ver .env.example)}
+      ConnectionStrings__HatoDb: "Host=postgres;Port=5432;Database=hato;Username=hato;Password=${POSTGRES_PASSWORD}"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
+  api:
+    container_name: hato-api
+    build:
+      context: .
+      dockerfile: src/Hato.Api/Dockerfile
+    environment:
+      ASPNETCORE_URLS: http://+:8080
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__HatoDb: "Host=postgres;Port=5432;Database=hato;Username=hato;Password=${POSTGRES_PASSWORD}"
+      Cors__AllowedOrigins__0: http://localhost:${WEB_PORT:-4200}
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
+  web:
+    container_name: hato-web
+    build:
+      context: ./clients/admin-web
+      dockerfile: Dockerfile
+    ports:
+      - "${WEB_PORT:-4200}:80"
+    depends_on:
+      api:
+        condition: service_started
+    restart: unless-stopped
 
 volumes:
   hato-pgdata:

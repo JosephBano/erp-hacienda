@@ -1,0 +1,36 @@
+# Build context is the repository root.
+# Excludes everything not needed to restore/publish Hato.Api.
+
+**/.git
+**/.git/**
+**/.github
+
+**/bin
+**/obj
+**/out
+**/TestResults
+**/.vs
+**/.idea
+**/*.user
+**/*.suo
+
+**/node_modules
+**/.angular
+**/.expo
+**/.expo-shared
+**/dist
+**/android
+**/ios
+
+**/.env
+**/.env.local
+**/.env.*.local
+
+**/hato-docs.zip
+**/img-no-save
+
+**/.claude
+
+**/*.md
+**/LICENSE
+**/README.md

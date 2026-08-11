@@ -68,6 +68,7 @@ public static class SystemPermissions
     // Inventory
     public const string InventoryItemsManage = "inventory.items.manage";
     public const string InventoryItemsRead = "inventory.items.read";
+    public const string InventoryFeedStagesManage = "inventory.feed-stages.manage";
 
     // Breeding
     public const string BreedingEventsRecord = "breeding.events.record";

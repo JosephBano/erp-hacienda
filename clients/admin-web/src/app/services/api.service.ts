@@ -82,6 +82,53 @@ export interface InventoryItemDto {
   totalStock: number;
 }
 
+export interface InventoryItemDetailDto {
+  id: string;
+  name: string;
+  category: string;
+  unit: string;
+  minStock: number;
+  description?: string | null;
+  feedStageId?: string | null;
+}
+
+export interface InventoryBatchDto {
+  id: string;
+  batchNumber: string;
+  quantity: number;
+  costPerUnit: number;
+  expirationDate?: string | null;
+}
+
+export type InventoryBatchSummaryDto = InventoryBatchDto;
+
+export interface CreateInventoryBatchRequest {
+  BatchNumber: string;
+  Quantity: number;
+  CostPerUnit: number;
+  ExpirationDate: string;
+}
+
+export interface InventoryUnitConversionDto {
+  id: string;
+  fromUnit: string;
+  toUnit: string;
+  factor: number;
+}
+
+export interface RegisterUnitConversionRequest {
+  FromUnit: string;
+  ToUnit: string;
+  Factor: number;
+}
+
+export interface FeedStageDto {
+  id: string;
+  key: string;
+  labelEs: string;
+  isActive: boolean;
+}
+
 export interface FarmModuleDto {
   key: string;
   enabled: boolean;
@@ -613,6 +660,48 @@ export class ApiService {
     let params = new HttpParams();
     if (category) params = params.set('category', category);
     return this.http.get<InventoryItemDto[]>(`${this.baseUrl}/inventory/items`, { params });
+  }
+
+  getInventoryItemById(itemId: string): Observable<InventoryItemDetailDto> {
+    return this.http.get<InventoryItemDetailDto>(`${this.baseUrl}/inventory/items/${itemId}`);
+  }
+
+  getInventoryBatches(itemId: string): Observable<InventoryBatchSummaryDto[]> {
+    return this.http.get<InventoryBatchSummaryDto[]>(`${this.baseUrl}/inventory/items/${itemId}/batches`);
+  }
+
+  createInventoryBatch(itemId: string, body: CreateInventoryBatchRequest): Observable<{ id: string }> {
+    return this.http.post<{ id: string }>(`${this.baseUrl}/inventory/items/${itemId}/batches`, body);
+  }
+
+  getInventoryUnitConversions(itemId: string): Observable<InventoryUnitConversionDto[]> {
+    return this.http.get<InventoryUnitConversionDto[]>(`${this.baseUrl}/inventory/items/${itemId}/unit-conversions`);
+  }
+
+  registerInventoryUnitConversion(itemId: string, body: RegisterUnitConversionRequest): Observable<{ id: string }> {
+    return this.http.post<{ id: string }>(`${this.baseUrl}/inventory/items/${itemId}/unit-conversions`, body);
+  }
+
+  setInventoryItemFeedStage(itemId: string, body: { feedStageId: string | null }): Observable<void> {
+    return this.http.post<void>(`${this.baseUrl}/inventory/items/${itemId}/feed-stage`, body);
+  }
+
+  getFeedStages(includeInactive = false): Observable<FeedStageDto[]> {
+    let params = new HttpParams();
+    if (includeInactive) params = params.set('includeInactive', 'true');
+    return this.http.get<FeedStageDto[]>(`${this.baseUrl}/feed-stages`, { params });
+  }
+
+  createFeedStage(body: { key: string; labelEs: string }): Observable<{ id: string }> {
+    return this.http.post<{ id: string }>(`${this.baseUrl}/feed-stages`, body);
+  }
+
+  deactivateFeedStage(id: string): Observable<void> {
+    return this.http.post<void>(`${this.baseUrl}/feed-stages/${id}/deactivate`, {});
+  }
+
+  activateFeedStage(id: string): Observable<void> {
+    return this.http.post<void>(`${this.baseUrl}/feed-stages/${id}/activate`, {});
   }
 
   createInventoryItem(data: {

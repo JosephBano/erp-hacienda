@@ -100,7 +100,8 @@
         [disabled]="!canSubmit()"
         data-testid="submit-button"
       >
-        @if (submitting()) { Creando… } @else { Crear lote }
+        <app-icon name="plus" size="sm" ariaLabel="Crear"></app-icon>
+        <span>@if (submitting()) { Creando… } @else { Crear lote }</span>
       </button>
     </div>
   </form>

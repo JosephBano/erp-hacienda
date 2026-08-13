@@ -1,12 +1,78 @@
 <div class="page-container">
-  <div *ngIf="loading()" class="glass-card"><p class="text-muted">Cargando ítem...</p></div>
+  <div *ngIf="loading()" class="glass-card">
+    <p class="text-muted">Cargando ítem...</p>
+  </div>
+
   <div class="alert alert-danger" *ngIf="errorMessage()">{{ errorMessage() }}</div>
-  <div *ngIf="notFound()" class="glass-card"><h2>Ítem no encontrado</h2><p class="text-muted">El ítem solicitado no existe o no tienes permiso para verlo.</p><button type="button" class="btn-secondary" (click)="goBack()">Volver a ítems</button></div>
+
+  <div *ngIf="notFound()" class="glass-card">
+    <h2>Ítem no encontrado</h2>
+    <p class="text-muted">El ítem solicitado no existe o no tienes permiso para verlo.</p>
+    <button type="button" class="btn-secondary" (click)="goBack()">Volver a ítems</button>
+  </div>
+
   <ng-container *ngIf="item() as current">
-    <div class="page-header"><div><button type="button" class="btn-link" (click)="goBack()"><app-icon name="arrow-left" size="sm" ariaLabel="Volver"></app-icon> Volver a ítems</button><h1 class="page-title">{{ current.name }}</h1></div><span class="badge">{{ current.unit }}</span></div>
-    <section class="glass-card"><div class="card-header"><h2>Datos del ítem</h2></div><div class="summary-grid"><div><span class="summary-label">Categoría</span><span class="summary-value">{{ categoryLabel(current.category) }}</span></div><div><span class="summary-label">Unidad</span><span class="summary-value">{{ current.unit }}</span></div><div><span class="summary-label">Stock mínimo</span><span class="summary-value">{{ current.minStock }}</span></div></div><div class="readonly-grid"><div><span class="form-label">Descripción</span><p class="value">{{ current.description || 'Sin descripción' }}</p></div></div></section>
-    <section class="glass-card"><app-inventory-batches-section [itemId]="current.id" [defaultUnit]="current.unit" [batches]="batches()" (changed)="reload()"></app-inventory-batches-section></section>
-    <section class="glass-card"><app-inventory-unit-conversions-section [itemId]="current.id" [conversions]="conversions()" (changed)="reload()"></app-inventory-unit-conversions-section></section>
-    <section *ngIf="current.category === 'Feed'" class="glass-card"><app-inventory-feed-stage-section [itemId]="current.id" [stages]="feedStages()" [feedStageId]="current.feedStageId" (changed)="reload()"></app-inventory-feed-stage-section></section>
+    <div class="page-header">
+      <div>
+        <button type="button" class="btn-link" (click)="goBack()">
+          <app-icon name="arrow-left" size="sm" ariaLabel="Volver"></app-icon>
+          <span>Volver a ítems</span>
+        </button>
+        <h1 class="page-title">{{ current.name }}</h1>
+      </div>
+      <span class="badge badge-info">{{ current.unit }}</span>
+    </div>
+
+    <section class="glass-card">
+      <div class="card-header">
+        <h2>Datos del ítem</h2>
+      </div>
+      <div class="summary-grid">
+        <div class="summary-card">
+          <span class="summary-label">Categoría</span>
+          <span class="summary-value">{{ categoryLabel(current.category) }}</span>
+        </div>
+        <div class="summary-card">
+          <span class="summary-label">Unidad</span>
+          <span class="summary-value">{{ current.unit }}</span>
+        </div>
+        <div class="summary-card">
+          <span class="summary-label">Stock mínimo</span>
+          <span class="summary-value">{{ current.minStock != null ? current.minStock : '—' }}</span>
+        </div>
+      </div>
+      <div class="readonly-grid">
+        <div>
+          <span class="form-label">Descripción</span>
+          <p class="value">{{ current.description || 'Sin descripción' }}</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="glass-card">
+      <app-inventory-batches-section
+        [itemId]="current.id"
+        [defaultUnit]="current.unit"
+        [batches]="batches()"
+        (changed)="reload()">
+      </app-inventory-batches-section>
+    </section>
+
+    <section class="glass-card">
+      <app-inventory-unit-conversions-section
+        [itemId]="current.id"
+        [conversions]="conversions()"
+        (changed)="reload()">
+      </app-inventory-unit-conversions-section>
+    </section>
+
+    <section *ngIf="current.category === 'Feed'" class="glass-card">
+      <app-inventory-feed-stage-section
+        [itemId]="current.id"
+        [stages]="feedStages()"
+        [feedStageId]="current.feedStageId"
+        (changed)="reload()">
+      </app-inventory-feed-stage-section>
+    </section>
   </ng-container>
 </div>

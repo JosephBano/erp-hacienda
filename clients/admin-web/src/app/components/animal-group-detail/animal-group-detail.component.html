@@ -40,15 +40,15 @@
       </div>
       <div class="summary-card glass-card">
         <span class="summary-label">Última vacunación</span>
-        <span class="summary-value">{{ formatDate(summary()?.lastVaccinationAt) }}</span>
+        <span class="summary-value text-normal">{{ formatDate(summary()?.lastVaccinationAt) }}</span>
       </div>
       <div class="summary-card glass-card">
         <span class="summary-label">Última baja</span>
-        <span class="summary-value">{{ formatDate(summary()?.lastDisposalAt) }}</span>
+        <span class="summary-value text-normal">{{ formatDate(summary()?.lastDisposalAt) }}</span>
       </div>
       <div class="summary-card glass-card">
         <span class="summary-label">Último tratamiento</span>
-        <span class="summary-value">{{ formatDate(summary()?.lastTreatmentAt) }}</span>
+        <span class="summary-value text-normal">{{ formatDate(summary()?.lastTreatmentAt) }}</span>
       </div>
     </div>
 
@@ -99,14 +99,20 @@
             class="btn-secondary btn-sm"
             (click)="requestTrackingModeChange('Headcount')"
             data-testid="change-to-headcount"
-          >Cambiar a Por conteo</button>
+          >
+            <app-icon name="toggle-off" size="sm" ariaLabel="Cambiar"></app-icon>
+            <span>Cambiar a Por conteo</span>
+          </button>
           <button
             *ngIf="g.trackingMode !== 'Individual'"
             type="button"
             class="btn-secondary btn-sm"
             (click)="requestTrackingModeChange('Individual')"
             data-testid="change-to-individual"
-          >Cambiar a Individual</button>
+          >
+            <app-icon name="toggle-on" size="sm" ariaLabel="Cambiar"></app-icon>
+            <span>Cambiar a Individual</span>
+          </button>
         </div>
       </ng-container>
 
@@ -138,7 +144,7 @@
           <label class="form-label" for="edit-description">Descripción</label>
           <textarea
             id="edit-description"
-            class="form-input"
+            class="form-textarea"
             [(ngModel)]="editDescription"
             name="editDescription"
             maxlength="500"
@@ -148,7 +154,7 @@
           <label class="form-label" for="edit-species">Especie</label>
           <select
             id="edit-species"
-            class="form-input"
+            class="form-select"
             [(ngModel)]="editSpeciesId"
             name="editSpeciesId"
             data-testid="edit-species-select"
@@ -166,6 +172,7 @@
             [disabled]="editSubmitting()"
             data-testid="save-edit"
           >
+            <app-icon name="check" size="sm" ariaLabel="Guardar"></app-icon>
             <span *ngIf="editSubmitting()">Guardando…</span>
             <span *ngIf="!editSubmitting()">Guardar cambios</span>
           </button>
@@ -183,21 +190,33 @@
       <div *ngIf="g.isActive && confirmingDeactivate()" class="warning-block">
         <app-icon name="alert" size="sm" ariaLabel="Advertencia"></app-icon>
         <span>¿Desactivar este lote? La operación es reversible con "Reactivar".</span>
-        <button type="button" class="btn-danger btn-sm" (click)="confirmDeactivate()" data-testid="confirm-deactivate-detail">Confirmar desactivación</button>
+        <button type="button" class="btn-danger btn-sm" (click)="confirmDeactivate()" data-testid="confirm-deactivate-detail">
+          <app-icon name="close" size="sm" ariaLabel="Confirmar"></app-icon>
+          <span>Confirmar desactivación</span>
+        </button>
         <button type="button" class="btn-secondary btn-sm" (click)="cancelDeactivate()" data-testid="cancel-deactivate-detail">Cancelar</button>
       </div>
       <div *ngIf="g.isActive && !confirmingDeactivate()" class="action-row">
-        <button type="button" class="btn-secondary btn-sm" (click)="startDeactivate()" data-testid="deactivate-detail">Desactivar lote</button>
+        <button type="button" class="btn-secondary btn-sm" (click)="startDeactivate()" data-testid="deactivate-detail">
+          <app-icon name="close" size="sm" ariaLabel="Desactivar"></app-icon>
+          <span>Desactivar lote</span>
+        </button>
       </div>
 
       <div *ngIf="!g.isActive && confirmingReactivate()" class="warning-block">
         <app-icon name="alert" size="sm" ariaLabel="Advertencia"></app-icon>
         <span>¿Reactivar este lote?</span>
-        <button type="button" class="btn-primary btn-sm" (click)="confirmReactivate()" data-testid="confirm-reactivate-detail">Confirmar reactivación</button>
+        <button type="button" class="btn-primary btn-sm" (click)="confirmReactivate()" data-testid="confirm-reactivate-detail">
+          <app-icon name="check" size="sm" ariaLabel="Confirmar"></app-icon>
+          <span>Confirmar reactivación</span>
+        </button>
         <button type="button" class="btn-secondary btn-sm" (click)="cancelReactivate()" data-testid="cancel-reactivate-detail">Cancelar</button>
       </div>
       <div *ngIf="!g.isActive && !confirmingReactivate()" class="action-row">
-        <button type="button" class="btn-primary btn-sm" (click)="startReactivate()" data-testid="reactivate-detail">Reactivar lote</button>
+        <button type="button" class="btn-primary btn-sm" (click)="startReactivate()" data-testid="reactivate-detail">
+          <app-icon name="check" size="sm" ariaLabel="Reactivar"></app-icon>
+          <span>Reactivar lote</span>
+        </button>
       </div>
     </div>
 

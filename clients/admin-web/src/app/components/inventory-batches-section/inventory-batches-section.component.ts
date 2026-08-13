@@ -20,27 +20,31 @@ import { IconComponent } from '../../shared/icon/icon.component';
   imports: [CommonModule, FormsModule, IconComponent],
   template: `
     <div class="deprecation-banner" role="status">
-      <strong>Cuando llegue Purchasing (Fase 4),</strong> este flujo se reemplazará por "Recibir orden de compra". Por ahora, registra aquí las entradas de alimento al inventario.
+      <app-icon name="alert" size="sm" ariaLabel="Aviso"></app-icon>
+      <div>
+        <strong>Cuando llegue Purchasing (Fase 4),</strong> este flujo se reemplazará por "Recibir orden de compra". Por ahora, registra aquí las entradas de alimento al inventario.
+      </div>
     </div>
     <div class="card-header">
       <h2>Lotes</h2>
       <button type="button" class="btn-primary btn-sm" (click)="toggleForm()">
-        <app-icon name="plus" size="sm" ariaLabel="Recibir alimento"></app-icon> Recibir alimento
+        <app-icon name="plus" size="sm" ariaLabel="Recibir alimento"></app-icon>
+        <span>Recibir alimento</span>
       </button>
     </div>
     <div *ngIf="showForm" class="inline-form mini-form">
       <div class="form-grid">
         <label class="form-label" for="reception-batch-number">Número de lote</label>
-        <input id="reception-batch-number" class="form-input" [(ngModel)]="batchNumber" name="batchNumber" maxlength="50" required>
+        <input id="reception-batch-number" class="form-input" [(ngModel)]="batchNumber" name="batchNumber" maxlength="50" placeholder="Ej: L-2026-08" required>
 
         <label class="form-label" for="reception-quantity">Cantidad</label>
-        <input id="reception-quantity" class="form-input" type="number" [(ngModel)]="quantity" name="quantity" min="0.001" step="0.001" required>
+        <input id="reception-quantity" class="form-input" type="number" [(ngModel)]="quantity" name="quantity" min="0.001" step="0.001" placeholder="Ej: 500" required>
 
         <label class="form-label" for="reception-unit">Unidad</label>
-        <input id="reception-unit" class="form-input" [(ngModel)]="unit" name="unit" maxlength="20" required>
+        <input id="reception-unit" class="form-input" [(ngModel)]="unit" name="unit" maxlength="20" placeholder="kg, saco, qq…" required>
 
         <label class="form-label" for="reception-cost">Costo por unidad</label>
-        <input id="reception-cost" class="form-input" type="number" [(ngModel)]="costPerUnit" name="costPerUnit" min="0" step="0.01" required>
+        <input id="reception-cost" class="form-input" type="number" [(ngModel)]="costPerUnit" name="costPerUnit" min="0" step="0.01" placeholder="Ej: 0.45" required>
 
         <label class="form-label" for="reception-expiration">Fecha de expiración (opcional)</label>
         <input id="reception-expiration" class="form-input" type="date" [(ngModel)]="expirationDate" name="expirationDate">
@@ -52,17 +56,20 @@ import { IconComponent } from '../../shared/icon/icon.component';
         <input id="reception-supplier" class="form-input" [(ngModel)]="supplierLabel" name="supplierLabel" maxlength="200" placeholder="Ej: Agropecuaria XYZ S.A.">
 
         <label class="form-label" for="reception-invoice">Factura / Guía (opcional)</label>
-        <input id="reception-invoice" class="form-input" [(ngModel)]="invoiceReference" name="invoiceReference" maxlength="100">
+        <input id="reception-invoice" class="form-input" [(ngModel)]="invoiceReference" name="invoiceReference" maxlength="100" placeholder="Ej: FAC-001-002-12345">
 
         <label class="form-label" for="reception-recorded-by">Quién registra</label>
         <input id="reception-recorded-by" class="form-input" [(ngModel)]="recordedByLabel" name="recordedByLabel" maxlength="200" placeholder="Nombre del operario">
 
         <label class="form-label" for="reception-notes">Notas (opcional)</label>
-        <textarea id="reception-notes" class="form-input" rows="2" [(ngModel)]="notes" name="notes" maxlength="500"></textarea>
+        <textarea id="reception-notes" class="form-textarea" rows="2" [(ngModel)]="notes" name="notes" maxlength="500" placeholder="Observaciones de la recepción"></textarea>
       </div>
       <div class="form-actions">
         <button type="button" class="btn-secondary" (click)="toggleForm()">Cancelar</button>
-        <button type="button" class="btn-primary" (click)="create()" [disabled]="submitting">Registrar recepción</button>
+        <button type="button" class="btn-primary" (click)="create()" [disabled]="submitting">
+          <app-icon name="check" size="sm" ariaLabel="Registrar"></app-icon>
+          <span>{{ submitting ? 'Registrando…' : 'Registrar recepción' }}</span>
+        </button>
       </div>
     </div>
     <div class="alert alert-danger" *ngIf="errorMessage">{{ errorMessage }}</div>

@@ -109,6 +109,19 @@ dotnet ef database update \
 dotnet run --project src/Hato.Api     # health check en http://localhost:5xxx/health
 ```
 
+> **Si `dotnet run` falla con `MSB4166: Child node "X" exited prematurely`:** el
+> build paralelo se quedó sin RAM. En máquinas con muchas CPUs y poca memoria
+> libre, MSBuild arranca un child node por CPU y Roslyn los mata. Solución:
+> [`scripts/dev-backend.sh`](scripts/dev-backend.sh) — un wrapper que aplica
+> `MSBUILDDISABLENODEREUSE=1 -m:2` antes del `dotnet run`, separando build
+> de ejecución para no repetir el costo en cada arranque:
+>
+> ```bash
+> ./scripts/dev-backend.sh --urls "http://127.0.0.1:5282;http://100.101.240.44:5282"
+> ```
+>
+> Variables reconocidas: `DOTNET_BUILD_PARALLELISM` (default `1`), `ASPNETCORE_URLS`.
+
 ### Opción B — backend y DB en contenedores (todo el stack)
 
 ```bash

@@ -76,7 +76,9 @@ public class CreateInventoryBatchHandler(IInventoryDbContext dbContext)
         if (item is null)
             throw new DomainException($"El ítem de inventario con ID '{request.InventoryItemId}' no existe.");
 
+#pragma warning disable CS0618 // AddBatch is intentionally kept for the legacy POST /batches endpoint (ADR-0026).
         var batch = item.AddBatch(request.BatchNumber, request.Quantity, request.CostPerUnit, request.ExpirationDate);
+#pragma warning restore CS0618
         dbContext.InventoryBatches.Add(batch);
 
         await dbContext.SaveChangesAsync(cancellationToken);

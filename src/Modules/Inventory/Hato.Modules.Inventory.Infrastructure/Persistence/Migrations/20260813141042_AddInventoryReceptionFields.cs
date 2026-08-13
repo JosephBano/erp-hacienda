@@ -17,27 +17,45 @@ namespace Hato.Modules.Inventory.Infrastructure.Persistence.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            // 1. Add received_at as NOT NULL with no EF defaultValue (EF can't generate a
-            //    "use created_at" default — we backfill in SQL right after).
+            // AL-02 (security audit #94): the original step "AddColumn ... nullable:
+            // false, defaultValue: null" was unsafe on a non-empty table. EF Core 8
+            // would emit "ALTER TABLE ... ADD COLUMN received_at ... NOT NULL DEFAULT
+            // NULL" and Postgres rejects that combination outright (NOT NULL DEFAULT
+            // NULL is contradictory). Splitting the change into three explicit
+            // statements makes it safe regardless of table contents: (1) add the
+            // column as nullable, (2) backfill pre-existing rows from created_at,
+            // (3) flip the column to NOT NULL. All three statements are visible to
+            // the security-auditor and any operator reviewing the SQL log.
+            //
+            // Step 1: add as nullable. Postgres allows adding a nullable column to
+            // any table without a default — no row-by-row rewrite, no full table
+            // lock. The new column is NULL for every existing row.
             migrationBuilder.AddColumn<DateTimeOffset>(
                 name: "received_at",
                 schema: "inventory",
                 table: "inventory_batches",
                 type: "timestamp with time zone",
-                nullable: false,
-                defaultValue: null);
+                nullable: true);
 
-            // 2. Backfill: pre-existing rows inherit created_at as their best-known
-            //    received_at. The badge in the UI admin-web will read
-            //    "CreatedAt != ReceivedAt" to flag these rows as "no operator-declared
-            //    date" — that is the honest reading, not a fake null.
+            // Step 2: backfill. Pre-existing rows inherit created_at as their
+            // best-known received_at. The badge in the UI admin-web will read
+            // "CreatedAt != ReceivedAt" to flag these rows as "no operator-declared
+            // date" — that is the honest reading, not a fake null.
             migrationBuilder.Sql("""
                 UPDATE inventory.inventory_batches
                 SET received_at = created_at
                 WHERE received_at IS NULL;
             """);
 
-            // 3. Optional columns. None of these carry a defaultValue because the ADR
+            // Step 3: flip to NOT NULL. Now safe because every row has a value.
+            // Done as raw SQL rather than AlterColumn so the rebuild is explicit
+            // and the security-auditor can confirm it runs after the backfill.
+            migrationBuilder.Sql("""
+                ALTER TABLE inventory.inventory_batches
+                ALTER COLUMN received_at SET NOT NULL;
+            """);
+
+            // 4. Optional columns. None of these carry a defaultValue because the ADR
             //    explicitly says "flujo pre-purchasing, texto libre": null is a valid
             //    answer (a batch can arrive without an invoice reference, for example).
             migrationBuilder.AddColumn<string>(
@@ -79,7 +97,7 @@ namespace Hato.Modules.Inventory.Infrastructure.Persistence.Migrations
                 maxLength: 200,
                 nullable: true);
 
-            // 4. Index on received_at for "entradas del último mes" / per-week queries
+            // 5. Index on received_at for "entradas del último mes" / per-week queries
             //    that the future Reporting module will want. Single-column B-tree.
             migrationBuilder.CreateIndex(
                 name: "ix_inventory_batches_received_at",

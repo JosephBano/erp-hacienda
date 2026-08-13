@@ -1,1 +1,18 @@
 .mini-form { margin-bottom: 1rem; }
+
+/* ADR-0026 Decisión 6: banner amarillo arriba del card-header documenta la vida útil
+   declarada del flujo "Recibir alimento" (será reemplazado por Purchasing — Fase 4). */
+.deprecation-banner {
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.45);
+  color: #fbbf24;
+  padding: 0.875rem 1rem;
+  border-radius: var(--radius-md);
+  margin-bottom: 1rem;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.deprecation-banner strong {
+  color: #f59e0b;
+}

@@ -75,6 +75,19 @@
         <span class="nav-label">Reproducción y Alertas</span>
       </a>
 
+      <a
+        routerLink="/catalogs"
+        routerLinkActive="active"
+        class="nav-item"
+        aria-label="Catálogos (especies, inventario, módulos)"
+        title="Catálogos"
+        *ngIf="auth.hasPermission('livestock.species.manage')"
+        (click)="closeDrawer()"
+      >
+        <app-icon class="nav-icon" name="shield" />
+        <span class="nav-label">Catálogos</span>
+      </a>
+
       <div
         class="nav-section-label"
         *ngIf="auth.hasPermission('people.roles.manage') || auth.hasPermission('people.users.manage') || auth.hasPermission('livestock.animals.write')"

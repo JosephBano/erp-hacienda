@@ -200,6 +200,76 @@
 
   @if (isInventory()) {
     <div class="card glass-card">
+      <div class="card-header">
+        <h2>Ítems de inventario</h2>
+        <button type="button" class="btn-primary btn-sm" (click)="toggleItemForm()">
+          <app-icon name="plus" size="sm" ariaLabel="Crear ítem"></app-icon> Crear ítem
+        </button>
+      </div>
+      <div *ngIf="showItemForm" class="inline-form mini-form">
+        <h3>Nuevo ítem</h3>
+        <div class="form-grid">
+          <label class="form-label" for="new-item-name">Nombre</label>
+          <input
+            id="new-item-name"
+            class="form-input"
+            [(ngModel)]="newItemName"
+            name="newItemName"
+            maxlength="200"
+            placeholder="Ej: Balanceado Cerdos Engorde"
+            required>
+
+          <label class="form-label" for="new-item-category">Categoría</label>
+          <select
+            id="new-item-category"
+            class="form-select"
+            [(ngModel)]="newItemCategory"
+            name="newItemCategory"
+            required>
+            <option value="Feed">Alimento</option>
+            <option value="Medicine">Medicamento</option>
+            <option value="Supply">Insumo</option>
+            <option value="Product">Producto</option>
+          </select>
+
+          <label class="form-label" for="new-item-unit">Unidad base</label>
+          <input
+            id="new-item-unit"
+            class="form-input"
+            [(ngModel)]="newItemUnit"
+            name="newItemUnit"
+            maxlength="20"
+            placeholder="kg, litro, unidad, dosis…"
+            required>
+
+          <label class="form-label" for="new-item-min-stock">Stock mínimo (opcional)</label>
+          <input
+            id="new-item-min-stock"
+            class="form-input"
+            type="number"
+            [(ngModel)]="newItemMinStock"
+            name="newItemMinStock"
+            min="0"
+            max="1000000"
+            step="0.001"
+            placeholder="Avisa cuando el stock baje de este valor">
+
+          <label class="form-label" for="new-item-description">Descripción (opcional)</label>
+          <textarea
+            id="new-item-description"
+            class="form-input"
+            rows="2"
+            [(ngModel)]="newItemDescription"
+            name="newItemDescription"
+            maxlength="500"></textarea>
+        </div>
+        <div class="form-actions">
+          <button type="button" class="btn-secondary" (click)="toggleItemForm()">Cancelar</button>
+          <button type="button" class="btn-primary" (click)="createInventoryItem()" [disabled]="submittingItem">
+            {{ submittingItem ? 'Creando…' : 'Crear ítem' }}
+          </button>
+        </div>
+      </div>
       <div class="filter-toolbar">
         <label class="form-label" for="inventory-category-filter">Filtrar por categoría</label>
         <select

@@ -4,6 +4,7 @@ import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { ApiService, AdministrationRouteDto, AnimalCategoryDto, BreedDto, FarmModuleDto, InventoryItemDto, MortalityCauseDto, SpeciesDto, TreatmentReasonDto } from '../../services/api.service';
 import { CatalogTableComponent, CatalogColumn, CatalogAction } from '../../shared/catalog-table/catalog-table.component';
+import { IconComponent } from '../../shared/icon/icon.component';
 
 type TabKey = 'species' | 'breeds' | 'categories' | 'mortality' | 'routes' | 'reasons' | 'inventory' | 'modules';
 
@@ -27,7 +28,7 @@ interface Tab {
 @Component({
   selector: 'app-catalogs',
   standalone: true,
-  imports: [CommonModule, FormsModule, CatalogTableComponent],
+  imports: [CommonModule, FormsModule, CatalogTableComponent, IconComponent],
   templateUrl: './catalogs.component.html',
   styleUrls: ['./catalogs.component.css'],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -70,6 +71,15 @@ export class CatalogsComponent implements OnInit {
   newAdminRouteLabel = '';
   newTreatmentReasonKey = '';
   newTreatmentReasonLabel = '';
+
+  // ---- Inventory item create form
+  showItemForm = false;
+  submittingItem = false;
+  newItemName = '';
+  newItemCategory: 'Feed' | 'Medicine' | 'Supply' | 'Product' = 'Feed';
+  newItemUnit = '';
+  newItemMinStock: number | null = null;
+  newItemDescription = '';
 
   // ---- Feedback
   successMessage = '';
@@ -325,6 +335,63 @@ export class CatalogsComponent implements OnInit {
         this.loadTreatmentReasons();
       },
       error: (err: unknown) => this.handleError(err, 'crear el motivo'),
+    });
+  }
+
+  toggleItemForm(): void {
+    this.showItemForm = !this.showItemForm;
+    if (this.showItemForm) {
+      this.resetItemForm();
+      this.errorMessage = '';
+    }
+  }
+
+  private resetItemForm(): void {
+    this.newItemName = '';
+    this.newItemCategory = 'Feed';
+    this.newItemUnit = '';
+    this.newItemMinStock = null;
+    this.newItemDescription = '';
+  }
+
+  createInventoryItem(): void {
+    const name = this.newItemName.trim();
+    const unit = this.newItemUnit.trim();
+    if (!name) {
+      this.errorMessage = 'El nombre del ítem es obligatorio.';
+      return;
+    }
+    if (!unit) {
+      this.errorMessage = 'La unidad base es obligatoria.';
+      return;
+    }
+    const minStock = this.newItemMinStock ?? undefined;
+    if (minStock !== undefined && minStock < 0) {
+      this.errorMessage = 'El stock mínimo no puede ser negativo.';
+      return;
+    }
+    const description = this.newItemDescription.trim() || undefined;
+
+    this.submittingItem = true;
+    this.api.createInventoryItem({
+      name,
+      category: this.newItemCategory,
+      unit,
+      minStock,
+      description,
+    }).subscribe({
+      next: (response) => {
+        this.submittingItem = false;
+        this.successMessage = `Ítem "${name}" creado.`;
+        this.showItemForm = false;
+        this.resetItemForm();
+        this.loadInventoryItems();
+        // Optional: navegar al detalle del ítem recién creado para configurar conversión
+        // y registrar una primera recepción sin pasos extra. Lo dejamos como decisión
+        // del usuario — la tabla ya muestra el nuevo ítem.
+        void response;
+      },
+      error: (err: unknown) => this.handleError(err, 'crear el ítem'),
     });
   }
 

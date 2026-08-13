@@ -46,7 +46,7 @@ import { IconComponent } from '../../shared/icon/icon.component';
         <input id="reception-expiration" class="form-input" type="date" [(ngModel)]="expirationDate" name="expirationDate">
 
         <label class="form-label" for="reception-received-at">Fecha de recepción</label>
-        <input id="reception-received-at" class="form-input" type="datetime-local" [(ngModel)]="receivedAtLocal" name="receivedAtLocal" required>
+        <input id="reception-received-at" class="form-input" type="datetime-local" [(ngModel)]="receivedAtLocal" name="receivedAtLocal" min="2020-01-01T00:00" required>
 
         <label class="form-label" for="reception-supplier">Proveedor (texto libre)</label>
         <input id="reception-supplier" class="form-input" [(ngModel)]="supplierLabel" name="supplierLabel" maxlength="200" placeholder="Ej: Agropecuaria XYZ S.A.">

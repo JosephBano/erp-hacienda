@@ -38,6 +38,13 @@ public class RecordInventoryReceptionValidator : AbstractValidator<RecordInvento
     // reception), CostPerUnit stays >=0 (free / donated stock is legitimate).
     private const decimal MaxQuantityOrCost = 1_000_000m;
 
+    // MD-04: lower bound on ReceivedAt. 2020-01-01 is the earliest plausible
+    // reception date for a finca that has been operating with this system; any
+    // older date is either a data-entry mistake or a probe. The future bound
+    // tolerates 1 minute of clock skew between the operator's device and the API.
+    private static readonly DateTimeOffset MinReceivedAt =
+        new(2020, 1, 1, 0, 0, 0, TimeSpan.Zero);
+
     public RecordInventoryReceptionValidator()
     {
         RuleFor(x => x.ItemId).NotEmpty();
@@ -46,8 +53,11 @@ public class RecordInventoryReceptionValidator : AbstractValidator<RecordInvento
         RuleFor(x => x.Unit).NotEmpty().MaximumLength(20);
         RuleFor(x => x.CostPerUnit).InclusiveBetween(0m, MaxQuantityOrCost);
         RuleFor(x => x.ReceivedAt)
-            .Must(r => r != default && r <= DateTimeOffset.UtcNow)
-            .WithMessage("La fecha de recepción debe ser válida y no estar en el futuro.");
+            .Must(r =>
+                r != default
+                && r <= DateTimeOffset.UtcNow.AddMinutes(1)
+                && r >= MinReceivedAt)
+            .WithMessage("La fecha de recepción debe ser válida, no estar en el futuro y no ser anterior a 2020.");
         RuleFor(x => x.SupplierLabel).MaximumLength(200).When(x => x.SupplierLabel is not null);
         RuleFor(x => x.InvoiceReference).MaximumLength(100).When(x => x.InvoiceReference is not null);
         RuleFor(x => x.Notes).MaximumLength(500).When(x => x.Notes is not null);

@@ -122,6 +122,30 @@
   causas durante el piloto, o el índice de madres (3.5b.6) necesita la causa antes de
   que se cierre el primer ciclo de engorde.
 
+## Bloqueante transversal (descubierto durante el piloto)
+
+- **No hay forma trazable de "rellenar" inventario de comida desde el panel.** Existe
+  `POST /api/v1/inventory/items/{itemId}/batches` que crea un `InventoryBatch` con cantidad,
+  costo y vencimiento opcional — pero sin `ReceivedAt` propio, sin proveedor, sin factura,
+  y sin evento de dominio. La UI admin-web (`InventoryBatchesSectionComponent`) lo expone
+  como botón "Crear lote"; el **móvil no tiene UI** para reponer (solo consumir; el catálogo
+  `inventoryBatches`/`unitConversions` no viaja en el pull del sync). El dueño puede registrar
+  que llegó alimento, pero la fila queda asociada al `created_at` del sistema, no a una fecha
+  declarada de recepción, y no se puede reconstruir qué proveedor entregó qué. **El consumo
+  desde lote (3.5a.7) mergeado depende de este flujo para no trabajar contra stocks vacíos
+  sin historia.** Solución acordada: comando mínimo `RecordInventoryReceptionCommand` con
+  `ReceivedAt` (requerido) y `SupplierLabel`/`InvoiceReference`/`Notes` (opcionales, texto
+  libre); endpoint dedicado `POST /api/v1/inventory/items/{itemId}/receptions`; permiso
+  nuevo `inventory.receptions.manage`; UI admin-web "Recibir alimento"; comando diseñado
+  abierto a extensión para que Fase 4 (Purchasing) lo envuelva con `SupplierId`/`PurchaseOrderId`
+  FK sin romper contrato. Móvil **no** se toca: la reposición es labor de oficina, no del
+  operario en el potrero (Art. 9). **Vida útil:** deprecado cuando llegue
+  `Purchase/PurchaseReception` de Fase 4 — los batches existentes preservan `SupplierLabel`
+  como etiqueta histórica; Fase 4 añade un script de deduplicación texto→`Supplier`. Cubierto
+  por ADR-0026.
+  **Disparador:** el piloto real pierde trazabilidad de compras, o el contador pide
+  reconstruir el proveedor de un batch viejo y no se puede.
+
 ## Ideas sin fase asignada
 
 - **Fotos de eventos**: la app de campo ya guarda la referencia local (`photoUri`) y la

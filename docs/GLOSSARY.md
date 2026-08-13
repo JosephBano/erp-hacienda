@@ -70,6 +70,8 @@
 | Calidad de leche | `MilkQualityTest` | CMT/mastitis, sólidos, células somáticas; puede afectar precio de venta. |
 | Ítem de inventario | `InventoryItem` | Cualquier bien: insumo, medicamento, producto, subproducto. |
 | Lote de inventario | `InventoryBatch` | Partida con cantidad, costo, vencimiento (¡distinto de `AnimalGroup`!). |
+| Recepción de inventario | `InventoryReception` | Registro de una entrada de stock a un `InventoryItem`: fecha de recepción declarada, cantidad, costo, vencimiento opcional, proveedor (texto libre hasta Fase 4 — `Supplier` será FK entonces), referencia de factura opcional. Crea un `InventoryBatch` con `ReceivedAt`. Evento de dominio: `InventoryReceptionRecorded`. Flujo deprecado y reemplazado por `Purchase/PurchaseReception` cuando llegue Purchasing (Fase 4). |
+| Evento de recepción | `InventoryReceptionRecorded` | Evento de dominio emitido al registrar una `InventoryReception`. Lleva `BatchId`, `ItemId`, `QuantityInBaseUnit`, `UnitRecorded`, `AppliedFactor?`, `ReceivedAt`, `SupplierLabel?`, `InvoiceReference?`, `RecordedBy?`. Permite reconstruir el momento y origen de cada entrada de stock. |
 | Producto | `Product` | Bien vendible (leche cruda, queso fresco, cerdo en pie…). Configurable. |
 | Subproducto | `ByProduct` | Salida secundaria de una transformación (suero, estiércol). |
 | Receta / BOM | `BillOfMaterials` | Definición de transformación: insumos → productos + subproductos + merma. |

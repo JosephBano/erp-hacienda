@@ -6,7 +6,16 @@ using Microsoft.EntityFrameworkCore;
 namespace Hato.Modules.Inventory.Application.Items;
 
 public record InventoryBatchDto(
-    Guid Id, string BatchNumber, decimal Quantity, decimal CostPerUnit, DateOnly? ExpirationDate);
+    Guid Id,
+    string BatchNumber,
+    decimal Quantity,
+    decimal CostPerUnit,
+    DateOnly? ExpirationDate,
+    DateTimeOffset ReceivedAt,
+    string? SupplierLabel,
+    string? InvoiceReference,
+    string? Notes,
+    string? RecordedByLabel);
 
 public record InventoryItemDto(
     Guid Id,
@@ -45,7 +54,9 @@ public class GetInventoryItemsHandler(IInventoryDbContext dbContext)
             i.Description,
             i.FeedStageId,
             i.Batches.Sum(b => b.Quantity),
-            i.Batches.Select(b => new InventoryBatchDto(b.Id, b.BatchNumber, b.Quantity, b.CostPerUnit, b.ExpirationDate)).ToList()
+            i.Batches.Select(b => new InventoryBatchDto(
+                b.Id, b.BatchNumber, b.Quantity, b.CostPerUnit, b.ExpirationDate,
+                b.ReceivedAt, b.SupplierLabel, b.InvoiceReference, b.Notes, b.RecordedByLabel)).ToList()
         )).ToList();
     }
 }

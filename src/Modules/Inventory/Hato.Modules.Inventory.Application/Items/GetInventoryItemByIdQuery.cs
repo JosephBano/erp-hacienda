@@ -29,7 +29,9 @@ public class GetInventoryBatchesHandler(IInventoryDbContext dbContext) : IReques
         await EnsureItemExists(request.InventoryItemId, cancellationToken);
         return await dbContext.InventoryBatches.AsNoTracking().Where(b => b.InventoryItemId == request.InventoryItemId)
             .OrderBy(b => b.ExpirationDate == null).ThenBy(b => b.ExpirationDate)
-            .Select(b => new InventoryBatchDto(b.Id, b.BatchNumber, b.Quantity, b.CostPerUnit, b.ExpirationDate)).ToListAsync(cancellationToken);
+            .Select(b => new InventoryBatchDto(
+                b.Id, b.BatchNumber, b.Quantity, b.CostPerUnit, b.ExpirationDate,
+                b.ReceivedAt, b.SupplierLabel, b.InvoiceReference, b.Notes, b.RecordedByLabel)).ToListAsync(cancellationToken);
     }
     private async Task EnsureItemExists(Guid id, CancellationToken ct) => _ = await dbContext.InventoryItems.AsNoTracking().AnyAsync(i => i.Id == id, ct)
         ? true : throw new KeyNotFoundException($"El ítem de inventario con ID '{id}' no existe.");

@@ -106,6 +106,12 @@ public class RecordInventoryReceptionHandler(IInventoryDbContext dbContext)
             request.RecordedById,
             request.RecordedByLabel);
 
+        // Explicit Add matches CreateInventoryBatchHandler's pattern: even though
+        // RecordReception also appends to the backing field, calling Add here
+        // makes the change-tracker status unambiguous and avoids the EF "expected
+        // 1 row, actually affected 0" surprise that the implicit navigation-add
+        // path can trip on a fresh item load.
+        dbContext.InventoryBatches.Add(batch);
         await dbContext.SaveChangesAsync(cancellationToken);
 
         return batch.Id;

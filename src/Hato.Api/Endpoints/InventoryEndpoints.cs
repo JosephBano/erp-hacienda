@@ -1,6 +1,8 @@
+using System.Security.Claims;
 using Hato.Modules.Inventory.Application.Consumptions;
 using Hato.Modules.Inventory.Application.FeedStages;
 using Hato.Modules.Inventory.Application.Items;
+using Hato.Modules.Inventory.Application.Receptions;
 using Hato.Modules.Inventory.Domain;
 using Hato.Modules.People.Domain;
 using Hato.Modules.People.Infrastructure.Authorization;
@@ -41,13 +43,49 @@ public static class InventoryEndpoints
             return Results.NoContent();
         }).RequireAuthorization(policy => policy.RequirePermission(SystemPermissions.InventoryItemsManage));
 
-        group.MapPost("/items/{itemId:guid}/batches", async (Guid itemId, CreateBatchRequest request, ISender sender) =>
+        // ADR-0026 Decisión 5: legacy POST /batches is kept working (AddBatch path stays
+        // for technical/manual adjustments per alternativa D) but is now permission-gated
+        // — closing the preexistente gap that every other write endpoint in this module
+        // already had. A warning log keeps the call visible in the operational logs so
+        // any drift from the new POST /receptions flow is detectable from day one.
+        group.MapPost("/items/{itemId:guid}/batches", async (
+            Guid itemId,
+            CreateBatchRequest request,
+            ISender sender,
+            ClaimsPrincipal user,
+            ILoggerFactory loggerFactory,
+            CancellationToken ct) =>
         {
+            var logger = loggerFactory.CreateLogger("Hato.Api.Endpoints.LegacyBatchCreation");
+            var userId = user.FindFirstValue(ClaimTypes.NameIdentifier);
+            logger.LogWarning(
+                "POST /batches called (deprecated per ADR-0026, use POST /receptions). ItemId={ItemId}, UserId={UserId}",
+                itemId, userId);
             var command = new CreateInventoryBatchCommand(
                 itemId, request.BatchNumber, request.Quantity, request.CostPerUnit, request.ExpirationDate);
-            var id = await sender.Send(command);
+            var id = await sender.Send(command, ct);
             return Results.Created($"/api/v1/inventory/items/{itemId}/batches/{id}", new { id });
-        });
+        }).RequireAuthorization(policy => policy.RequirePermission(SystemPermissions.InventoryItemsManage));
+
+        // ADR-0026 Decisión 5: canonical endpoint for stock entering the finca.
+        // Replaces the legacy POST /batches flow for normal operations; carries the
+        // operator-declared reception metadata (date, supplier, invoice, author).
+        group.MapPost("/items/{itemId:guid}/receptions", async (
+            Guid itemId,
+            RecordInventoryReceptionRequest request,
+            ISender sender,
+            CancellationToken ct) =>
+        {
+            var command = new RecordInventoryReceptionCommand(
+                itemId, request.BatchNumber, request.Quantity, request.Unit,
+                request.CostPerUnit, request.ExpirationDate, request.ReceivedAt,
+                request.SupplierLabel, request.InvoiceReference, request.Notes,
+                request.RecordedById, request.RecordedByLabel);
+            var id = await sender.Send(command, ct);
+            return Results.Created($"/api/v1/inventory/items/{itemId}/receptions/{id}", new { id });
+        })
+        .RequireAuthorization(policy => policy.RequirePermission(SystemPermissions.InventoryReceptionsManage))
+        .WithName("RecordInventoryReception");
 
         // Per-item unit conversions (PLAN-FASE-3-5-PORCINO.md sec.3.5a.5). The
         // field-app reaches these through the pull once the sync layer is wired;
@@ -98,3 +136,15 @@ public static class InventoryEndpoints
 
 public record CreateBatchRequest(string BatchNumber, decimal Quantity, decimal CostPerUnit, DateOnly? ExpirationDate);
 public record RegisterUnitConversionRequest(string FromUnit, string ToUnit, decimal Factor);
+public record RecordInventoryReceptionRequest(
+    string BatchNumber,
+    decimal Quantity,
+    string Unit,
+    decimal CostPerUnit,
+    DateOnly? ExpirationDate,
+    DateTimeOffset ReceivedAt,
+    string? SupplierLabel,
+    string? InvoiceReference,
+    string? Notes,
+    Guid? RecordedById,
+    string? RecordedByLabel);

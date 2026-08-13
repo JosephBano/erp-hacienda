@@ -122,6 +122,69 @@
   causas durante el piloto, o el índice de madres (3.5b.6) necesita la causa antes de
   que se cierre el primer ciclo de engorde.
 
+## Bloqueante transversal (descubierto durante el piloto)
+
+- **No hay forma trazable de "rellenar" inventario de comida desde el panel.** Existe
+  `POST /api/v1/inventory/items/{itemId}/batches` que crea un `InventoryBatch` con cantidad,
+  costo y vencimiento opcional — pero sin `ReceivedAt` propio, sin proveedor, sin factura,
+  y sin evento de dominio. La UI admin-web (`InventoryBatchesSectionComponent`) lo expone
+  como botón "Crear lote"; el **móvil no tiene UI** para reponer (solo consumir; el catálogo
+  `inventoryBatches`/`unitConversions` no viaja en el pull del sync). El dueño puede registrar
+  que llegó alimento, pero la fila queda asociada al `created_at` del sistema, no a una fecha
+  declarada de recepción, y no se puede reconstruir qué proveedor entregó qué. **El consumo
+  desde lote (3.5a.7) mergeado depende de este flujo para no trabajar contra stocks vacíos
+  sin historia.** Solución acordada: comando mínimo `RecordInventoryReceptionCommand` con
+  `ReceivedAt` (requerido) y `SupplierLabel`/`InvoiceReference`/`Notes` (opcionales, texto
+  libre); endpoint dedicado `POST /api/v1/inventory/items/{itemId}/receptions`; permiso
+  nuevo `inventory.receptions.manage`; UI admin-web "Recibir alimento"; comando diseñado
+  abierto a extensión para que Fase 4 (Purchasing) lo envuelva con `SupplierId`/`PurchaseOrderId`
+  FK sin romper contrato. Móvil **no** se toca: la reposición es labor de oficina, no del
+  operario en el potrero (Art. 9). **Vida útil:** deprecado cuando llegue
+  `Purchase/PurchaseReception` de Fase 4 — los batches existentes preservan `SupplierLabel`
+  como etiqueta histórica; Fase 4 añade un script de deduplicación texto→`Supplier`. Cubierto
+  por ADR-0026.
+  **Disparador:** el piloto real pierde trazabilidad de compras, o el contador pide
+  reconstruir el proveedor de un batch viejo y no se puede.
+
+## Seguridad — follow-up de la auditoría del PR #94 (ADR-0026)
+
+> Hallazgos del security-audit y code-review del PR
+> [#94](https://github.com/JosephBano/erp-hacienda/pull/94). Los 🟠 Altos del security-auditor
+> (`AL-01` RecordedById sin JWT, `AL-02` migración con `nullable: false, defaultValue: null` en
+> tabla no vacía, `AL-03` coexistencia `POST /batches`/`/receptions` sin distinguisher técnico)
+> y los 🟡 Medios MD-02 (decimal sin tope) y MD-04 (ReceivedAt sin cota inferior) se arreglan
+> en commits de seguimiento del propio PR antes de mergear. Los ítems siguientes son las
+> restantes que se dejan como deuda rastreable.
+
+- **`POST /feed-consumptions` sigue sin gate de permiso (BJ-04).** Pre-existente al PR #94
+  pero queda como único endpoint de escritura de inventory sin policy después de que el PR
+  cerró el gap de `/batches` y `/feed-stage`. Riesgo: cualquier usuario autenticado puede
+  registrar consumo sin permiso específico. **Disparador:** cualquier observación del
+  cliente sobre "no entiendo por qué este usuario puede hacer esto"; o, en todo caso,
+  antes de Fase 4 cuando se introduzca el rol "registrador de compras".
+
+- **Rate limiting en endpoints de escritura de Inventory (MD-01).** Ningún middleware
+  `AddRateLimiter` aplicado a `POST /receptions`/`/batches`/`/feed-consumptions`. Un admin
+  puede iterar 10.000 recepciones por minuto. **Disparador:** el sistema muestra signos de
+  abuso accidental (operario con script en loop) o el sync pull del field-app ve deltas
+  anormales en `inventory_batches` por spam.
+
+- **Migrar JWT de `sessionStorage` a cookie httpOnly (MD-03).** Pre-existente al PR. El
+  admin-web guarda el JWT en `sessionStorage` (ver `clients/admin-web/src/app/services/auth.service.ts:23`),
+  vulnerable a XSS. **Disparador:** primera vulnerabilidad XSS detectada, o cuando se
+  rediseñe el flujo de login para Fase 4. Cambio de magnitud: login + refresh + CORS.
+
+- **Guideline sobre GUIDs determinísticos en seeds (BJ-01).** Los GUIDs `11111111-…`
+  (admin) y `08000000-…` (permisos) son público-por-diseño. Si en algún endpoint futuro
+  se filtra `role_id` en una respuesta, un atacante sabe qué GUID mapear a "admin".
+  **Disparador:** la próxima vez que se diseñe un endpoint que devuelva `role_id` o
+  `permission_id` en su respuesta. ADR pequeño reconociendo la decisión.
+
+- **Cerrar coexistencia `POST /batches` con distinguisher técnico (AL-03).** Mientras
+  el issue #93 esté abierto, el cierre real (opción C header `X-Allow-Legacy-Batch: true`
+  o opción D eliminar el endpoint) queda pendiente. **Disparador:** el dueño contesta
+  el issue #93 con la opción preferida.
+
 ## Ideas sin fase asignada
 
 - **Fotos de eventos**: la app de campo ya guarda la referencia local (`photoUri`) y la

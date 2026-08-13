@@ -69,6 +69,10 @@ public static class SystemPermissions
     public const string InventoryItemsManage = "inventory.items.manage";
     public const string InventoryItemsRead = "inventory.items.read";
     public const string InventoryFeedStagesManage = "inventory.feed-stages.manage";
+    // ADR-0026 Decisión 5: dedicated permission for the InventoryReception flow, so a
+    // future "registrador de compras" role can create receptions without gaining
+    // inventory-items.manage (which would let them mutate the catalogue too).
+    public const string InventoryReceptionsManage = "inventory.receptions.manage";
 
     // Breeding
     public const string BreedingEventsRecord = "breeding.events.record";

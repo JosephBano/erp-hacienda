@@ -24,7 +24,9 @@ public class InventoryItemTests
     {
         var item = InventoryItem.Create("Balanceado Lechería", ItemCategory.Feed, "kg", 500);
 
-        var batch = item.AddBatch("LOT-2026-01", 1000, 0.45m, new DateOnly(2026, 12, 31));
+        var batch = item.RecordReception(
+            "LOT-2026-01", 1000m, "kg", 1m, 0.45m, new DateOnly(2026, 12, 31),
+            DateTimeOffset.UtcNow, null, null, null, null, null);
 
         Assert.Single(item.Batches);
         Assert.Equal(1000, batch.Quantity);
@@ -38,7 +40,9 @@ public class InventoryItemTests
     public void DeductQuantity_ExceedingAvailableStock_Throws()
     {
         var item = InventoryItem.Create("Balanceado Lechería", ItemCategory.Feed, "kg");
-        var batch = item.AddBatch("LOT-01", 100, 0.50m);
+        var batch = item.RecordReception(
+            "LOT-01", 100m, "kg", 1m, 0.50m, null,
+            DateTimeOffset.UtcNow, null, null, null, null, null);
 
         Assert.Throws<DomainException>(() => batch.DeductQuantity(150));
     }

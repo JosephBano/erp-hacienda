@@ -1,1 +1,37 @@
 .mini-form { margin-bottom: 1rem; }
+
+/* ADR-0026 Decisión 6: banner amarillo arriba del card-header documenta la vida útil
+   declarada del flujo "Recibir alimento" (será reemplazado por Purchasing — Fase 4). */
+.deprecation-banner {
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.45);
+  color: #fbbf24;
+  padding: 0.875rem 1rem;
+  border-radius: var(--radius-md);
+  margin-bottom: 1rem;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.deprecation-banner strong {
+  color: #f59e0b;
+}
+
+/* Issue #93 heurística A: badge inline en la columna "Recibido" para que el dueño
+   distinga de un vistazo los lotes que el operario declaró completos (vía
+   RecordReception) de los que llegaron por la ruta legacy AddBatch / POST /batches. */
+.reception-flag {
+  display: inline-block;
+  margin-top: 0.375rem;
+  font-size: 0.7rem;
+}
+
+.empty-state {
+  padding: 1.5rem;
+  text-align: center;
+  color: var(--text-muted);
+  background: var(--bg-surface);
+  border: 1px dashed var(--border-color);
+  border-radius: var(--radius-md);
+  font-size: 0.9rem;
+}

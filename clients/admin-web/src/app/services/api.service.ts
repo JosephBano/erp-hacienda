@@ -1,6 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { map } from 'rxjs/operators';
 
 export interface Animal {
   id: string;
@@ -98,6 +99,14 @@ export interface InventoryBatchDto {
   quantity: number;
   costPerUnit: number;
   expirationDate?: string | null;
+  // ADR-0026 Decisión 1+2: campos de recepción (todos opcionales para no romper filas
+  // previas al backfill, excepto `receivedAt` que el backend siempre rellena).
+  receivedAt?: string;
+  supplierLabel?: string | null;
+  invoiceReference?: string | null;
+  notes?: string | null;
+  recordedByLabel?: string | null;
+  createdAt?: string;
 }
 
 export type InventoryBatchSummaryDto = InventoryBatchDto;
@@ -107,6 +116,23 @@ export interface CreateInventoryBatchRequest {
   Quantity: number;
   CostPerUnit: number;
   ExpirationDate: string;
+}
+
+// ADR-0026 Decisión 3: DTO del endpoint canónico POST /receptions. Reemplaza a
+// `CreateInventoryBatchRequest` para entradas de stock normales — `AddBatch` queda
+// solo como ajuste técnico (ver Decisión 6 y el banner amarillo del componente).
+export interface RecordInventoryReceptionRequest {
+  BatchNumber: string;
+  Quantity: number;
+  Unit: string;
+  CostPerUnit: number;
+  ExpirationDate?: string;
+  ReceivedAt: string;
+  SupplierLabel?: string;
+  InvoiceReference?: string;
+  Notes?: string;
+  RecordedById?: string;
+  RecordedByLabel?: string;
 }
 
 export interface InventoryUnitConversionDto {
@@ -672,6 +698,16 @@ export class ApiService {
 
   createInventoryBatch(itemId: string, body: CreateInventoryBatchRequest): Observable<{ id: string }> {
     return this.http.post<{ id: string }>(`${this.baseUrl}/inventory/items/${itemId}/batches`, body);
+  }
+
+  // ADR-0026 Decisión 5: ruta canónica para registrar entradas de stock con
+  // trazabilidad de proveedor y factura. Reemplaza `createInventoryBatch` en la UI
+  // normal; el legacy `POST /batches` queda solo para ajustes manuales y emite
+  // warning en el log del backend.
+  recordInventoryReception(itemId: string, body: RecordInventoryReceptionRequest): Observable<string> {
+    return this.http
+      .post<{ id: string }>(`${this.baseUrl}/inventory/items/${itemId}/receptions`, body)
+      .pipe(map((r) => r.id));
   }
 
   getInventoryUnitConversions(itemId: string): Observable<InventoryUnitConversionDto[]> {

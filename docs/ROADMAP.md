@@ -159,6 +159,16 @@ móvil, incluyendo días sin señal, sin pérdida ni duplicación de datos.
 > El criterio completo de salida de 3.5a sigue exigiendo clasificación por peso +
 > tratamento con vía/motivo + corrección desde el teléfono como bloque.
 
+**Recepción de inventario (ADR-0026, PR #94, mergeada 2026-08-13):** cierre
+del bloqueante transversal "no hay forma trazable de rellenar inventario
+de comida" detectado durante el piloto. Endpoint `POST /receptions`,
+comando `RecordInventoryReceptionCommand`, evento `InventoryReceptionRecorded`,
+UI admin-web "Recibir alimento" con badge "Sin declaración completa" (issue
+#93). Vida útil declarada: deprecado cuando llegue Purchasing (Fase 4). El
+consumo desde lote (3.5a.7 mergeado) ya descuenta de `InventoryBatch`; este
+feature cierra la otra mitad del flujo (entrada con fecha declarada, proveedor,
+factura, autor).
+
 **Objetivo:** que el sistema represente el negocio real del cliente del piloto, que no es
 una lechería sino una **granja porcina**.
 

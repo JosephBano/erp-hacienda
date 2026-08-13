@@ -66,6 +66,13 @@ que los permisos viven en BD; ADR-0017 fija que correcciones se registran
 como nuevos eventos; ningún ADR vigente dice cómo un comando pre-Purchasing
 debe diseñarse para ser sustituible sin perder lo escrito.
 
+El riesgo concreto de **coexistencia** entre la ruta nueva (`POST /receptions`)
+y la legacy (`POST /batches`) se rastrea en
+[GitHub Issue #93](https://github.com/JosephBano/erp-hacienda/issues/93);
+las mitigaciones de UI (badge "Sin declaración completa") y operacionales
+(log de warning en el endpoint deprecado) viven en el PR que implementa
+este ADR, no en el ADR mismo.
+
 ## Decisión
 
 ### 1. Enriquecer `InventoryBatch` con seis columnas opcionales + una obligatoria con backfill honesto.
@@ -484,3 +491,33 @@ rol admin.
 - **Reasignación de `RecordedById` huérfano a `people.users` por nombre**
   (mismo patrón que `20260802163723_AddAuditRecordedBy.cs`). Disparador:
   el dueño edita recepciones y nota que su nombre no aparece como link.
+
+## Refinamientos posteriores a la aceptación (post-auditoría 2026-08-13)
+
+La auditoría de seguridad del PR #94 (ver
+[Issue #93](https://github.com/JosephBano/erp-hacienda/issues/93)) encontró
+3 hallazgos 🟠 Altos y 4 🟡 Medios. Los que tocan **decisión arquitectónica**
+(los demás son detalle de implementación ya cubierto en el cuerpo del ADR):
+
+- **AL-01 — `RecordedById` siempre desde el JWT subject, nunca del request.**
+  El handler ignora `request.RecordedById` y lo reemplaza por
+  `currentUser.UserId` (derivado del claim `sub` / `NameIdentifier`).
+  Justificación: la auditoría del lote no puede ser manipulada por el
+  cliente. `RecordedByLabel` se preserva si el operario tipea un valor
+  no vacío (UX: "yo registré pero lo hizo el mayordomo"); si no, fallback
+  al claim `name` del JWT. Aplicado en commit `bb28d94`.
+
+- **MD-02 — Cap `Quantity` y `CostPerUnit` en 1.000.000.** Tope defensivo
+  para impedir `decimal` overflow cuando el operario tipea valores
+  absurdos o un script malicioso itera magnitudes máximas. Aplicado en
+  commit `397a7f7`. El cap es consistente con la escala del dominio
+  (consumo mensual típico de una lechería mediana está muy por debajo).
+
+- **MD-04 — Cap `ReceivedAt ∈ [2020-01-01 UTC, UtcNow + 1min]`.** Piso
+  de 2020 porque el sistema no tiene historia anterior; techo con 1 minuto
+  de tolerancia por clock skew NTP. Aplicado en commit `d66e539`.
+
+El fix **AL-02** (migración reescrita con patrón 3-step explícito
+add-nullable → UPDATE backfill → ALTER COLUMN SET NOT NULL) es detalle de
+implementación, no decisión arquitectónica — su comentario en el archivo
+de migración lo justifica in situ.

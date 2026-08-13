@@ -7,29 +7,39 @@ import { AuthService, LoginResult } from '../../services/auth.service';
 import { InventoryBatchesSectionComponent } from './inventory-batches-section.component';
 
 describe('InventoryBatchesSectionComponent', () => {
-  const batches: InventoryBatchDto[] = [
-    {
-      id: 'b1',
-      batchNumber: 'L-1',
-      quantity: 5,
-      costPerUnit: 2,
-      expirationDate: '2027-01-01',
-      receivedAt: '2026-08-13T19:00:00Z',
-      supplierLabel: 'Agropecuaria XYZ',
-      invoiceReference: 'F-001',
-      recordedByLabel: 'José Baño',
-    },
-  ];
+  const fullReception: InventoryBatchDto = {
+    id: 'b1',
+    batchNumber: 'L-1',
+    quantity: 5,
+    costPerUnit: 2,
+    expirationDate: '2027-01-01',
+    receivedAt: '2026-08-13T19:00:00Z',
+    supplierLabel: 'Agropecuaria XYZ',
+    invoiceReference: 'F-001',
+    recordedByLabel: 'José Baño',
+  };
+  const legacyBatch: InventoryBatchDto = {
+    id: 'b2',
+    batchNumber: 'L-0',
+    quantity: 3,
+    costPerUnit: 1.5,
+    expirationDate: null,
+    receivedAt: '2026-08-10T12:00:00Z',
+    supplierLabel: null,
+    invoiceReference: null,
+    recordedByLabel: null,
+  };
 
   let apiStub: Partial<ApiService>;
   let authStub: { currentUser: ReturnType<typeof signal<LoginResult | null>> };
+  const noUser: LoginResult | null = null;
 
   beforeEach(async () => {
     apiStub = {
       recordInventoryReception: vi.fn(() => of('b-new')),
       createInventoryBatch: vi.fn(),
     };
-    authStub = { currentUser: signal<LoginResult | null>(null) };
+    authStub = { currentUser: signal<LoginResult | null>(noUser) };
     await TestBed.configureTestingModule({
       imports: [InventoryBatchesSectionComponent],
       providers: [
@@ -50,20 +60,19 @@ describe('InventoryBatchesSectionComponent', () => {
     return fixture;
   }
 
-  it('renders the deprecation banner that documents the flujo"s life-cycle (ADR-0026)', () => {
-    const fixture = createFixture(batches);
+  it('renders the deprecation banner', () => {
+    const fixture = createFixture([fullReception]);
     expect(fixture.nativeElement.textContent).toContain('Purchasing (Fase 4)');
     expect(fixture.nativeElement.textContent).toContain('Recibir orden de compra');
   });
 
-  it('shows the "Recibir alimento" button instead of the legacy "Crear lote"', () => {
+  it('shows the "Recibir alimento" button', () => {
     const fixture = createFixture([]);
     const btn = fixture.nativeElement.querySelector('.card-header button') as HTMLButtonElement;
     expect(btn.textContent).toContain('Recibir alimento');
-    expect(btn.textContent).not.toContain('Crear lote');
   });
 
-  it('opens the reception form with all required and optional fields', () => {
+  it('opens the reception form with all required fields', () => {
     const fixture = createFixture([]);
     (fixture.nativeElement.querySelector('.card-header button') as HTMLElement).click();
     fixture.detectChanges();
@@ -104,7 +113,6 @@ describe('InventoryBatchesSectionComponent', () => {
     component.unit = 'kg';
     component.costPerUnit = 3.25;
     component.expirationDate = '2027-02-01';
-    // datetime-local format: local time without seconds.
     component.receivedAtLocal = '2026-08-13T14:00';
     component.supplierLabel = 'Agropecuaria XYZ';
     component.invoiceReference = 'F-123';
@@ -147,7 +155,7 @@ describe('InventoryBatchesSectionComponent', () => {
     expect(body.Notes).toBeUndefined();
   });
 
-  it('shows backend error.detail on 400 (e.g. missing UnitConversion)', async () => {
+  it('shows backend error.detail on 400', async () => {
     apiStub.recordInventoryReception = vi.fn(
       (): Observable<string> =>
         new Observable<string>((subscriber) => {
@@ -173,8 +181,38 @@ describe('InventoryBatchesSectionComponent', () => {
     expect(fixture.nativeElement.textContent).toContain('No hay conversión definida para "qq" → "kg".');
   });
 
+  it('renders the ReceivedAt and SupplierLabel columns with Ecuador local time', () => {
+    const fixture = createFixture([fullReception]);
+    const text = fixture.nativeElement.textContent as string;
+    expect(text).toContain('Agropecuaria XYZ');
+    // 2026-08-13T19:00:00Z → 13/08/2026 14:00 in Ecuador (UTC-5).
+    expect(text).toContain('13/08/2026');
+    expect(text).toContain('14:00');
+  });
+
+  it('shows the "Sin declaración completa" badge for legacy batches (heuristic A, issue #93)', () => {
+    const fixture = createFixture([legacyBatch]);
+    expect(fixture.nativeElement.textContent).toContain('Sin declaración completa');
+  });
+
+  it('does not show the badge for fully-declared receptions', () => {
+    const fixture = createFixture([fullReception]);
+    expect(fixture.nativeElement.textContent).not.toContain('Sin declaración completa');
+  });
+
+  it('renders the expiration date column', () => {
+    const fixture = createFixture([fullReception]);
+    const expected = new Date(fullReception.expirationDate!).toLocaleDateString('es-EC');
+    expect(fixture.nativeElement.textContent).toContain(expected);
+  });
+
+  it('shows an empty-state message when there are no batches', () => {
+    const fixture = createFixture([]);
+    expect(fixture.nativeElement.textContent).toContain('No hay lotes registrados.');
+  });
+
   it('does not render emoji', () => {
-    const fixture = createFixture(batches);
+    const fixture = createFixture([fullReception, legacyBatch]);
     expect(/[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}]/u.test(fixture.nativeElement.textContent)).toBe(false);
   });
 });

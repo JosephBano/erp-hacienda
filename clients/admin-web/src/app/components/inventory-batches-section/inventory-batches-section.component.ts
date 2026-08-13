@@ -3,7 +3,6 @@ import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output, inject
 import { FormsModule } from '@angular/forms';
 import { ApiService, InventoryBatchDto, RecordInventoryReceptionRequest } from '../../services/api.service';
 import { AuthService } from '../../services/auth.service';
-import { CatalogAction, CatalogColumn, CatalogTableComponent } from '../../shared/catalog-table/catalog-table.component';
 import { IconComponent } from '../../shared/icon/icon.component';
 
 // ADR-0026 Decisión 6: el botón "Crear lote" se reemplaza por "Recibir alimento"
@@ -11,13 +10,14 @@ import { IconComponent } from '../../shared/icon/icon.component';
 // El banner amarillo arriba documenta la vida útil declarada (será reemplazado por
 // "Recibir orden de compra" cuando llegue Purchasing — Fase 4).
 //
-// Las columnas adicionales de la tabla (`receivedAt`, `supplierLabel`, badge "sin
-// declaración completa") llegan en el commit siguiente; acá dejamos intacta la tabla
-// existente para no romper la revisión incremental.
+// El listado de batches ahora muestra `receivedAt` y `supplierLabel` (columnas
+// adicionales) y un badge amarillo "Sin declaración completa" cuando los tres campos
+// de recepción que sólo popula RecordReception están vacíos — heurística A del
+// issue #93 para detectar lotes creados por la ruta legacy `AddBatch` (POST /batches).
 @Component({
   selector: 'app-inventory-batches-section',
   standalone: true,
-  imports: [CommonModule, FormsModule, CatalogTableComponent, IconComponent],
+  imports: [CommonModule, FormsModule, IconComponent],
   template: `
     <div class="deprecation-banner" role="status">
       <strong>Cuando llegue Purchasing (Fase 4),</strong> este flujo se reemplazará por "Recibir orden de compra". Por ahora, registra aquí las entradas de alimento al inventario.
@@ -66,11 +66,36 @@ import { IconComponent } from '../../shared/icon/icon.component';
       </div>
     </div>
     <div class="alert alert-danger" *ngIf="errorMessage">{{ errorMessage }}</div>
-    <app-catalog-table
-      [rows]="batches"
-      [columns]="columns"
-      [actions]="actions"
-      emptyMessage="No hay lotes registrados."></app-catalog-table>
+    <div *ngIf="batches.length === 0" class="empty-state">No hay lotes registrados.</div>
+    <div *ngIf="batches.length > 0" class="table-container">
+      <table class="responsive-table">
+        <thead>
+          <tr>
+            <th>Número de lote</th>
+            <th>Cantidad</th>
+            <th>Costo por unidad</th>
+            <th>Expiración</th>
+            <th>Recibido</th>
+            <th>Proveedor</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let row of batches">
+            <td data-label="Número de lote">{{ row.batchNumber }}</td>
+            <td data-label="Cantidad">{{ row.quantity }}</td>
+            <td data-label="Costo por unidad">{{ row.costPerUnit }}</td>
+            <td data-label="Expiración">{{ formatDateOnly(row.expirationDate) }}</td>
+            <td data-label="Recibido">
+              <div>{{ formatReceivedAt(row.receivedAt) }}</div>
+              <span *ngIf="isIncompleteReception(row)" class="badge badge-warning reception-flag" title="Creado por la ruta legacy /batches — sin trazabilidad de proveedor/factura/autor">
+                Sin declaración completa
+              </span>
+            </td>
+            <td data-label="Proveedor">{{ row.supplierLabel || '—' }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
   `,
   styleUrls: ['./inventory-batches-section.component.css'],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -106,18 +131,6 @@ export class InventoryBatchesSectionComponent {
   invoiceReference = '';
   notes = '';
   recordedByLabel = '';
-
-  // Tabla: la dejamos igual que antes en este commit — las columnas nuevas
-  // (receivedAt, supplierLabel, badge "sin declaración completa") entran en el commit
-  // siguiente para mantener una revisión incremental legible.
-  readonly columns: CatalogColumn<InventoryBatchDto>[] = [
-    { key: 'batchNumber', label: 'Número de lote' },
-    { key: 'quantity', label: 'Cantidad' },
-    { key: 'costPerUnit', label: 'Costo por unidad' },
-    { key: 'expirationDate', label: 'Expiración', render: (row) => this.formatDateOnly(row.expirationDate) },
-  ];
-
-  readonly actions: CatalogAction<InventoryBatchDto>[] = [];
 
   toggleForm(): void {
     this.showForm = !this.showForm;
@@ -196,9 +209,35 @@ export class InventoryBatchesSectionComponent {
     });
   }
 
+  // Heurística A del issue #93: si los tres campos que sólo popula RecordReception están
+  // vacíos, el lote fue creado por la ruta legacy AddBatch / POST /batches — el operario
+  // nunca completó la declaración completa. El backend hace backfill `received_at = created_at`
+  // pero los metadatos quedan null, así que la heurística es 100% precisa para detectar
+  // lotes creados por el flujo viejo (post-ADR-0026 los nuevos siempre pasan por aquí).
+  isIncompleteReception(row: InventoryBatchDto): boolean {
+    return (
+      row.supplierLabel == null &&
+      row.invoiceReference == null &&
+      row.recordedByLabel == null
+    );
+  }
+
   formatDateOnly(value?: string | null): string {
     if (!value) return '—';
     return new Date(value).toLocaleDateString('es-EC');
+  }
+
+  formatReceivedAt(value?: string | null): string {
+    if (!value) return '—';
+    return new Intl.DateTimeFormat('es-EC', {
+      timeZone: 'America/Guayaquil',
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    }).format(new Date(value));
   }
 
   private reset(): void {

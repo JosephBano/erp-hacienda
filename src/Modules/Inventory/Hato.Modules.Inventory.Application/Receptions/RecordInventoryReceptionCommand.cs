@@ -30,13 +30,21 @@ public record RecordInventoryReceptionCommand(
 
 public class RecordInventoryReceptionValidator : AbstractValidator<RecordInventoryReceptionCommand>
 {
+    // MD-02: upper bound on Quantity / CostPerUnit. 1.000.000 is the largest
+    // meaningful stock quantity or unit cost for a single batch on a finca of
+    // this scale (the inventory is denominated in kg / unidades / litros, never
+    // pallets or tons). Anything larger is almost certainly a typo or a probe.
+    // Lower bound on Quantity stays >0 (a zero-quantity reception is not a
+    // reception), CostPerUnit stays >=0 (free / donated stock is legitimate).
+    private const decimal MaxQuantityOrCost = 1_000_000m;
+
     public RecordInventoryReceptionValidator()
     {
         RuleFor(x => x.ItemId).NotEmpty();
         RuleFor(x => x.BatchNumber).NotEmpty().MaximumLength(50);
-        RuleFor(x => x.Quantity).GreaterThan(0);
+        RuleFor(x => x.Quantity).InclusiveBetween(0.001m, MaxQuantityOrCost);
         RuleFor(x => x.Unit).NotEmpty().MaximumLength(20);
-        RuleFor(x => x.CostPerUnit).GreaterThanOrEqualTo(0);
+        RuleFor(x => x.CostPerUnit).InclusiveBetween(0m, MaxQuantityOrCost);
         RuleFor(x => x.ReceivedAt)
             .Must(r => r != default && r <= DateTimeOffset.UtcNow)
             .WithMessage("La fecha de recepción debe ser válida y no estar en el futuro.");

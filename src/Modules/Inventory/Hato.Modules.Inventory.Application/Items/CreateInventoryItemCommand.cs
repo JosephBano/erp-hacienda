@@ -17,11 +17,16 @@ public record CreateInventoryItemCommand(
 
 public class CreateInventoryItemValidator : AbstractValidator<CreateInventoryItemCommand>
 {
+    // MD-02: upper bound mirrors the reception validator. MinStock is a
+    // threshold for low-stock alerts — same 1.000.000 ceiling protects against
+    // typos that would otherwise turn the whole inventory "red" forever.
+    private const decimal MaxQuantityOrCost = 1_000_000m;
+
     public CreateInventoryItemValidator()
     {
         RuleFor(x => x.Name).NotEmpty().MaximumLength(100);
         RuleFor(x => x.Unit).NotEmpty().MaximumLength(20);
-        RuleFor(x => x.MinStock).GreaterThanOrEqualTo(0);
+        RuleFor(x => x.MinStock).InclusiveBetween(0m, MaxQuantityOrCost);
     }
 }
 
@@ -55,12 +60,18 @@ public record CreateInventoryBatchCommand(
 
 public class CreateInventoryBatchValidator : AbstractValidator<CreateInventoryBatchCommand>
 {
+    // MD-02: same ceiling as RecordInventoryReceptionValidator. The legacy
+    // /batches endpoint is kept for technical/manual adjustments per
+    // ADR-0026 alternativa D — it must not become a backdoor that bypasses the
+    // bounds introduced on the canonical endpoint.
+    private const decimal MaxQuantityOrCost = 1_000_000m;
+
     public CreateInventoryBatchValidator()
     {
         RuleFor(x => x.InventoryItemId).NotEmpty();
         RuleFor(x => x.BatchNumber).NotEmpty().MaximumLength(50);
-        RuleFor(x => x.Quantity).GreaterThan(0);
-        RuleFor(x => x.CostPerUnit).GreaterThanOrEqualTo(0);
+        RuleFor(x => x.Quantity).InclusiveBetween(0.001m, MaxQuantityOrCost);
+        RuleFor(x => x.CostPerUnit).InclusiveBetween(0m, MaxQuantityOrCost);
     }
 }
 

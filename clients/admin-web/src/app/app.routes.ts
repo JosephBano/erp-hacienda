@@ -45,7 +45,7 @@ export const routes: Routes = [
   {
     path: 'inventory/items/:id',
     component: InventoryItemDetailComponent,
-    canActivate: [authGuard, permissionGuard('inventory.items.write')]
+    canActivate: [authGuard, permissionGuard('inventory.items.manage')]
   },
   {
     path: 'roles',

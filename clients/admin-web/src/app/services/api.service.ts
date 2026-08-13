@@ -725,19 +725,19 @@ export class ApiService {
   getFeedStages(includeInactive = false): Observable<FeedStageDto[]> {
     let params = new HttpParams();
     if (includeInactive) params = params.set('includeInactive', 'true');
-    return this.http.get<FeedStageDto[]>(`${this.baseUrl}/feed-stages`, { params });
+    return this.http.get<FeedStageDto[]>(`${this.baseUrl}/inventory/feed-stages`, { params });
   }
 
   createFeedStage(body: { key: string; labelEs: string }): Observable<{ id: string }> {
-    return this.http.post<{ id: string }>(`${this.baseUrl}/feed-stages`, body);
+    return this.http.post<{ id: string }>(`${this.baseUrl}/inventory/feed-stages`, body);
   }
 
   deactivateFeedStage(id: string): Observable<void> {
-    return this.http.post<void>(`${this.baseUrl}/feed-stages/${id}/deactivate`, {});
+    return this.http.post<void>(`${this.baseUrl}/inventory/feed-stages/${id}/deactivate`, {});
   }
 
   activateFeedStage(id: string): Observable<void> {
-    return this.http.post<void>(`${this.baseUrl}/feed-stages/${id}/activate`, {});
+    return this.http.post<void>(`${this.baseUrl}/inventory/feed-stages/${id}/activate`, {});
   }
 
   createInventoryItem(data: {

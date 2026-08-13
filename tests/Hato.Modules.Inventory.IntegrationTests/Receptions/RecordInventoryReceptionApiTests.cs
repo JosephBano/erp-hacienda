@@ -2,6 +2,10 @@ using System.Net;
 using System.Net.Http.Json;
 using Hato.Modules.Inventory.Application.Items;
 using Hato.Modules.Inventory.Domain;
+using Hato.Modules.Inventory.Infrastructure.Persistence;
+using Hato.TestSupport;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
 namespace Hato.Modules.Inventory.IntegrationTests.Receptions;
@@ -161,6 +165,78 @@ public class RecordInventoryReceptionApiTests(InventoryApiFactory factory) : ICl
         });
 
         Assert.Equal(HttpStatusCode.BadRequest, resp.StatusCode);
+    }
+
+    [Fact]
+    public async Task PostReception_OverwritesRecordedByIdAndLabelFromJwtSubject()
+    {
+        // AL-01 (security audit #94): the handler must persist the authenticated
+        // subject as the batch author, never the values supplied by the client.
+        // This test sends an attacker-controlled RecordedById and an empty
+        // RecordedByLabel and asserts that the persisted row carries the JWT
+        // subject's id and full name. (When the operator types a non-empty label
+        // the handler preserves it — see the dedicated test below for that
+        // branch.)
+        var itemId = await CreateFeedItemAsync("AL01 Override");
+
+        var attackerUserId = Guid.NewGuid();
+
+        var resp = await _client.PostAsJsonAsync($"/api/v1/inventory/items/{itemId}/receptions", new
+        {
+            batchNumber = "LOT-AUTH-001",
+            quantity = 50m,
+            unit = "kg",
+            costPerUnit = 0.5m,
+            receivedAt = DateTimeOffset.UtcNow.ToString("o"),
+            supplierLabel = "Proveedor X",
+            recordedById = (Guid?)attackerUserId,
+            recordedByLabel = (string?)null,
+        });
+        resp.EnsureSuccessStatusCode();
+        var created = await resp.Content.ReadFromJsonAsync<CreatedId>();
+        Assert.NotNull(created);
+
+        // The DTO only surfaces RecordedByLabel; query the row directly to read
+        // the RecordedById the handler actually persisted.
+        await using var scope = factory.Services.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<InventoryDbContext>();
+        var row = await db.InventoryBatches.AsNoTracking()
+            .FirstOrDefaultAsync(b => b.Id == created!.Id);
+
+        Assert.NotNull(row);
+        Assert.NotEqual(attackerUserId, row!.RecordedById);            // not the spoofed value
+        Assert.Equal(TestAuthHandler.AdminUserId, row.RecordedById);    // JWT subject
+        Assert.Equal(TestAuthHandler.AdminFullName, row.RecordedByLabel); // JWT fallback
+    }
+
+    [Fact]
+    public async Task PostReception_PreservesOperatorTypedRecordedByLabelWhenSupplied()
+    {
+        // Counterpart to AL01_OverrideFromJwt: when the operator types a
+        // non-empty RecordedByLabel (legitimate "mayordomo 1" UX), the handler
+        // preserves it. The handler still overrides RecordedById with the JWT
+        // subject — only the label is allowed to follow the request.
+        var itemId = await CreateFeedItemAsync("AL01 Preserve");
+
+        var resp = await _client.PostAsJsonAsync($"/api/v1/inventory/items/{itemId}/receptions", new
+        {
+            batchNumber = "LOT-AUTH-002",
+            quantity = 30m,
+            unit = "kg",
+            costPerUnit = 0.5m,
+            receivedAt = DateTimeOffset.UtcNow.ToString("o"),
+            supplierLabel = "Proveedor Y",
+            recordedById = (Guid?)Guid.NewGuid(),
+            recordedByLabel = "mayordomo 1",
+        });
+        resp.EnsureSuccessStatusCode();
+        var created = await resp.Content.ReadFromJsonAsync<CreatedId>();
+        Assert.NotNull(created);
+
+        var batches = await _client.GetFromJsonAsync<List<InventoryBatchDto>>(
+            $"/api/v1/inventory/items/{itemId}/batches");
+        var batch = Assert.Single(batches!);
+        Assert.Equal("mayordomo 1", batch.RecordedByLabel);
     }
 
     private async Task<Guid> CreateFeedItemAsync(string name)

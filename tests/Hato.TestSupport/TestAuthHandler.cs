@@ -20,12 +20,20 @@ public class TestAuthHandler(
 {
     public const string SchemeName = "Test";
 
+    // Constants exposed so tests can assert against the identity the handler
+    // injects without having to redeclare them. AL-01 (security audit #94):
+    // the reception handler must persist the JWT subject's user id and full
+    // name on every row — these constants let tests check that contract
+    // exactly.
+    public static readonly Guid AdminUserId = Guid.Empty;
+    public const string AdminFullName = "test-runner";
+
     protected override Task<AuthenticateResult> HandleAuthenticateAsync()
     {
         var claims = new[]
         {
-            new Claim(ClaimTypes.NameIdentifier, Guid.Empty.ToString()),
-            new Claim(ClaimTypes.Name, "test-runner"),
+            new Claim(ClaimTypes.NameIdentifier, AdminUserId.ToString()),
+            new Claim(ClaimTypes.Name, AdminFullName),
             new Claim(ClaimTypes.Role, "Admin"),
         };
         var identity = new ClaimsIdentity(claims, SchemeName);

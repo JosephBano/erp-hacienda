@@ -47,7 +47,9 @@ public class RecordInventoryReceptionValidator : AbstractValidator<RecordInvento
     }
 }
 
-public class RecordInventoryReceptionHandler(IInventoryDbContext dbContext)
+public class RecordInventoryReceptionHandler(
+    IInventoryDbContext dbContext,
+    ICurrentUser currentUser)
     : IRequestHandler<RecordInventoryReceptionCommand, Guid>
 {
     public async Task<Guid> Handle(RecordInventoryReceptionCommand request, CancellationToken cancellationToken)
@@ -59,6 +61,23 @@ public class RecordInventoryReceptionHandler(IInventoryDbContext dbContext)
         if (item is null || item.IsDeleted)
             throw new DomainException(
                 $"El ítem de inventario con ID '{request.ItemId}' no existe o fue eliminado.");
+
+        // AL-01 (security audit #94): override the request-supplied author with
+        // the authenticated subject from the JWT. The handler does NOT trust
+        // request.RecordedById / request.RecordedByLabel — those fields are
+        // accepted on the wire for admin-web UI compatibility, but the
+        // persisted values must come from the current user (Art. 4: every
+        // change is an event with date, author and cost; "author" is the
+        // authenticated principal, never what the client typed).
+        //
+        // RecordedByLabel is preserved only when the request supplied a
+        // non-empty value AND it differs from the JWT's full name; otherwise we
+        // fall back to the JWT subject's full name so the row is never stored
+        // with a "ghost" operator. RecordedById is always overwritten.
+        var recordedById = currentUser.UserId;
+        var recordedByLabel = !string.IsNullOrWhiteSpace(request.RecordedByLabel)
+            ? request.RecordedByLabel.Trim()
+            : currentUser.FullName;
 
         // Resolve the unit conversion the same way RecordGroupFeedConsumption does:
         // when the operator typed the item's own unit, the factor is 1 and the
@@ -103,8 +122,8 @@ public class RecordInventoryReceptionHandler(IInventoryDbContext dbContext)
             request.SupplierLabel,
             request.InvoiceReference,
             request.Notes,
-            request.RecordedById,
-            request.RecordedByLabel);
+            recordedById,
+            recordedByLabel);
 
         // Explicit Add matches CreateInventoryBatchHandler's pattern: even though
         // RecordReception also appends to the backing field, calling Add here

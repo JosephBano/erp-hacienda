@@ -10,12 +10,32 @@ import { IconComponent } from '../../shared/icon/icon.component';
   standalone: true,
   imports: [CommonModule, FormsModule, CatalogTableComponent, IconComponent],
   template: `
-    <div class="card-header"><h2>Conversiones de unidad</h2><button type="button" class="btn-primary btn-sm" (click)="showForm = !showForm"><app-icon name="plus" size="sm" ariaLabel="Crear conversión"></app-icon> Crear conversión</button></div>
-    <div *ngIf="showForm" class="inline-form mini-form"><div class="form-grid">
-      <label class="form-label" for="from-unit">Unidad origen</label><input id="from-unit" class="form-input" [(ngModel)]="fromUnit" name="fromUnit" required>
-      <label class="form-label" for="to-unit">Unidad destino</label><input id="to-unit" class="form-input" [(ngModel)]="toUnit" name="toUnit" required>
-      <label class="form-label" for="factor">Factor</label><input id="factor" class="form-input" type="number" [(ngModel)]="factor" name="factor" min="0" step="0.0001" required>
-    </div><div class="form-actions"><button type="button" class="btn-secondary" (click)="showForm = false">Cancelar</button><button type="button" class="btn-primary" (click)="create()" [disabled]="submitting">Guardar conversión</button></div></div>
+    <div class="card-header">
+      <h2>Conversiones de unidad</h2>
+      <button type="button" class="btn-primary btn-sm" (click)="showForm = !showForm">
+        <app-icon name="plus" size="sm" ariaLabel="Crear conversión"></app-icon>
+        <span>Crear conversión</span>
+      </button>
+    </div>
+    <div *ngIf="showForm" class="inline-form mini-form">
+      <div class="form-grid">
+        <label class="form-label" for="from-unit">Unidad origen</label>
+        <input id="from-unit" class="form-input" [(ngModel)]="fromUnit" name="fromUnit" placeholder="Ej: saco" required>
+
+        <label class="form-label" for="to-unit">Unidad destino</label>
+        <input id="to-unit" class="form-input" [(ngModel)]="toUnit" name="toUnit" placeholder="Ej: kg" required>
+
+        <label class="form-label" for="factor">Factor de conversión</label>
+        <input id="factor" class="form-input" type="number" [(ngModel)]="factor" name="factor" min="0" step="0.0001" placeholder="Ej: 40" required>
+      </div>
+      <div class="form-actions">
+        <button type="button" class="btn-secondary" (click)="showForm = false">Cancelar</button>
+        <button type="button" class="btn-primary" (click)="create()" [disabled]="submitting">
+          <app-icon name="check" size="sm" ariaLabel="Guardar"></app-icon>
+          <span>Guardar conversión</span>
+        </button>
+      </div>
+    </div>
     <div class="alert alert-danger" *ngIf="errorMessage">{{ errorMessage }}</div>
     <app-catalog-table [rows]="conversions" [columns]="columns" [actions]="actions" emptyMessage="No hay conversiones registradas."></app-catalog-table>
   `,

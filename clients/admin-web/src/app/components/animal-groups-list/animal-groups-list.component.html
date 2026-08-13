@@ -21,7 +21,7 @@
         (change)="onIncludeInactiveChange(!!$any($event.target).checked)"
         data-testid="include-inactive-toggle"
       />
-      Incluir lotes inactivos
+      <span>Incluir lotes inactivos</span>
     </label>
     <button type="button" class="btn-secondary btn-sm" (click)="loadGroups()" data-testid="reload-button">
       <app-icon name="search" size="sm" ariaLabel="Recargar"></app-icon>
@@ -39,24 +39,36 @@
   </app-catalog-table>
 
   <!-- Two-step deactivate confirmation -->
-  <div class="confirm-bar" *ngIf="confirmingDeactivateId() as id">
-    <span>¿Desactivar este lote? La operación es reversible con "Reactivar".</span>
-    <button type="button" class="btn-danger btn-sm" (click)="confirmDeactivate()" data-testid="confirm-deactivate">
-      Confirmar desactivación
-    </button>
-    <button type="button" class="btn-secondary btn-sm" (click)="cancelDeactivate()" data-testid="cancel-deactivate">
-      Cancelar
-    </button>
+  <div class="confirm-bar confirm-bar-danger" *ngIf="confirmingDeactivateId() as id">
+    <div class="confirm-message">
+      <app-icon name="alert" size="sm" ariaLabel="Advertencia"></app-icon>
+      <span>¿Desactivar este lote? La operación es reversible con "Reactivar".</span>
+    </div>
+    <div class="confirm-actions">
+      <button type="button" class="btn-danger btn-sm" (click)="confirmDeactivate()" data-testid="confirm-deactivate">
+        <app-icon name="close" size="sm" ariaLabel="Confirmar"></app-icon>
+        <span>Confirmar desactivación</span>
+      </button>
+      <button type="button" class="btn-secondary btn-sm" (click)="cancelDeactivate()" data-testid="cancel-deactivate">
+        Cancelar
+      </button>
+    </div>
   </div>
 
   <!-- Two-step reactivate confirmation -->
-  <div class="confirm-bar" *ngIf="confirmingReactivateId() as id">
-    <span>¿Reactivar este lote?</span>
-    <button type="button" class="btn-primary btn-sm" (click)="confirmReactivate()" data-testid="confirm-reactivate">
-      Confirmar reactivación
-    </button>
-    <button type="button" class="btn-secondary btn-sm" (click)="cancelReactivate()" data-testid="cancel-reactivate">
-      Cancelar
-    </button>
+  <div class="confirm-bar confirm-bar-success" *ngIf="confirmingReactivateId() as id">
+    <div class="confirm-message">
+      <app-icon name="check" size="sm" ariaLabel="Confirmar"></app-icon>
+      <span>¿Reactivar este lote?</span>
+    </div>
+    <div class="confirm-actions">
+      <button type="button" class="btn-primary btn-sm" (click)="confirmReactivate()" data-testid="confirm-reactivate">
+        <app-icon name="check" size="sm" ariaLabel="Confirmar"></app-icon>
+        <span>Confirmar reactivación</span>
+      </button>
+      <button type="button" class="btn-secondary btn-sm" (click)="cancelReactivate()" data-testid="cancel-reactivate">
+        Cancelar
+      </button>
+    </div>
   </div>
 </div>

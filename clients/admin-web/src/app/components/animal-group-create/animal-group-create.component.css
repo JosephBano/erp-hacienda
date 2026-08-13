@@ -1,43 +1,58 @@
-/* PR3 — Create. Reusa estilos globales (form-grid, form-input, glass-card,
-   page-container, btn-primary, btn-secondary). Aquí solo lo específico. */
+:host {
+  display: block;
+}
 
-.required { color: var(--danger); margin-left: 0.2rem; }
+.required {
+  color: var(--danger);
+  margin-left: 0.2rem;
+}
 
 .tracking-mode-fieldset {
   margin: 1.5rem 0 0 0;
   padding: 1.25rem 1.5rem;
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
-  background: rgba(255, 255, 255, 0.02);
+  background: rgba(15, 23, 42, 0.45);
 }
 
 .tracking-mode-fieldset legend {
   padding: 0 0.5rem;
   font-weight: 600;
+  color: var(--text-main);
 }
 
 .hint-text {
-  margin: 0 0 1rem 0;
+  margin: 0 0 1.25rem 0;
   color: var(--text-muted);
   font-size: 0.9rem;
+  line-height: 1.5;
 }
 
 .radio-row {
   display: flex;
-  gap: 0.75rem;
+  gap: 1rem;
   align-items: flex-start;
-  padding: 0.75rem 0;
+  padding: 1rem 1.25rem;
   cursor: pointer;
-  border-top: 1px solid var(--border-color);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  background: rgba(30, 41, 59, 0.4);
+  margin-bottom: 0.75rem;
+  transition: all 0.2s ease;
 }
 
-.radio-row:first-of-type {
-  border-top: none;
+.radio-row:hover {
+  background: rgba(30, 41, 59, 0.7);
+  border-color: var(--border-hover);
 }
 
 .radio-row input[type="radio"] {
   margin-top: 0.25rem;
   flex: 0 0 auto;
+  accent-color: var(--brand-primary);
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
 }
 
 .radio-text {
@@ -46,20 +61,27 @@
   gap: 0.25rem;
 }
 
+.radio-text strong {
+  color: var(--text-main);
+  font-size: 0.95rem;
+}
+
 .radio-sub {
   color: var(--text-muted);
-  font-size: 0.875rem;
+  font-size: 0.85rem;
+  line-height: 1.4;
 }
 
 .warning-block {
   display: flex;
   align-items: flex-start;
-  gap: 0.5rem;
-  margin-top: 1rem;
-  padding: 0.75rem 1rem;
+  gap: 0.75rem;
+  margin-top: 1.25rem;
+  padding: 0.875rem 1.25rem;
   background: rgba(245, 158, 11, 0.08);
   border: 1px solid rgba(245, 158, 11, 0.35);
   border-radius: var(--radius-md);
   color: var(--text-main);
-  font-size: 0.9rem;
+  font-size: 0.875rem;
+  line-height: 1.5;
 }

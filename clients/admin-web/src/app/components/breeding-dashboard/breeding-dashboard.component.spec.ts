@@ -306,4 +306,101 @@ describe('BreedingDashboardComponent (responsive redesign contract)', () => {
     expect(collected).toContain('Parto / Camada');
     expect(collected).toContain('Pajuelas');
   });
+
+  it('should display animal name first when available in getAnimalDisplayName', () => {
+    const fixture = render();
+    const component = fixture.componentInstance;
+
+    const animalWithName = {
+      id: 'id-1234',
+      name: 'Margarita',
+      farmTag: 'CRIA-01',
+      gender: 'F',
+      status: 'Active',
+      isInWithdrawal: false,
+    };
+    expect(component.getAnimalDisplayName(animalWithName)).toBe('Margarita (CRIA-01)');
+
+    const animalWithNameOnly = {
+      id: 'id-5678',
+      name: 'Peppa',
+      gender: 'F',
+      status: 'Active',
+      isInWithdrawal: false,
+    };
+    expect(component.getAnimalDisplayName(animalWithNameOnly)).toBe('Peppa');
+
+    const animalWithTagOnly = {
+      id: 'id-9999',
+      farmTag: 'HATO-99',
+      gender: 'F',
+      status: 'Active',
+      isInWithdrawal: false,
+    };
+    expect(component.getAnimalDisplayName(animalWithTagOnly)).toBe('HATO-99');
+
+    const animalWithIdOnly = {
+      id: '3f2b4c1a-8888-4444-9999-000000000000',
+      gender: 'F',
+      status: 'Active',
+      isInWithdrawal: false,
+    };
+    expect(component.getAnimalDisplayName(animalWithIdOnly)).toBe('3f2b4c1a-8888-4444-9999-000000000000');
+  });
+
+  it('should dynamically generate 10 offspring rows when bornAlive is 10 and format payload cleanly on submit', () => {
+    const recordBirthingSpy = vi.fn((_payload: any) => of({ id: 'birthing-1' } as any));
+    const apiStub = {
+      getAlerts: () => of([]),
+      getActivePregnancies: () => of([]),
+      getSemenStraws: () => of([]),
+      getAnimals: () => of([]),
+      recordBirthing: recordBirthingSpy,
+    };
+
+    TestBed.resetTestingModule();
+    TestBed.configureTestingModule({
+      imports: [BreedingDashboardComponent],
+      providers: [
+        provideRouter([]),
+        { provide: ApiService, useValue: apiStub },
+      ],
+      schemas: [NO_ERRORS_SCHEMA],
+    });
+
+    const fixture = TestBed.createComponent(BreedingDashboardComponent);
+    const component = fixture.componentInstance;
+    component.activeTab = 'service';
+    fixture.detectChanges();
+
+    component.onBornAliveChange(10);
+    expect(component.offspringList.length).toBe(10);
+
+    component.birthingForm.damId = 'dam-guid-1';
+    component.birthingForm.pregnancyId = ''; // empty string should be omitted/cleaned
+    component.birthingForm.bornAlive = 10;
+    component.offspringList[0].farmTag = 'LECHON-01';
+    component.offspringList[0].sex = 'F';
+    component.offspringList[0].birthWeightKg = 1.45;
+    component.offspringList[1].farmTag = 'LECHON-02';
+    component.offspringList[1].sex = 'M';
+    component.offspringList[1].birthWeightKg = 1.60;
+
+    component.submitBirthing();
+
+    expect(recordBirthingSpy).toHaveBeenCalledTimes(1);
+    const payload = recordBirthingSpy.mock.calls[0][0];
+    expect(payload.damId).toBe('dam-guid-1');
+    expect(payload.pregnancyId).toBeUndefined();
+    expect(payload.bornAlive).toBe(10);
+    expect(payload.offspring.length).toBe(10);
+    expect(payload.offspring[0].farmTag).toBe('LECHON-01');
+    expect(payload.offspring[0].sex).toBe('F');
+    expect(payload.offspring[0].birthWeightKg).toBe(1.45);
+    expect(payload.offspring[1].farmTag).toBe('LECHON-02');
+    expect(payload.offspring[1].sex).toBe('M');
+    expect(payload.offspring[1].birthWeightKg).toBe(1.60);
+    expect(payload.offspring[2].farmTag).toBeNull();
+    expect(payload.offspring[2].birthWeightKg).toBeNull();
+  });
 });

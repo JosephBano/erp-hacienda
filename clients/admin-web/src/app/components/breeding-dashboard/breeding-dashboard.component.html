@@ -106,7 +106,7 @@
           <select [(ngModel)]="serviceForm.damId" name="damId" class="form-control" required>
             <option value="">-- Seleccionar Madre --</option>
             <option *ngFor="let a of animals" [value]="a.id">
-              {{ a.farmTag || a.officialTag || a.id }} ({{ a.breedName || 'Sin raza' }})
+              {{ getAnimalDisplayName(a) }} ({{ a.breedName || 'Sin raza' }})
             </option>
           </select>
         </div>
@@ -134,7 +134,7 @@
           <select [(ngModel)]="serviceForm.sireAnimalId" name="sireAnimalId" class="form-control">
             <option value="">-- Seleccionar Reproductor --</option>
             <option *ngFor="let a of animals" [value]="a.id">
-              {{ a.farmTag || a.officialTag || a.id }}
+              {{ getAnimalDisplayName(a) }}
             </option>
           </select>
         </div>
@@ -165,7 +165,7 @@
           <select [(ngModel)]="birthingForm.damId" name="bDamId" class="form-control" required>
             <option value="">-- Seleccionar Madre --</option>
             <option *ngFor="let a of animals" [value]="a.id">
-              {{ a.farmTag || a.officialTag || a.id }}
+              {{ getAnimalDisplayName(a) }}
             </option>
           </select>
         </div>
@@ -188,7 +188,14 @@
         <div class="grid-3">
           <div class="form-group">
             <label>Nacidos Vivos</label>
-            <input type="number" [(ngModel)]="birthingForm.bornAlive" name="bAlive" class="form-control" min="0" />
+            <input
+              type="number"
+              [(ngModel)]="birthingForm.bornAlive"
+              (ngModelChange)="onBornAliveChange($event)"
+              name="bAlive"
+              class="form-control"
+              min="0"
+            />
           </div>
           <div class="form-group">
             <label>Nacidos Muertos</label>
@@ -200,17 +207,63 @@
           </div>
         </div>
 
-        <div class="form-group" *ngIf="birthingForm.bornAlive > 0">
-          <label>Arete de la Cría (opcional — déjalo vacío para solo registrar el conteo)</label>
-          <input type="text" [(ngModel)]="birthingForm.calfFarmTag" name="bCalfTag" placeholder="p.ej. CRIA-045" class="form-control" />
-        </div>
+        <div class="offspring-section" *ngIf="birthingForm.bornAlive > 0">
+          <label class="section-subtitle">
+            <app-icon name="dna" size="sm" />
+            Detalle individual de crías ({{ birthingForm.bornAlive }} nacidas vivas)
+          </label>
+          <p class="section-hint">Puedes ingresar arete (opcional), sexo y primer peso (kg) para cada cría.</p>
 
-        <div class="form-group" *ngIf="birthingForm.bornAlive > 0 && birthingForm.calfFarmTag">
-          <label>Sexo de la Cría</label>
-          <select [(ngModel)]="birthingForm.calfSex" name="bCalfSex" class="form-control">
-            <option value="F">Hembra</option>
-            <option value="M">Macho</option>
-          </select>
+          <div class="offspring-table-wrapper">
+            <table class="data-table responsive-table offspring-table">
+              <thead>
+                <tr>
+                  <th style="width: 45px;">#</th>
+                  <th>Arete / Código</th>
+                  <th style="width: 130px;">Sexo</th>
+                  <th style="width: 150px;">Primer Peso (kg)</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let off of offspringList; let i = index">
+                  <td data-label="#" class="text-center font-bold">{{ i + 1 }}</td>
+                  <td data-label="Arete">
+                    <input
+                      type="text"
+                      [(ngModel)]="off.farmTag"
+                      [name]="i === 0 ? 'bCalfTag' : 'bCalfTag_' + i"
+                      [attr.name]="i === 0 ? 'bCalfTag' : 'bCalfTag_' + i"
+                      placeholder="p.ej. CRIA-045"
+                      class="form-control"
+                    />
+                  </td>
+                  <td data-label="Sexo">
+                    <select
+                      [(ngModel)]="off.sex"
+                      [name]="i === 0 ? 'bCalfSex' : 'bCalfSex_' + i"
+                      [attr.name]="i === 0 ? 'bCalfSex' : 'bCalfSex_' + i"
+                      class="form-control"
+                    >
+                      <option value="F">Hembra</option>
+                      <option value="M">Macho</option>
+                    </select>
+                  </td>
+                  <td data-label="Primer Peso (kg)">
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0.01"
+                      [(ngModel)]="off.birthWeightKg"
+                      [name]="'bCalfWeight_' + i"
+                      [attr.name]="'bCalfWeight_' + i"
+                      placeholder="p.ej. 1.40"
+                      class="form-control"
+                    />
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
 
         <button type="submit" class="btn btn-success btn-block" [disabled]="loading">

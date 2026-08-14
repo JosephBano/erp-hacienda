@@ -42,10 +42,19 @@ export async function loadHerd(database: Database, date = todayIso()): Promise<H
     database.get<Species>('species').query().fetch(),
   ]);
 
+  const nameByAnimal = new Map<string, string>();
   const tagByAnimal = new Map<string, string>();
   for (const identifier of identifiers) {
-    if (!identifier.isDeleted && !tagByAnimal.has(identifier.animalId)) {
-      tagByAnimal.set(identifier.animalId, identifier.value);
+    if (identifier.isDeleted) continue;
+    const type = (identifier.type ?? '').toLowerCase();
+    if (type === 'name' || type === 'nombre') {
+      if (!nameByAnimal.has(identifier.animalId)) {
+        nameByAnimal.set(identifier.animalId, identifier.value);
+      }
+    } else {
+      if (!tagByAnimal.has(identifier.animalId) || type.includes('farm')) {
+        tagByAnimal.set(identifier.animalId, identifier.value);
+      }
     }
   }
 
@@ -72,19 +81,32 @@ export async function loadHerd(database: Database, date = todayIso()): Promise<H
 
   return animals
     .filter((animal) => !animal.isDeleted)
-    .map((animal) => ({
-      animalId: animal.id,
-      sex: animal.sex,
-      label: tagByAnimal.get(animal.id) ?? `Sin arete · ${animal.id.slice(0, 6)}`,
-      isWithheld: milkBlockByAnimal.has(animal.id),
-      withheldUntil: milkBlockByAnimal.get(animal.id),
-      speciesId: animal.speciesId,
-      speciesIsMilkable: milkableBySpecies.get(animal.speciesId) ?? false,
-      breedId: animal.breedId,
-      categoryId: animal.categoryId,
-      birthDate: animal.birthDate,
-      motherId: animal.motherId,
-    }))
+    .map((animal) => {
+      const name = nameByAnimal.get(animal.id);
+      const tag = tagByAnimal.get(animal.id);
+      let label: string;
+      if (name && name.trim().length > 0) {
+        label = tag ? `${name} (${tag})` : name;
+      } else if (tag) {
+        label = tag;
+      } else {
+        label = `Sin arete · ${animal.id.slice(0, 6)}`;
+      }
+
+      return {
+        animalId: animal.id,
+        sex: animal.sex,
+        label,
+        isWithheld: milkBlockByAnimal.has(animal.id),
+        withheldUntil: milkBlockByAnimal.get(animal.id),
+        speciesId: animal.speciesId,
+        speciesIsMilkable: milkableBySpecies.get(animal.speciesId) ?? false,
+        breedId: animal.breedId,
+        categoryId: animal.categoryId,
+        birthDate: animal.birthDate,
+        motherId: animal.motherId,
+      };
+    })
     .sort((a, b) => a.label.localeCompare(b.label));
 }
 

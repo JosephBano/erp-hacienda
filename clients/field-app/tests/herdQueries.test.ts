@@ -95,4 +95,29 @@ describe('herdQueries — editing support', () => {
 
     expect(categories).toEqual([{ categoryId: 'cat-1', label: 'Vaca en producción' }]);
   });
+
+  it('formats animal labels with name prioritized when available', async () => {
+    await seedAnimal();
+    await database.write(async () => {
+      await database.get('animal_identifiers').create((row: any) => {
+        row._raw.id = 'id-1';
+        row.animalId = 'animal-1';
+        row.type = 'Name';
+        row.value = 'Margarita';
+        row.isActive = true;
+        row.isDeleted = false;
+      });
+      await database.get('animal_identifiers').create((row: any) => {
+        row._raw.id = 'id-2';
+        row.animalId = 'animal-1';
+        row.type = 'FarmTag';
+        row.value = 'CRIA-01';
+        row.isActive = true;
+        row.isDeleted = false;
+      });
+    });
+
+    const [member] = await loadHerd(database);
+    expect(member.label).toBe('Margarita (CRIA-01)');
+  });
 });

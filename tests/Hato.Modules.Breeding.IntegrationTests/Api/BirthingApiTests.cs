@@ -143,10 +143,17 @@ public class BirthingApiTests(BreedingApiFactory factory) : IClassFixture<Breedi
         var calfDetail = await calfDetailResponse.Content.ReadFromJsonAsync<AnimalDetailDto>();
 
         Assert.Equal(weighedAtBirth, calfDetail!.BirthWeightKg);
+
+        var eventsResponse = await _client.GetAsync($"/api/v1/animals/{calf.Id}/events");
+        eventsResponse.EnsureSuccessStatusCode();
+        var events = await eventsResponse.Content.ReadFromJsonAsync<List<AnimalEventDto>>();
+        var weighing = Assert.Single(events!);
+        Assert.Equal("Weighing", weighing.EventType);
     }
 
     private sealed record CreatedId(Guid Id);
     private sealed record BirthingDto(Guid Id);
     private sealed record AnimalListItemDto(Guid Id, string? FarmTag, string Gender);
     private sealed record AnimalDetailDto(Guid Id, Guid SpeciesId, Guid? MotherId, Guid? BirthingId, decimal? BirthWeightKg = null);
+    private sealed record AnimalEventDto(Guid Id, string EventType, string PayloadJson);
 }

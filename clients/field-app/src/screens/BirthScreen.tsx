@@ -49,6 +49,15 @@ export function BirthScreen({
       ),
     );
 
+  const setCalfFarmTag = (index: number, rawText: string) => {
+    const trimmed = rawText.trim();
+    setOffspring((current) =>
+      current.map((calf, i) =>
+        i === index ? { ...calf, farmTag: trimmed || undefined } : calf,
+      ),
+    );
+  };
+
   /**
    * PLAN-FASE-3-5-PORCINO 3.5a.4 task 3: birth weight is the first-day metric the client
    * uses to decide future mothers — a gilt of ≥1 kg is a promise, <0.7 kg usually is not.
@@ -159,6 +168,14 @@ export function BirthScreen({
                   <Body muted>
                     {`${index + 1}. ${calf.sex === 'M' ? 'Macho' : 'Hembra'}`}
                   </Body>
+                  <TextInput
+                    testID={`offspring-tag-${index}`}
+                    style={styles.weightInput}
+                    placeholder="Arete de la cría — opcional"
+                    placeholderTextColor={theme.color.textMuted}
+                    defaultValue={calf.farmTag ?? ''}
+                    onChangeText={(text) => setCalfFarmTag(index, text)}
+                  />
                   <TextInput
                     testID={`offspring-weight-${index}`}
                     style={styles.weightInput}

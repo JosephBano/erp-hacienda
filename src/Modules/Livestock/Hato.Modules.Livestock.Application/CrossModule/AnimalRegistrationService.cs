@@ -34,6 +34,19 @@ public class AnimalRegistrationService(ILivestockDbContext dbContext) : IAnimalR
             offspring.AssignIdentifier(IdentifierType.FarmTag, request.FarmTag, request.BirthDate);
 
         dbContext.Animals.Add(offspring);
+
+        if (request.BirthWeightKg.HasValue && request.BirthWeightKg.Value > 0)
+        {
+            var weighingPayload = System.Text.Json.JsonSerializer.Serialize(new { weightKg = request.BirthWeightKg.Value });
+            var weighingEvent = AnimalEvent.Create(
+                offspring.Id,
+                EventType.Weighing,
+                request.BirthDate.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc),
+                "sistema",
+                weighingPayload);
+            dbContext.AnimalEvents.Add(weighingEvent);
+        }
+
         await dbContext.SaveChangesAsync(cancellationToken);
 
         return offspring.Id;

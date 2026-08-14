@@ -4,6 +4,12 @@ import { FormsModule } from '@angular/forms';
 import { AlertDto, Animal, ApiService, PregnancyDto, SemenStraw } from '../../services/api.service';
 import { IconComponent } from '../../shared/icon/icon.component';
 
+export interface OffspringFormItem {
+  farmTag: string;
+  sex: 'F' | 'M';
+  birthWeightKg: number | null;
+}
+
 @Component({
   selector: 'app-breeding-dashboard',
   standalone: true,
@@ -60,12 +66,26 @@ export class BreedingDashboardComponent implements OnInit {
     bornAlive: 0,
     bornDead: 0,
     mummified: 0,
-    litterWeight: 0,
+    litterWeight: null as number | null,
     notes: '',
-    // An identified offspring is optional; leave farmTag blank to record only litter totals.
-    calfFarmTag: '',
-    calfSex: 'F'
   };
+
+  private _offspringList: OffspringFormItem[] = [];
+
+  get offspringList(): OffspringFormItem[] {
+    const alive = Math.max(0, Number(this.birthingForm.bornAlive) || 0);
+    while (this._offspringList.length < alive) {
+      this._offspringList.push({
+        farmTag: '',
+        sex: 'F',
+        birthWeightKg: null
+      });
+    }
+    if (this._offspringList.length > alive) {
+      this._offspringList = this._offspringList.slice(0, alive);
+    }
+    return this._offspringList;
+  }
 
   // Straw form
   strawForm = {
@@ -80,6 +100,34 @@ export class BreedingDashboardComponent implements OnInit {
 
   ngOnInit(): void {
     this.loadData();
+  }
+
+  getAnimalDisplayName(a: Animal): string {
+    if (a.name && a.name.trim().length > 0) {
+      return a.farmTag ? `${a.name} (${a.farmTag})` : a.name;
+    }
+    return a.farmTag || a.officialTag || a.id;
+  }
+
+  onBornAliveChange(count?: number): void {
+    const rawCount = count ?? this.birthingForm.bornAlive;
+    const alive = Math.max(0, Number(rawCount) || 0);
+    this.birthingForm.bornAlive = alive;
+  }
+
+  resetBirthingForm(): void {
+    this.birthingForm = {
+      damId: '',
+      pregnancyId: '',
+      birthDate: new Date().toISOString().substring(0, 10),
+      difficulty: 'Normal',
+      bornAlive: 0,
+      bornDead: 0,
+      mummified: 0,
+      litterWeight: null,
+      notes: '',
+    };
+    this._offspringList = [];
   }
 
   loadData(): void {
@@ -139,15 +187,19 @@ export class BreedingDashboardComponent implements OnInit {
       damId: this.serviceForm.damId,
       serviceType: this.serviceForm.serviceType,
       serviceDate: this.serviceForm.serviceDate,
-      technician: this.serviceForm.technician,
-      notes: this.serviceForm.notes,
+      technician: this.serviceForm.technician?.trim() || null,
+      notes: this.serviceForm.notes?.trim() || null,
       bodyConditionScore: this.serviceForm.bodyConditionScore
     };
 
     if (this.serviceForm.serviceType === 'ArtificialInsemination') {
-      payload.strawId = this.serviceForm.strawId;
+      if (this.serviceForm.strawId && this.serviceForm.strawId.trim() !== '') {
+        payload.strawId = this.serviceForm.strawId.trim();
+      }
     } else {
-      payload.sireAnimalId = this.serviceForm.sireAnimalId;
+      if (this.serviceForm.sireAnimalId && this.serviceForm.sireAnimalId.trim() !== '') {
+        payload.sireAnimalId = this.serviceForm.sireAnimalId.trim();
+      }
     }
 
     this.api.registerBreedingService(payload).subscribe({
@@ -186,17 +238,52 @@ export class BreedingDashboardComponent implements OnInit {
     this.errorMessage = '';
     this.successMessage = '';
 
-    const { calfFarmTag, calfSex, ...payload } = this.birthingForm as any;
-    if (this.birthingForm.bornAlive > 0 && calfFarmTag) {
-      payload.offspring = [
-        { childId: crypto.randomUUID(), farmTag: calfFarmTag, sex: calfSex }
-      ];
+    const bornAlive = Number(this.birthingForm.bornAlive) || 0;
+    const bornDead = Number(this.birthingForm.bornDead) || 0;
+    const mummified = Number(this.birthingForm.mummified) || 0;
+
+    const payload: any = {
+      damId: this.birthingForm.damId,
+      birthDate: this.birthingForm.birthDate,
+      difficulty: this.birthingForm.difficulty,
+      bornAlive,
+      bornDead,
+      mummified
+    };
+
+    if (this.birthingForm.pregnancyId && this.birthingForm.pregnancyId.trim() !== '') {
+      payload.pregnancyId = this.birthingForm.pregnancyId.trim();
+    }
+
+    if (this.birthingForm.litterWeight && Number(this.birthingForm.litterWeight) > 0) {
+      payload.litterWeight = Number(this.birthingForm.litterWeight);
+    }
+
+    if (this.birthingForm.notes && this.birthingForm.notes.trim() !== '') {
+      payload.notes = this.birthingForm.notes.trim();
+    }
+
+    if (bornAlive > 0 && this.offspringList.length > 0) {
+      payload.offspring = this.offspringList
+        .slice(0, bornAlive)
+        .map((o) => ({
+          childId: crypto.randomUUID(),
+          farmTag: o.farmTag && o.farmTag.trim() !== '' ? o.farmTag.trim() : null,
+          sex: o.sex || 'F',
+          birthWeightKg:
+            o.birthWeightKg != null &&
+            o.birthWeightKg !== ('' as any) &&
+            Number(o.birthWeightKg) > 0
+              ? Number(o.birthWeightKg)
+              : null
+        }));
     }
 
     this.api.recordBirthing(payload).subscribe({
       next: () => {
         this.loading = false;
         this.successMessage = 'Parto y crías registrados exitosamente.';
+        this.resetBirthingForm();
         this.loadData();
       },
       error: (err) => {

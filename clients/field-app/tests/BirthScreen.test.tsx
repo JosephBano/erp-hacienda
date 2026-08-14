@@ -193,4 +193,27 @@ describe('BirthScreen — calf management', () => {
     expect(screen.getByText(/M: 3/)).toBeTruthy();
     expect(screen.getByText(/F: 2/)).toBeTruthy();
   });
+
+  it('allows entering farm tag and birth weight for offspring', async () => {
+    await render(<BirthScreen service={buildService()} dams={[{ animalId: 'dam-1', label: 'La Pinta' }]} sires={[]} />);
+
+    await pickDam();
+    await tapAdd('female');
+    await tapAdd('male');
+
+    await act(async () => {
+      fireEvent.changeText(screen.getByTestId('offspring-tag-0'), 'LECHON-01');
+      fireEvent.changeText(screen.getByTestId('offspring-weight-0'), '1.45');
+      fireEvent.changeText(screen.getByTestId('offspring-tag-1'), 'LECHON-02');
+      fireEvent.changeText(screen.getByTestId('offspring-weight-1'), '1.60');
+    });
+
+    await tap('confirm-birth');
+
+    await waitFor(() => expect(recordBirth).toHaveBeenCalledTimes(1));
+    expect(recordBirth.mock.calls[0][0].offspring).toEqual([
+      { sex: 'F', farmTag: 'LECHON-01', birthWeightKg: 1.45 },
+      { sex: 'M', farmTag: 'LECHON-02', birthWeightKg: 1.6 },
+    ]);
+  });
 });

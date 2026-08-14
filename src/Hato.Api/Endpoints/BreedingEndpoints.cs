@@ -51,6 +51,18 @@ public static class BreedingEndpoints
             return Results.Created($"/api/v1/breeding/birthings/{birthing.Id}", birthing);
         });
 
+        // The read-side of the partos/camadas feature (PLAN-FASE-3-5-PORCINO.md sec.3.5a.4):
+        // the field-app and the panel have always been able to register a birthing, but
+        // there was no way to list the ones already on file. This endpoint powers the
+        // "Partos" tab in the breeding dashboard — most-recent-first, with the dam's
+        // farm tag and the offspring rows so the panel can show the per-calf birth
+        // weight the operator typed at registration time.
+        group.MapGet("/birthings", async (ISender sender) =>
+        {
+            var items = await sender.Send(new GetBirthingsQuery());
+            return Results.Ok(items);
+        });
+
         group.MapPost("/weanings", async (RecordWeaningCommand command, ISender sender) =>
         {
             var birthing = await sender.Send(command);

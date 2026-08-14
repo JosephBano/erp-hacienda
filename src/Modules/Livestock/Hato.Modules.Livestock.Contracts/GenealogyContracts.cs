@@ -70,16 +70,66 @@ public interface IAnimalSpeciesReader
     /// application layer can refuse cohort weaning with a clear message instead of
     /// silently defaulting to 24. The cohort window is the only addition relative to
     /// <see cref="GetGestationDaysAsync"/>; it is what decides whether a new birthing
-    /// joins an open cohort or opens its own.
+    /// joins an existing cohort or opens a new one.
     /// </summary>
     Task<SpeciesLactationProfile?> GetLactationProfileAsync(Guid speciesId, CancellationToken cancellationToken);
 }
 
 /// <summary>
-/// Lactation and cohort parameters for a species, as configured by the operator in the
-/// panel. Backs the nursing cohort feature (3.5a.4): <c>DaysOfLactation</c> is added to
-/// the cohort's latest birth to get the weaning date; <c>CohortWindowDays</c> is the
-/// window during which a new birth joins the existing cohort instead of opening a new one.
+/// Lightweight projection of an offspring row (sex, optional birth weight, optional
+/// farm tag) for the read-side of a <c>recordBirth</c> flow. Carries no entity identity
+/// beyond the animal id so the panel can render the "Detalle de crías" expansion
+/// without coupling to <c>Livestock.Domain.Animal</c>.
+/// </summary>
+public record BirthingOffspringRow(
+    Guid AnimalId,
+    string Sex,
+    decimal? BirthWeightKg,
+    string? FarmTag);
+
+/// <summary>
+/// Read bundle for a single birthing: dam farm tag + the list of offspring rows.
+/// The dam farm tag is empty-string-friendly (null when the animal has no active
+/// FarmTag) so the caller can render either "—" or the actual tag.
+/// </summary>
+public record BirthingOffspringBundle(
+    string? DamFarmTag,
+    IReadOnlyList<BirthingOffspringRow> Offspring);
+
+/// <summary>
+/// Public read port used by Breeding to populate <c>BirthingListItemDto</c> with
+/// the dam's farm tag and the offspring rows for the panel "Partos" tab, without
+/// Breeding depending on <c>Livestock.Application.Abstractions</c> (Art. 6). The
+/// caller passes the (birthingId, damId) pairs because the canonical source for
+/// dam ids is <c>breeding.birthings.dam_id</c>, not <c>livestock.animals</c>.
+/// </summary>
+public interface IBirthingOffspringReader
+{
+    /// <summary>
+    /// For each (birthingId, damId) pair, returns the dam's currently-active
+    /// <see cref="IdentifierType.FarmTag"/> (null if absent) and the non-deleted
+    /// offspring rows whose <c>BirthingId</c> matches. Birthings with no offspring
+    /// yield an empty offspring list. Two SQL round-trips total no matter how many
+    /// pairs are supplied.
+    /// </summary>
+    Task<IReadOnlyDictionary<Guid, BirthingOffspringBundle>> GetForBirthingPairsAsync(
+        IReadOnlyCollection<BirthingDamPair> pairs,
+        CancellationToken cancellationToken);
+}
+
+/// <summary>
+/// One row of the input to <see cref="IBirthingOffspringReader.GetForBirthingPairsAsync"/>:
+/// which dam goes with which birthing. Lives in Contracts because the producer
+/// (Breeding handler) and the consumer (the reader implementation) need to agree
+/// on the shape; the data is already known on the producer side.
+/// </summary>
+public record BirthingDamPair(Guid BirthingId, Guid DamId);
+
+/// <summary>
+/// Lactation and cohort parameters of a species, as configured by the operator in the
+/// panel. Backs the nursing cohort feature (3.5a.4): <c>DaysOfLactation</c> is added
+/// to the cohort's latest birth to get the weaning date; <c>CohortWindowDays</c> is
+/// the window during which a new birth joins the existing cohort instead of opening a new one.
 /// </summary>
 public record SpeciesLactationProfile(
     Guid SpeciesId,

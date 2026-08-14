@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnInit, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { AlertDto, Animal, ApiService, PregnancyDto, SemenStraw } from '../../services/api.service';
+import { AlertDto, Animal, ApiService, BirthingListItem, BirthingListOffspring, PregnancyDto, SemenStraw } from '../../services/api.service';
 import { IconComponent } from '../../shared/icon/icon.component';
 
 export interface OffspringFormItem {
@@ -35,13 +35,18 @@ function safeRandomUuid(): string {
 export class BreedingDashboardComponent implements OnInit {
   private api = inject(ApiService);
 
-  activeTab: 'alerts' | 'pregnancies' | 'service' | 'straws' = 'alerts';
+  activeTab: 'alerts' | 'pregnancies' | 'service' | 'straws' | 'partos' = 'alerts';
 
   // Data
   alerts: AlertDto[] = [];
   pregnancies: PregnancyDto[] = [];
   straws: SemenStraw[] = [];
   animals: Animal[] = [];
+  birthings: BirthingListItem[] = [];
+
+  // UI state for the "Detalle de crías" expansion in the Partos tab. Keyed by
+  // birthing id so each row independently tracks whether the operator opened it.
+  expandedBirthings = new Set<string>();
 
   // Form states
   loading = false;
@@ -169,6 +174,23 @@ export class BreedingDashboardComponent implements OnInit {
       },
       error: () => (this.loading = false)
     });
+
+    this.api.getBirthings().subscribe({
+      next: (data) => (this.birthings = data),
+      error: (err) => console.error(err)
+    });
+  }
+
+  toggleBirthingDetail(birthingId: string): void {
+    if (this.expandedBirthings.has(birthingId)) {
+      this.expandedBirthings.delete(birthingId);
+    } else {
+      this.expandedBirthings.add(birthingId);
+    }
+  }
+
+  isBirthingExpanded(birthingId: string): boolean {
+    return this.expandedBirthings.has(birthingId);
   }
 
   refreshAlerts(): void {

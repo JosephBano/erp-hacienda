@@ -67,6 +67,37 @@ public record BirthingDto(
     Guid? NursingCohortId = null
 );
 
+/// <summary>
+/// Read-side projection of a birthing for the panel "Partos" list. Includes the dam's
+/// farm tag and the offspring rows (animal id, sex, optional birth weight) so the
+/// panel can show the user what they just registered — the birth weight in
+/// particular is the data point that motivated this DTO (PLAN-FASE-3-5-PORCINO.md
+/// sec.3.5a.4 task 3). Separate from <see cref="BirthingDto"/> so write-side and
+/// list-side contracts can evolve independently.
+/// </summary>
+public record BirthingListItemDto(
+    Guid Id,
+    Guid DamId,
+    string? DamFarmTag,
+    DateOnly BirthDate,
+    string Difficulty,
+    int TotalBorn,
+    int BornAlive,
+    int BornDead,
+    int Mummified,
+    decimal? LitterWeight,
+    string? Notes,
+    Guid? NursingCohortId,
+    DateOnly? WeanedAt,
+    int? WeanedCount,
+    List<BirthingListOffspringDto> Offspring);
+
+public record BirthingListOffspringDto(
+    Guid AnimalId,
+    string? FarmTag,
+    string Sex,
+    decimal? BirthWeightKg);
+
 public record NursingCohortDto(
     Guid Id,
     Guid SpeciesId,

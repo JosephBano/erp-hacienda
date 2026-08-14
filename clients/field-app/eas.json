@@ -23,7 +23,7 @@
         "buildType": "apk"
       },
       "env": {
-        "EXPO_PUBLIC_API_URL": "http://100.101.240.44:5282"
+        "EXPO_PUBLIC_API_URL": "http://100.121.210.68:8080"
       }
     },
     "production": {
@@ -32,7 +32,7 @@
         "buildType": "app-bundle"
       },
       "env": {
-        "EXPO_PUBLIC_API_URL": "http://100.101.240.44:5282"
+        "EXPO_PUBLIC_API_URL": "http://100.121.210.68:8080"
       }
     },
     "base": {

@@ -10,6 +10,21 @@ export interface OffspringFormItem {
   birthWeightKg: number | null;
 }
 
+function safeRandomUuid(): string {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    try {
+      return crypto.randomUUID();
+    } catch {
+      // Fallback for non-secure HTTP context
+    }
+  }
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    const v = c === 'x' ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+}
+
 @Component({
   selector: 'app-breeding-dashboard',
   standalone: true,
@@ -234,62 +249,79 @@ export class BreedingDashboardComponent implements OnInit {
   }
 
   submitBirthing(): void {
-    this.loading = true;
-    this.errorMessage = '';
-    this.successMessage = '';
+    try {
+      this.loading = true;
+      this.errorMessage = '';
+      this.successMessage = '';
 
-    const bornAlive = Number(this.birthingForm.bornAlive) || 0;
-    const bornDead = Number(this.birthingForm.bornDead) || 0;
-    const mummified = Number(this.birthingForm.mummified) || 0;
-
-    const payload: any = {
-      damId: this.birthingForm.damId,
-      birthDate: this.birthingForm.birthDate,
-      difficulty: this.birthingForm.difficulty,
-      bornAlive,
-      bornDead,
-      mummified
-    };
-
-    if (this.birthingForm.pregnancyId && this.birthingForm.pregnancyId.trim() !== '') {
-      payload.pregnancyId = this.birthingForm.pregnancyId.trim();
-    }
-
-    if (this.birthingForm.litterWeight && Number(this.birthingForm.litterWeight) > 0) {
-      payload.litterWeight = Number(this.birthingForm.litterWeight);
-    }
-
-    if (this.birthingForm.notes && this.birthingForm.notes.trim() !== '') {
-      payload.notes = this.birthingForm.notes.trim();
-    }
-
-    if (bornAlive > 0 && this.offspringList.length > 0) {
-      payload.offspring = this.offspringList
-        .slice(0, bornAlive)
-        .map((o) => ({
-          childId: crypto.randomUUID(),
-          farmTag: o.farmTag && o.farmTag.trim() !== '' ? o.farmTag.trim() : null,
-          sex: o.sex || 'F',
-          birthWeightKg:
-            o.birthWeightKg != null &&
-            o.birthWeightKg !== ('' as any) &&
-            Number(o.birthWeightKg) > 0
-              ? Number(o.birthWeightKg)
-              : null
-        }));
-    }
-
-    this.api.recordBirthing(payload).subscribe({
-      next: () => {
+      if (!this.birthingForm.damId) {
+        this.errorMessage = 'Debe seleccionar una madre para registrar el parto.';
         this.loading = false;
-        this.successMessage = 'Parto y crías registrados exitosamente.';
-        this.resetBirthingForm();
-        this.loadData();
-      },
-      error: (err) => {
-        this.loading = false;
-        this.errorMessage = err.error?.detail || 'Error al registrar parto.';
+        return;
       }
-    });
+
+      const bornAlive = Number(this.birthingForm.bornAlive) || 0;
+      const bornDead = Number(this.birthingForm.bornDead) || 0;
+      const mummified = Number(this.birthingForm.mummified) || 0;
+
+      if (bornAlive + bornDead + mummified <= 0) {
+        this.errorMessage = 'El total de nacidos (vivos, muertos o momias) debe ser mayor a cero.';
+        this.loading = false;
+        return;
+      }
+
+      const payload: any = {
+        damId: this.birthingForm.damId,
+        birthDate: this.birthingForm.birthDate || new Date().toISOString().substring(0, 10),
+        difficulty: this.birthingForm.difficulty || 'Normal',
+        bornAlive,
+        bornDead,
+        mummified
+      };
+
+      if (this.birthingForm.pregnancyId && this.birthingForm.pregnancyId.trim() !== '') {
+        payload.pregnancyId = this.birthingForm.pregnancyId.trim();
+      }
+
+      if (this.birthingForm.litterWeight && Number(this.birthingForm.litterWeight) > 0) {
+        payload.litterWeight = Number(this.birthingForm.litterWeight);
+      }
+
+      if (this.birthingForm.notes && this.birthingForm.notes.trim() !== '') {
+        payload.notes = this.birthingForm.notes.trim();
+      }
+
+      if (bornAlive > 0 && this.offspringList.length > 0) {
+        payload.offspring = this.offspringList
+          .slice(0, bornAlive)
+          .map((o) => ({
+            childId: safeRandomUuid(),
+            farmTag: o.farmTag && o.farmTag.trim() !== '' ? o.farmTag.trim() : null,
+            sex: o.sex || 'F',
+            birthWeightKg:
+              o.birthWeightKg != null &&
+              o.birthWeightKg !== ('' as any) &&
+              Number(o.birthWeightKg) > 0
+                ? Number(o.birthWeightKg)
+                : null
+          }));
+      }
+
+      this.api.recordBirthing(payload).subscribe({
+        next: () => {
+          this.loading = false;
+          this.successMessage = 'Parto y crías registrados exitosamente.';
+          this.resetBirthingForm();
+          this.loadData();
+        },
+        error: (err) => {
+          this.loading = false;
+          this.errorMessage = err.error?.detail || err.message || 'Error al registrar parto.';
+        }
+      });
+    } catch (err: any) {
+      this.loading = false;
+      this.errorMessage = `Error inesperado: ${err?.message || err}`;
+    }
   }
 }

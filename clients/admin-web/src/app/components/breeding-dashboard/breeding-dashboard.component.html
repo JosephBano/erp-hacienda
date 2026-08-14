@@ -219,9 +219,9 @@
               <thead>
                 <tr>
                   <th style="width: 45px;">#</th>
-                  <th>Arete / Código</th>
+                  <th>Arete / Código (opcional)</th>
                   <th style="width: 130px;">Sexo</th>
-                  <th style="width: 150px;">Primer Peso (kg)</th>
+                  <th style="width: 160px;">Primer Peso kg (opcional)</th>
                 </tr>
               </thead>
               <tbody>
@@ -251,11 +251,9 @@
                   <td data-label="Primer Peso (kg)">
                     <input
                       type="number"
-                      step="0.01"
-                      min="0.01"
+                      step="any"
                       [(ngModel)]="off.birthWeightKg"
                       [name]="'bCalfWeight_' + i"
-                      [attr.name]="'bCalfWeight_' + i"
                       placeholder="p.ej. 1.40"
                       class="form-control"
                     />
@@ -268,7 +266,7 @@
 
         <button type="submit" class="btn btn-success btn-block" [disabled]="loading">
           <app-icon name="save" size="sm" />
-          Guardar Parto
+          {{ loading ? 'Guardando...' : 'Guardar Parto' }}
         </button>
       </form>
     </div>

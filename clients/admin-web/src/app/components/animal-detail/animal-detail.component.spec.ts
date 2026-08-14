@@ -17,6 +17,7 @@ const animalInWithdrawal: AnimalDetail = {
   status: 'Active',
   isInWithdrawal: true,
   withdrawalUntil: '2026-08-10',
+  birthWeightKg: 1.45,
   events: [
     {
       id: 'event-1',
@@ -160,5 +161,24 @@ describe('AnimalDetailComponent', () => {
 
     expect(tabLabels.some((label) => label.includes('Producción de Leche'))).toBe(true);
     expect(tabLabels.join(' ')).not.toMatch(/capacidad/i);
+  });
+
+  it('should surface the birth weight recorded at the animal\'s registration', () => {
+    // Pin the readout that the user asked for: a criar pesó N kg al nacer, the panel
+    // must show it on the detail card so the gilt-selection sort key is reachable
+    // from a single click (PLAN-FASE-3-5-PORCINO.md sec.3.5a.4 task 3).
+    const fixture = renderAnimalDetail();
+    const root = fixture.nativeElement as HTMLElement;
+    const cards = [...root.querySelectorAll<HTMLElement>('.info-card')];
+    const birthWeightCard = cards.find((c) =>
+      /peso al nacer/i.test(c.textContent ?? ''),
+    );
+
+    expect(
+      birthWeightCard,
+      'expected an info card labelled "Peso al nacer"',
+    ).not.toBeUndefined();
+    expect(birthWeightCard!.textContent ?? '').toContain('1.45');
+    expect(birthWeightCard!.textContent ?? '').toContain('kg');
   });
 });

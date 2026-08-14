@@ -41,6 +41,14 @@
       <span class="info-label">Categoría</span>
       <span class="info-value">{{ animal.categoryName }}</span>
     </div>
+    <div class="glass-card info-card" *ngIf="animal.birthDate || animal.birthWeightKg != null">
+      <span class="info-label">Fecha de nacimiento</span>
+      <span class="info-value">{{ animal.birthDate || '—' }}</span>
+    </div>
+    <div class="glass-card info-card" *ngIf="animal.birthWeightKg != null">
+      <span class="info-label">Peso al nacer</span>
+      <span class="info-value"><strong>{{ animal.birthWeightKg | number:'1.2-3' }}</strong> kg</span>
+    </div>
   </div>
 
   <div class="tabs-container" role="tablist" aria-label="Secciones de la ficha del animal">

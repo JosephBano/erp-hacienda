@@ -38,6 +38,10 @@
       <app-icon name="dna" size="sm" />
       Catálogo de Pajuelas ({{ straws.length }})
     </button>
+    <button type="button" role="tab" class="tab-btn" [class.active]="activeTab === 'partos'" [attr.aria-selected]="activeTab === 'partos'" (click)="activeTab = 'partos'">
+      <app-icon name="pig" size="sm" />
+      Partos / Camadas Registradas ({{ birthings.length }})
+    </button>
   </div>
 
   <!-- Tab 1: Alertas -->
@@ -321,6 +325,77 @@
         </div>
         <button type="submit" class="btn btn-primary btn-block"><app-icon name="save" size="sm" /> Guardar Pajuela</button>
       </form>
+    </div>
+  </div>
+
+  <!-- Tab 5: Partos / Camadas Registradas (read-side of the birthing feature) -->
+  <div *ngIf="activeTab === 'partos'" class="tab-content">
+    <div class="table-card">
+      <table class="data-table responsive-table" data-testid="partos-table">
+        <thead>
+          <tr>
+            <th>Fecha parto</th>
+            <th>Madre</th>
+            <th>Nacidos</th>
+            <th>Vivos</th>
+            <th>Muertos</th>
+            <th>Momias</th>
+            <th>Detalle</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngIf="birthings.length === 0" class="empty-row">
+            <td colspan="7" data-label="Estado" class="text-center">No hay partos registrados todavía.</td>
+          </tr>
+          <ng-container *ngFor="let b of birthings">
+            <tr>
+              <td data-label="Fecha parto"><span class="highlight-date"><app-icon name="calendar" size="sm" /> {{ b.birthDate }}</span></td>
+              <td data-label="Madre"><strong>{{ b.damFarmTag || b.damId }}</strong></td>
+              <td data-label="Nacidos">{{ b.totalBorn }}</td>
+              <td data-label="Vivos">{{ b.bornAlive }}</td>
+              <td data-label="Muertos">{{ b.bornDead }}</td>
+              <td data-label="Momias">{{ b.mummified }}</td>
+              <td data-label="Detalle">
+                <button
+                  type="button"
+                  class="btn btn-sm btn-outline"
+                  [attr.aria-expanded]="isBirthingExpanded(b.id)"
+                  [attr.data-testid]="'partos-toggle-' + b.id"
+                  (click)="toggleBirthingDetail(b.id)"
+                >
+                  {{ isBirthingExpanded(b.id) ? 'Ocultar' : 'Ver crías (' + b.offspring.length + ')' }}
+                </button>
+              </td>
+            </tr>
+            <tr *ngIf="isBirthingExpanded(b.id)" [attr.data-testid]="'partos-detail-' + b.id">
+              <td colspan="7" data-label="Detalle de crías">
+                <div *ngIf="b.offspring.length === 0" class="text-muted">Esta camada se registró solo con totales (sin grilla individual).</div>
+                <table *ngIf="b.offspring.length > 0" class="data-table responsive-table" data-testid="partos-offspring-table">
+                  <thead>
+                    <tr>
+                      <th>#</th>
+                      <th>Sexo</th>
+                      <th>Arete</th>
+                      <th>Peso al nacer (kg)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr *ngFor="let o of b.offspring; let i = index">
+                      <td data-label="#" class="text-center font-bold">{{ i + 1 }}</td>
+                      <td data-label="Sexo">{{ o.sex }}</td>
+                      <td data-label="Arete">{{ o.farmTag || '—' }}</td>
+                      <td data-label="Peso al nacer (kg)">
+                        <span *ngIf="o.birthWeightKg != null"><strong>{{ o.birthWeightKg | number:'1.2-3' }}</strong> kg</span>
+                        <span *ngIf="o.birthWeightKg == null" class="text-muted">No pesado</span>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </td>
+            </tr>
+          </ng-container>
+        </tbody>
+      </table>
     </div>
   </div>
 </div>

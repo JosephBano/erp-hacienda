@@ -9,6 +9,13 @@ export interface Animal {
   officialTag?: string;
   name?: string;
   birthDate?: string;
+  /**
+   * Initial weight (kg) recorded at birth. Null for animals whose birth was not
+   * weighed or were registered before 3.5a.4 (PLAN-FASE-3-5-PORCINO.md sec.3.5a.4
+   * task 3). Surface only on detail views — not on list rows — to keep the list
+   * lean.
+   */
+  birthWeightKg?: number | null;
   gender: string;
   speciesName?: string;
   breedName?: string;
@@ -263,6 +270,31 @@ export interface BirthingDto {
   createdAt: string;
   weanedAt?: string;
   weanedCount?: number;
+}
+
+export interface BirthingListOffspring {
+  animalId: string;
+  farmTag?: string | null;
+  sex: string;
+  birthWeightKg?: number | null;
+}
+
+export interface BirthingListItem {
+  id: string;
+  damId: string;
+  damFarmTag?: string | null;
+  birthDate: string;
+  difficulty: string;
+  totalBorn: number;
+  bornAlive: number;
+  bornDead: number;
+  mummified: number;
+  litterWeight?: number | null;
+  notes?: string | null;
+  nursingCohortId?: string | null;
+  weanedAt?: string | null;
+  weanedCount?: number | null;
+  offspring: BirthingListOffspring[];
 }
 
 export interface AncestorDto {
@@ -595,6 +627,10 @@ export class ApiService {
 
   recordBirthing(data: any): Observable<BirthingDto> {
     return this.http.post<BirthingDto>(`${this.baseUrl}/breeding/birthings`, data);
+  }
+
+  getBirthings(): Observable<BirthingListItem[]> {
+    return this.http.get<BirthingListItem[]>(`${this.baseUrl}/breeding/birthings`);
   }
 
   recordWeaning(data: { birthingId: string; weaningDate: string; weanedCount: number; notes?: string }): Observable<BirthingDto> {

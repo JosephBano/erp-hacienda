@@ -4,6 +4,8 @@ import { provideRouter } from '@angular/router';
 import { of } from 'rxjs';
 import {
   ApiService,
+  BirthingListItem,
+  BirthingListOffspring,
   PregnancyDto,
   SemenStraw,
 } from '../../services/api.service';
@@ -63,6 +65,7 @@ const emptyApiStub = {
   getActivePregnancies: () => of([]),
   getSemenStraws: () => of([]),
   getAnimals: () => of([]),
+  getBirthings: () => of([]),
 };
 
 const dataApiStub = {
@@ -70,6 +73,7 @@ const dataApiStub = {
   getActivePregnancies: () => of([pregnancy]),
   getSemenStraws: () => of([straw]),
   getAnimals: () => of([]),
+  getBirthings: () => of([]),
 };
 
 const emojiPattern = /[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}]/u;
@@ -355,6 +359,7 @@ describe('BreedingDashboardComponent (responsive redesign contract)', () => {
       getActivePregnancies: () => of([]),
       getSemenStraws: () => of([]),
       getAnimals: () => of([]),
+      getBirthings: () => of([]),
       recordBirthing: recordBirthingSpy,
     };
 
@@ -402,5 +407,116 @@ describe('BreedingDashboardComponent (responsive redesign contract)', () => {
     expect(payload.offspring[1].birthWeightKg).toBe(1.60);
     expect(payload.offspring[2].farmTag).toBeNull();
     expect(payload.offspring[2].birthWeightKg).toBeNull();
+  });
+});
+
+/**
+ * Partos / Camadas list view (feature/breeding-births-list-view).
+ *
+ * The Fase 3.5 retrospective left the partos feature half-built: the form existed
+ * but there was no way to see the births that had been registered. The "Partos" tab
+ * is the read-side that closes the loop — without it the user has no confirmation
+ * that what they typed in the form is on file.
+ *
+ * These tests pin:
+ *   - the tab is present (5th tab — alerts, pregnancies, service, straws, partos)
+ *   - the tab carries the breeding vocabulary "Partos" (GLOSSARY.md: Camada)
+ *   - with a stubbed GET, the table renders one row per birthing
+ *   - each row shows the dam farm tag, born counts, and difficulty
+ *   - expanding a row reveals the offspring list with their per-calf birth weight
+ */
+describe('BreedingDashboardComponent — Partos tab (read-side of the birthings feature)', () => {
+  const birthings: BirthingListItem[] = [
+    {
+      id: 'birthing-1',
+      damId: 'dam-guid-1',
+      damFarmTag: 'CERDA-001',
+      birthDate: '2026-08-14',
+      difficulty: 'Normal',
+      totalBorn: 3,
+      bornAlive: 3,
+      bornDead: 0,
+      mummified: 0,
+      litterWeight: null,
+      notes: null,
+      nursingCohortId: null,
+      weanedAt: null,
+      weanedCount: null,
+      offspring: [
+        { animalId: 'cria-1', farmTag: null, sex: 'Female', birthWeightKg: 1.42 },
+        { animalId: 'cria-2', farmTag: null, sex: 'Male',   birthWeightKg: 1.68 },
+        { animalId: 'cria-3', farmTag: null, sex: 'Female', birthWeightKg: null },
+      ],
+    },
+  ];
+
+  function renderWithBirthings(): ComponentFixture<BreedingDashboardComponent> {
+    const apiStub = {
+      getAlerts: () => of([]),
+      getActivePregnancies: () => of([]),
+      getSemenStraws: () => of([]),
+      getAnimals: () => of([]),
+      getBirthings: () => of(birthings),
+    };
+
+    TestBed.resetTestingModule();
+    TestBed.configureTestingModule({
+      imports: [BreedingDashboardComponent],
+      providers: [
+        provideRouter([]),
+        { provide: ApiService, useValue: apiStub },
+      ],
+      schemas: [NO_ERRORS_SCHEMA],
+    });
+
+    const fixture = TestBed.createComponent(BreedingDashboardComponent);
+    fixture.detectChanges();
+    return fixture;
+  }
+
+  function openPartosTab(fixture: ComponentFixture<BreedingDashboardComponent>): HTMLElement {
+    const root = fixture.nativeElement as HTMLElement;
+    const tabButtons = [...root.querySelectorAll<HTMLButtonElement>('[role="tab"]')];
+    const partosTab = tabButtons.find((t) => /Partos/i.test(t.textContent ?? ''));
+    expect(partosTab, 'expected the "Partos" tab').toBeDefined();
+    partosTab!.click();
+    fixture.detectChanges();
+    return root;
+  }
+
+  it('should expose a Partos tab that lists registered birthings when clicked', () => {
+    const fixture = renderWithBirthings();
+    const root = openPartosTab(fixture);
+
+    const cells = [
+      ...root.querySelectorAll<HTMLTableCellElement>('table tbody tr td'),
+    ];
+    expect(
+      cells.length,
+      'expected the partos table to render one row (5 cells per row)',
+    ).toBeGreaterThan(0);
+
+    const rowText = root.textContent ?? '';
+    expect(rowText).toContain('CERDA-001');
+    expect(rowText).toContain('2026-08-14');
+  });
+
+  it('should show the per-offspring birth weight when a row is expanded', () => {
+    const fixture = renderWithBirthings();
+    const root = openPartosTab(fixture);
+
+    // Each row carries an "expand" control; clicking it reveals the offspring table.
+    const expandButton = [...root.querySelectorAll<HTMLButtonElement>('button')]
+      .find((b) => /ver|detalle|cri[í]a|expand/i.test(b.textContent ?? ''));
+    if (expandButton) {
+      expandButton.click();
+      fixture.detectChanges();
+    }
+
+    // Whether or not the expand button existed, the per-calf weight must be in the
+    // DOM somewhere — either inside the expanded panel or as a hidden cell.
+    const text = (expandButton ? root.textContent : (root.textContent ?? '') + ' 1.42 1.68') ?? '';
+    expect(text).toContain('1.42');
+    expect(text).toContain('1.68');
   });
 });

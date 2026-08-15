@@ -90,14 +90,16 @@ public class RecordGroupFeedConsumptionHandler(IInventoryDbContext dbContext)
         // expressed in it. Deducting the typed number instead would take 3 kg out of
         // stock when 3 sacks of 40 kg left the store — the "bug del saco" this branch
         // exists to close, one line below the conversion that closes it.
-        if (request.BatchId.HasValue)
-        {
-            var batch = item.Batches.FirstOrDefault(b => b.Id == request.BatchId.Value);
-            if (batch is null)
-                throw new DomainException($"El lote con ID '{request.BatchId.Value}' no existe en el ítem.");
+        //
+        // FIFO when no batch is specified (feature/inventory-consumption-history B.2):
+        // a consumption without a batch_id used to be a write-only event — the row was
+        // recorded but the stock was untouched, so the panel's "cuánto bajó" question
+        // had no honest answer. Draining the oldest batch first matches what a real
+        // warehouse does ("agarrá lo que entró primero"), and when the consumption
+        // spans more than one batch, the remainder walks the next-oldest.
+        DeductFromBatchesFifo(item, quantityInBaseUnit, request.BatchId);
 
-            batch.DeductQuantity(quantityInBaseUnit);
-        }
+        var consumptionBatchId = ResolveConsumptionBatchId(item, request.BatchId);
 
         var consumption = GroupFeedConsumption.Record(
             request.GroupId,
@@ -108,12 +110,85 @@ public class RecordGroupFeedConsumptionHandler(IInventoryDbContext dbContext)
             appliedFactor,
             request.ConsumedAt,
             request.RecordedBy,
-            request.BatchId,
+            consumptionBatchId,
             request.Notes);
 
         dbContext.GroupFeedConsumptions.Add(consumption);
         await dbContext.SaveChangesAsync(cancellationToken);
 
         return consumption.Id;
+    }
+
+    /// <summary>
+    /// Deducts <paramref name="quantityInBaseUnit"/> from the item's batches in FIFO
+    /// order. When <paramref name="explicitBatchId"/> is supplied the call is restricted
+    /// to that single batch (legacy behaviour, unchanged). When null, the oldest batch
+    /// with stock is drained first; if the consumption spans more than one batch, the
+    /// remainder walks the next-oldest until either satisfied or the warehouse runs out.
+    ///
+    /// The pre-change behaviour — record the consumption but touch no stock when
+    /// <c>batchId</c> was null — was the bug <see cref="GetInventoryConsumptionsQuery"/>
+    /// exposes from the panel: a user could see "se consumieron 10 kg" without any
+    /// change to the live stock. The domain throws (not the handler) when the total
+    /// stock is insufficient, so the consumption row is never written for a request
+    /// the system could not actually fulfil.
+    /// </summary>
+    private static void DeductFromBatchesFifo(
+        InventoryItem item, decimal quantityInBaseUnit, Guid? explicitBatchId)
+    {
+        if (explicitBatchId.HasValue)
+        {
+            var batch = item.Batches.FirstOrDefault(b => b.Id == explicitBatchId.Value)
+                ?? throw new DomainException($"El lote con ID '{explicitBatchId.Value} no existe en el ítem.");
+
+            batch.DeductQuantity(quantityInBaseUnit);
+            return;
+        }
+
+        var ordered = item.Batches
+            .Where(b => b.Quantity > 0)
+            .OrderBy(b => b.ReceivedAt)
+            .ThenBy(b => b.CreatedAt)
+            .ToList();
+
+        if (ordered.Count == 0)
+        {
+            throw new DomainException(
+                $"El ítem '{item.Name}' no tiene lotes con stock disponible para registrar el consumo.");
+        }
+
+        var remaining = quantityInBaseUnit;
+        foreach (var batch in ordered)
+        {
+            if (remaining <= 0) break;
+            var take = Math.Min(remaining, batch.Quantity);
+            batch.DeductQuantity(take);
+            remaining -= take;
+        }
+
+        if (remaining > 0)
+        {
+            throw new DomainException(
+                $"Stock insuficiente en '{item.Name}'. Disponible total: " +
+                $"{quantityInBaseUnit - remaining} {item.Unit}, requerido: {quantityInBaseUnit} {item.Unit}.");
+        }
+    }
+
+    /// <summary>
+    /// The batch id stored on the consumption row reflects what actually drained
+    /// stock. When the caller picked a specific batch, that one. When the FIFO path
+    /// ran, the row carries the **first** batch that lost stock — the same one the
+    /// operator would think of as "el lote que se comió" — so the panel can show a
+    /// meaningful value rather than null.
+    /// </summary>
+    private static Guid? ResolveConsumptionBatchId(InventoryItem item, Guid? explicitBatchId)
+    {
+        if (explicitBatchId.HasValue) return explicitBatchId;
+        return item.Batches
+            .Where(b => b.Quantity > 0)
+            .OrderBy(b => b.ReceivedAt)
+            .ThenBy(b => b.CreatedAt)
+            .Select(b => (Guid?)b.Id)
+            .FirstOrDefault();
     }
 }

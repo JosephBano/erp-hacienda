@@ -25,6 +25,10 @@ public class SyncPushFeedConsumptionTests(SyncApiFactory factory)
         var context = await SyncTestContext.CreateAsync(factory, "push-feedconsumption");
         var groupId = await context.CreateGroupAsync("Engorde", trackingMode: "Headcount");
         var itemId = await context.CreateInventoryItemAsync(category: "Feed", unit: "kg");
+        // FIFO deduction (feature/inventory-consumption-history B.2) requires stock
+        // to exist on the item — otherwise the consumption is rejected with
+        // "stock insuficiente". Set up a batch the consumption can drain.
+        await context.CreateInventoryBatchAsync(itemId, "L-TEST", 200m);
 
         var result = await context.PushAsync("recordFeedConsumption", new
         {
@@ -72,6 +76,8 @@ public class SyncPushFeedConsumptionTests(SyncApiFactory factory)
         var context = await SyncTestContext.CreateAsync(factory, "push-feedconsumption-dedupe");
         var groupId = await context.CreateGroupAsync("Engorde", trackingMode: "Headcount");
         var itemId = await context.CreateInventoryItemAsync(category: "Feed", unit: "kg");
+        // See CreateGroupFeedConsumptionWithExactFields above — B.2 needs stock.
+        await context.CreateInventoryBatchAsync(itemId, "L-TEST", 50m);
         var operationId = Guid.NewGuid();
 
         var payload = new

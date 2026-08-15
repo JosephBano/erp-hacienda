@@ -105,6 +105,17 @@ public static class InventoryEndpoints
             return Results.Created($"/api/v1/inventory/feed-consumptions/{id}", new { id });
         });
 
+        // Read-side of the consumption feature (feature/inventory-consumption-history).
+        // The panel's "Consumos registrados" section under each item detail calls this
+        // to render the history the operator asked for ("cuánto bajó del inventario y demás").
+        // Returns 404 when the item id is unknown, 200 + [] when the item is real but
+        // has no consumptions yet.
+        group.MapGet("/items/{itemId:guid}/consumptions", async (Guid itemId, ISender sender) =>
+        {
+            var rows = await sender.Send(new GetInventoryConsumptionsQuery(itemId));
+            return Results.Ok(rows);
+        });
+
         // Feed stage catalog (PLAN-FASE-3-5-PORCINO.md sec.3.5a.5 task 3): preiniciador,
         // iniciador, crecimiento, engorde, gestación, lactancia. Listing only for now —
         // no consumer needs to create/deactivate stages yet (see BACKLOG.md).

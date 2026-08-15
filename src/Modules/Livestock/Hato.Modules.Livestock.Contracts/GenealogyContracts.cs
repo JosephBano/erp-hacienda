@@ -135,3 +135,25 @@ public record SpeciesLactationProfile(
     Guid SpeciesId,
     int? DaysOfLactation,
     int? CohortWindowDays);
+
+/// <summary>
+/// Minimal projection of an <c>AnimalGroup</c> for cross-module read consumers
+/// that only need the display name (consumption history panels, pedigree headers,
+/// KPI dashboards). The full group detail stays in Livestock; this contract exists
+/// so Inventory can render "Lote X comió Y" without coupling to the livestock
+/// DbContext (Art. 6).
+/// </summary>
+public record AnimalGroupSummary(Guid Id, string Name);
+
+/// <summary>
+/// Public read port used by Inventory to label consumption rows with the group name
+/// ("se consumieron 10 kg para LOTE-A1"). One round-trip for the whole set, keyed by
+/// group id — the same batching trick the breeding read port uses for its
+/// offspring/dam lookups.
+/// </summary>
+public interface IAnimalGroupSummaryReader
+{
+    Task<IReadOnlyDictionary<Guid, AnimalGroupSummary>> GetByIdsAsync(
+        IReadOnlyCollection<Guid> groupIds,
+        CancellationToken cancellationToken);
+}

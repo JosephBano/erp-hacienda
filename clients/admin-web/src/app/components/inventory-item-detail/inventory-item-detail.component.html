@@ -74,5 +74,51 @@
         (changed)="reload()">
       </app-inventory-feed-stage-section>
     </section>
+
+    <!-- Read-side of feature/inventory-consumption-history. Renders the
+         consumption history the operator asked for when they tap an item
+         after a feeding ("cuánto bajó del inventario y demás"). The 30-day
+         KPI is derived client-side from the same list, so the panel and the
+         KPI cannot drift apart. -->
+    <section class="glass-card" data-testid="consumptions-section">
+      <div class="card-header">
+        <h2>Consumos registrados</h2>
+        <span class="summary-pill" data-testid="consumptions-30d-kpi">
+          Consumido últimos 30 días: <strong>{{ consumptionLast30DaysKg() | number:'1.0-3' }} {{ current.unit }}</strong>
+        </span>
+      </div>
+      <div *ngIf="consumptions().length === 0" class="empty-state" data-testid="consumptions-empty">
+        Aún no hay consumos registrados para este ítem.
+      </div>
+      <div *ngIf="consumptions().length > 0" class="table-container">
+        <table class="responsive-table" data-testid="consumptions-table">
+          <thead>
+            <tr>
+              <th>Fecha</th>
+              <th>Lote</th>
+              <th>Cantidad registrada</th>
+              <th>En unidad base</th>
+              <th>Registrado por</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let row of consumptions()" data-testid="consumption-row">
+              <td data-label="Fecha">{{ row.consumedAt }}</td>
+              <td data-label="Lote"><strong>{{ row.groupName }}</strong></td>
+              <td data-label="Cantidad registrada">
+                {{ row.quantityRecorded | number:'1.0-3' }} {{ row.unitRecorded }}
+                <span *ngIf="row.appliedFactor !== 1" class="text-muted">
+                  (factor {{ row.appliedFactor }})
+                </span>
+              </td>
+              <td data-label="En unidad base">
+                <strong>{{ row.quantityInBaseUnit | number:'1.0-3' }} {{ current.unit }}</strong>
+              </td>
+              <td data-label="Registrado por">{{ row.recordedByLabel }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
   </ng-container>
 </div>

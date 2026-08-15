@@ -1,8 +1,8 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { forkJoin } from 'rxjs';
-import { ApiService, FeedStageDto, InventoryBatchDto, InventoryItemDetailDto, InventoryUnitConversionDto } from '../../services/api.service';
+import { ApiService, FeedStageDto, InventoryBatchDto, InventoryConsumptionListItem, InventoryItemDetailDto, InventoryUnitConversionDto } from '../../services/api.service';
 import { IconComponent } from '../../shared/icon/icon.component';
 import { InventoryBatchesSectionComponent } from '../inventory-batches-section/inventory-batches-section.component';
 import { InventoryUnitConversionsSectionComponent } from '../inventory-unit-conversions-section/inventory-unit-conversions-section.component';
@@ -25,9 +25,26 @@ export class InventoryItemDetailComponent implements OnInit {
   readonly batches = signal<InventoryBatchDto[]>([]);
   readonly conversions = signal<InventoryUnitConversionDto[]>([]);
   readonly feedStages = signal<FeedStageDto[]>([]);
+  readonly consumptions = signal<InventoryConsumptionListItem[]>([]);
   readonly loading = signal(true);
   readonly notFound = signal(false);
   readonly errorMessage = signal('');
+
+  /**
+   * Sum of `quantityInBaseUnit` for the consumptions whose `consumedAt` falls
+   * inside the last 30 calendar days. Drives the "Consumido últimos 30 días"
+   * KPI on the read-side panel. Computed from the same list the table renders,
+   * so the KPI and the rows can never disagree about what counts.
+   */
+  readonly consumptionLast30DaysKg = computed(() => {
+    const now = new Date();
+    const thirtyDaysAgo = new Date(now);
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    const cutoff = thirtyDaysAgo.toISOString().slice(0, 10);
+    return this.consumptions()
+      .filter((c) => c.consumedAt >= cutoff)
+      .reduce((sum, c) => sum + (c.quantityInBaseUnit ?? 0), 0);
+  });
 
   ngOnInit(): void {
     const id = this.route.snapshot.paramMap.get('id');
@@ -46,12 +63,14 @@ export class InventoryItemDetailComponent implements OnInit {
       batches: this.api.getInventoryBatches(id),
       conversions: this.api.getInventoryUnitConversions(id),
       stages: this.api.getFeedStages(),
+      consumptions: this.api.getInventoryConsumptions(id),
     }).subscribe({
       next: (result) => {
         this.item.set(result.item);
         this.batches.set(result.batches);
         this.conversions.set(result.conversions);
         this.feedStages.set(result.stages);
+        this.consumptions.set(result.consumptions);
         this.loading.set(false);
       },
       error: (err: unknown) => {

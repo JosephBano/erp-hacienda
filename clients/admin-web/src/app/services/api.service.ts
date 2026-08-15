@@ -106,14 +106,27 @@ export interface InventoryBatchDto {
   quantity: number;
   costPerUnit: number;
   expirationDate?: string | null;
-  // ADR-0026 Decisión 1+2: campos de recepción (todos opcionales para no romper filas
-  // previas al backfill, excepto `receivedAt` que el backend siempre rellena).
-  receivedAt?: string;
+  receivedAt: string;
   supplierLabel?: string | null;
   invoiceReference?: string | null;
   notes?: string | null;
   recordedByLabel?: string | null;
-  createdAt?: string;
+}
+
+export interface InventoryConsumptionListItem {
+  id: string;
+  groupId: string;
+  groupName: string;
+  inventoryItemId: string;
+  inventoryItemName: string;
+  quantityRecorded: number;
+  unitRecorded: string;
+  quantityInBaseUnit: number;
+  appliedFactor: number;
+  batchId?: string | null;
+  consumedAt: string;
+  recordedByLabel: string;
+  notes?: string | null;
 }
 
 export type InventoryBatchSummaryDto = InventoryBatchDto;
@@ -748,6 +761,18 @@ export class ApiService {
 
   getInventoryUnitConversions(itemId: string): Observable<InventoryUnitConversionDto[]> {
     return this.http.get<InventoryUnitConversionDto[]>(`${this.baseUrl}/inventory/items/${itemId}/unit-conversions`);
+  }
+
+  /**
+   * Read-side of feature/inventory-consumption-history: the panel's
+   * "Consumos registrados" section under the item detail. Most-recent-first.
+   * 200 + [] when the item exists but has no consumptions yet;
+   * 404 when the item id is unknown.
+   */
+  getInventoryConsumptions(itemId: string): Observable<InventoryConsumptionListItem[]> {
+    return this.http.get<InventoryConsumptionListItem[]>(
+      `${this.baseUrl}/inventory/items/${itemId}/consumptions`,
+    );
   }
 
   registerInventoryUnitConversion(itemId: string, body: RegisterUnitConversionRequest): Observable<{ id: string }> {

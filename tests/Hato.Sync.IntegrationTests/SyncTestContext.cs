@@ -226,6 +226,25 @@ public class SyncTestContext
     }
 
     /// <summary>
+    /// Seeds a batch via the legacy POST /batches endpoint so a downstream
+    /// feed-consumption push can drain it. Used by tests that exercise
+    /// <c>recordFeedConsumption</c> since the FIFO deduction behaviour
+    /// (feature/inventory-consumption-history B.2) rejects consumptions against
+    /// items with no stock.
+    /// </summary>
+    public async Task<Guid> CreateInventoryBatchAsync(
+        Guid itemId, string batchNumber, decimal quantity)
+    {
+        var response = await Client.PostAsJsonAsync(
+            $"/api/v1/inventory/items/{itemId}/batches",
+            new { batchNumber, quantity, costPerUnit = 1m });
+        response.EnsureSuccessStatusCode();
+
+        var body = await response.Content.ReadFromJsonAsync<JsonElement>();
+        return body.GetProperty("id").GetGuid();
+    }
+
+    /// <summary>
     /// Pushes a single operation and returns its per-operation result. Passing the same
     /// <paramref name="clientOperationId"/> twice is how a double tap or a retry after a
     /// dropped connection looks to the server.

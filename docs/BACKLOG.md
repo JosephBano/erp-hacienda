@@ -390,7 +390,7 @@ camino principal (ActivitiesHub → Tratar/Vacunar) que 3.5a.2-C mide. Agregar
 
 - **Causa raíz**: 3.5a.7 (`feature/field-app-lot-registration`) implementó las seis
   actividades del sujeto "lote" (`LotSubjectScreen.tsx`) sin la conversación con el
-  cliente que `PLAN-FASE-3-5-PORCINO.md` sec.2.3/sec.7-C exige para fijar el orden por
+  cliente que `docs/planes/fase-3-5/spec.md` sec.2.3/sec.7-C exige para fijar el orden por
   frecuencia real. El orden usado (alimento, pesaje muestral, vacunar, tratar,
   diagnóstico, baja) es el supuesto explícito documentado en el código de
   `LotSubjectScreen.tsx` — "alimento es lo más frecuente" según el propio plan — no una
@@ -399,7 +399,7 @@ camino principal (ActivitiesHub → Tratar/Vacunar) que 3.5a.2-C mide. Agregar
   seis `BigButton` en `LotSubjectScreen.tsx` (y el de `ActivitiesHub.tsx` si el orden de
   los cuatro sujetos también cambia) en un commit dedicado, con el test de orden
   actualizado a propósito — nunca como un efecto colateral de otro cambio.
-- **Disparador**: la sesión con el cliente de sec.7-C (`PLAN-FASE-3-5-PORCINO.md`).
+- **Disparador**: la sesión con el cliente de sec.7-C (`docs/planes/fase-3-5/spec.md`).
 
   *(Relacionado: "3.5a.7.1–5 — UI del sujeto \"lote\"" en la sección "Ideas
   fuera de la fase actual" — mismo disparador sec.7-C; este ítem es la
@@ -457,7 +457,7 @@ camino principal (ActivitiesHub → Tratar/Vacunar) que 3.5a.2-C mide. Agregar
 ## De la Fase 3.5 (adaptación porcina) — diferido a propósito
 
 > Lo que salió del levantamiento del 2026-08-05 y **deliberadamente no entra** en 3.5.
-> Lo que sí entra está en `PLAN-FASE-3-5-PORCINO.md`; lo que ya quedó decidido en los
+> Lo que sí entra está en `docs/planes/fase-3-5/spec.md`; lo que ya quedó decidido en los
 > ADR-0015/0016/0017 no se duplica acá.
 
 - **Escaneo QR y carnetización desde el nacimiento.** El cliente lo mencionó como deseable
@@ -508,7 +508,7 @@ camino principal (ActivitiesHub → Tratar/Vacunar) que 3.5a.2-C mide. Agregar
 
 > Estas piezas viven como **deuda rastreable** porque el inicio del piloto real no las
 > exige como requisito (ver sub-criterio "Para abrir el piloto real" en
-> `docs/planes/PLAN-FASE-3-5-PORCINO.md`). Quedan acá con disparador explícito, no se
+> `docs/planes/fase-3-5/spec.md`). Quedan acá con disparador explícito, no se
 > "esconden" en un criterio vago. Cuando el disparador ocurra, la entrada se promueve a
 > tarea concreta de la rama o sub-plan correspondiente.
 
@@ -517,7 +517,7 @@ camino principal (ActivitiesHub → Tratar/Vacunar) que 3.5a.2-C mide. Agregar
   (rama `feature/field-app-lot-registration`, commit `04ff02f`, 2026-08-09), con
   `TapBudget` validado. Lo que queda pendiente es el **reorden** de las seis actividades
   del sujeto lote cuando el cliente responda sec.7-C del plan con las frecuencias reales.
-  **Disparador:** respuesta del cliente a `PLAN-FASE-3-5-PORCINO.md` sec.7-C. Cuando
+  **Disparador:** respuesta del cliente a `docs/planes/fase-3-5/spec.md` sec.7-C. Cuando
   ocurra, este ítem sale del backlog y entra a la tarea explícita de reorden.
 
 - **3.5a.8 — Corrección de registros desde el teléfono (ADR-0017).** Sin esto, la

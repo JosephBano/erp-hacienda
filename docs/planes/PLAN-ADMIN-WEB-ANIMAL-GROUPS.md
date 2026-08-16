@@ -1,7 +1,7 @@
 # PLAN-ADMIN-WEB-ANIMAL-GROUPS.md — Pantalla `/animal-groups` con CRUD + resumen + TrackingMode mutable
 
 > **Qué es este documento.** El plan operativo para cerrar el hueco "no hay UI para
-> configurar lotes en el panel" detectado en BACKLOG.md sec.[UI]. Ejecuta el
+> configurar lotes en el panel" detectado en `docs/BACKLOG.md` sec.[UI]. Ejecuta el
 > [ADR-0025](../adr/0025-gestion-administrativa-grupos.md) en tres PRs secuenciales.
 > No sustituye al ADR (las decisiones viven allá); este archivo dice *cómo* se hace
 > el trabajo día a día, qué archivos toca cada PR, qué pruebas exige y cómo se
@@ -43,7 +43,7 @@ Tres hechos verificables al 2026-08-08:
   no incluye `LiveHeadCount` ni `SpeciesName`. La fórmula para cabezas vivas ya existe
   en el summary (`:91-149`) pero está duplicada en intención.
 
-BACKLOG.md sec.[UI] lo lista como pendiente. Este plan lo cierra.
+`docs/BACKLOG.md` sec.[UI] lo lista como pendiente. Este plan lo cierra.
 
 ## 2. Decisiones que el ADR fija y este plan ejecuta
 
@@ -542,11 +542,11 @@ Tres ítems al cerrar el PR3 (no bloquean este plan):
 
 ### Deuda del backlog que este plan **paga**
 
-- El ítem "[UI] admin-web: pantallas de catálogos que faltan" (`BACKLOG.md` sec.[UI]) queda parcialmente satisfecho: animalGroups tiene pantalla dedicada. Los catálogos puros (especies, mortalidad, inventario) **siguen pendientes** y mantienen su disparador original.
+- El ítem "[UI] admin-web: pantallas de catálogos que faltan" (`docs/BACKLOG.md` sec.[UI]) queda parcialmente satisfecho: animalGroups tiene pantalla dedicada. Los catálogos puros (especies, mortalidad, inventario) **siguen pendientes** y mantienen su disparador original.
 
 ### Lo que NO se hace
 
-- LWW para `AnimalGroup`. Sigue como en BACKLOG.md:15-19 (deuda rastreable). La pantalla nueva hace PUT directo (síncrono, en línea) — no declara `knownUpdatedAt`. Consistente con el patrón documentado en `ARCHITECTURE.md` sec."Conflictos LWW en entidades editables" para `Animal`.
+- LWW para `AnimalGroup`. Sigue como en `docs/BACKLOG.md`:15-19 (deuda rastreable). La pantalla nueva hace PUT directo (síncrono, en línea) — no declara `knownUpdatedAt`. Consistente con el patrón documentado en `ARCHITECTURE.md` sec."Conflictos LWW en entidades editables" para `Animal`.
 - Borrado lógico real (`DeletedAt`). El ADR-0025 explícitamente lo descarta. El `DeletedAt` de la tabla sigue sin asignarse.
 - Permiso `livestock.animal-groups.manage`. El ADR-0025 lo descarta. Si la condición de reversa dispara, se reabre el ADR.
 

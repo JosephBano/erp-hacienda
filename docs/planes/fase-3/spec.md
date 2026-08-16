@@ -284,7 +284,7 @@ entero, registrar el ordeño real y un par de eventos, y sincronizar al volver a
 #### `docs/fase-3-cierre` — retrospectiva
 
 Actualizar `ROADMAP.md` (fecha real + retrospectiva de 5 líneas), `ARCHITECTURE.md` (el
-protocolo de sync ya construido), `GLOSSARY.md`, `BACKLOG.md`. Etiquetar release desde
+protocolo de sync ya construido), `GLOSSARY.md`, `docs/BACKLOG.md`. Etiquetar release desde
 `main` vía `release/*` si ya hay uso productivo.
 
 **Cierre de Fase 3 = una semana completa de registros de campo hechos solo desde el móvil,

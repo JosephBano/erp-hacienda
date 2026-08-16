@@ -107,7 +107,7 @@ sub-plan antes de mergear el código, no después.
 Cuando el aretado ocurra (ADR-0015 sec."Qué pasa el aretado"), `AnimalIdentifier` ya
 lo soporta con tipo `RFID` (ADR-0006). El escaneo QR es entonces un atajo al
 selector de animales con un input distinto: **no es trabajo de esta fase**, sólo se
-deja documentado en `BACKLOG.md` como evolución natural del selector de animales
+deja documentado en `docs/BACKLOG.md` como evolución natural del selector de animales
 implementado en el punto 2.
 
 ## Pruebas

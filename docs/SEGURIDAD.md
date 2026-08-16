@@ -145,7 +145,7 @@ de grupo es la única puerta. ADR-0007 diseñó el control fino ("un operador de
 poder registrar leche sin acceso a reportes financieros... un veterinario requiere permisos
 sobre salud pero no sobre facturación") pero para estos tres módulos ese control **no se
 conectó**. Ver sec. 3 de la tabla endpoint→permiso para el detalle fila por fila, y sec. 7
-para el hueco documentado en `BACKLOG.md`.
+para el hueco documentado en `docs/BACKLOG.md`.
 
 ### Tabla endpoint → permiso exigido
 
@@ -277,7 +277,7 @@ ningún permiso específico — solo estar autenticado.
 | `POST /api/v1/inventory/items/{itemId}/batches` (legacy) | `inventory.items.manage` |
 | `POST /api/v1/inventory/items/{itemId}/receptions` | `inventory.receptions.manage` |
 | `POST /api/v1/inventory/items/{itemId}/unit-conversions` | **Solo auth** |
-| `POST /api/v1/inventory/feed-consumptions` | **Solo auth** (deuda conocida BJ-04, ver `BACKLOG.md`) |
+| `POST /api/v1/inventory/feed-consumptions` | **Solo auth** (deuda conocida BJ-04, ver `docs/BACKLOG.md`) |
 | `GET /api/v1/inventory/items/{itemId}/consumptions` | Solo auth |
 | `POST /api/v1/inventory/feed-stages` | `inventory.feed-stages.manage` |
 | `POST /api/v1/inventory/feed-stages/{id}/deactivate` | `inventory.feed-stages.manage` |

@@ -12,7 +12,7 @@ una vez que 3.5a tiene el mínimo mergeado (ADR-0024).
 **Enfoque:** no es una rama única. Son ~17 ramas de feature, cada una con su propio PR,
 secuenciadas por dependencia estructural. El protocolo de trabajo (los 9 pasos del ciclo de
 una feature, el nivel de exigencia en pruebas, el formato de PR) es el de
-`docs/planes/PLAN-FASE-3-4.md` sec.1 y sec.2 — no se repite acá.
+`docs/PROTOCOLO-DE-TRABAJO.md` sec.1 y sec.2 — no se repite acá.
 
 ---
 

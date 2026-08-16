@@ -63,7 +63,7 @@ public class PushSyncBatchCommandHandler(
     public const int MaxBatchSize = 500;
 
     // UnmappedMemberHandling.Disallow closes the exact hole 3.5a.2-C was written to
-    // fix (see PLAN-FASE-3-5-PORCINO-3.5a.2-C): before this, an operation with a
+    // fix (see docs/planes/fase-3-5/spec-3.5a.md sec.3.5a.2-C): before this, an operation with a
     // field the target command does not declare — `reasonId` instead of `reason`,
     // a stray `doseKg` — was silently dropped and the push still answered
     // "Accepted", because `Deserialize<T>` just ignored what it did not recognise.
@@ -198,7 +198,7 @@ public class PushSyncBatchCommandHandler(
 
     /// <summary>
     /// Routes an operation to the same command the web API would use. Adding a new field
-    /// flow means adding a case here — and a push test for it (PLAN-FASE-3-4 sec.2.2).
+    /// flow means adding a case here — and a push test for it (docs/planes/fase-3/spec.md sec.2.2).
     /// </summary>
     private async Task<string?> ExecuteAsync(
         SyncPushOperationDto operation, string payloadJson, string? deviceId, CancellationToken cancellationToken)
@@ -248,7 +248,7 @@ public class PushSyncBatchCommandHandler(
                     // an Inventory-module write (GroupFeedConsumption) so the batch
                     // decrements and the cost-prorate engine reads kilograms regardless of
                     // what unit the operator typed ("bug del saco",
-                    // PLAN-FASE-3-5-PORCINO.md sec.3.5a.5). Routed to the same command the
+                    // docs/planes/fase-3-5/spec-3.5a.md sec.3.5a.5). Routed to the same command the
                     // POST /api/v1/inventory/feed-consumptions endpoint uses.
                     var payload = Deserialize<RecordFeedConsumptionPushPayload>(payloadJson, "consumo de alimento");
                     var consumedAt = payload.ConsumedAt ?? DateOnly.FromDateTime(operation.OccurredAt.UtcDateTime);
@@ -321,7 +321,7 @@ public class PushSyncBatchCommandHandler(
 
             case "recordcorrection":
                 {
-                    // Field correction flow (PLAN-FASE-3-5-PORCINO.md sec.3.5a.8, ADR-0017).
+                    // Field correction flow (docs/planes/fase-3-5/spec-3.5a.md sec.3.5a.8, ADR-0017).
                     // The original event must already exist on the server and the
                     // correction must arrive on the same calendar day; the handler checks
                     // both. The push op is the always-routed path so the outbox can

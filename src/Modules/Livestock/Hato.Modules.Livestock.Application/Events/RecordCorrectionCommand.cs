@@ -9,7 +9,7 @@ using Microsoft.EntityFrameworkCore;
 namespace Hato.Modules.Livestock.Application.Events;
 
 /// <summary>
-/// Server side of the field-app correction flow (PLAN-FASE-3-5-PORCINO.md sec.3.5a.8,
+/// Server side of the field-app correction flow (docs/planes/fase-3-5/spec-3.5a.md sec.3.5a.8,
 /// ADR-0017). The original event is never edited (Art. 1): a correction is a new event
 /// referencing the original via <see cref="AnimalEvent.RelatedEventId"/>. The payload
 /// is the operator's stated reason; the original payload is preserved untouched.

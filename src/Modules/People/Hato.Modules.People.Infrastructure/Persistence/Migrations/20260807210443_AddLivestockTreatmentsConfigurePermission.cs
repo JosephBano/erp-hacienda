@@ -18,7 +18,7 @@ namespace Hato.Modules.People.Infrastructure.Persistence.Migrations
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             // Permission gates CRUD on the administration_routes and
-            // treatment_reasons catalogues (PLAN-FASE-3-5-PORCINO-3.5a.2-A).
+            // treatment_reasons catalogues (docs/planes/fase-3-5/spec-3.5a.md sec.3.5a.2-A).
             // Configuring the catalogue is a managerial/veterinary decision,
             // not a registrar's daily work, so it is granted to admin and
             // veterinarian only.

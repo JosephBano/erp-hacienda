@@ -6,7 +6,7 @@ using Xunit;
 namespace Hato.Sync.IntegrationTests;
 
 /// <summary>
-/// PLAN-FASE-3-4 sec.3.A, `sync-protocol-pull` task 4: "el empleado solo baja lo que le
+/// docs/planes/fase-3/spec.md sec.3.A, `sync-protocol-pull` task 4: "el empleado solo baja lo que le
 /// corresponde". Before this, the pull ignored the caller's permissions entirely — any
 /// authenticated employee downloaded the whole farm, including modules their role has no
 /// business touching.

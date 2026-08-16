@@ -329,7 +329,7 @@ export class EventService {
   }
 
   /**
-   * Records a field correction (PLAN-FASE-3-5-PORCINO.md sec.3.5a.8, ADR-0017).
+   * Records a field correction (docs/planes/fase-3-5/spec-3.5a.md sec.3.5a.8, ADR-0017).
    *
    * The original event id is the server's id (the `resultRef` the phone received
    * when the original op was Accepted). The server rejects corrections that

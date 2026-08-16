@@ -12,7 +12,7 @@ import { ActivitiesHub } from '../src/screens/ActivitiesHub';
  * reaches LotSubjectScreen with the lot subject picker.
  *
  * Subject order is the macro-plan question that the client meeting answers
- * (PLAN-FASE-3-5-PORCINO sec. 7-C). For now the order is the responsible default of
+ * (docs/planes/fase-3-5/spec.md sec. 7-C). For now the order is the responsible default of
  * "what the operator reaches for daily, then what they reach for after that". It is
  * pinned as a test so any reorder is a deliberate, reviewable commit.
  */

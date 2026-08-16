@@ -64,7 +64,7 @@ public class GetInventoryConsumptionsApiTests(InventoryApiFactory factory) : ICl
         Assert.Equal(2, rows!.Count);
 
         // Most-recent-first ordering (matches the panel's "Lo que registré hoy"
-        // mental model — PLAN-FASE-3-5-PORCINO.md sec.2.3).
+        // mental model — docs/planes/fase-3-5/spec.md sec.2.3).
         Assert.Equal(new DateOnly(2026, 8, 12), rows[0].ConsumedAt);
         Assert.Equal(new DateOnly(2026, 8, 10), rows[1].ConsumedAt);
 

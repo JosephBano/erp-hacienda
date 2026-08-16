@@ -48,7 +48,7 @@ public class RecordGroupFeedConsumptionHandler(IInventoryDbContext dbContext)
         if (item is null)
             throw new DomainException($"El ítem de inventario con ID '{request.InventoryItemId}' no existe.");
 
-        // Bug from the Fase 3.5 retrospective / PLAN-FASE-3-5-PORCINO.md sec.3.5a.5:
+        // Bug from the Fase 3.5 retrospective / docs/planes/fase-3-5/spec-3.5a.md sec.3.5a.5:
         // the operator records "3 sacos de 40 kg" and the system silently stores
         // the literal number 3 against the item whose base unit is kg. The
         // cost-prorate engine then reads 3 kg of feed for 42 pigs and the

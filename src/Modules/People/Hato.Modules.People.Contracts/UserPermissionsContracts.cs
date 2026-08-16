@@ -2,7 +2,7 @@ namespace Hato.Modules.People.Contracts;
 
 /// <summary>
 /// Public read port other modules use to ask "what can this user see", without depending
-/// on People.Domain (Art. 6). The sync pull is the first consumer: PLAN-FASE-3-4 sec.3.A
+/// on People.Domain (Art. 6). The sync pull is the first consumer: docs/planes/fase-3/spec.md sec.3.A
 /// requires that a device only downloads the collections its user's role can read.
 /// </summary>
 public interface IUserPermissionsReader

@@ -4,7 +4,7 @@ namespace Hato.Modules.Breeding.Domain;
 
 /// <summary>
 /// A group of litters born in consecutive days that are managed together as a single
-/// lactation unit (PLAN-FASE-3-5-PORCINO.md sec.3.5a.4).
+/// lactation unit (docs/planes/fase-3-5/spec-3.5a.md sec.3.5a.4).
 ///
 /// The client's rule of thumb is that litters are weaned together when the LAST litter of
 /// the cohort reaches weaning age — not litter by litter. That is the whole reason this

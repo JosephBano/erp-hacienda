@@ -4,7 +4,7 @@ using Hato.SharedKernel;
 namespace Hato.Modules.Inventory.Domain;
 
 /// <summary>
-/// Configurable catalog of feeding stages (PLAN-FASE-3-5-PORCINO.md sec.3.5a.5 task 3):
+/// Configurable catalog of feeding stages (docs/planes/fase-3-5/spec-3.5a.md sec.3.5a.5 task 3):
 /// preiniciador, iniciador, crecimiento, engorde, gestación, lactancia. The list lives in
 /// the database, not in an enum (Art. 8): a farm that renames or adds a stage does an
 /// INSERT, never a deploy.

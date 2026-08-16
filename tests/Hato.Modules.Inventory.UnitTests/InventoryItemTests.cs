@@ -96,7 +96,7 @@ public class InventoryItemTests
         Assert.Equal(40m, consumption.AppliedFactor);
     }
 
-    // PLAN-FASE-3-5-PORCINO.md sec.3.5a.5 task 3: feed_stage only applies to Feed items.
+    // docs/planes/fase-3-5/spec-3.5a.md sec.3.5a.5 task 3: feed_stage only applies to Feed items.
 
     [Fact]
     public void CreateItem_FeedCategory_WithFeedStage_Succeeds()

@@ -23,7 +23,7 @@ public class Animal : AuditableEntity
     public DateOnly? BirthDate { get; private set; }
 
     /// <summary>
-    /// Weight at birth in kilograms (PLAN-FASE-3-5-PORCINO.md sec.3.5a.4, task 3).
+    /// Weight at birth in kilograms (docs/planes/fase-3-5/spec-3.5a.md sec.3.5a.4, task 3).
     /// Captured once, at registration — the weighing of a newborn in the field is
     /// short and loud, and a late edit is a different event (a Weighing event against
     /// the calf, not a correction here). Optional because not every birthing is

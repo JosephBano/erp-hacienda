@@ -46,7 +46,7 @@ escapan del ~1 semana de trabajo.
 - sec.3.5a.2 punto 9 (`TreatmentCourse`): también.
 - sec.3.5a.2 nota de tamaño: si la implementación de las tres formas cabe en un
   PR, esta sub-rama se ejecuta tal cual; si no, partir en B-1 (las tres formas)
-  y B-2 (`TreatmentCourse`) antes de mergear, anotándolo en `BACKLOG.md`.
+  y B-2 (`TreatmentCourse`) antes de mergear, anotándolo en `docs/BACKLOG.md`.
 - **Calculada ≠ administrada se persiste sin corregir ninguna.** Si el sistema
   sugirió 147 ml y se administraron 200, alguien derramó, alguien subdosificó,
   o el muestreo está mal — y el sistema debe mostrarlo, no decidir. El Art. 1

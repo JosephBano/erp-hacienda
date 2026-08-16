@@ -110,7 +110,7 @@ hoy para poder empezar a planificar en serio.
 ## 4. Apéndice — Planificación previa (2026-08-02): insumo, no compromiso
 
 > **Este apéndice es trabajo de diseño conservado para no tirarlo — no es un plan
-> aprobado.** Se escribió el 2026-08-02 en `docs/planes/PLAN-FASE-3-4.md` sec. 4, antes de
+> aprobado.** Se escribió el 2026-08-02 en el plan superado de las Fases 3 y 4, sec. 4, antes de
 > que existiera ni un ADR ni una línea de código de Fase 4. Ningún bloque, orden de bloques,
 > ni número de rama listado aquí está comprometido: son ideas de forma, no un compromiso de
 > ejecución. Cuando la Fase 4 se planifique de verdad, ese `plan.md` puede confirmar este
@@ -142,9 +142,12 @@ desarrollo — **estructural**).
 mayor, balance de comprobación, estado de resultados, exportación en el formato acordado con
 el contador), `feature/admin-web-finance` (panel Angular de ventas, compras, contabilidad) y
 `docs/fase-4-cierre` (retrospectiva: ROADMAP, `LEGAL-ECUADOR.md`, `ARCHITECTURE.md`,
-`BACKLOG.md`).
+`docs/BACKLOG.md`).
 
-El texto completo, con cada tarea numerada y las pruebas propuestas por rama, sigue en
-`docs/planes/PLAN-FASE-3-4.md` sec. 4 mientras ese archivo exista. La sec. 5 del mismo
-documento lista los ADRs que ese plan anticipaba escribir (0010, 0011, 0012, entre otros) —
-también insumo, no compromiso.
+El texto completo, con cada tarea numerada y las pruebas propuestas por rama, no se
+trasladó a esta carpeta (D5 de `docs/planes/reestructura-documentacion/spec.md`: escribir
+`plan.md`/`tasks.md`/`test-e2e.md` de la Fase 4 no entra en esta rama) y solo sigue
+disponible en el historial de git, en la versión del plan superado de las Fases 3 y 4
+previa a su borrado (commit 11 de `docs/reestructura-documentacion`). Esa misma versión
+listaba en su sec. 5 los ADRs que el plan anticipaba escribir (0010, 0011, 0012, entre
+otros) — también insumo, no compromiso.

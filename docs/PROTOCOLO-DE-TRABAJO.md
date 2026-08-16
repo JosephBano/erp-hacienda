@@ -2,8 +2,8 @@
 
 > Este documento responde **¿cómo se lleva una rama de la idea al merge?** Es transversal:
 > aplica a toda rama del proyecto, no solo a las de una fase. Rescata, sin cambios de fondo,
-> lo que antes vivía enterrado dentro de `docs/planes/PLAN-FASE-3-4.md` secs. 1 y 2 — el
-> protocolo se repetía idéntico en cada una de esas ramas y no tenía casa propia. `AGENTS.md`
+> lo que antes vivía enterrado dentro del plan superado de las Fases 3 y 4 (secs. 1 y 2) —
+> el protocolo se repetía idéntico en cada una de esas ramas y no tenía casa propia. `AGENTS.md`
 > conserva el resumen de cinco pasos y enlaza aquí para el detalle; no lo dupliques (D1).
 
 ## 1. Cómo se trabaja: el protocolo de una feature
@@ -113,7 +113,7 @@ canónica es `DOCUMENTACION.md` sec.3: quien cambie un disparador, lo cambia all
 - [ ] ¿Nació un término de dominio? → `GLOSSARY.md` (ya es la regla del Art. 20 de
       `CONSTITUTION.md`).
 - [ ] ¿Se cierra una fase? → retrospectiva en `ROADMAP.md`, `tasks.md` de la fase cerrado, y
-      revisión de `BACKLOG.md` para promover o descartar.
+      revisión de `docs/BACKLOG.md` para promover o descartar.
 - [ ] ¿Se decidió algo estructural? → ADR, antes de implementar.
 
 ### 1.3 Ritmo y bloques
@@ -124,8 +124,9 @@ empieza el bloque siguiente hasta que el anterior esté mergeado, en verde y pro
 
 Cuando una feature se alarga más de ~1 semana de trabajo real, **pártela** y anota el resto
 en `docs/BACKLOG.md`. Cuando una fase pasa de ~3 meses sin uso real, **recorta alcance**
-(Art. 11); en `PLAN-FASE-3-4.md` sec.6 están marcadas cuáles features son sacrificables para
-esa fase (secciones de riesgo específicas de cada plan de fase no se trasladan aquí).
+(Art. 11); la sección de riesgos del plan de cada fase marca cuáles features son
+sacrificables para esa fase (secciones de riesgo específicas de cada plan de fase no se
+trasladan aquí).
 
 ## 2. Nivel de exigencia en pruebas
 

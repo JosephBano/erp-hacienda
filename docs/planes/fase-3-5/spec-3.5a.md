@@ -297,7 +297,7 @@ responda sec. 7-C será un commit deliberado, no una regresión.
 
 El piloto real puede abrir cuando estén **mergeadas a develop** las siguientes piezas
 (en cualquier orden). Lo que aquí no aparece queda como deuda rastreable en
-[`BACKLOG.md`](../../../BACKLOG.md), sección 3.5.
+[`docs/BACKLOG.md`](../../BACKLOG.md), sección 3.5.
 
 | Pieza | Por qué es requisito para abrir |
 |---|---|
@@ -312,7 +312,7 @@ El piloto real puede abrir cuando estén **mergeadas a develop** las siguientes 
 
 No exige 3.5a.7.1–5 (UI del sujeto "lote") ni 3.5a.8 (corrección de registros desde el
 teléfono) — esas piezas viven como deuda rastreable con disparador explícito en
-`BACKLOG.md`. Mientras esa deuda no se pague, el piloto funciona con el flujo viejo:
+`docs/BACKLOG.md`. Mientras esa deuda no se pague, el piloto funciona con el flujo viejo:
 `recordAnimalEvent` con `GroupId` directo sobre eventos grupales (sin UI específica del
 sujeto "lote"), y corrección de eventos por re-registro manual. Esto está **documentado
 como deuda**, no oculto.

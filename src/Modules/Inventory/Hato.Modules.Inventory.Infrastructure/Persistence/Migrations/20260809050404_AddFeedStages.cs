@@ -8,7 +8,7 @@ namespace Hato.Modules.Inventory.Infrastructure.Persistence.Migrations
     /// <inheritdoc />
     public partial class AddFeedStages : Migration
     {
-        // PLAN-FASE-3-5-PORCINO.md sec.3.5a.5 task 3: the standard porcine feeding-stage
+        // docs/planes/fase-3-5/spec-3.5a.md sec.3.5a.5 task 3: the standard porcine feeding-stage
         // list, ampliable from the panel (Art. 8). Seeded from day one so the catalog is
         // testable and usable immediately instead of shipping an empty, silently-useless
         // table (same rationale as AddMortalityCauses/AddAdministrationRoutes).

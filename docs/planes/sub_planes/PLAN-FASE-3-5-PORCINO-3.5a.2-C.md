@@ -65,7 +65,7 @@ justifica la menor frecuencia.
 > propósito es "la captura de tratamiento/vacunación funciona en el móvil", y
 > los dos pedazos sirven a ese propósito juntos). Si la implementación revela
 > que C.1 excede el ~medio día de trabajo, se parte en PRs separados y se anota
-> en `BACKLOG.md` (mismo patrón de B si lo excede).
+> en `docs/BACKLOG.md` (mismo patrón de B si lo excede).
 >
 > El detalle del contrato de plausibilidad vive en [ADR-0022](../../adr/0022-rangos-plausibilidad.md)
 > (Propuesto, 2026-08-07); este sub-plan lo invoca, no lo redefine.
@@ -269,6 +269,6 @@ Para el flujo manual con la app levantada:
 | El outbox marca ambas operaciones como el mismo tipo | Forzar tipos distintos en `outbox.ts` (test específico). |
 | Cancelar deja el sujeto/producto pre-seleccionado | Test #9 obligatorio. |
 | La UI ignora `is_active = false` del catálogo local | Sincronización respeta `is_active`; test #8 captura la ruta. |
-| C.1 (sync local) termina ocupando más de medio día de trabajo | Se parte en un PR aparte y se anota en `BACKLOG.md` (mismo patrón que B si excede). C.2 no arranca sin C.1 mergeado. |
+| C.1 (sync local) termina ocupando más de medio día de trabajo | Se parte en un PR aparte y se anota en `docs/BACKLOG.md` (mismo patrón que B si excede). C.2 no arranca sin C.1 mergeado. |
 | La tabla espejo local no existe y el pull entrega datos huérfanos | Cobertura del test #1 explícita: las dos tablas espejo deben existir y la migración local debe preceder al primer pull que las use. |
 | El servicio de plausibilidad se implementa con un `if (tabla existe)` en vez de fail-open limpio | Test #3 lo fija como caso base; cualquier rama explícita "tabla no existe" se rechaza en review. |

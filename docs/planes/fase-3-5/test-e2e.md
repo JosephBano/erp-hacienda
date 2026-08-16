@@ -83,7 +83,7 @@ exactamente con ese número, en `spec.md` o `spec-3.5a.md`.
    deuda en `docs/BACKLOG.md` sección 3.5, no oculto.
 
 **Debe pasar:** las ocho piezas presentes; la deuda restante tiene entrada explícita en
-`BACKLOG.md` con disparador.
+`docs/BACKLOG.md` con disparador.
 
 ### E2E-3 — Cierre del bloque 3.5b: FCR con decisión real
 
@@ -114,7 +114,7 @@ de BD se verifica en integración, no sólo el dominio · `LiveHeadCount` tras a
 salidas · baja parcial no cierra ninguna fila de `Animal` · al llegar a cero cabezas se
 cierran todas las membresías restantes y el conteo global de animales vivos no deja
 fantasmas · push duplicado de un evento grupal → un registro (exigencia de
-`PLAN-FASE-3-4.md` sec.2.2) · migración corre desde cero.
+`docs/planes/fase-3/spec.md` sec.2.2) · migración corre desde cero.
 
 **3.5a.2 (A/B/C)** — catálogos configurables desde el panel (A) · `applied_by` ≠
 `recorded_by` (A) · `health_plan_item_id` nullable ahora (A) · dosis con valor y sin unidad
@@ -144,7 +144,7 @@ explícita · valor imposible se rechaza · **sin rangos configurados no se bloq
 (fail-open acá es correcto) · funciona sin red.
 
 **3.5a.7** — una prueba de "registro sin red" por pantalla (exigencia de
-`PLAN-FASE-3-4.md` sec.2.1 para React Native) · el promedio calculado coincide con el
+`docs/PROTOCOLO-DE-TRABAJO.md` sec.2.1 para React Native) · el promedio calculado coincide con el
 enviado · la ficha refleja las bajas · **cada actividad del árbol se resuelve en los
 toques que se contaron en sec.2.3** — si la implementación excede lo dibujado, se corrige
 el flujo, no se relaja el número.
@@ -192,7 +192,7 @@ los pesos reordena el ranking · una madre sin partos no aparece con índice 0 (
 
 **4.7** — alerta de celo en la ventana correcta tras el destete · **intento de disposición
 de un lote en retiro de carne se rechaza**, no se advierte (mismo estándar que
-`PLAN-FASE-3-4.md` sec.2.3 exige para leche).
+`docs/PROTOCOLO-DE-TRABAJO.md` sec.2.3 exige para leche).
 
 ---
 

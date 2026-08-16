@@ -13,7 +13,7 @@ using Xunit;
 namespace Hato.Modules.Breeding.IntegrationTests.Api;
 
 /// <summary>
-/// PLAN-FASE-3-5-PORCINO.md sec.3.5a.4: weaning is recorded at the cohort level.
+/// docs/planes/fase-3-5/spec-3.5a.md sec.3.5a.4: weaning is recorded at the cohort level.
 /// Bug A1 (post-mortem of Fase 3.5, 2026-08-06): the handler used to pass
 /// <c>birthing.BornAlive</c> as the weaned count, ignoring preweaning deaths — which
 /// is exactly the data point 3.5a.3 was built to capture. These tests pin the fix.

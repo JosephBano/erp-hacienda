@@ -13,7 +13,7 @@ namespace Hato.Modules.Livestock.Infrastructure.Persistence.Migrations
     /// back to <c>pass</c> for everything — which is the correct fail-open
     /// behavior but defeats the purpose of the branch. The seed here is the
     /// minimum reasonable starting point; the client refines it from the panel
-    /// (PLAN-FASE-3-5-PORCINO.md sec.7-B: "the client's own list may differ").
+    /// (docs/planes/fase-3-5/spec.md sec.7-B: "the client's own list may differ").
     /// </summary>
     public partial class SeedPlausibilityRanges : Migration
     {

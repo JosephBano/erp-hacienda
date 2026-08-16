@@ -135,7 +135,7 @@ public class GetAnimalGroupsHandler(ILivestockDbContext dbContext) : IRequestHan
 }
 
 /// <summary>
-/// PLAN-FASE-3-5-PORCINO.md sec.3.5a.7 task 6: the lot summary the field-app shows
+/// docs/planes/fase-3-5/spec-3.5a.md sec.3.5a.7 task 6: the lot summary the field-app shows
 /// when the operator taps on a headcount group. Combines the live head count with
 /// the most recent group-subject event per kind (vaccination, diagnosis, disposal)
 /// so the operator sees the state of the lot at a glance. The aggregate is

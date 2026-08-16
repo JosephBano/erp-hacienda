@@ -8,7 +8,7 @@ export interface AnimalGroupSummary {
 }
 
 /**
- * Reads the lot record (PLAN-FASE-3-5-PORCINO.md sec.3.5a.7 task 6, already delivered
+ * Reads the lot record (docs/planes/fase-3-5/spec-3.5a.md sec.3.5a.7 task 6, already delivered
  * server-side: `GET /api/v1/animal-groups/{id}/summary`). This is a display-only read, not
  * a registration path, so it is exempt from Art. 9 (móvil: ninguna operación de registro
  * puede depender de red) — the five registration screens (`LotEventsScreen`) never call

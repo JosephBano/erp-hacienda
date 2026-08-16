@@ -268,7 +268,7 @@
       `fetch`); `App.tsx:129-148` (`productionVisible` viene de la lectura local, no de una
       llamada de red en el camino crítico).
 - [x] **T-3.5a.9-B5** Documentar escaneo QR como paso siguiente natural (ticket en
-      `BACKLOG.md`, no trabajo de esta fase).
+      `docs/BACKLOG.md`, no trabajo de esta fase).
       Evidencia: `docs/BACKLOG.md:416` ("Escaneo QR y carnetización desde el nacimiento.").
 
 ---

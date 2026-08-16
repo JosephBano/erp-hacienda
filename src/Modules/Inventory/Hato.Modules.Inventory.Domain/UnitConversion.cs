@@ -10,7 +10,7 @@ namespace Hato.Modules.Inventory.Domain;
 /// pair; the canonical direction is <c>from_unit -> to_unit</c> with factor = how many
 /// <c>to_unit</c> a single <c>from_unit</c> contains. <c>kg -> saco40kg</c> with
 /// factor 0.025 is the inverse and lives on its own row.
-/// (PLAN-FASE-3-5-PORCINO.md sec.3.5a.5 task 1.)
+/// (docs/planes/fase-3-5/spec-3.5a.md sec.3.5a.5 task 1.)
 /// </summary>
 public class UnitConversion : AuditableEntity
 {

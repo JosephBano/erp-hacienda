@@ -10,7 +10,7 @@
 
 **Un documento existe si responde una pregunta que ningún otro responde.** Si dos documentos
 responden la misma pregunta, uno sobra — es la falla concreta que produjo, en su momento, dos
-`BACKLOG.md` con contenido distinto y sin que ninguno mencionara al otro.
+`docs/BACKLOG.md` con contenido distinto y sin que ninguno mencionara al otro.
 
 Antes de crear un archivo nuevo en `docs/`: buscá la pregunta en la tabla de la sec. 2. Si ya
 está respondida, edita ese documento. Si no está, y la pregunta es real y duradera (no la
@@ -34,7 +34,7 @@ documento.
 | `GLOSSARY.md` | ¿Cómo se llama esto en español y en código? | Aparece un término de dominio nuevo. |
 | `LEGAL-ECUADOR.md` | ¿Qué exige la ley ecuatoriana? | Cambia la norma. |
 | `BACKUPS.md` | ¿Cómo se respalda y se restaura? | Cambia la estrategia. |
-| `BACKLOG.md` | ¿Qué sabemos que falta y decidimos no hacer ahora? | Continuamente. |
+| `docs/BACKLOG.md` | ¿Qué sabemos que falta y decidimos no hacer ahora? | Continuamente. |
 | `adr/NNNN-*.md` | ¿Por qué se decidió esto y qué se descartó? | Nunca: un ADR se reemplaza, no se edita. |
 | `planes/<x>/spec.md` | ¿Qué se construye y qué queda fijado? | Antes de implementar. |
 | `planes/<x>/plan.md` | ¿En qué orden y en qué commits? | Al replanificar. |
@@ -43,7 +43,7 @@ documento.
 | `diagramas/*.mermaid` | ¿Cómo se ve esto? | Entra una migración o cambia un flujo. |
 
 Son 20 entradas y cubren, sin resto, todo `.md` de la raíz del repositorio y de la raíz de
-`docs/` (`AGENTS.md`, `README.md`; `ARCHITECTURE.md`, `BACKLOG.md`, `BACKUPS.md`,
+`docs/` (`AGENTS.md`, `README.md`; `ARCHITECTURE.md`, `docs/BACKLOG.md`, `BACKUPS.md`,
 `CONSTITUTION.md`, `DATA-MODEL.md`, `GLOSSARY.md`, `LEGAL-ECUADOR.md`, `ROADMAP.md`,
 `SOUL.md`), más las tres filas de patrón que cubren carpetas (`adr/`, `planes/<x>/`,
 `diagramas/`). Verificable con `ls *.md` y `ls docs/*.md`: todo lo que devuelven aparece
@@ -66,7 +66,7 @@ sistema — sin ellos, la tabla de la sec. 2 es solo un índice que también env
 - **Nace un término de dominio** → `GLOSSARY.md` (ya es la regla del Art. 20 de
   `CONSTITUTION.md`).
 - **Se cierra una fase** → retrospectiva en `ROADMAP.md`, `tasks.md` de la fase cerrado, y
-  revisión de `BACKLOG.md` para promover o descartar.
+  revisión de `docs/BACKLOG.md` para promover o descartar.
 - **Se decide algo estructural** → ADR, antes de implementar.
 
 ## 4. Archivado

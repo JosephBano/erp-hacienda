@@ -21,7 +21,7 @@ public class SyncPullTreatmentCatalogsTests(SyncApiFactory factory)
         var admin = await SyncTestContext.AdminClientAsync(factory);
 
         // Confirm the seeds landed in the test database
-        // (PLAN-FASE-3-5-PORCINO-3.5a.2-A sec."Tareas" puntos 1-2):
+        // (docs/planes/fase-3-5/spec-3.5a.md sec.3.5a.2-A sec."Tareas" puntos 1-2):
         // seven routes, three reasons.
         var pull = await PullAsync(admin, "administrationRoutes,treatmentReasons");
         var routes = pull.GetProperty("collections").GetProperty("administrationRoutes").EnumerateArray().ToList();

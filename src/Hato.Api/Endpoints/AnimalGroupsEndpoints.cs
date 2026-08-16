@@ -91,7 +91,7 @@ public static class AnimalGroupsEndpoints
             return groupItem is not null ? Results.Ok(groupItem) : Results.NotFound();
         });
 
-        // Lot summary (PLAN-FASE-3-5-PORCINO.md sec.3.5a.7 task 6): the screen the
+        // Lot summary (docs/planes/fase-3-5/spec-3.5a.md sec.3.5a.7 task 6): the screen the
         // field-app shows when the operator taps on a headcount lot. Live head count
         // plus the most recent event of each kind, recomputed on every read.
         group.MapGet("/{id:guid}/summary", async (Guid id, ISender sender) =>

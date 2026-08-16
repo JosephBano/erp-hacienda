@@ -68,7 +68,10 @@
 - [ ] **T2.8** Cada plantilla lleva instrucciones embebidas **y un ejemplo corto real de
       este repositorio**. Una plantilla sin ejemplo no cuenta como terminada.
 - [ ] **T2.9** `ls docs/plantillas/*.md | wc -l` imprime `6`.
-- [ ] **T2.10** `grep -rn "docs/adr/TEMPLATE.md" --include=*.md .` devuelve cero.
+- [ ] **T2.10** `grep -rn "docs/adr/TEMPLATE\.md" --include=*.md . | grep -v node_modules |
+      grep -v 'docs/planes/reestructura-documentacion/'` devuelve cero.
+      La exclusión es la misma de siempre: esta carpeta narra la migración y sus menciones
+      a rutas viejas son deliberadas (spec criterio 7, `test-e2e.md` V-2 y V-5).
 
 ---
 

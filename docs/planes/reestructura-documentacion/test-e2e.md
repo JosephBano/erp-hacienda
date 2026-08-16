@@ -106,7 +106,8 @@ viñetas, no una plantilla.
 
 ```bash
 ls docs/adr/TEMPLATE.md 2>/dev/null
-grep -rn "docs/adr/TEMPLATE\.md" --include=*.md . | grep -v node_modules | grep -v '\.claude/'
+grep -rn "docs/adr/TEMPLATE\.md" --include=*.md . | grep -v node_modules | grep -v '\.claude/' \
+  | grep -v 'docs/planes/reestructura-documentacion/'
 ```
 
 **Esperado:** el archivo ya no existe y ninguna referencia lo menciona.

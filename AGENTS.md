@@ -73,7 +73,7 @@ Español para dominio y docs, inglés para código.
 `ARCHITECTURE.md` (módulos y modelo) · `ROADMAP.md` (fases y estado actual) ·
 `LEGAL-ECUADOR.md` (cumplimiento) · `docs/adr/` (decisiones) · `docs/planes/` (planes de
 ejecución por fase) · `docs/diagramas/` (diagramas ER en Mermaid) · `docs/BACKLOG.md` (ideas y
-deuda).
+deuda) · `docs/DOCUMENTACION.md` (qué documento responde qué pregunta y cuándo se actualiza).
 
 ## Convenciones de `docs/` (no las improvises)
 

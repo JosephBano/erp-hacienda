@@ -290,6 +290,58 @@ protocolo de sync ya construido), `GLOSSARY.md`, `docs/BACKLOG.md`. Etiquetar re
 **Cierre de Fase 3 = una semana completa de registros de campo hechos solo desde el móvil,
 con días sin señal, sin pérdida ni duplicación.** No antes.
 
+### ADRs de la Fase 3 (heredado de PLAN-FASE-3-4 sec. 5)
+
+> Trasladado literalmente de `PLAN-FASE-3-4.md` sec. 5, filtrado a los ADRs que
+> correspondían a esta fase. Los tres ya están aceptados:
+> [ADR-0007](../../adr/0007-modelo-permisos-bd.md),
+> [ADR-0008](../../adr/0008-protocolo-sincronizacion.md) y
+> [ADR-0009](../../adr/0009-stack-movil-react-native-watermelondb.md).
+
+| ADR | Tema | Antes de la rama |
+|---|---|---|
+| 0007 | Modelo de roles y permisos en base de datos | `feature/people-permissions` |
+| 0008 | Protocolo de sincronización (cursor, tombstones, conflictos) | `feature/sync-protocol-pull` |
+| 0009 | Stack del cliente móvil y dependencias npm iniciales | `feature/field-app-scaffolding` |
+
+Recuerda el Art. 14 y la regla de "dormir una noche sobre la decisión": el ADR se escribe,
+se deja reposar, se acepta, y **después** se codifica.
+
+### Riesgos heredados de PLAN-FASE-3-4 sec. 6
+
+> Trasladado literalmente de `PLAN-FASE-3-4.md` sec. 6, filtrado a los riesgos y a las
+> features sacrificables que correspondían a esta fase. La tabla de riesgos transversal a
+> cualquier fase (deuda técnica arrastrada) se trasladó a
+> `docs/PROTOCOLO-DE-TRABAJO.md` en vez de aquí, para no duplicarla.
+
+| Riesgo | Señal temprana | Qué hacer |
+|---|---|---|
+| La sincronización se come la fase | Bloque 3.A pasa de 6 semanas | Recortar colecciones sincronizables a lo mínimo (animales + ordeño) y dejar el resto para Fase 3.5 |
+| El empleado no adopta la app | Piloto con más de 2 iteraciones sin mejora de adopción | Volver a observar el trabajo real en el potrero antes de escribir una línea más; el problema es de UX, no de código |
+
+**Features sacrificables si hay que recortar alcance (Art. 11):**
+`feature/field-app-births` (los partos pueden registrarse en el panel web un tiempo más) y
+los adjuntos de foto de `feature/field-app-events`.
+
+### Resumen de ramas de la Fase 3, en orden (heredado de PLAN-FASE-3-4)
+
+**Fase 3** (11 ramas)
+```
+feature/people-permissions
+feature/people-audit-trail
+feature/sync-protocol-pull
+feature/sync-protocol-push
+── Hito 3.A ──
+feature/field-app-scaffolding
+feature/field-app-sync-engine
+feature/field-app-milking
+feature/field-app-events
+feature/field-app-births
+── Hito 3.B ──
+feature/field-app-pilot-hardening   (iterable: -2, -3…)
+docs/fase-3-cierre
+```
+
 ## 4. Estado y retrospectiva
 
 > Trasladado de `docs/ROADMAP.md:33-56` (cierre revertido y los tres defectos que lo

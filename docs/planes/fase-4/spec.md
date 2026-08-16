@@ -148,6 +148,54 @@ El texto completo, con cada tarea numerada y las pruebas propuestas por rama, no
 trasladó a esta carpeta (D5 de `docs/planes/reestructura-documentacion/spec.md`: escribir
 `plan.md`/`tasks.md`/`test-e2e.md` de la Fase 4 no entra en esta rama) y solo sigue
 disponible en el historial de git, en la versión del plan superado de las Fases 3 y 4
-previa a su borrado (commit 11 de `docs/reestructura-documentacion`). Esa misma versión
-listaba en su sec. 5 los ADRs que el plan anticipaba escribir (0010, 0011, 0012, entre
-otros) — también insumo, no compromiso.
+previa a su borrado (commit 11 de `docs/reestructura-documentacion`).
+
+Esa misma versión, en su sec. 5, listaba los ADRs que anticipaba para esta fase — también
+insumo, no compromiso:
+
+| ADR | Tema | Antes de la rama |
+|---|---|---|
+| 0010 | Almacenamiento de adjuntos y su respaldo | `feature/shared-attachments` |
+| 0011 | Modelo contable: plan de cuentas, partida doble, períodos | `feature/accounting-core` |
+| 0012 | Proveedor autorizado de facturación electrónica | `feature/sales-sri-invoicing` |
+
+Recuerda el Art. 14 y la regla de "dormir una noche sobre la decisión": el ADR se escribe,
+se deja reposar, se acepta, y **después** se codifica.
+
+> **Nota de discrepancia (no del contenido original, agregada al trasladarlo):** los
+> números `ADR-0010`–`ADR-0012` ya están tomados en `docs/adr/` por ADRs reales de la Fase
+> 3 (EAS Build, revisión de dependencias de navegación, WatermelonDB JSI diferido) — la
+> numeración se reutilizó porque estos tres nunca se escribieron. La sec. 1 y la sec. 3 de
+> este mismo documento ya asumían esa misma numeración reservada para Fase 4 antes de este
+> traslado, así que no es una inconsistencia nueva; cuando esta fase se planifique de
+> verdad, estos tres ADRs necesitarán números nuevos.
+
+Esa misma versión también anotaba, en su sec. 6, dos riesgos propios de esta fase y una
+pieza de alcance sacrificable si hay que recortar:
+
+| Riesgo | Señal temprana | Qué hacer |
+|---|---|---|
+| La contabilidad crece sin control | Empiezas a querer reemplazar al contador | Art. 18: el sistema genera datos limpios, no declara impuestos |
+| El proveedor SRI resulta caro o malo | Sandbox frustrante | La feature es aislable: el resto de la Fase 4 cierra sin ella y la facturación se hace fuera del sistema un mes más |
+
+**Features sacrificables si hay que recortar alcance (Art. 11):**
+`feature/sales-sri-invoicing` y `feature/accounting-cost-centers` (el margen por centro
+puede esperar; el libro diario no).
+
+Y, en su resumen de ramas, el orden propuesto para esta fase:
+
+**Fase 4** (12 ramas)
+```
+feature/shared-attachments
+feature/shared-money-units
+feature/accounting-core
+feature/accounting-cost-centers
+feature/accounting-postings
+feature/sales-customers-milk
+feature/sales-animals
+feature/purchasing-suppliers
+feature/sales-sri-invoicing
+feature/accounting-reports
+feature/admin-web-finance
+docs/fase-4-cierre
+```

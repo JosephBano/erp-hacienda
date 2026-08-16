@@ -128,6 +128,18 @@ en `docs/BACKLOG.md`. Cuando una fase pasa de ~3 meses sin uso real, **recorta a
 sacrificables para esa fase (secciones de riesgo específicas de cada plan de fase no se
 trasladan aquí).
 
+El riesgo de la deuda técnica arrastrada, en cambio, sí es transversal a cualquier fase
+(heredado de `PLAN-FASE-3-4.md` sec. 6, que no distinguía fase para este renglón):
+
+| Riesgo | Señal temprana | Qué hacer |
+|---|---|---|
+| Deuda técnica arrastrada | Ganas de "refactorizar de paso" | A `BACKLOG.md`. Un PR = un propósito |
+
+**Deuda ya detectada y anotada (no se arregla salvo que estorbe):** `EventType` sigue
+siendo un `enum` compilado en `Livestock.Domain`, lo que roza el Art. 8; convertirlo a
+configuración en BD merece su propia rama y su propio ADR. Anótalo en `docs/BACKLOG.md` en
+la primera rama que toque ese archivo.
+
 ## 2. Nivel de exigencia en pruebas
 
 Punto de partida: 89 pruebas. Estas son las reglas que rigen de aquí en adelante.

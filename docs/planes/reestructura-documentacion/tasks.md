@@ -35,9 +35,16 @@
       **No fusionarlas.**
 - [ ] **T1.5** `git rm BACKLOG.md`.
 - [ ] **T1.6** `AGENTS.md`, sección "Dónde están las cosas": `BACKLOG.md` → `docs/BACKLOG.md`.
-- [ ] **T1.7** `grep -rn "BACKLOG.md" --include=*.md . | grep -v node_modules` — ninguna
-      referencia apunta a la raíz.
-      **Terminado:** cero coincidencias que no sean `docs/BACKLOG.md`.
+- [ ] **T1.7** Verificar que los tres archivos que este commit toca
+      (`docs/BACKLOG.md`, `BACKLOG.md`, `AGENTS.md`) no dejan referencias a la raíz.
+      **Terminado:** `grep -n "BACKLOG\.md" AGENTS.md` solo muestra `docs/BACKLOG.md`.
+
+      > **Corrección durante la ejecución (2026-08-16).** La versión original de T1.7 exigía
+      > el barrido completo del repositorio, que este commit no está autorizado a hacer: su
+      > lista de archivos son tres. El barrido de las 9 referencias externas reales
+      > (`ROADMAP.md`, `PLAN-ADMIN-WEB-ANIMAL-GROUPS.md` y `sub_planes/`) se movió a
+      > **T11.4b**, junto al resto del reapuntado. Las de `docs/adr/` quedan intactas por
+      > inmutabilidad de los ADR. Ver `test-e2e.md` V-2.
 
 ---
 
@@ -230,6 +237,11 @@
 - [ ] **T11.3** `sed` de las 21 citas restantes de `PLAN-FASE-3-4` en código.
 - [ ] **T11.4** Reapuntar las 130 citas en `.md`, respetando las excepciones del criterio 7
       del spec.
+- [ ] **T11.4b** Reapuntar las 9 referencias a `BACKLOG.md` de la raíz que quedaron del
+      commit 1: `docs/ROADMAP.md` (1), `docs/planes/PLAN-ADMIN-WEB-ANIMAL-GROUPS.md` (4) y
+      `docs/planes/sub_planes/` (4) → `docs/BACKLOG.md`.
+      **No tocar `docs/adr/`** (7 referencias): un ADR no se edita, se reemplaza.
+      **Terminado:** el comando de `test-e2e.md` V-2, con sus dos exclusiones, devuelve cero.
 - [ ] **T11.5** `git diff --stat` revisado archivo por archivo: **ningún cambio fuera de
       comentarios**. Un `sed` que tocó código ejecutable se revierte entero.
 - [ ] **T11.6** `git rm docs/planes/PLAN-FASE-3-5-PORCINO.md docs/planes/PLAN-FASE-3-4.md`.

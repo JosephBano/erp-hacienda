@@ -62,11 +62,25 @@ archivos originales. Si es menor, se perdió contenido: comparar contra
 
 ```bash
 grep -rn "BACKLOG\.md" --include=*.md . | grep -v node_modules | grep -v '\.claude/' \
-  | grep -v 'docs/BACKLOG\.md'
+  | grep -v 'docs/BACKLOG\.md' | grep -v 'docs/adr/' \
+  | grep -v 'docs/planes/reestructura-documentacion/'
 ```
 
-**Esperado:** cero líneas. Cualquier resultado es una referencia que quedó apuntando a la
-raíz.
+**Esperado:** cero líneas.
+
+**Dos exclusiones, y por qué.** La versión original de este escenario exigía cero
+coincidencias sin excepciones, y era **imposible de cumplir** (hallada durante la ejecución
+del commit 1):
+
+- **`docs/adr/`** — siete referencias viven en los ADR 0020, 0024, 0025 y 0026. Un ADR
+  **no se edita jamás**: se reemplaza. Es la regla de la taxonomía del `spec.md` sec. 5 y
+  la convención del repositorio. Un ADR que menciona `BACKLOG.md` está describiendo el
+  mundo tal como era el día que se aceptó, y así debe quedar.
+- **`docs/planes/reestructura-documentacion/`** — esta carpeta documenta la fusión; sus
+  menciones son deliberadas, igual que la excepción del criterio 7 del spec.
+
+Las referencias de `PLAN-FASE-3-5-PORCINO.md` y `PLAN-FASE-3-4.md` no necesitan exclusión:
+esos archivos dejan de existir en el commit 11.
 
 ---
 

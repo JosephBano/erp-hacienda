@@ -1,0 +1,61 @@
+%% Verificado el 2026-08-16 contra
+%% src/Modules/Inventory/Hato.Modules.Inventory.Application/Consumptions/RecordGroupFeedConsumptionCommand.cs,
+%% src/Modules/Inventory/Hato.Modules.Inventory.Domain/InventoryItem.cs (InventoryBatch.DeductQuantity)
+%% y GroupFeedConsumption.cs. Dos entradas llegan al mismo comando: el endpoint REST y la
+%% operacion de sync "recordfeedconsumption" (PushSyncCommands.cs) — ver flujo-sincronizacion.mermaid.
+%% Aspereza real documentada abajo: cuando el FIFO recorre varios lotes y el stock total
+%% resulta insuficiente, el codigo YA decremento en memoria los lotes que si tenian stock
+%% antes de lanzar la excepcion (bucle en DeductFromBatchesFifo). Es inofensivo porque la
+%% excepcion ocurre antes de SaveChangesAsync — nada se persiste — pero el diagrama lo dibuja
+%% tal cual esta, no como "deberia" estar.
+flowchart TD
+    In1([Endpoint REST\nPOST /api/v1/inventory/feed-consumptions]) --> Cmd
+    In2([Push sync: operationType\n= recordfeedconsumption]) --> Cmd
+    Cmd["RecordGroupFeedConsumptionCommand\n{GroupId, InventoryItemId, Quantity,\nConsumedAt, RecordedBy, Unit?, BatchId?, Notes?}"]
+
+    Cmd --> Validate["FluentValidation:\nGroupId/InventoryItemId not empty\nQuantity > 0 · RecordedBy not empty"]
+    Validate -->|falla| Err400(["400: error de validacion"])
+    Validate -->|ok| LoadItem["Carga InventoryItem\n+ Include(Batches)"]
+    LoadItem --> ItemFound{"¿item existe?"}
+    ItemFound -- no --> ErrNoItem(["DomainException:\n'el item de inventario no existe'"])
+    ItemFound -- si --> ResolveUnit["unitRecorded = Unit informado (trim)\no, si se omitio, item.Unit\n(comentario del codigo: 'sin unidad\nsignifica la unidad propia del item')"]
+
+    ResolveUnit --> SameUnit{"¿unitRecorded ==\nitem.Unit (case-insensitive)?"}
+    SameUnit -- si --> Factor1["appliedFactor = 1\nquantityInBaseUnit = Quantity"]
+    SameUnit -- no --> LookupConv["Busca unit_conversions\nWHERE inventory_item_id = item\nAND from_unit = unitRecorded\nAND to_unit = item.Unit"]
+    LookupConv --> ConvFound{"¿conversion existe?"}
+    ConvFound -- no --> ErrNoConv(["DomainException:\n'no hay conversion definida\npara X -> Y en el item.\nConfigure la conversion antes\nde registrar el consumo'"])
+    ConvFound -- si --> ApplyConv["appliedFactor = conversion.Factor\nquantityInBaseUnit =\nround(Quantity x Factor, 3, banker's)"]
+
+    Factor1 --> Fifo
+    ApplyConv --> Fifo["DeductFromBatchesFifo(item,\nquantityInBaseUnit, BatchId?)"]
+
+    Fifo --> ExplicitBatch{"¿BatchId explicito?"}
+    ExplicitBatch -- si --> FindBatch["Busca ese lote en item.Batches"]
+    FindBatch --> BatchExists{"¿existe?"}
+    BatchExists -- no --> ErrBatch(["DomainException:\n'el lote no existe en el item'"])
+    BatchExists -- si --> DeductOne["batch.DeductQuantity(quantityInBaseUnit)\n(lanza si amount<=0 o amount>batch.Quantity;\nsin fallback a otros lotes)"]
+    DeductOne --> ExplicitOk(["Deduccion completa en un solo lote\n(comportamiento legacy, sin FIFO)"])
+
+    ExplicitBatch -- no --> OrderBatches["Ordena item.Batches\nWHERE Quantity > 0\nBY received_at ASC, created_at ASC"]
+    OrderBatches --> AnyStock{"¿hay al menos\nun lote con stock?"}
+    AnyStock -- no --> ErrNoStock(["DomainException:\n'no tiene lotes con stock disponible'"])
+    AnyStock -- si --> Loop["remaining = quantityInBaseUnit\nPor cada lote (del mas viejo al mas nuevo):"]
+    Loop --> Take["take = min(remaining, batch.Quantity)\nbatch.DeductQuantity(take)  <- MUTA YA, en memoria\nremaining -= take"]
+    Take --> More{"¿remaining > 0\ny quedan lotes?"}
+    More -- si --> Take
+    More -- no --> RemainCheck{"¿remaining > 0\nal salir del bucle?"}
+    RemainCheck -- si --> ErrInsufficient(["DomainException:\n'stock insuficiente'.\nLos lotes que SI tenian stock\nya quedaron decrementados EN MEMORIA\n(inofensivo: no hubo SaveChanges todavia)"])
+    RemainCheck -- no --> FifoOk["Consumo satisfecho, posiblemente\nrepartido entre varios lotes"]
+
+    FifoOk --> ResolveConsumptionBatch["consumption.batch_id =\nel PRIMER lote (mas viejo) que\nperdio stock — 'el lote que se comio'\npara que el panel muestre algo, no null"]
+    ExplicitOk --> ResolveConsumptionBatch2["consumption.batch_id = BatchId explicito"]
+
+    ResolveConsumptionBatch --> BuildEntity
+    ResolveConsumptionBatch2 --> BuildEntity["GroupFeedConsumption.Record(...)\nre-valida invariantes de dominio\n(quantities > 0, unit no vacia, etc.)"]
+
+    BuildEntity --> AddAndSave["dbContext.Add(consumption)\nSaveChangesAsync\n(persiste EN LA MISMA TRANSACCION:\nlos batches decrementados + la fila nueva)"]
+    AddAndSave --> Done(["200/201: retorna consumption.Id"])
+
+    ErrNoConv -.-> NoRollbackNote["Nada se persistio: ni la conversion\nfaltante ni ningun batch tocado\n(la excepcion corta antes de SaveChanges)"]
+    ErrInsufficient -.-> NoRollbackNote

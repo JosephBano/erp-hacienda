@@ -1,0 +1,84 @@
+%% Verificado el 2026-08-16 contra src/Hato.Api/Sync/PushSyncCommands.cs, SyncCursor.cs,
+%% SyncPullQueries.cs y clients/field-app/src/services/syncEngine.ts, outbox.ts, syncApi.ts
+%% (ADR-0008). Refleja el codigo tal como esta hoy, incluidas sus asperezas: el push nunca
+%% reintenta el 401 mas de una vez (ver nodo "Reintento agotado"), y el batch de push que
+%% recibe cero resultados del servidor se trata como fallo aunque no hubo excepcion.
+flowchart TD
+    Start([Conectividad vuelve o llamada manual a syncNow]) --> Lock{"¿Ya hay un\nsyncNow corriendo?"}
+    Lock -- si --> NoOp[No-op: retorna resultado vacio]
+    Lock -- no --> Net{"NetInfo.fetch()\n¿conectado?"}
+    Net -- no --> Offline[["ok=false, reason=offline\n(outbox intacto)"]]
+
+    Net -- si --> PushLoop["Outbox.pending(batchSize)\noldest-first por queued_at"]
+
+    subgraph DEVICE["Dispositivo — field-app (SyncEngine)"]
+        PushLoop --> HasPending{"¿batch vacio?"}
+        HasPending -- si --> PullStart
+        HasPending -- no --> RecordAttempt["outbox.recordAttempt(ids)\nattempts += 1"]
+        RecordAttempt --> DoPush["POST /api/v1/sync/push\n{deviceId, operations[]}"]
+        DoPush -->|excepcion de red| PushFail[["ok=false\nbatch queda pending, sin tocar"]]
+        DoPush --> Status401{"¿HTTP 401?"}
+        Status401 -- no --> ApplyResults
+        Status401 -- si --> AlreadyRetried{"¿ya reintento\nesta llamada?"}
+        AlreadyRetried -- si --> AuthExpired[["AuthenticationExpiredError\n-> reason=auth"]]
+        AlreadyRetried -- no --> DoRefresh["options.refreshToken()"]
+        DoRefresh --> RefreshOk{"¿token nuevo\nobtenido?"}
+        RefreshOk -- no --> AuthExpired
+        RefreshOk -- si --> RetryOnce["Reintenta la MISMA request\n(isRetry=true, una sola vez)"]
+        RetryOnce --> Status401b{"¿401 otra vez?"}
+        Status401b -- si --> AuthExpired
+        Status401b -- no --> ApplyResults
+
+        ApplyResults["Por cada resultado:"] --> ResultKind{"status"}
+        ResultKind -- Rejected --> MarkRejected["outbox.markRejected(id, errorDetails)\nqueda visible en bandeja de problemas"]
+        ResultKind -- "Accepted / Duplicate" --> MarkSynced["outbox.markSynced(id, resultRef)\n(mismo tratamiento: exactamente\nuna vez en el servidor)"]
+        MarkRejected --> ZeroCheck
+        MarkSynced --> ZeroCheck
+        ZeroCheck{"¿results.length == 0?"}
+        ZeroCheck -- si --> PushFail2[["ok=false, reason=unknown\n(servidor no respondio nada:\n evita loop infinito)"]]
+        ZeroCheck -- no --> PushLoop
+
+        PullStart["readCursor() desde\nsync_meta local (o Beginning)"] --> PullCall["GET /api/v1/sync/pull\n?since=cursor&batchSize"]
+        PullCall -->|excepcion| PullFail[["ok=false\ncursor local sin avanzar"]]
+        PullCall --> Apply["applyCollections():\nupsert por id en tablas espejo;\nisDeleted=true -> destroy local"]
+        Apply --> WriteCursor["writeCursor(response.cursor)"]
+        WriteCursor --> More{"¿response.hasMore?"}
+        More -- si --> PageLimit{"¿pagina < 200?"}
+        PageLimit -- si --> PullCall
+        PageLimit -- no --> PullDone[["ok=true (limite de paginas\nalcanzado; retoma en el proximo syncNow)"]]
+        More -- no --> PullDone2[["ok=true, pulled=N"]]
+    end
+
+    PushFail --> Backoff
+    AuthExpired --> Backoff
+    PushFail2 --> Backoff
+    PullFail --> Backoff
+    PullDone --> Success
+    PullDone2 --> Success
+    Backoff["consecutiveFailures += 1\nproximo intento en\nbackoffDelayMs (exp. 2^n, tope 5 min, +jitter 20%)"] --> End
+    Success["consecutiveFailures = 0"] --> End([Fin de syncNow])
+    Offline --> End
+    NoOp --> End
+
+    subgraph SERVER["Servidor — Hato.Api (Sync)"]
+        SPush["PushSyncBatchCommandHandler"] --> SizeCheck{"operations.Count > 500?"}
+        SizeCheck -- si --> Reject400["400: 'divida el envio'"]
+        SizeCheck -- no --> ForEachOp["Por cada operacion, en orden:"]
+        ForEachOp --> Claim["SELECT sync_operations\nWHERE client_operation_id = X"]
+        Claim --> Exists{"¿ya existe?"}
+        Exists -- si --> Duplicate[["status=Duplicate\n(resultado ya guardado, se re-devuelve)"]]
+        Exists -- no --> Insert["INSERT sync_operations\n(reserva el id antes de ejecutar)"]
+        Insert -->|"unique constraint\n(perdio la carrera)"| Reselect["Detach + SELECT del ganador"] --> Duplicate
+        Insert -->|ok| Execute["Enruta por operationType al\nMISMO MediatR command que usa la web\n(recordmilking, recordanimalevent,\nrecordgroupevent, recordfeedconsumption,\ncreateanimal, recordbirth, moveanimal,\nupdateanimal, recordcorrection, ...)"]
+        Execute -->|"exito"| Accepted["MarkAccepted(resultRef) + SaveChanges"]
+        Execute -->|"DomainException\nu otra excepcion"| Rejected["MarkRejected(reason) + SaveChanges\n(el registro de negocio NO se crea)"]
+
+        SPull["GetSyncPullQueryHandler"] --> ParseCursor["SyncCursor.Parse(since)\n= (timestamp, id) o Beginning"]
+        ParseCursor --> Perms["Permisos: deny-by-default;\nfiltra las ~19 colecciones\nsegun el rol del usuario"]
+        Perms --> PerCollection["Por cada coleccion visible:\nWHERE (updatedAt ?? createdAt, id) > cursor\nORDER BY esa misma tupla\nLIMIT batchSize"]
+        PerCollection --> Frontier["CursorFrontier:\nsi una coleccion se trunco,\nel cursor NUEVO es el minimo\nentre todas las truncadas\n(nunca el maximo: evita saltarse filas)"]
+        Frontier --> RespondPull["{cursor, hasMore, collections}"]
+    end
+
+    DoPush -.-> SPush
+    PullCall -.-> SPull

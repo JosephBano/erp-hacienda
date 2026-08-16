@@ -1,48 +1,42 @@
+%% Verificado el 2026-08-16 contra Production 20260802163710_AddAuditRecordedBy
+%% Auditoría commit 10 (docs/reestructura-documentacion): el diseño original de Nucleo 5
+%% (DATA-MODEL.md, registro por vaca O por tanque, `lactation_id` auto-resuelto, vinculo con
+%% `withdrawal_periods`, `is_sellable`, `milk_quality_tests`) **no se construyo asi**. La tabla
+%% real es `milk_yields` (no `milk_records`): `animal_id` es obligatorio (NOT NULL) — no existe
+%% la opcion "por tanque sin animal" a nivel de fila — y no tiene `group_id`, `lactation_id`,
+%% `is_sellable` ni `withdrawal_period_id`. `milk_quality_tests` no existe en ninguna migracion.
+%% Ninguna de las dos brechas esta comprometida en un plan de fase (grep sin resultados en
+%% docs/planes/): se retiran en vez de marcarse FUTURO. Lo que si existe es `group_id` a nivel
+%% de MILKING_SESSIONS (la sesion completa puede anotarse "de que grupo se ordeño", pero cada
+%% fila de leche sigue siendo por animal) y `total_liters` denormalizado en la sesion.
 erDiagram
     %% ============================================
     %% NUCLEO 5: PRODUCCION DE LECHE (Fase 1)
-    %% Registro flexible: por vaca o por grupo/tanque
     %% ============================================
 
-    MILKING_SESSIONS ||--o{ MILK_RECORDS : "contiene"
-    ANIMALS |o--o{ MILK_RECORDS : "vaca individual (opcional)"
-    ANIMAL_GROUPS |o--o{ MILK_RECORDS : "o grupo/tanque (opcional)"
-    LACTATIONS |o--o{ MILK_RECORDS : "dentro de lactancia"
-    ANIMALS |o--o{ MILK_QUALITY_TESTS : "analizada (o tanque)"
-    USERS ||--o{ MILKING_SESSIONS : "registrada por"
-    WITHDRAWAL_PERIODS ||..o{ MILK_RECORDS : "marca no-vendible"
+    MILKING_SESSIONS ||--o{ MILK_YIELDS : "contiene"
+    ANIMALS ||--o{ MILK_YIELDS : "vaca (obligatorio; no hay registro por tanque)"
+    ANIMAL_GROUPS |o--o{ MILKING_SESSIONS : "sesion asociada a un grupo (opcional)"
+    USERS |o--o{ MILKING_SESSIONS : "registrada por"
 
     MILKING_SESSIONS {
         uuid id PK
-        date session_date
-        varchar session_slot "am / pm / unica"
-        uuid group_id FK "nullable; ordeno de que grupo"
-        uuid recorded_by FK
-        varchar sync_source "web / mobile"
+        date date "columna real; no session_date"
+        varchar shift "am / pm / unica; columna real: shift, no session_slot"
+        uuid group_id FK "nullable; de que grupo se ordeño"
+        numeric total_liters "total denormalizado de la sesion"
+        uuid recorded_by_id FK "nullable"
+        varchar recorded_by_label
+        text notes "nullable"
         timestamptz created_at
     }
 
-    MILK_RECORDS {
+    MILK_YIELDS {
         uuid id PK
-        uuid session_id FK
-        uuid animal_id FK "nullable si el registro es por tanque"
-        uuid group_id FK "nullable si es por vaca"
-        uuid lactation_id FK "nullable; se resuelve automatico"
+        uuid milking_session_id FK
+        uuid animal_id FK "obligatorio; NOT NULL en la tabla real"
         numeric liters "decimal"
-        boolean is_sellable "false si la vaca esta en retiro"
-        uuid withdrawal_period_id FK "nullable; por que no es vendible"
-        text notes
         timestamptz created_at
-    }
-
-    MILK_QUALITY_TESTS {
-        uuid id PK
-        uuid animal_id FK "nullable; puede ser del tanque"
-        date test_date
-        varchar test_type "cmt / celulas_somaticas / solidos / reductasa / acidez"
-        jsonb results "valores segun tipo de prueba"
-        varchar tested_by "procesadora / finca / laboratorio"
-        uuid recorded_by FK
     }
 
     ANIMALS {
@@ -51,14 +45,11 @@ erDiagram
     ANIMAL_GROUPS {
         uuid id PK
     }
-    LACTATIONS {
-        uuid id PK
-        int lactation_number
-    }
-    WITHDRAWAL_PERIODS {
-        uuid id PK
-        varchar product_type
-    }
     USERS {
         uuid id PK
     }
+
+    %% NOTA: LACTATIONS (Nucleo 4) y WITHDRAWAL_PERIODS (Nucleo 2) existen como tablas propias
+    %% pero MILK_YIELDS no tiene FK hacia ninguna de las dos — la regla "leche en retiro no se
+    %% vende" y la curva de lactancia descritas en DATA-MODEL.md no estan conectadas en el
+    %% esquema real. MILK_QUALITY_TESTS no existe en absoluto.

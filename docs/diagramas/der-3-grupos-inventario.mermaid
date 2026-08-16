@@ -1,27 +1,44 @@
+%% Verificado el 2026-08-16 contra Inventory 20260813141042_AddInventoryReceptionFields
+%% y Livestock 20260806191243_AddAnimalGroupTrackingModeAndGroupEvents
+%% Auditoría commit 10 (docs/reestructura-documentacion), diagnostico original en spec.md sec. 2.5:
+%% PADDOCKS y GRAZING_MOVEMENTS son Fase 5 (docs/planes/fase-5/spec.md), nunca se construyeron —
+%% se marcan FUTURO. UNITS nunca se construyo y no esta planificada como tabla propia: lo que
+%% existe es `unit_conversions` por item (from_unit/to_unit son varchar, no FK a un catalogo
+%% global) — se retira en vez de marcarse. Falta FEED_STAGES, que existe desde
+%% 20260809050404_AddFeedStages. INVENTORY_ITEMS/INVENTORY_BATCHES/GROUP_FEED_CONSUMPTIONS se
+%% reescribieron sobre columnas reales (unit es varchar en el item, no FK; batches no separan
+%% recibido/restante, `quantity` es el saldo mutable; el consumo no persiste `total_cost`, se
+%% deriva de `quantity_in_base_unit` x `inventory_batches.cost_per_unit`). ANIMAL_GROUPS perdio
+%% `purpose` (no existe) y gano `description`/`tracking_mode` (Fase 3.5, headcount). GROUP_MEMBERSHIPS
+%% no tiene `moved_reason`; las columnas reales son `joined_at`/`left_at`.
 erDiagram
     %% ============================================
-    %% NUCLEO 3: GRUPOS, POTREROS E INVENTARIO
+    %% NUCLEO 3: GRUPOS E INVENTARIO
     %% El costeo vive aqui: consumo por grupo,
     %% prorrateo por animal-dia
     %% ============================================
 
     ANIMAL_GROUPS ||--o{ GROUP_MEMBERSHIPS : "compuesto por"
     ANIMALS ||--o{ GROUP_MEMBERSHIPS : "pertenece con historial"
+
+    %% FUTURO — Fase 5 (docs/planes/fase-5/spec.md)
     ANIMAL_GROUPS ||--o{ GRAZING_MOVEMENTS : "rota por"
+    %% FUTURO — Fase 5
     PADDOCKS ||--o{ GRAZING_MOVEMENTS : "recibe"
 
-    UNITS ||--o{ INVENTORY_ITEMS : "se mide en"
+    FEED_STAGES |o--o{ INVENTORY_ITEMS : "clasifica alimento (solo category=feed)"
     INVENTORY_ITEMS ||--o{ INVENTORY_BATCHES : "entra por lotes"
     INVENTORY_ITEMS ||--o{ GROUP_FEED_CONSUMPTIONS : "consumido"
-    INVENTORY_BATCHES |o--o{ GROUP_FEED_CONSUMPTIONS : "de que lote (opcional)"
+    INVENTORY_BATCHES |o--o{ GROUP_FEED_CONSUMPTIONS : "de que lote (opcional; FIFO si se omite)"
     ANIMAL_GROUPS ||--o{ GROUP_FEED_CONSUMPTIONS : "consume"
-    UNITS ||--o{ UNIT_CONVERSIONS : "convierte desde"
+    INVENTORY_ITEMS ||--o{ UNIT_CONVERSIONS : "convierte unidades (por item, no global)"
 
     ANIMAL_GROUPS {
         uuid id PK
         varchar name "vacas_ordeno, engorde_mar2026, terneras"
         uuid species_id FK "nullable; grupos suelen ser monoespecie"
-        varchar purpose "produccion / engorde / cria / levante"
+        varchar description "nullable (no existe columna purpose)"
+        varchar tracking_mode "individual / headcount (Fase 3.5, ADR-0015)"
         boolean is_active
         timestamptz created_at
         timestamptz deleted_at
@@ -31,12 +48,12 @@ erDiagram
         uuid id PK
         uuid animal_id FK
         uuid group_id FK
-        date from_date
-        date to_date "nullable = sigue en el grupo"
-        varchar moved_reason "destete, secado, venta..."
-        uuid created_by FK
+        date joined_at "columna real; no from_date"
+        date left_at "columna real; no to_date. nullable = sigue en el grupo"
+        uuid created_by FK "nullable"
     }
 
+    %% FUTURO — Fase 5
     PADDOCKS {
         uuid id PK
         varchar name
@@ -45,6 +62,7 @@ erDiagram
         boolean is_active
     }
 
+    %% FUTURO — Fase 5
     GRAZING_MOVEMENTS {
         uuid id PK
         uuid group_id FK
@@ -55,53 +73,56 @@ erDiagram
         uuid created_by FK
     }
 
-    UNITS {
+    FEED_STAGES {
         uuid id PK
-        varchar code UK "kg, l, unidad, saco45kg, ml, dosis"
-        varchar name
+        varchar key UK "preiniciador, iniciador, crecimiento, engorde, gestacion, lactancia"
+        varchar label_es
+        boolean is_active
+        timestamptz deleted_at
     }
 
     UNIT_CONVERSIONS {
         uuid id PK
-        uuid from_unit_id FK
-        uuid to_unit_id FK
-        numeric factor "saco45kg -> kg = 45"
+        uuid inventory_item_id FK "conversion propia del item, no un catalogo global de unidades"
+        varchar from_unit "texto libre, p.ej. saco40kg"
+        varchar to_unit "texto libre; normalmente el Unit del item"
+        numeric factor "saco40kg -> kg = 40"
     }
 
     INVENTORY_ITEMS {
         uuid id PK
         varchar name "balanceado lechero, oxitetraciclina, sal mineral"
-        varchar item_type "feed / medicine / supply / product"
-        uuid base_unit_id FK
+        varchar category "feed / medicine / supply / product"
+        varchar unit "texto libre (kg, l, unidad...); NO es FK a un catalogo de unidades"
+        uuid feed_stage_id FK "nullable; solo tiene sentido si category=feed"
         numeric min_stock "para alertas de reposicion"
-        int default_milk_withdrawal_days "si es medicamento"
-        int default_meat_withdrawal_days "si es medicamento"
+        varchar description "nullable"
         timestamptz deleted_at
     }
 
     INVENTORY_BATCHES {
         uuid id PK
-        uuid item_id FK
-        varchar batch_code "lote del fabricante"
-        numeric quantity_received
-        numeric quantity_remaining
-        numeric unit_cost "decimal"
-        date expiry_date "alerta de vencimiento"
-        date received_at
-        varchar supplier_name "FK a suppliers en Fase 4"
-        timestamptz created_at
+        uuid inventory_item_id FK
+        varchar batch_number "lote del proveedor; no es batch_code"
+        numeric quantity "saldo mutable: se decrementa al consumir, no hay columna separada de recibido/restante"
+        numeric cost_per_unit "decimal"
+        date expiration_date "alerta de vencimiento; nullable"
+        timestamptz received_at "fecha declarada de llegada (ADR-0026), distinta de created_at"
+        varchar supplier_label "texto libre; no FK a suppliers (llega en Fase 4)"
+        varchar invoice_reference "nullable"
     }
 
     GROUP_FEED_CONSUMPTIONS {
         uuid id PK
         uuid group_id FK
-        uuid item_id FK
-        uuid batch_id FK "nullable"
-        date consumption_date
-        numeric quantity
-        uuid unit_id FK
-        numeric total_cost "congela el costo del dia"
-        uuid recorded_by FK
+        uuid inventory_item_id FK
+        uuid batch_id FK "nullable; si se omite, FIFO decide el/los lotes"
+        date consumed_at "columna real; no consumption_date"
+        numeric quantity_recorded "lo que el operario tecleo, en su unidad"
+        varchar unit_recorded "la unidad tecleada, no una FK"
+        numeric applied_factor "factor de conversion aplicado (1 si ya estaba en la unidad base)"
+        numeric quantity_in_base_unit "quantity_recorded x applied_factor; lo que lee el prorrateo"
+        uuid recorded_by_id FK "nullable"
     }
 
     ANIMALS {

@@ -596,6 +596,82 @@ camino principal (ActivitiesHub → Tratar/Vacunar) que 3.5a.2-C mide. Agregar
   o opción D eliminar el endpoint) queda pendiente. **Disparador:** el dueño contesta
   el issue #93 con la opción preferida.
 
+## Seguridad — hallazgos de la auditoría de `SEGURIDAD.md` (2026-08-16)
+
+> `docs/SEGURIDAD.md` se escribió auditando `src/Hato.Api/Endpoints/*.cs` línea por línea
+> (los 19 archivos) en vez de resumir ADR-0007/ADR-0008. Estos ítems son la diferencia entre
+> lo que ADR-0007 diseñó y lo que quedó realmente conectado en el código, más dos hallazgos
+> de higiene de sesión sin relación con permisos. Ninguno se arregló en esta rama (regla 9,
+> AGENTS.md: un PR, un propósito) — este PR es solo documentación.
+
+- **[seguridad] Siete permisos declarados en `SystemPermissions` nunca se exigen en ningún
+  endpoint.** `breeding.events.record`, `breeding.events.read`, `production.milking.record`,
+  `production.milking.read`, `tasks.manage`, `tasks.read`, `people.users.read`
+  (`src/Modules/People/Hato.Modules.People.Domain/UserRole.cs:49-90`) no aparecen en ningún
+  archivo de `src/Hato.Api/Endpoints/`. Efecto: `BreedingEndpoints.cs`, `MilkingEndpoints.cs`
+  y `TasksEndpoints.cs` están abiertos por completo a cualquier usuario autenticado, sin el
+  control fino por rol que ADR-0007 diseñó explícitamente (el ejemplo del propio ADR —
+  "un operador de ordeño debe poder registrar leche sin acceso a reportes financieros" —
+  no tiene gate que lo haga cumplir hoy). **Disparador:** antes de que un rol no-admin
+  reciba acceso al sistema en el piloto real, o la primera vez que el dueño pida "que este
+  empleado no pueda X".
+
+- **[seguridad] Asimetría entre escritura individual y grupal de eventos/animales.**
+  `POST /api/v1/animals/{id}/events` (`AnimalEventsEndpoints.cs`), `POST /api/v1/animals`
+  (registrar) y `POST /api/v1/animals/{id}/identifiers` (`AnimalsEndpoints.cs`) no exigen
+  `livestock.animals.write`, mientras que `PUT`/`DELETE` sobre el mismo recurso y el
+  equivalente grupal (`POST /api/v1/animal-groups/{id}/events`) sí lo exigen. Ningún ADR
+  documenta la asimetría como decisión. **Disparador:** el mismo que el ítem anterior —
+  ambos se resuelven mejor en un solo PR de "cerrar los gates de permiso que ADR-0007 dejó
+  a medias" que revise los 19 archivos de una vez.
+
+- **[seguridad] `PlausibilityRangesEndpoints.cs` documenta en comentario un permiso que el
+  código no implementa.** El comentario XML del archivo (líneas 6-13) afirma que las
+  mutaciones exigen `livestock.animals.write`; ningún `POST`/`PATCH`/`DELETE` del archivo
+  llama `RequirePermission`. Quien lea solo el comentario concluye que el catálogo está
+  protegido. **Disparador:** mismo PR que cierre los gates de permiso de arriba — corregir
+  el comentario para que describa el código real, o el código para que cumpla el
+  comentario, lo que decida el dueño.
+
+- **[seguridad] `docker-compose.yml` fuerza `Development` en el contenedor `api`, anulando
+  la clave de firma JWT persistente.** `docker-compose.yml:39` fija
+  `ASPNETCORE_ENVIRONMENT: Development`, sobreescribiendo el `ENV
+  ASPNETCORE_ENVIRONMENT=Production` de `src/Hato.Api/Dockerfile:27`. Como
+  `Jwt:SigningKey` no está en `docker-compose.yml` y el proceso nunca corre en
+  `IsProduction()` bajo este compose, `PeopleModule.cs:53-55` genera una clave aleatoria
+  en memoria en cada arranque — invalidando todo JWT de acceso emitido antes del reinicio
+  (hasta 8h de sesiones activas), aunque los refresh tokens en BD sobreviven. La validación
+  que exige clave real de 32+ caracteres en producción (`PeopleModule.cs:66-70`) nunca se
+  ejercita en este camino de despliegue. **Disparador:** antes de cualquier despliegue del
+  compose fuera de una máquina de desarrollo — fijar `ASPNETCORE_ENVIRONMENT: Production` y
+  agregar `Jwt__SigningKey` a las variables requeridas del `.env`.
+
+- **[seguridad] `GET /api/v1/sync/operations` no filtra por usuario ni exige permiso
+  propio.** `GetSyncOperationsQueryHandler`
+  (`src/Hato.Api/Sync/SyncPullQueries.cs:661-689`) consulta `context.SyncOperations` sin
+  `Where(o => o.UserId == ...)` — cualquier usuario autenticado ve las últimas 100
+  operaciones de sync de todos los empleados y dispositivos (`DeviceId`, `ErrorDetails`
+  incluidos). Compárese con `GET /api/v1/sync/conflicts`, en el mismo archivo, que sí exige
+  `people.users.manage`. **Disparador:** mismo PR de cierre de gates — filtrar por usuario
+  salvo que quien llame tenga un permiso de alcance más amplio (a definir cuál).
+
+- **[seguridad] Sin límite de intentos de login.** `LoginCommandHandler`
+  (`src/Modules/People/Hato.Modules.People.Application/Auth/LoginCommand.cs`) no aplica
+  rate limiting ni bloqueo temporal tras intentos fallidos repetidos. PBKDF2 (100.000
+  iteraciones) impone un costo por intento pero no un límite duro. **Disparador:** el
+  piloto real expone el endpoint fuera de la red de la finca (p. ej. acceso remoto al
+  panel), o se detecta un intento de fuerza bruta en logs.
+
+- **[seguridad] Sin detección de reuso de refresh token revocado.**
+  `RevokeRefreshTokenCommandHandler` y `RefreshAuthTokenCommandHandler`
+  (`src/Modules/People/Hato.Modules.People.Application/Auth/RefreshTokenCommands.cs`) no
+  implementan el patrón de "revocar toda la cadena del usuario si se presenta un token ya
+  revocado" (señal común de robo de refresh token). **Disparador:** evidencia de que un
+  refresh token se filtró o se usó desde un dispositivo no reconocido.
+
+- **Nota:** `POST /feed-consumptions` sin gate de permiso (BJ-04, arriba) es el mismo
+  patrón de gate faltante que los ítems de esta sección — se referencia, no se duplica.
+
 ## Ideas sin fase asignada
 
 - **Fotos de eventos**: la app de campo ya guarda la referencia local (`photoUri`) y la

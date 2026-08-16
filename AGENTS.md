@@ -84,7 +84,8 @@ archivo es ruido.
 
 - **ADRs** → `docs/adr/NNNN-titulo-en-kebab-case.md`. Cuatro dígitos, **sin** prefijo `ADR-`
   en el nombre del archivo. El número no se reutiliza jamás, ni siquiera si el ADR se
-  rechaza. La plantilla es `docs/adr/TEMPLATE.md` y no lleva número porque no es un ADR.
+  rechaza. La plantilla es `docs/plantillas/TEMPLATE-adr.md` y no lleva número porque no es
+  un ADR.
   Dentro del documento el título **sí** dice `# ADR-NNNN — …`.
 - **Planes de ejecución** → `docs/planes/`. Uno por fase.
 - **Diagramas** → `docs/diagramas/`, en `.mermaid`. Los diagramas embebidos en un `.md` se

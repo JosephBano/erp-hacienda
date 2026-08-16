@@ -308,6 +308,7 @@ documentos responden la misma, uno sobra (D1).
 
 | Documento | Pregunta que responde | Cambia cuando |
 |---|---|---|
+| `README.md` | ¿Cómo levanto y corro esto? | Cambia el arranque, el stack o las pruebas. |
 | `SOUL.md` | ¿Por qué existe este proyecto? | Casi nunca. |
 | `CONSTITUTION.md` | ¿Qué reglas no se rompen? | Con un ADR que la enmiende. |
 | `AGENTS.md` | ¿Cómo trabaja un agente aquí? | Cambia una convención. |

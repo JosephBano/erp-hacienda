@@ -265,6 +265,14 @@
 
 ## Cierre
 
+- [ ] **TC.0** Marcar las casillas de **este mismo archivo** en una sola pasada, contra el
+      historial de la rama. Se hace acá y no commit a commit a propósito: marcar sobre la
+      marcha metería una edición de `tasks.md` en cada diff y ensuciaría la revisión de
+      cada commit. El seguimiento durante la ejecución vive en el ledger.
+- [ ] **TC.0b** Anotar en `docs/BACKLOG.md` la deuda preexistente detectada en el commit 4:
+      el texto heredado cita `AGENTS.md sec.5` y `sec.2`, pero `AGENTS.md` dejó de numerar
+      sus encabezados. Las citas no resuelven. No se arregla en esta rama (regla 9: es otro
+      propósito), pero deja de ser invisible.
 - [ ] **TC.1** Ejecutar [`test-e2e.md`](./test-e2e.md) completo, los ocho escenarios.
 - [ ] **TC.2** Los 14 criterios de aceptación del `spec.md` sec. 14, uno por uno.
 - [ ] **TC.3** `dotnet test` en verde. Esta rama no toca código ejecutable: cualquier fallo

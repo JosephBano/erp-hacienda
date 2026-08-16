@@ -186,6 +186,53 @@ camino principal (ActivitiesHub → Tratar/Vacunar) que 3.5a.2-C mide. Agregar
 - **Disparador**: arranque de 3.5b.1 (rama `feature/livestock-health-plans`,
   ADR-0016). Es la primera tarea de 3.5b según el macro plan sec.4.1.
 
+### [deuda] Bloque 4.2–4.7 de la Fase 3.5 sin empezar
+
+- **Estado (auditoría de código, 2026-08-16)**: de las 21 tareas de los bloques
+  4.2 (`feature/tasks-health-plan-alerts`), 4.3 (`feature/inventory-feeding-standards`),
+  4.4 (`feature/analytics-lot-fcr`), 4.5 (`feature/livestock-animal-traits`), 4.6
+  (`feature/breeding-maternal-index`) y 4.7 (`feature/tasks-swine-alerts`), **ninguna**
+  tiene una sola línea de código en el repo. No hay rama, migración, clase ni test
+  esqueleto para ninguna de las seis. El trabajo se detuvo justo después de 4.1
+  (Health Plans, que sí está completo — `HealthPlan`/`HealthPlanItem` con ancla,
+  desfase, ventana y asignación a lote o individuo) y nunca arrancaron ni el
+  generador de alertas `HEALTH_PLAN_ITEM_DUE` que consume los planes sanitarios, ni
+  los estándares de alimentación, el FCR, los rasgos observables, el índice
+  maternal o las alertas específicas de porcino.
+- **No es un defecto documental**: no se encontró ningún documento (`ROADMAP.md`,
+  `spec.md`, un commit "close"/"merge") que afirme que estas seis ramas ya existen.
+  `docs/ROADMAP.md` describe 3.5b en tiempo futuro/descriptivo, sin marcarlo como
+  completado. El corte es honesto — nadie declaró terminado lo que no se construyó
+  — pero es el hueco más grande en tamaño de toda la Fase 3.5 y conviene que quede
+  visible aquí en vez de asumirse implícito.
+- **Ver**: `docs/planes/fase-3-5/tasks.md` sección "Bloque 3.5b — Análisis y
+  automatización" (tareas T-4.2-1 a T-4.7-2, todas sin marcar con evidencia
+  negativa citada línea por línea).
+
+### [deuda] `T-3.5a.7-6` — ficha del lote incompleta (2 de 5 datos)
+
+- **Estado (auditoría de código, 2026-08-16)**: la tarea pide cinco datos en la
+  ficha del lote — cabezas vivas, peso promedio, última vacunación, enfermos,
+  alimento del período. El backend
+  (`src/Modules/Livestock/Hato.Modules.Livestock.Application/AnimalGroups/GetAnimalGroupQueries.cs:145-208`,
+  `AnimalGroupSummaryDto`) solo calcula `liveHeadCount`, `headsAffectedByDiagnosis`,
+  `lastVaccinationAt`, `lastDisposalAt`, `lastTreatmentAt`. **No calcula peso
+  promedio ni alimento del período** — faltan 2 de los 5 datos pedidos, y no hay
+  ningún cálculo parcial de ninguno de los dos en ningún lado del backend.
+- **El caso más barato de cerrar**: del lado móvil,
+  `clients/field-app/src/screens/LotSubjectScreen.tsx:88-94` solo renderiza
+  `liveHeadCount` y `headsAffectedByDiagnosis` — **pese a que `lastVaccinationAt` ya
+  viaja en el DTO** (`clients/field-app/src/services/animalGroupsApi.ts:5`). El dato
+  existe de punta a punta hasta la pantalla y simplemente no se muestra. Es la
+  brecha más barata de las tres (backend + backend + un `<Text>` en el front) y la
+  más absurda de dejar así.
+- **Nota sobre la documentación existente**: el comentario en
+  `clients/field-app/src/services/animalGroupsApi.ts:11` ("already delivered
+  server-side") es técnicamente cierto para el endpoint pero engañoso sobre el
+  alcance — no menciona que el endpoint no calcula 2 de los 5 datos originales.
+- **Ver**: `docs/planes/fase-3-5/tasks.md`, tarea `T-3.5a.7-6` (sin marcar, con
+  evidencia negativa citada línea por línea).
+
 ## Ítems abiertos (post-piloto Fase 3)
 
 ### [cosmético] Regenerar `adaptive-icon.png` con canal alfa

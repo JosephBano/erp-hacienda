@@ -60,6 +60,25 @@ Tareas:
    es el *"en este lote hay uno enfermo"* que pidió el cliente, **sin identificar cuál**, que
    es exactamente lo que él quiso decir. `EventType.Vaccination` —que existe en
    `EventEnums.cs` y **nunca se emitió**— pasa a usarse de verdad.
+
+   > **Nota de diseño (post-implementación, sin actualizar aquí hasta ahora):** el código no
+   > construyó `GroupWeighing`/`GroupMortality`/`GroupDiagnosis` como tipos de evento
+   > separados. `EventEnums.cs:6-19` define un único `EventType` (`Weighing`, `Treatment`,
+   > `Vaccination`, `Diagnosis`, `Movement`, `Disposal`, `Correction`, más los dos tipos de
+   > 3.5a.4) compartido entre animal y lote. `AnimalEvent.cs:10-14` lo documenta de forma
+   > explícita: *"the subject is exactly one of `AnimalId` / `GroupId` (ADR-0015 sec.2):
+   > 'vaccinated this animal' and 'vaccinated this lot' are the same `EventType` with a
+   > different subject, not two event types. A group event is never materialized per member
+   > — that would invent which individual it happened to."* Es decir: en vez de tipos
+   > `Group*` paralelos a los individuales, el mismo `EventType.Weighing`/`Diagnosis`/etc. se
+   > reutiliza y el sujeto (`AnimalId` vs `GroupId`, XOR por CHECK de BD — tarea 2) es lo que
+   > distingue el caso grupal del individual. Solo la mitad final de esta tarea —
+   > `EventType.Vaccination` efectivamente emitido para grupos — se completó tal como estaba
+   > escrita (`GetAnimalGroupQueries.cs:194`). El código no explica por qué se tomó esta
+   > decisión en vez de crear los tres tipos nuevos; no hay comentario, ADR ni commit que dé
+   > la razón, así que no se puede afirmar aquí más que lo que el propio tipo unificado deja
+   > ver: evita que cada evento futuro (pesaje, mortalidad, diagnóstico, y lo que venga
+   > después) necesite una versión `Group*` duplicada de sí mismo.
 4. `LiveHeadCount` como consulta derivada (membresías activas − bajas del lote). **Nunca un
    contador editable.**
 5. **Cierre en cascada del lote** (ADR-0015 sec. 7). Las bajas parciales —se venden 20 de 42,

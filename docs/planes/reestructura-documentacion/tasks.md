@@ -246,8 +246,14 @@
 - [ ] **T11.1** Reapuntar **a mano** las 2 citas a `PLAN-FASE-3-4 sec.2.1` →
       `docs/PROTOCOLO-DE-TRABAJO.md`. **Antes** de cualquier `sed`.
       **Terminado:** `grep -rn "PLAN-FASE-3-4 sec\.2\.1"` en código devuelve cero.
-- [ ] **T11.2** `sed` de las 85 citas de `PLAN-FASE-3-5-PORCINO` en código, variante `.md`
-      primero.
+- [ ] **T11.2** `sed` de las 85 citas de `PLAN-FASE-3-5-PORCINO` en código, **en dos pasos y
+      en este orden**: primero las ~40 citas a `sec.3.5a.*` → `spec-3.5a.md`, después el
+      resto (`sec.2.3`, `sec.7`, menciones sin sección) → `spec.md`. Invertir el orden manda
+      todo a `spec.md` y rompe 40 referencias en silencio.
+      El commit 6 partió el spec en dos para no recrear el archivo inmanejable que el
+      `spec.md` sec. 13 advertía; los comandos exactos están en `plan.md` commit 11.
+      **Terminado:** `grep -rn "spec-3.5a.md sec\.3\.5a"` en código devuelve ~40, y ninguna
+      cita a `3.5a` quedó apuntando a `spec.md`.
 - [ ] **T11.3** `sed` de las 21 citas restantes de `PLAN-FASE-3-4` en código.
 - [ ] **T11.4** Reapuntar las 130 citas en `.md`, respetando las excepciones del criterio 7
       del spec.

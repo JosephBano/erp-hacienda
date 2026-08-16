@@ -320,7 +320,8 @@ las carpetas nuevas y el diff es auditable (spec sec. 13).
 
 | Origen | Veces en código | Destino |
 |---|---|---|
-| `PLAN-FASE-3-5-PORCINO(.md)` | 85 | `docs/planes/fase-3-5/spec.md` |
+| `PLAN-FASE-3-5-PORCINO(.md) sec.3.5a.*` | 40 | `docs/planes/fase-3-5/spec-3.5a.md` |
+| `PLAN-FASE-3-5-PORCINO(.md)` — resto (`sec.2.3`, `sec.7`) | 45 | `docs/planes/fase-3-5/spec.md` |
 | `PLAN-FASE-3-4 sec.2.2` | 12 | `docs/planes/fase-3/spec.md` |
 | `PLAN-FASE-3-4 sec.3.x` | 8 | `docs/planes/fase-3/spec.md` |
 | `PLAN-FASE-3-4 sec.2.1` | **2** | `docs/PROTOCOLO-DE-TRABAJO.md` |
@@ -337,7 +338,18 @@ grep -rn "PLAN-FASE-3-4 sec\.2\.1" --include=*.cs --include=*.ts --include=*.tsx
 **Después** el reemplazo mecánico del resto. El orden importa: la variante con `.md` va
 antes que la desnuda, si no la desnuda deja un `.md` colgando.
 
+**El commit 6 partió el spec de la Fase 3.5 en dos** (`spec.md` y `spec-3.5a.md`) para no
+recrear el archivo inmanejable que la sec. 13 del spec advertía. Consecuencia directa: el
+reemplazo **no puede ser un patrón único**. Se enruta por la sección citada, y el orden
+importa — las citas a `3.5a` primero, porque el patrón general las capturaría.
+
 ```bash
+# Paso 1: las 40 citas a secciones 3.5a.* -> spec-3.5a.md
+grep -rl "PLAN-FASE-3-5-PORCINO" --include=*.cs --include=*.ts --include=*.tsx . \
+  | grep -v node_modules \
+  | xargs sed -i -E 's#PLAN-FASE-3-5-PORCINO(\.md)? (sec\.? ?3\.5a)#docs/planes/fase-3-5/spec-3.5a.md \2#g'
+
+# Paso 2: el resto (sec.2.3, sec.7 y menciones sin sección) -> spec.md
 grep -rl "PLAN-FASE-3-5-PORCINO" --include=*.cs --include=*.ts --include=*.tsx . \
   | grep -v node_modules \
   | xargs sed -i 's#PLAN-FASE-3-5-PORCINO\.md#docs/planes/fase-3-5/spec.md#g;

@@ -126,7 +126,7 @@ parece correcta y no lo es. Nada de esto falla en compilación — es prosa en c
 **Paso 1.** Extraer todas las secciones que el código cita en los destinos nuevos:
 
 ```bash
-grep -rhoE '(docs/planes/fase-3-5/spec\.md|docs/planes/fase-3/spec\.md|docs/PROTOCOLO-DE-TRABAJO\.md) sec\.[0-9a-zA-Z.]+' \
+grep -rhoE '(docs/planes/fase-3-5/spec-3\.5a\.md|docs/planes/fase-3-5/spec\.md|docs/planes/fase-3/spec\.md|docs/PROTOCOLO-DE-TRABAJO\.md) sec\.? ?[0-9a-zA-Z.]+' \
   --include=*.cs --include=*.ts --include=*.tsx . \
   | grep -v node_modules | sort -u
 ```

@@ -67,6 +67,16 @@
       (D11), encabezado de fecha de verificación, y cuándo hay que actualizarlo.
 - [ ] **T2.8** Cada plantilla lleva instrucciones embebidas **y un ejemplo corto real de
       este repositorio**. Una plantilla sin ejemplo no cuenta como terminada.
+      El ejemplo debe ser **literal**: si se recorta, lleva elipsis visible. Un ejemplo
+      presentado como completo que omite parte de la fuente es un defecto, no un detalle
+      de estilo — es justo lo que esta tarea existe para impedir.
+
+      > **Excepción, dictada durante la ejecución (2026-08-16): `TEMPLATE-adr.md`.**
+      > T2.1 y el `spec.md` sec. 6 exigen moverla **sin cambios de contenido**; T2.8 exigía
+      > un ejemplo embebido. Las dos no pueden cumplirse a la vez. Gana T2.1, porque el
+      > spec es la autoridad vinculante y porque la plantilla de ADR **no necesita ejemplo
+      > embebido**: tiene 26 ADR reales al lado, en `docs/adr/`, que son mejor ejemplo del
+      > que cabría en una cita de bloque. La plantilla se queda tal cual.
 - [ ] **T2.9** `ls docs/plantillas/*.md | wc -l` imprime `6`.
 - [ ] **T2.10** `grep -rn "docs/adr/TEMPLATE\.md" --include=*.md . | grep -v node_modules |
       grep -v 'docs/planes/reestructura-documentacion/'` devuelve cero.

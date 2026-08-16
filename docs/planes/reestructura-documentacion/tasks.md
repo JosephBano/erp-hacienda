@@ -121,8 +121,9 @@
 - [ ] **T5.2** Absorber sec. 2.2 — los 10 escenarios obligatorios de sincronización —
       **conservando el número `2.2`** (D6).
 - [ ] **T5.3** Absorber sec. 3 — bloques 3.A–3.C — **conservando los números `3.x`** (D6).
-- [ ] **T5.4** Incorporar el estado y la retrospectiva de `ROADMAP.md:109-142`, incluido el
-      cierre revertido y los tres defectos que lo motivaron.
+- [ ] **T5.4** Incorporar el estado y la retrospectiva de `ROADMAP.md:33-56` (el cierre
+      revertido y los tres defectos que lo motivaron) y `ROADMAP.md:109-142` (objetivo,
+      criterio de salida y pendiente para cerrar).
 - [ ] **T5.5** `plan.md`: la secuencia de ~11 ramas, marcada como ejecutada.
 - [ ] **T5.6** `tasks.md`: todo `[x]` salvo el piloto real, que queda `[ ]` con la cita de
       `ROADMAP.md:121-125`.

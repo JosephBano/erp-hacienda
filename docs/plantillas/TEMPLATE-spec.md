@@ -46,6 +46,11 @@
 > **Todo lo que sigue se comprobó ejecutando algo contra este repositorio**, no por
 > suposición: leer código, correr una consulta SQL, un `grep`, un comando. Cada hallazgo cita
 > archivo y línea, o el comando exacto y su salida.
+>
+> **Si este spec es el registro de una fase ya terminada** (documento archivado, según la
+> regla de `docs/DOCUMENTACION.md` sec. 4), esta sección y la sec. 3 pueden no aplicar — no
+> hay hallazgo que verificar ni decisión que fijar sobre trabajo ya hecho. Omitilas y decilo
+> en el encabezado, como hace `docs/planes/fase-3/spec.md`.
 
 ### 2.1 `<título del hallazgo>`
 

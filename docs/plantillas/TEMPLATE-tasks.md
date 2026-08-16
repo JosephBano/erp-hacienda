@@ -7,6 +7,10 @@
 > criterio de terminado verificable. Agrupadas por el commit de [`plan.md`](./plan.md) al que
 > pertenecen.
 >
+> **La agrupación es por unidad de entrega del trabajo**: commit cuando el documento
+> describe una rama en curso, bloque o rama cuando es el registro de una fase ya cerrada —
+> así agrupa `docs/planes/fase-3/tasks.md` por "Bloque".
+>
 > Convención: `[ ]` pendiente · `[x]` hecho · `[!]` bloqueada.
 
 ---

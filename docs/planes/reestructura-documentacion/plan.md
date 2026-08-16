@@ -187,7 +187,8 @@ Se agrega una sección nueva: **los disparadores de actualización documental** 
 
 **Origen:** `PLAN-FASE-3-4.md` secs. 2.2 (los 10 escenarios obligatorios de
 sincronización) y 3 (bloques 3.A–3.C, ~11 ramas), más el estado de la fase que vive en
-`ROADMAP.md:109-142`.
+`ROADMAP.md:33-56` (el cierre revertido y los tres defectos que lo motivaron) y
+`ROADMAP.md:109-142` (objetivo, criterio de salida y pendiente para cerrar).
 
 **Numeración (D6):** `sec.2.2` y `sec.3.x` **conservan su número** dentro de
 `fase-3/spec.md`, porque 21 citas del código apuntan ahí. El encabezado del archivo declara

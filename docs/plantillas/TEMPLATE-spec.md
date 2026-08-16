@@ -76,6 +76,15 @@
 
 ## 4. Alcance
 
+> **Si este spec es una fase futura, no iniciada, sin ADR ni código propio** (p. ej.
+> `docs/planes/fase-4/spec.md`, `docs/planes/fase-5/spec.md`), esta sección y las secs. 5
+> ("Diseño"), 6 ("Riesgos y deuda") y 7 ("Criterios de aceptación") no aplican — no hay
+> alcance que fijar, diseño que documentar, riesgo real que mitigar ni criterio verificable
+> sobre trabajo que todavía no existe. Rellenarlas sería inventar un plan de mentira.
+> Omitilas y decilo en el encabezado, como hacen esos dos ejemplos: en su lugar llevan
+> "Objetivo y criterio de salida" y "Preguntas abiertas antes de planificar" — las únicas
+> secciones que se pueden escribir honestamente sin ADR ni código.
+
 ### Entra
 
 - Lista concreta de lo que este spec cubre.

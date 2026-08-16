@@ -672,6 +672,46 @@ camino principal (ActivitiesHub → Tratar/Vacunar) que 3.5a.2-C mide. Agregar
 - **Nota:** `POST /feed-consumptions` sin gate de permiso (BJ-04, arriba) es el mismo
   patrón de gate faltante que los ítems de esta sección — se referencia, no se duplica.
 
+## Docs — hallazgos de la auditoría de diagramas en `docs/reestructura-documentacion` (2026-08-16)
+
+> Surgieron auditando `docs/DATA-MODEL.md` contra el código real mientras se ejecutaban los
+> 11 commits de la reestructura documental. No caben en ningún commit del plan y no se
+> corrigen aquí (regla 9, AGENTS.md: un PR, un propósito) — este PR es solo documentación.
+
+- **[docs] `docs/DATA-MODEL.md` tiene dos afirmaciones desactualizadas sobre qué está
+  implementado.**
+  - El "Núcleo 6" (`docs/DATA-MODEL.md:233-269`) presenta el CHECK XOR `animal_id`/`group_id`
+    de `animal_events` bajo el banner "nada de esto está implementado"
+    (`docs/DATA-MODEL.md:235-236`). Ya no es cierto: la constraint existe y se aplica —
+    `CK_AnimalEvent_AnimalXorGroup` en
+    `src/Modules/Livestock/Hato.Modules.Livestock.Infrastructure/Persistence/Configurations/AnimalEventConfiguration.cs:16-18`
+    (`(animal_id IS NOT NULL) <> (group_id IS NOT NULL)`).
+  - El "Núcleo 5 — Producción de leche" (`docs/DATA-MODEL.md:203-227`) describe captura por
+    grupo/tanque, resolución automática de `lactation_id` y el enlace con
+    `withdrawal_periods` como si fuera el diseño vigente. Las migraciones reales de
+    `src/Modules/Production/Hato.Modules.Production.Infrastructure/Persistence/Migrations/`
+    (`20260801183926_InitialCreateProduction.cs`, `20260802163710_AddAuditRecordedBy.cs`) no
+    construyen ese diseño: nunca se llegó a implementar.
+
+  Corregir `docs/DATA-MODEL.md` para reflejar el estado real es **otro propósito** (regla 9,
+  AGENTS.md) y por eso no se hace en esta rama. **Disparador:** el PR que retome Producción
+  de leche o el CHECK XOR como trabajo activo debería actualizar el documento antes de tocar
+  código, no después.
+
+- **[docs] `Lactation` es código muerto — confirmación en código de una deuda ya declarada.**
+  La tabla `lactations` existe y la entidad tiene métodos de dominio funcionales
+  (`Lactation.Start`, `Lactation.Close`,
+  `src/Modules/Production/Hato.Modules.Production.Domain/Lactation.cs:27-38`), pero ningún
+  comando de `Hato.Modules.Production.Application` los invoca — un `grep` sobre
+  `src/Modules/Production/` no encuentra un solo `Lactation.Start(` ni `Lactation.Close(`
+  fuera de la propia clase; `IProductionDbContext` solo expone el `DbSet<Lactation>`. Esto no
+  es un hallazgo nuevo: es la confirmación en código de la deuda ya declarada en
+  "De Fase 2 (heredado, seguía pendiente)" (arriba, en este mismo archivo) y en
+  `docs/ROADMAP.md:141-142` ("el ciclo de vida de `Lactation` (Fase 2, nunca implementado)").
+  **Disparador:** el mismo que el ítem de Fase 2 — decidir si el ciclo de vida lo dispara
+  Breeding (al parto) o Production (al primer ordeño) antes de mostrar "lactancias activas"
+  en cualquier panel.
+
 ## Ideas sin fase asignada
 
 - **Fotos de eventos**: la app de campo ya guarda la referencia local (`photoUri`) y la

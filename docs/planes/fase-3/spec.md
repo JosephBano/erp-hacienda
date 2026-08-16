@@ -20,7 +20,7 @@
 >
 > **Procedencia exacta del contenido.** Sec. 2 y sec. 3 de este documento son un traslado
 > literal de `PLAN-FASE-3-4.md` secs. 2.2 y 3 (bloques 3.A–3.C) — no una paráfrasis. Sec. 4
-> traslada el estado y la retrospectiva de `docs/ROADMAP.md:109-142`. Donde el texto
+> traslada el estado y la retrospectiva de `docs/ROADMAP.md:33-56` y `:109-142`. Donde el texto
 > original decía "sec.2.2" o "sec.3.x" en prosa, se conserva tal cual.
 
 - **Rama Git:** `docs/reestructura-documentacion` (desde `develop`).
@@ -155,7 +155,7 @@ tráfico mínimo.
 Tareas:
 1. ADR-0008: protocolo de sincronización (formato de cursor, granularidad por colección,
    tombstones, ventana máxima, comportamiento ante *reset* del cliente). Este ADR es el
-   documento más importante de la fase.
+   documento más importante de la fase: escríbelo con calma.
 2. Índices `(updated_at)` y `deleted_at` en todas las tablas sincronizables; convención
    verificada por una prueba que recorre el modelo de EF.
 3. `GET /api/v1/sync/pull?since=<cursor>&collections=` → `{ collections: {...}, cursor,
@@ -191,7 +191,7 @@ del endpoint.
 
 Con Docker levantado: crear un usuario con rol limitado, hacer `pull`, hacer `push` de un
 lote con duplicados desde `curl`, volver a hacer `pull` y verificar que los datos están una
-sola vez.
+sola vez. Si esto no se siente sólido, no se avanza al móvil.
 
 ### Bloque 3.B — La app (5 ramas)
 
@@ -292,8 +292,9 @@ con días sin señal, sin pérdida ni duplicación.** No antes.
 
 ## 4. Estado y retrospectiva
 
-> Trasladado de `docs/ROADMAP.md:109-142` (objetivo, criterio de salida, cierre revertido y
-> los tres defectos que lo motivaron, más el estado pendiente para cerrar).
+> Trasladado de `docs/ROADMAP.md:33-56` (cierre revertido y los tres defectos que lo
+> motivaron) y `docs/ROADMAP.md:109-142` (objetivo, criterio de salida y el estado
+> pendiente para cerrar).
 
 **Objetivo:** que los empleados registren desde el potrero, sin señal. La fase más difícil.
 **Criterio de salida:** una semana completa de registros de campo hechos solo desde el
@@ -355,7 +356,7 @@ de fotos (Fase 4) y el ciclo de vida de `Lactation` (Fase 2, nunca implementado)
 
 - La especificación de sincronización (sec. 2.2) y los ~11 ramas de ejecución (sec. 3) de
   la Fase 3, trasladadas de `PLAN-FASE-3-4.md`.
-- El estado real de cierre de la fase, trasladado de `ROADMAP.md:109-142`.
+- El estado real de cierre de la fase, trasladado de `ROADMAP.md:33-56` y `:109-142`.
 
 ### No entra
 

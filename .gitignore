@@ -41,3 +41,7 @@ local.properties
 
 # Capturas de pantalla de revisión de UI, no parte del repo
 img-no-save/
+
+# Workspace de ejecución de planes (ledger, briefs, informes, paquetes de revisión).
+# Scratch: el registro permanente es el historial de git.
+.superpowers/

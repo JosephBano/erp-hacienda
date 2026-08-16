@@ -712,6 +712,30 @@ camino principal (ActivitiesHub → Tratar/Vacunar) que 3.5a.2-C mide. Agregar
   Breeding (al parto) o Production (al primer ordeño) antes de mostrar "lactancias activas"
   en cualquier panel.
 
+- **[código] `ResolveConsumptionBatchId` calcula el `batch_id` de un consumo FIFO sobre
+  stock ya descontado, no sobre "quién perdió stock".**
+  `src/Modules/Inventory/Hato.Modules.Inventory.Application/Consumptions/RecordGroupFeedConsumptionCommand.cs`:
+  `DeductFromBatchesFifo` (línea 100, cuerpo en 136-175) muta `InventoryBatch.Quantity` en
+  memoria; `ResolveConsumptionBatchId` (línea 102, cuerpo en 184-193) corre **después**,
+  filtrando `item.Batches.Where(b => b.Quantity > 0)` sobre ese mismo estado ya mutado —no
+  sobre qué lote participó en la deducción. Dos casos de falla concretos:
+  - Si la deducción deja un lote en **exactamente 0** (el caso más común: el operario agota
+    el saco más viejo), ese lote queda excluido del filtro por `Quantity > 0` y `batch_id`
+    apunta al **siguiente** lote con stock — que puede no haber perdido ni una unidad.
+  - Si la deducción agota **todos** los lotes, `FirstOrDefault()` no encuentra nada y
+    `batch_id` queda **`null`** — exactamente el comportamiento que
+    `feature/inventory-consumption-history` (PR #102) vino a corregir.
+
+  El comentario XML de la línea 180 ("the row carries the **first** batch that lost stock")
+  describe el diseño pretendido, no el código: es correcto solo cuando ningún lote llega a
+  cero. Hallazgo de la ronda de corrección 1 sobre `d70205b`
+  (`docs/diagramas/flujo-consumo-alimento.mermaid`, nodo `ResolveConsumptionBatch`), que ya
+  documenta el flujo real con este bug visible. No se corrige aquí (regla 9, AGENTS.md: un
+  PR, un propósito — esta rama es documental). **Disparador:** antes de confiar el reporte
+  "¿de qué lote salió este consumo?" del panel para trazabilidad de vencimientos o de costo
+  por lote; la corrección probable es capturar los ids de los lotes tocados dentro del mismo
+  bucle de `DeductFromBatchesFifo`, no re-derivarlos después.
+
 ## Ideas sin fase asignada
 
 - **Fotos de eventos**: la app de campo ya guarda la referencia local (`photoUri`) y la

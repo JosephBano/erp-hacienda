@@ -67,13 +67,18 @@ Español para dominio y docs, inglés para código.
 4. Implementa con pruebas. Corre la suite completa localmente.
 5. PR con: propósito, decisiones tomadas, cómo probarlo manualmente, y qué NO incluye.
 
+El detalle de cada paso —el ciclo completo de nueve pasos, la checklist de autorrevisión, la
+exigencia de pruebas por capa y los umbrales de salida por fase— vive en
+`docs/PROTOCOLO-DE-TRABAJO.md`. No se repite aquí (D1).
+
 ## Dónde están las cosas
 
 `SOUL.md` (por qué) · `CONSTITUTION.md` (reglas) · `GLOSSARY.md` (lenguaje) ·
 `ARCHITECTURE.md` (módulos y modelo) · `ROADMAP.md` (fases y estado actual) ·
 `LEGAL-ECUADOR.md` (cumplimiento) · `docs/adr/` (decisiones) · `docs/planes/` (planes de
 ejecución por fase) · `docs/diagramas/` (diagramas ER en Mermaid) · `docs/BACKLOG.md` (ideas y
-deuda) · `docs/DOCUMENTACION.md` (qué documento responde qué pregunta y cuándo se actualiza).
+deuda) · `docs/DOCUMENTACION.md` (qué documento responde qué pregunta y cuándo se actualiza) ·
+`docs/PROTOCOLO-DE-TRABAJO.md` (cómo se lleva una rama de la idea al merge).
 
 ## Convenciones de `docs/` (no las improvises)
 

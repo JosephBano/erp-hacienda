@@ -38,7 +38,7 @@ Español para dominio y docs, inglés para código.
 8. **Usa los términos del `GLOSSARY.md`.** Si necesitas un concepto que no está, tu PR debe
    agregarlo al glosario (español + nombre en inglés para código) — no inventes sinónimos.
 9. **No optimices prematuramente ni "refactorices de paso".** Un PR = un propósito. Si ves
-   deuda técnica ajena al objetivo, anótala en `BACKLOG.md`, no la arregles en el mismo PR.
+   deuda técnica ajena al objetivo, anótala en `docs/BACKLOG.md`, no la arregles en el mismo PR.
 10. **Móvil: ninguna operación de registro puede depender de red.** Escribe local, sincroniza
     después. Si tu cambio rompe el flujo offline, está mal aunque compile.
 
@@ -72,7 +72,7 @@ Español para dominio y docs, inglés para código.
 `SOUL.md` (por qué) · `CONSTITUTION.md` (reglas) · `GLOSSARY.md` (lenguaje) ·
 `ARCHITECTURE.md` (módulos y modelo) · `ROADMAP.md` (fases y estado actual) ·
 `LEGAL-ECUADOR.md` (cumplimiento) · `docs/adr/` (decisiones) · `docs/planes/` (planes de
-ejecución por fase) · `docs/diagramas/` (diagramas ER en Mermaid) · `BACKLOG.md` (ideas y
+ejecución por fase) · `docs/diagramas/` (diagramas ER en Mermaid) · `docs/BACKLOG.md` (ideas y
 deuda).
 
 ## Convenciones de `docs/` (no las improvises)

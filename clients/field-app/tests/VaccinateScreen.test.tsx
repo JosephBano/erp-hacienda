@@ -11,7 +11,7 @@ import { EventService } from '../src/services/eventService';
 import { VaccinateScreen } from '../src/screens/VaccinateScreen';
 
 /**
- * docs/planes/fase-3-5/spec-3.5a.md sec.3.5a.2-C, test 4: the scheduled path must cost
+ * docs/planes/sub_planes/PLAN-FASE-3-5-PORCINO-3.5a.2-C.md, test 4: the scheduled path must cost
  * exactly three taps. Route, reason and dose form are all resolved from the
  * local catalog mirrors — none of them cost a tap.
  */

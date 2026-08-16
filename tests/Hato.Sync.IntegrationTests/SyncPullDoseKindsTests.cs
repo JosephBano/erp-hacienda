@@ -6,7 +6,7 @@ using Xunit;
 namespace Hato.Sync.IntegrationTests;
 
 /// <summary>
-/// docs/planes/fase-3-5/spec-3.5a.md sec.3.5a.2-C sec.C.1: `VaccinateScreen` and `TreatScreen`
+/// docs/planes/sub_planes/PLAN-FASE-3-5-PORCINO-3.5a.2-C.md sec.C.1: `VaccinateScreen` and `TreatScreen`
 /// need to resolve a `DoseKindId` offline (Art. 9) to build the
 /// `createTreatmentCourse` payload — the same mirror pattern
 /// `administrationRoutes`/`treatmentReasons` already use

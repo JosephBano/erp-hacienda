@@ -5,7 +5,7 @@ using Xunit;
 namespace Hato.Sync.IntegrationTests;
 
 /// <summary>
-/// docs/planes/fase-3-5/spec-3.5a.md sec.3.5a.2-C: the heart of this sub-branch. Before this
+/// docs/planes/sub_planes/PLAN-FASE-3-5-PORCINO-3.5a.2-C.md: the heart of this sub-branch. Before this
 /// change, `TreatmentFormScreen` (dead code, never wired into navigation)
 /// enqueued `recordAnimalEvent` with `reasonId` (a catalog row id) and
 /// `doseKg` — neither of which `RecordAnimalEventCommand` declares. Because

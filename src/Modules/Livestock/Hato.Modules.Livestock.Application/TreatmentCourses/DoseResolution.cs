@@ -31,7 +31,7 @@ public record ResolvedDose(decimal Amount, string Unit, bool IsEstimated, string
 
 /// <summary>
 /// Resolves <see cref="TreatmentCourse.DoseFactorAmount"/> against a subject's last
-/// weighing (task 6 of docs/planes/fase-3-5/spec-3.5a.md sec.3.5a.2-B). One place, so
+/// weighing (task 6 of docs/planes/sub_planes/PLAN-FASE-3-5-PORCINO-3.5a.2-B.md). One place, so
 /// <see cref="CreateTreatmentCourseCommand"/> and
 /// <see cref="AddTreatmentCourseApplicationCommand"/> cannot drift apart on the
 /// formula.

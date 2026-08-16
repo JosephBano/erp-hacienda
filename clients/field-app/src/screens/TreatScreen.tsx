@@ -32,7 +32,7 @@ export interface TreatProductOption {
 }
 
 /**
- * The curative path (docs/planes/fase-3-5/spec-3.5a.md sec.3.5a.2-C sec.C.2 task 6): "tengo un
+ * The curative path (docs/planes/sub_planes/PLAN-FASE-3-5-PORCINO-3.5a.2-C.md sec.C.2 task 6): "tengo un
  * animal enfermo, voy a tratarlo". Deeper than `VaccinateScreen` on purpose —
  * route, reason and dose vary case by case — but still bounded at **four
  * taps**: animal, product, the combined form (one pass, same accounting

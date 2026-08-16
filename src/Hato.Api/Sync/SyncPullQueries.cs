@@ -184,7 +184,7 @@ public record SyncFarmModuleDto(
 /// The administration routes catalog (3.5a.2-A). The field app uses these to
 /// populate the "via de administración" picker when registering a treatment
 /// offline — without them it cannot build a structured treatment payload
-/// (docs/planes/fase-3-5/spec-3.5a.md sec.3.5a.2-A sec.7).
+/// (docs/planes/sub_planes/PLAN-FASE-3-5-PORCINO-3.5a.2-A.md sec.7).
 /// </summary>
 public record SyncAdministrationRouteDto(
     Guid Id,

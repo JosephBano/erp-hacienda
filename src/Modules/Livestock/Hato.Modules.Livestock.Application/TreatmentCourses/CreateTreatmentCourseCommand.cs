@@ -29,7 +29,7 @@ public record CreateTreatmentCourseCommand(
     string? ApplicationNotes = null,
     int? MilkWithdrawalDays = null,
     int? MeatWithdrawalDays = null,
-    // ADR-0022 / docs/planes/fase-3-5/spec-3.5a.md sec.3.5a.2-C: set when the field-app's local
+    // ADR-0022 / docs/planes/sub_planes/PLAN-FASE-3-5-PORCINO-3.5a.2-C.md: set when the field-app's local
     // plausibility check flagged the first application's dose as improbable and
     // the operator explicitly confirmed it. False for the panel and for legacy
     // callers, which never ran the check.

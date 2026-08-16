@@ -8,7 +8,7 @@ using Hato.Modules.Livestock.Domain;
 namespace Hato.Modules.Livestock.IntegrationTests.Api;
 
 /// <summary>
-/// docs/planes/fase-3-5/spec-3.5a.md sec.3.5a.2-B: the three dose forms, calculated vs.
+/// docs/planes/sub_planes/PLAN-FASE-3-5-PORCINO-3.5a.2-B.md: the three dose forms, calculated vs.
 /// administered, optional dose with mandatory unit-when-present, and
 /// <c>TreatmentCourse</c> as a series with one withdrawal period computed from
 /// its last application. Sub-plan "Pruebas" section, tests 1, 2, 3, 4, 5, 6, 7,

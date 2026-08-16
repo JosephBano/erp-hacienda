@@ -4,7 +4,7 @@ using Hato.SharedKernel;
 namespace Hato.Modules.Livestock.Domain;
 
 /// <summary>
-/// How a treatment dose is expressed (docs/planes/fase-3-5/spec-3.5a.md sec.3.5a.2-B task 1):
+/// How a treatment dose is expressed (docs/planes/sub_planes/PLAN-FASE-3-5-PORCINO-3.5a.2-B.md task 1):
 /// <c>absolute</c> (a fixed quantity, e.g. 10 ml), <c>per_weight</c> (a rate per
 /// kilogram, resolved against the last weighing) or <c>per_head</c> (a flat dose
 /// repeated per animal/head).

@@ -258,7 +258,13 @@ se muere sin que nadie tome la decisión de matarla.
 
 Decisiones que aplican a las dos sub-ramas: filtrado (no ramificación por especie, Art. 8);
 evaluación sin red (Art. 9); orden por frecuencia declarada por el cliente (sin la respuesta
-a `spec.md` sec. 7-C, 3.5a.9-B no arranca; 3.5a.9-A sí).
+a `spec.md` sec. 7-C, 3.5a.9-B no arranca; 3.5a.9-A sí). **El primer nivel del árbol mergea
+con un orden por defecto pineado por test** (ver ADR-0021); el reorden cuando el cliente
+responda sec. 7-C será un commit deliberado, no una regresión.
+
+> **Bug histórico resuelto:** la lista original tenía dos puntos numerados `4` (uno el
+> interruptor, otro el QR). El error tipográfico quedó en el merge de #41 y se corrigió al
+> introducir la tabla de sub-ramas de arriba.
 
 ---
 

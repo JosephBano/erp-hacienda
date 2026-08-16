@@ -70,8 +70,8 @@ de la que sale todo lo demás):
    en proporción a su peso.
 
 El cliente declaró además que **implementará el aretado si el sistema demuestra resultados
-con la comida**. Ese "si" es medible y tiene nombre: conversión alimenticia (spec-3.5a.md
-sec. 4.4 del plan original, sección 4.4 de este bloque más abajo).
+con la comida**. Ese "si" es medible y tiene nombre: conversión alimenticia (sec. 4.4 de
+este mismo documento).
 
 ---
 
@@ -200,7 +200,7 @@ documento — el día que se abra Purchasing, ésta es la lista de qué jubilar.
 
 | Adelanto | Dónde vive | Contrato de caducidad declarado |
 |---|---|---|
-| Recepción de inventario pre-Purchasing (ADR-0026, PR #94) | `InventoryBatch.SupplierLabel`, `InvoiceReference`, `ReceivedAt` en `src/Modules/Inventory/Hato.Modules.Inventory.Domain/InventoryItem.cs:186-234` | "Deprecado cuando llegue Purchasing (Fase 4)" — comentario junto a `ReceivedAt` (línea 99 y adyacentes) |
+| Recepción de inventario pre-Purchasing (ADR-0026, PR #94) | Contrato declarado en `docs/adr/0026-recepcion-inventario-minima-pre-purchasing.md:456` y `docs/ROADMAP.md:167`. Campos en código: `SupplierLabel`, `InvoiceReference`, `ReceivedAt` en `src/Modules/Inventory/Hato.Modules.Inventory.Domain/InventoryItem.cs:186-234` | ADR/ROADMAP: "deprecado cuando llegue Purchasing (Fase 4)". El código no repite esa frase: el comentario de `SupplierLabel` (líneas 188-189) dice *"Will become an FK to suppliers in Fase 4 (Purchasing); the label is preserved on existing rows as historical truth."* |
 | Aviso en la UI de admin-web | `clients/admin-web/src/app/components/inventory-batches-section/inventory-batches-section.component.ts:25` | El banner de la pantalla le dice al usuario: *"Cuando llegue Purchasing (Fase 4), este flujo se reemplazará por 'Recibir orden de compra'"* |
 | Evento de recepción sin outbox | `src/Modules/Inventory/Hato.Modules.Inventory.Domain/Events/InventoryReceptionRecorded.cs:10` | "Published in-process via MediatR ...; no outbox — reopens if Fase 4 (Purchasing) introduces a durable downstream consumer" |
 | FK cross-schema diferida (`AnimalEvent.BatchId`, hacia `inventory_batches`; y hacia `people.users`) | `src/Modules/Livestock/Hato.Modules.Livestock.Domain/AnimalEvent.cs:78` (comentario del campo) y `src/Modules/Livestock/Hato.Modules.Livestock.Infrastructure/Persistence/Configurations/AnimalEventConfiguration.cs:51` | "Las FKs estrictas llegan en Fase 4 cuando la arquitectura decida cómo conectar módulos" |
@@ -360,7 +360,7 @@ Dos son **transversales** y no pertenecen al pivote porcino aunque hayan nacido 
 | Las características se vuelven el vertedero de datos que debían estar tipados | Aparece una característica con unidad, o alguien pide "un número libre" | El guardarraíl es estructural: cuatro tipos de valor, sin unidad ni decimal libre, con un test que fija la invariante. La petición misma es la señal de que ese dato va al esquema (ADR-0018 sec. 4). |
 | El catálogo de características se llena y nadie observa nada | Definiciones sin observaciones al cerrar la fase | Reducir a lo que demostró valor —probablemente sólo las advertencias visibles— y calcular el índice materno con KPIs derivados de eventos (condición de reversa del ADR-0018). |
 | La app se vuelve un menú de botones y muere la promesa de los 3 toques | Una actividad nueva se resuelve "agregando un botón al inicio" | La compuerta de sec. 2.3: el árbol se dibuja y los toques se cuentan **antes** de escribir pantallas. De 4 actividades a más de 15 no se sobrevive improvisando la navegación. |
-| **Ordeño se pudre mientras está oculto** | Nadie lo ejercita a mano; un defecto no cubierto por pruebas vive ahí meses | Su suite sigue corriendo en CI igual que antes y en rojo bloquea el merge (Art. 12, ADR-0019 sec. 7). Al reencenderlo se trata como feature que vuelve a producción, no como un interruptor inocuo. |
+| **Ordeño se pudre mientras está oculto** | Nadie lo ejercita a mano; un defecto no cubierto por pruebas vive ahí meses | Su suite sigue corriendo en CI igual que antes y en rojo bloquea el merge (Art. 12, ADR-0019 sec. 7). Al reencenderlo se trata como feature que vuelve a producción —revisión y prueba manual—, no como un interruptor inocuo. |
 | Se pierden ordeños pendientes al apagar el módulo | Un teléfono con registros de leche sin sincronizar | ADR-0019 sec. 4: se oculta la entrada, **nunca el camino de los datos**. Los endpoints siguen aceptando y el motor de sync sigue empujando lo que ya se registró. Cubierto por prueba en 3.5a.9-A. |
 
 ---

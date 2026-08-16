@@ -58,9 +58,11 @@
 >
 > | Adelanto | Dónde vive | Contrato de caducidad declarado |
 > |---|---|---|
-> | Recepción pre-Purchasing (ADR-0026) | `InventoryBatch.SupplierLabel`, `InvoiceReference`, `ReceivedAt` (`InventoryItem.cs:180-200`) | "Deprecado cuando llegue Purchasing (Fase 4)" |
+> | Recepción pre-Purchasing (ADR-0026) | Contrato declarado en `docs/adr/0026-...md:456` y `docs/ROADMAP.md:167`. Campos en código: `SupplierLabel`, `InvoiceReference`, `ReceivedAt` (`InventoryItem.cs:186-234`) | ADR/ROADMAP: "deprecado cuando llegue Purchasing (Fase 4)". El código no repite esa frase: el comentario de `SupplierLabel` dice *"Will become an FK to suppliers in Fase 4 (Purchasing)..."* |
 >
-> Cita archivo y línea, no "en algún lugar del módulo de inventario".
+> Cita archivo y línea, no "en algún lugar del módulo de inventario". **Y no le atribuyas al
+> código una frase que sólo vive en un ADR o en el ROADMAP** — verificá cada cita abriendo el
+> archivo, no copiándola de un brief.
 
 ## 3. Decisiones fijadas
 

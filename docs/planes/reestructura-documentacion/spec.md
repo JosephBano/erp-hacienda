@@ -188,7 +188,7 @@ Verificado leyendo el código y ADR-0026:
 
 | Adelanto | Dónde vive | Contrato de caducidad declarado |
 |---|---|---|
-| Recepción pre-Purchasing (ADR-0026) | `InventoryBatch.SupplierLabel`, `InvoiceReference`, `ReceivedAt` (`InventoryItem.cs:180-200`) | "Deprecado cuando llegue Purchasing (Fase 4)" |
+| Recepción pre-Purchasing (ADR-0026) | Contrato declarado en `docs/adr/0026-recepcion-inventario-minima-pre-purchasing.md:456` y `docs/ROADMAP.md:167`. Campos en código: `SupplierLabel`, `InvoiceReference`, `ReceivedAt` (`InventoryItem.cs:186-234`) | ADR/ROADMAP: "deprecado cuando llegue Purchasing (Fase 4)". El código no repite esa frase: el comentario de `SupplierLabel` (líneas 188-189) dice *"Will become an FK to suppliers in Fase 4 (Purchasing); the label is preserved on existing rows as historical truth."* |
 | Aviso en la UI | `inventory-batches-section.component.ts:25` | La interfaz **le dice al usuario**: "Cuando llegue Purchasing (Fase 4), este flujo se reemplazará por Recibir orden de compra" |
 | Evento sin outbox | `Events/InventoryReceptionRecorded.cs:10` | "reopens if Fase 4" |
 | FK cross-schema diferida | `AnimalEvent.cs:78`, `AnimalEventConfiguration.cs:51` | "Las FKs estrictas llegan en Fase 4" |

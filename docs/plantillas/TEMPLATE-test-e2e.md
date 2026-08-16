@@ -20,7 +20,7 @@
 
 ## `<ID>-1` — `<nombre corto del escenario>`
 
-> Ejemplo real, `field-app-parto-redesign/test-e2e.md` E2E-2:
+> Ejemplo real, `field-app-parto-redesign/test-e2e.md` E2E-2, completo:
 >
 > ```
 > ## E2E-2 — Solo aparecen las preñadas
@@ -32,7 +32,9 @@
 > **Debe pasar:**
 > - Aparecen únicamente las hembras con preñez activa.
 > - La hembra sin preñez **no aparece**.
+> - La hembra con preñez completada **no aparece**.
 > - Cada fila muestra su fecha probable de parto.
+> - El orden es por fecha probable de parto, la más próxima primero.
 > ```
 
 **Preparación:** `<datos o estado que hace falta antes de empezar, si no es el general>`.

@@ -10,7 +10,7 @@ Hechos verificables en este repositorio (al 2026-08-08, develop local en `2ec771
 
 - `docs/ROADMAP.md` línea 158 dice textual: *"Se ejecuta en dos bloques; **el piloto real
   arranca al cerrar 3.5a**"*. Acopla el inicio del piloto al cierre del bloque completo.
-- `docs/planes/PLAN-FASE-3-5-PORCINO.md` línea 97 repite el mismo acoplamiento: *"La fase
+- `docs/spec/PLAN-FASE-3-5-PORCINO.md` línea 97 repite el mismo acoplamiento: *"La fase
   se parte en dos bloques y **el piloto arranca al cerrar 3.5a**"*. El criterio completo
   de salida del bloque (sección homónima) exige clasificación por peso, tratamiento con
   vía/motivo, y corrección desde el teléfono como bloque único, más una camada real
@@ -81,7 +81,7 @@ El piloto real puede abrir cuando estén **mergeadas a develop** las siguientes 
 | 3.5a.9-A module visibility (ADR-0019) | Apagar Ordeño para esta finca sin tocar código. |
 | 3.5a.9-B primer nivel del árbol (ADR-0021) | La navegación de primer nivel (animal, lote como stub, parto, hoy) mergeada. |
 
-Esto se documenta en `docs/planes/PLAN-FASE-3-5-PORCINO.md` como sub-criterio bajo
+Esto se documenta en `docs/spec/PLAN-FASE-3-5-PORCINO.md` como sub-criterio bajo
 "Criterio de salida de 3.5a", titulado **"Para abrir el piloto real"**, separado del
 criterio completo de salida del bloque.
 
@@ -127,9 +127,9 @@ como deuda**, no oculto.
   al sub-criterio de este ADR.
 - `docs/ROADMAP.md` estado de la Fase 3.5: nota explícita de que el desacople se ejecuta
   por ADR-0024.
-- `docs/planes/PLAN-FASE-3-5-PORCINO.md` línea 97: acoplamiento literal reemplazado por
+- `docs/spec/PLAN-FASE-3-5-PORCINO.md` línea 97: acoplamiento literal reemplazado por
   referencia al sub-criterio.
-- `docs/planes/PLAN-FASE-3-5-PORCINO.md` "Criterio de salida de 3.5a": nuevo sub-criterio
+- `docs/spec/PLAN-FASE-3-5-PORCINO.md` "Criterio de salida de 3.5a": nuevo sub-criterio
   "Para abrir el piloto real" antes del criterio completo.
 - `docs/BACKLOG.md` sección 3.5: entradas de deuda rastreable para 3.5a.7.1–5, 3.5a.8 y
   3.5a.3, con disparador explícito.

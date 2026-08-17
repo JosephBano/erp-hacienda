@@ -8,7 +8,7 @@
 ## Contexto
 
 El cliente reportó que la app acepta 1000 litros de una sola vaca
-([`PLAN-FASE-3-5-PORCINO.md` sec.3.5a.6](../planes/PLAN-FASE-3-5-PORCINO.md)). El techo
+([`PLAN-FASE-3-5-PORCINO.md` sec.3.5a.6](../spec/PLAN-FASE-3-5-PORCINO.md)). El techo
 no puede ser una constante: un lechón al nacer no pesa lo que un cerdo de engorde, ni
 una cerda lactante produce lo que una novilla. Y no puede ser un `if (especie == ...)`
 por la razón de siempre (Art. 8): una nueva especie o una nueva categoría no pueden

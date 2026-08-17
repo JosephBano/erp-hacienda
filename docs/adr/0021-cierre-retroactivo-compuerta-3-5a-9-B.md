@@ -57,7 +57,7 @@ Dos productos, ambos condición previa para "no arrancar pantallas":
 ### Lo que se considera cerrado
 
 **(i) Árbol dibujado, sí.** La estructura del árbol está dibujada en el propio macro
-plan: `docs/planes/PLAN-FASE-3-5-PORCINO.md` sec.2.3 líneas 133–155 muestran los
+plan: `docs/spec/PLAN-FASE-3-5-PORCINO.md` sec.2.3 líneas 133–155 muestran los
 cuatro sujetos como primer nivel. El código mergeado por #51 implementa exactamente
 esa estructura, sin adiciones. **El primer nivel del árbol no depende de la
 frecuencia de actividades** — los sujetos son fijos en el plan.
@@ -149,10 +149,10 @@ sec.7-C (frecuencias reales).
 ### Cambios documentales derivados (corrección, no justificación funcional)
 
 - ADR-0020 → estado **Reemplazado por ADR-0021**, cuerpo intacto.
-- `docs/planes/PLAN-FASE-3-5-PORCINO.md` sec.3.5a.9 fila de la sub-rama 3.5a.9-B:
+- `docs/spec/PLAN-FASE-3-5-PORCINO.md` sec.3.5a.9 fila de la sub-rama 3.5a.9-B:
   referencia al estado de la compuerta pasa a "Cerrada parcialmente por ADR-0021
   (primer nivel aceptado; segundo nivel gated por 3.5a.7)".
-- `docs/planes/sub_planes/PLAN-FASE-3-5-PORCINO-3.5a.9-B.md` "Compuerta": apunta a
+- `docs/spec/sub_planes/PLAN-FASE-3-5-PORCINO-3.5a.9-B.md` "Compuerta": apunta a
   ADR-0021.
 - `clients/field-app/src/screens/ActivitiesHub.tsx` líneas 13 y 40 (comentarios
   obsoletos sobre 3.5a.1): actualizados.

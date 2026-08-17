@@ -1,7 +1,7 @@
 # spec.md — &lt;Título corto de lo que se construye o cambia&gt;
 
-> **Plantilla.** Calcada de la estructura de `docs/planes/field-app-parto-redesign/spec.md`
-> y de `docs/planes/reestructura-documentacion/spec.md`. Borrá este bloque de cita al usarla.
+> **Plantilla.** Calcada de la estructura de `docs/spec/feature-0002-field-app-parto-redesign/spec.md`
+> y de `docs/spec/feature-0003-reestructura-documentacion/spec.md`. Borrá este bloque de cita al usarla.
 > Un `spec.md` responde **qué se construye, por qué, y qué decisiones quedan fijadas**. El
 > *cómo* día a día va en `plan.md`, el desglose ejecutable en `tasks.md`, la verificación en
 > `test-e2e.md`.
@@ -10,7 +10,7 @@
 > tres documentos de la carpeta.
 >
 > **Por qué esta subcarpeta.** Si el trabajo es de una sola rama con estos cuatro documentos,
-> explicá por qué no van sueltos en `docs/planes/` (huérfanos entre sí).
+> explicá por qué no van sueltos en `docs/spec/` (huérfanos entre sí).
 
 - **Rama Git:** `<nombre-de-la-rama>` (desde `develop`, en `<hash-corto>`).
 - **Fecha:** AAAA-MM-DD.
@@ -50,11 +50,11 @@
 > **Si este spec es el registro de una fase ya terminada** (documento archivado, según la
 > regla de `docs/DOCUMENTACION.md` sec. 4), esta sección y la sec. 3 pueden no aplicar — no
 > hay hallazgo que verificar ni decisión que fijar sobre trabajo ya hecho. Omitilas y decilo
-> en el encabezado, como hace `docs/planes/fase-3/spec.md`.
+> en el encabezado, como hace `docs/spec/plan-0001-fase-3/spec.md`.
 
 ### 2.1 `<título del hallazgo>`
 
-> Ejemplo real, de `docs/planes/reestructura-documentacion/spec.md` sec. 2.9:
+> Ejemplo real, de `docs/spec/feature-0003-reestructura-documentacion/spec.md` sec. 2.9:
 >
 > | Adelanto | Dónde vive | Contrato de caducidad declarado |
 > |---|---|---|
@@ -77,7 +77,7 @@
 ## 4. Alcance
 
 > **Si este spec es una fase futura, no iniciada, sin ADR ni código propio** (p. ej.
-> `docs/planes/fase-4/spec.md`, `docs/planes/fase-5/spec.md`), esta sección y las secs. 5
+> `docs/spec/plan-0003-fase-4/spec.md`, `docs/spec/plan-0004-fase-5/spec.md`), esta sección y las secs. 5
 > ("Diseño"), 6 ("Riesgos y deuda") y 7 ("Criterios de aceptación") no aplican — no hay
 > alcance que fijar, diseño que documentar, riesgo real que mitigar ni criterio verificable
 > sobre trabajo que todavía no existe. Rellenarlas sería inventar un plan de mentira.

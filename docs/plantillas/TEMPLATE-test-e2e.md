@@ -1,7 +1,7 @@
 # test-e2e.md — Verificación manual extremo a extremo
 
-> **Plantilla.** Calcada de `docs/planes/field-app-parto-redesign/test-e2e.md` (verificación
-> de app, sobre dispositivo real) y de `docs/planes/reestructura-documentacion/test-e2e.md`
+> **Plantilla.** Calcada de `docs/spec/feature-0002-field-app-parto-redesign/test-e2e.md` (verificación
+> de app, sobre dispositivo real) y de `docs/spec/feature-0003-reestructura-documentacion/test-e2e.md`
 > (verificación documental, sobre comandos). Usá la que corresponda al tipo de rama — no
 > ambas. Borrá este bloque al usarla.
 

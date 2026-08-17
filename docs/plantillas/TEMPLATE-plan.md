@@ -1,7 +1,7 @@
 # plan.md — Ejecución de la rama `<nombre-de-la-rama>`
 
-> **Plantilla.** Calcada de `docs/planes/field-app-parto-redesign/plan.md` y de
-> `docs/planes/reestructura-documentacion/plan.md`. Borrá este bloque al usarla.
+> **Plantilla.** Calcada de `docs/spec/feature-0002-field-app-parto-redesign/plan.md` y de
+> `docs/spec/feature-0003-reestructura-documentacion/plan.md`. Borrá este bloque al usarla.
 > Un `plan.md` responde **en qué orden y en qué commits** se hace lo que `spec.md` decidió.
 > Las decisiones no se relitigan acá — si algo no cuadra, se corrige el spec primero.
 

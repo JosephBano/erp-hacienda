@@ -3,7 +3,7 @@
 > Esto **no es un esqueleto para copiar y pegar** como los otros cuatro. Es la convención que
 > gobierna todo archivo de `docs/diagramas/`: cómo se nombra, cómo se marca lo aspiracional,
 > qué encabezado lleva y cuándo hay que tocarlo. Fuente: `spec.md` sec. 10 de
-> `docs/planes/reestructura-documentacion/` (decisión D11).
+> `docs/spec/feature-0003-reestructura-documentacion/` (decisión D11).
 
 ## Nombre
 
@@ -41,7 +41,7 @@ PADDOCKS ||--o{ GRAZING_MOVEMENTS : "recibe"
 en particular: lo que existe de verdad es `unit_conversions` por ítem). El mismo archivo
 **le falta** `FEED_STAGES`, que sí existe desde la migración `20260809050404_AddFeedStages`.
 Es simultáneamente aspiracional y obsoleto, y no dice cuál parte es cuál — el diagnóstico
-completo está en `docs/planes/reestructura-documentacion/spec.md` sec. 2.5. Corregirlo es
+completo está en `docs/spec/feature-0003-reestructura-documentacion/spec.md` sec. 2.5. Corregirlo es
 trabajo del commit 10 de esa rama, no de esta plantilla.
 
 ## Cuándo actualizarlo

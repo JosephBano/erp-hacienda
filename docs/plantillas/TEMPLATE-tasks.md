@@ -1,7 +1,7 @@
 # tasks.md — Desglose ejecutable
 
-> **Plantilla.** Calcada de `docs/planes/field-app-parto-redesign/tasks.md` y de
-> `docs/planes/reestructura-documentacion/tasks.md`. Borrá este bloque al usarla.
+> **Plantilla.** Calcada de `docs/spec/feature-0002-field-app-parto-redesign/tasks.md` y de
+> `docs/spec/feature-0003-reestructura-documentacion/tasks.md`. Borrá este bloque al usarla.
 
 > Checklist de la rama `<nombre-de-la-rama>`. Cada tarea es una unidad de trabajo con
 > criterio de terminado verificable. Agrupadas por el commit de [`plan.md`](./plan.md) al que
@@ -9,7 +9,7 @@
 >
 > **La agrupación es por unidad de entrega del trabajo**: commit cuando el documento
 > describe una rama en curso, bloque o rama cuando es el registro de una fase ya cerrada —
-> así agrupa `docs/planes/fase-3/tasks.md` por "Bloque".
+> así agrupa `docs/spec/plan-0001-fase-3/tasks.md` por "Bloque".
 >
 > Convención: `[ ]` pendiente · `[x]` hecho · `[!]` bloqueada.
 
@@ -28,11 +28,11 @@
       **Terminado:** `<comando exacto y su salida esperada, o el archivo y la condición
       exacta que cumple>`.
 
-> Ejemplo real, `docs/planes/reestructura-documentacion/tasks.md` T5.9:
+> Ejemplo real, `docs/spec/feature-0003-reestructura-documentacion/tasks.md` T5.9:
 >
 > ```
 > - [ ] **T5.9** Verificar que las secciones `2.2` y `3.x` existen con esos números exactos.
->       **Terminado:** `grep -nE '^#+ .*(2\.2|3\.[ABC])' docs/planes/fase-3/spec.md` las
+>       **Terminado:** `grep -nE '^#+ .*(2\.2|3\.[ABC])' docs/spec/plan-0001-fase-3/spec.md` las
 >       encuentra.
 > ```
 

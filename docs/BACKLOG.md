@@ -46,7 +46,7 @@ camino principal (ActivitiesHub → Tratar/Vacunar) que 3.5a.2-C mide. Agregar
 ### [3.5a] Reactivar el criterio de salida — sin esto no hay piloto
 
 - **3.5a.2 (treatment detail)** — sub-ramas A/B/C ya escritas en
-  `docs/planes/fase-3-5/sub-planes/3.5a.2-{A,B,C}.md`. **A y B ya
+  `docs/spec/plan-0002-fase-3-5/sub-planes/3.5a.2-{A,B,C}.md`. **A y B ya
   mergeadas a integración** (A: `feature/livestock-treatment-dose-logic` →
   PR para catalogos y payload; B: parte de la misma ola). **C mergeada
   2026-08-09** vía `feature/field-app-treatment-ui` →
@@ -107,7 +107,7 @@ camino principal (ActivitiesHub → Tratar/Vacunar) que 3.5a.2-C mide. Agregar
   exigen `livestock.animals.write` (gap preexistente cerrado). 18 specs vitest
   + 13 integration nuevos.
 - **ADR**: `docs/adr/0025-gestion-administrativa-grupos.md`.
-- **Plan**: [`docs/planes/admin-web-animal-groups/`](./planes/admin-web-animal-groups/spec.md).
+- **Plan**: [`docs/spec/feature-0001-admin-web-animal-groups/`](./spec/feature-0001-admin-web-animal-groups/spec.md).
 - **Nota**: el disparador original "cuando se priorice trabajo de UI admin-web"
   queda **parcialmente satisfecho** para `animalGroups` pero **no** para los
   catálogos puros (especies, causas de mortalidad, ítems de inventario); esos
@@ -168,7 +168,7 @@ camino principal (ActivitiesHub → Tratar/Vacunar) que 3.5a.2-C mide. Agregar
   `src/Modules/Livestock/Hato.Modules.Livestock.Infrastructure/Persistence/Migrations/20260807214557_AddAnimalEventTreatmentPayload.cs:29`)
   — pendiente el `FOREIGN KEY` a `health_plan_items.id` cuando esa tabla exista.
 - **Por qué se sembró así**: el plan
-  [`3.5a.2-A`](./planes/fase-3-5/sub-planes/3.5a.2-A.md)
+  [`3.5a.2-A`](./spec/plan-0002-fase-3-5/sub-planes/3.5a.2-A.md)
   sec."Forward-compat con el cronograma" fija la decisión: si el piloto corre
   un mes registrando tratamientos sin el campo, **esos datos no se pueden
   enlazar retroactivamente** al cronograma cuando aparezca. Cuesta una línea
@@ -205,7 +205,7 @@ camino principal (ActivitiesHub → Tratar/Vacunar) que 3.5a.2-C mide. Agregar
   completado. El corte es honesto — nadie declaró terminado lo que no se construyó
   — pero es el hueco más grande en tamaño de toda la Fase 3.5 y conviene que quede
   visible aquí en vez de asumirse implícito.
-- **Ver**: `docs/planes/fase-3-5/tasks.md` sección "Bloque 3.5b — Análisis y
+- **Ver**: `docs/spec/plan-0002-fase-3-5/tasks.md` sección "Bloque 3.5b — Análisis y
   automatización" (tareas T-4.2-1 a T-4.7-2, todas sin marcar con evidencia
   negativa citada línea por línea).
 
@@ -230,7 +230,7 @@ camino principal (ActivitiesHub → Tratar/Vacunar) que 3.5a.2-C mide. Agregar
   `clients/field-app/src/services/animalGroupsApi.ts:11` ("already delivered
   server-side") es técnicamente cierto para el endpoint pero engañoso sobre el
   alcance — no menciona que el endpoint no calcula 2 de los 5 datos originales.
-- **Ver**: `docs/planes/fase-3-5/tasks.md`, tarea `T-3.5a.7-6` (sin marcar, con
+- **Ver**: `docs/spec/plan-0002-fase-3-5/tasks.md`, tarea `T-3.5a.7-6` (sin marcar, con
   evidencia negativa citada línea por línea).
 
 ## Ítems abiertos (post-piloto Fase 3)
@@ -377,7 +377,7 @@ camino principal (ActivitiesHub → Tratar/Vacunar) que 3.5a.2-C mide. Agregar
   rompe el batching al tocarla, ninguna prueba lo detecta — el resultado sigue siendo correcto,
   sólo que lento.
 - **Detectado**: 2026-08-17, al convertir `PLAN-ADMIN-WEB-ANIMAL-GROUPS.md` a
-  `docs/planes/admin-web-animal-groups/`. Queda como `[ ]` T1.10 en el `tasks.md` de esa
+  `docs/spec/feature-0001-admin-web-animal-groups/`. Queda como `[ ]` T1.10 en el `tasks.md` de esa
   carpeta.
 - **Trabajo a hacer**: la prueba que el plan describía, o descartar explícitamente la
   mitigación y borrar el riesgo del `spec.md` — lo que no puede quedar es un riesgo con una
@@ -407,7 +407,7 @@ camino principal (ActivitiesHub → Tratar/Vacunar) que 3.5a.2-C mide. Agregar
 
 - **Causa raíz**: 3.5a.7 (`feature/field-app-lot-registration`) implementó las seis
   actividades del sujeto "lote" (`LotSubjectScreen.tsx`) sin la conversación con el
-  cliente que `docs/planes/fase-3-5/spec.md` sec.2.3/sec.7-C exige para fijar el orden por
+  cliente que `docs/spec/plan-0002-fase-3-5/spec.md` sec.2.3/sec.7-C exige para fijar el orden por
   frecuencia real. El orden usado (alimento, pesaje muestral, vacunar, tratar,
   diagnóstico, baja) es el supuesto explícito documentado en el código de
   `LotSubjectScreen.tsx` — "alimento es lo más frecuente" según el propio plan — no una
@@ -416,7 +416,7 @@ camino principal (ActivitiesHub → Tratar/Vacunar) que 3.5a.2-C mide. Agregar
   seis `BigButton` en `LotSubjectScreen.tsx` (y el de `ActivitiesHub.tsx` si el orden de
   los cuatro sujetos también cambia) en un commit dedicado, con el test de orden
   actualizado a propósito — nunca como un efecto colateral de otro cambio.
-- **Disparador**: la sesión con el cliente de sec.7-C (`docs/planes/fase-3-5/spec.md`).
+- **Disparador**: la sesión con el cliente de sec.7-C (`docs/spec/plan-0002-fase-3-5/spec.md`).
 
   *(Relacionado: "3.5a.7.1–5 — UI del sujeto \"lote\"" en la sección "Ideas
   fuera de la fase actual" — mismo disparador sec.7-C; este ítem es la
@@ -474,7 +474,7 @@ camino principal (ActivitiesHub → Tratar/Vacunar) que 3.5a.2-C mide. Agregar
 ## De la Fase 3.5 (adaptación porcina) — diferido a propósito
 
 > Lo que salió del levantamiento del 2026-08-05 y **deliberadamente no entra** en 3.5.
-> Lo que sí entra está en `docs/planes/fase-3-5/spec.md`; lo que ya quedó decidido en los
+> Lo que sí entra está en `docs/spec/plan-0002-fase-3-5/spec.md`; lo que ya quedó decidido en los
 > ADR-0015/0016/0017 no se duplica acá.
 
 - **Escaneo QR y carnetización desde el nacimiento.** El cliente lo mencionó como deseable
@@ -525,7 +525,7 @@ camino principal (ActivitiesHub → Tratar/Vacunar) que 3.5a.2-C mide. Agregar
 
 > Estas piezas viven como **deuda rastreable** porque el inicio del piloto real no las
 > exige como requisito (ver sub-criterio "Para abrir el piloto real" en
-> `docs/planes/fase-3-5/spec.md`). Quedan acá con disparador explícito, no se
+> `docs/spec/plan-0002-fase-3-5/spec.md`). Quedan acá con disparador explícito, no se
 > "esconden" en un criterio vago. Cuando el disparador ocurra, la entrada se promueve a
 > tarea concreta de la rama o sub-plan correspondiente.
 
@@ -534,7 +534,7 @@ camino principal (ActivitiesHub → Tratar/Vacunar) que 3.5a.2-C mide. Agregar
   (rama `feature/field-app-lot-registration`, commit `04ff02f`, 2026-08-09), con
   `TapBudget` validado. Lo que queda pendiente es el **reorden** de las seis actividades
   del sujeto lote cuando el cliente responda sec.7-C del plan con las frecuencias reales.
-  **Disparador:** respuesta del cliente a `docs/planes/fase-3-5/spec.md` sec.7-C. Cuando
+  **Disparador:** respuesta del cliente a `docs/spec/plan-0002-fase-3-5/spec.md` sec.7-C. Cuando
   ocurra, este ítem sale del backlog y entra a la tarea explícita de reorden.
 
 - **3.5a.8 — Corrección de registros desde el teléfono (ADR-0017).** Sin esto, la
@@ -754,7 +754,7 @@ camino principal (ActivitiesHub → Tratar/Vacunar) que 3.5a.2-C mide. Agregar
   bucle de `DeductFromBatchesFifo`, no re-derivarlos después.
 
 - **[docs] `docs/adr/0022-rangos-plausibilidad.md:11` enlaza a
-  `../planes/PLAN-FASE-3-5-PORCINO.md`, archivo que esta rama borró (commit `8a33d41`).**
+  `../spec/PLAN-FASE-3-5-PORCINO.md`, archivo que esta rama borró (commit `8a33d41`).**
   Es el único ADR de la fase con un enlace markdown real (`](...)`) al archivo eliminado;
   `0019-visibilidad-de-modulos.md`, `0021-cierre-retroactivo-compuerta-3-5a-9-B.md`,
   `0023-eventos-clasificacion-por-peso.md` y `0024-pilot-decoupling-from-3-5a.md` también
@@ -763,13 +763,13 @@ camino principal (ActivitiesHub → Tratar/Vacunar) que 3.5a.2-C mide. Agregar
   arregla en esta rama: un ADR no se edita retroactivamente, se reemplaza por uno nuevo (regla
   del propio proyecto, tarea T11.4b del plan de reestructuración). Queda declarado para que no
   se pierda por descuido. **Disparador:** el ADR que reemplace o cierre 0022 debería repuntar
-  esa cita a `docs/planes/fase-3-5/spec-3.5a.md` sec.3.5a.6 (destino real de esa sección tras
+  esa cita a `docs/spec/plan-0002-fase-3-5/spec-3.5a.md` sec.3.5a.6 (destino real de esa sección tras
   la fusión).
 
 - **[docs] `docs/adr/0020-fase-3-5-estado-al-cierre-del-barrido-p0-p1.md:36` y
-  `docs/adr/0021-cierre-retroactivo-compuerta-3-5a-9-B.md:155` citan `docs/planes/sub_planes/`,
+  `docs/adr/0021-cierre-retroactivo-compuerta-3-5a-9-B.md:155` citan `docs/spec/sub_planes/`,
   carpeta que ya no existe:** los ocho sub-planes se movieron a
-  `docs/planes/fase-3-5/sub-planes/` y perdieron el prefijo `PLAN-FASE-3-5-PORCINO-` de su
+  `docs/spec/plan-0002-fase-3-5/sub-planes/` y perdieron el prefijo `PLAN-FASE-3-5-PORCINO-` de su
   nombre. `0021` lo cita como ruta en texto y `0020` como mención en prosa; ninguno usa
   sintaxis de enlace, así que no rompen la verificación de enlaces. No se arreglan por la
   misma regla que la entrada de arriba: un ADR no se edita retroactivamente. **Disparador:**

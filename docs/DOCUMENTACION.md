@@ -4,7 +4,7 @@
 > qué pregunta responde cada uno, y qué obliga a actualizarlo. Es la fuente de verdad de
 > `docs/` — si vas a crear un documento nuevo y no aparece aquí, primero preguntate si de
 > verdad responde una pregunta que ningún otro responde (D1 de
-> `docs/planes/reestructura-documentacion/spec.md`).
+> `docs/spec/feature-0003-reestructura-documentacion/spec.md`).
 
 ## 1. La regla que gobierna todo
 
@@ -36,16 +36,16 @@ documento.
 | `BACKUPS.md` | ¿Cómo se respalda y se restaura? | Cambia la estrategia. |
 | `docs/BACKLOG.md` | ¿Qué sabemos que falta y decidimos no hacer ahora? | Continuamente. |
 | `adr/NNNN-*.md` | ¿Por qué se decidió esto y qué se descartó? | Nunca: un ADR se reemplaza, no se edita. |
-| `planes/<x>/spec.md` | ¿Qué se construye y qué queda fijado? | Antes de implementar. |
-| `planes/<x>/plan.md` | ¿En qué orden y en qué commits? | Al replanificar. |
-| `planes/<x>/tasks.md` | ¿Qué falta exactamente? | Continuamente, durante la ejecución. |
-| `planes/<x>/test-e2e.md` | ¿Cómo compruebo a mano que funciona? | Cambia el flujo de usuario. |
+| `spec/<x>/spec.md` | ¿Qué se construye y qué queda fijado? | Antes de implementar. |
+| `spec/<x>/plan.md` | ¿En qué orden y en qué commits? | Al replanificar. |
+| `spec/<x>/tasks.md` | ¿Qué falta exactamente? | Continuamente, durante la ejecución. |
+| `spec/<x>/test-e2e.md` | ¿Cómo compruebo a mano que funciona? | Cambia el flujo de usuario. |
 | `diagramas/*.mermaid` | ¿Cómo se ve esto? | Entra una migración o cambia un flujo. |
 
 Son 20 entradas y cubren, sin resto, todo `.md` de la raíz del repositorio y de la raíz de
 `docs/` (`AGENTS.md`, `README.md`; `ARCHITECTURE.md`, `docs/BACKLOG.md`, `BACKUPS.md`,
 `CONSTITUTION.md`, `DATA-MODEL.md`, `GLOSSARY.md`, `LEGAL-ECUADOR.md`, `ROADMAP.md`,
-`SOUL.md`), más las tres filas de patrón que cubren carpetas (`adr/`, `planes/<x>/`,
+`SOUL.md`), más las tres filas de patrón que cubren carpetas (`adr/`, `spec/<x>/`,
 `diagramas/`). Verificable con `ls *.md` y `ls docs/*.md`: todo lo que devuelven aparece
 arriba.
 
@@ -72,7 +72,7 @@ sistema — sin ellos, la tabla de la sec. 2 es solo un índice que también env
 ## 4. Archivado
 
 Un plan de una fase cerrada **no se borra**: su carpeta permanece con el `tasks.md` completo
-como registro de lo que costó — es el motivo por el que, por ejemplo, `docs/planes/fase-3/`
+como registro de lo que costó — es el motivo por el que, por ejemplo, `docs/spec/plan-0001-fase-3/`
 sigue existiendo después de que la fase cierra. Lo que se archiva se marca en el encabezado
 del documento, no se mueve de lugar ni se vacía.
 
@@ -80,5 +80,5 @@ del documento, no se mueve de lugar ni se vacía.
 
 - `docs/plantillas/` — la forma de cada tipo de documento de plan (`spec.md`, `plan.md`,
   `tasks.md`, `test-e2e.md`, un ADR, un diagrama).
-- `docs/planes/reestructura-documentacion/spec.md` sec. 5 — el diseño completo de esta
+- `docs/spec/feature-0003-reestructura-documentacion/spec.md` sec. 5 — el diseño completo de esta
   taxonomía, con los hallazgos que la motivaron.

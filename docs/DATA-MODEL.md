@@ -237,7 +237,7 @@ erDiagram
 > archivo. Decisiones de fondo en **ADR-0015** (lote por conteo), **ADR-0016** (plan
 > sanitario), **ADR-0017** (corrección de campo) y **ADR-0018** (características
 > observables — el único **transversal a todas las especies**: nace acá pero gobierna
-> también equinos y bovinos). Plan de ejecución en `docs/planes/fase-3-5/spec.md`.
+> también equinos y bovinos). Plan de ejecución en `docs/spec/plan-0002-fase-3-5/spec.md`.
 
 ```mermaid
 erDiagram

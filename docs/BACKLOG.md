@@ -368,22 +368,20 @@ camino principal (ActivitiesHub → Tratar/Vacunar) que 3.5a.2-C mide. Agregar
   `EXPLAIN ANALYZE` antes y después.
 - **Disparador**: deploys con >500 grupos activos.
 
-### [test] El riesgo de N+1 de `GetAnimalGroupsHandler` quedó sin red
+### ~~[test] El riesgo de N+1 de `GetAnimalGroupsHandler` quedó sin red~~ — RESUELTO 2026-08-17
 
 - **Causa raíz**: el plan de la serie de animal-groups declaró como mitigación una prueba de
   integración que contara consultas con un `DbCommandInterceptor` (50 grupos, ≤4 consultas), y
-  esa prueba **nunca se escribió**: `grep -rn "DbCommandInterceptor" tests/ src/` no devuelve
-  nada. La agregación server-side de `GetAnimalGroupsHandler` funciona hoy, pero si alguien
-  rompe el batching al tocarla, ninguna prueba lo detecta — el resultado sigue siendo correcto,
-  sólo que lento.
+  esa prueba **nunca se escribió**. La agregación server-side de `GetAnimalGroupsHandler`
+  funcionaba, pero si alguien rompía el batching al tocarla, ninguna prueba lo detectaba — el
+  resultado seguía siendo correcto, sólo que lento.
 - **Detectado**: 2026-08-17, al convertir `PLAN-ADMIN-WEB-ANIMAL-GROUPS.md` a
-  `docs/spec/feature-0001-admin-web-animal-groups/`. Queda como `[ ]` T1.10 en el `tasks.md` de esa
-  carpeta.
-- **Trabajo a hacer**: la prueba que el plan describía, o descartar explícitamente la
-  mitigación y borrar el riesgo del `spec.md` — lo que no puede quedar es un riesgo con una
-  mitigación que no existe.
-- **Disparador**: el próximo cambio a `GetAnimalGroupQueries.cs`, o el primer reporte de
-  lentitud en la lista de lotes.
+  `docs/spec/feature-0001-admin-web-animal-groups/`.
+- **Resuelto**: PR #105, con la prueba que el plan describía —
+  `GetAnimalGroupsQueryCountApiTests.cs`, más `QueryCountingInterceptor.cs` y
+  `QueryCountingApiFactory.cs`. Conteo real observado: exactamente 4 consultas para 50 grupos,
+  los cuatro round-trips documentados del handler; no había N+1. T1.10 del `tasks.md` de esa
+  carpeta queda en `[x]`.
 
 ### [UI] Refactors de mantenibilidad post-#82/#83
 

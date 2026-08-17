@@ -8,7 +8,7 @@
 
 ---
 
-## Tarea 0 — Compuerta ✅ CERRADA el 2026-08-16
+## Compuerta 0 — Tarea 0 ✅ CERRADA el 2026-08-16
 
 - [x] **T0.1** Consulta ejecutada contra la base real. **0 filas** para `101`/`102`/`103`
       en `livestock.animal_identifiers`.
@@ -164,4 +164,5 @@
 - [ ] **TC.2** `npm test` completo en verde en `clients/field-app`.
 - [ ] **TC.3** Ejecutar [`test-e2e.md`](./test-e2e.md) completo sobre un dispositivo real.
 - [ ] **TC.4** Los nueve criterios de aceptación del spec sec. 10, verificados uno por uno.
-- [ ] **TC.5** Abrir el PR con la descripción de `plan.md` sec. 10.
+- [ ] **TC.5** Abrir el PR con la descripción de [`plan.md`](./plan.md), sección
+      "Descripción del PR".

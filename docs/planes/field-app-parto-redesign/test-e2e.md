@@ -256,7 +256,16 @@ poblada y **al menos una operación pendiente en el outbox**.
 
 ---
 
-## Registro de ejecución
+## Cierre de la verificación
+
+Los once escenarios en verde **no cierran la rama por sí solos**. También hacen falta:
+
+- `dotnet test` y `npm test` en `clients/field-app`, la suite completa, en verde
+  ([`tasks.md`](./tasks.md) TC.1 y TC.2).
+- Los nueve criterios de aceptación de [`spec.md`](./spec.md) sec. 10, verificados uno por
+  uno (TC.4).
+
+**Registro de ejecución:**
 
 | Escenario | Fecha | Dispositivo | Resultado | Notas |
 |---|---|---|---|---|

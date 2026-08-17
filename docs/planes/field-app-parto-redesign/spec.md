@@ -6,15 +6,28 @@
 > [`tasks.md`](./tasks.md) y la verificación manual en [`test-e2e.md`](./test-e2e.md).
 >
 > **Por qué esta subcarpeta.** Los cuatro documentos son un solo entregable de una sola
-> rama; separarlos en `docs/planes/` los dejaría huérfanos entre sí.
+> rama; separarlos en `docs/planes/` los dejaría huérfanos entre sí. Esta carpeta es el
+> **precedente** del que salieron las de `reestructura-documentacion/` y
+> `admin-web-animal-groups/`, y la fuente de la que se calcaron las plantillas de
+> `docs/plantillas/` (ver `reestructura-documentacion/spec.md` sec. 6).
 
-- **Rama Git:** `feature/field-app-parto-redesign` (desde `develop`).
+> **Estado y procedencia.** Plan **no ejecutado**: solo la tarea 0 está cerrada (sec. 2.4).
+> Los cuatro documentos nacieron en la rama `feature/field-app-parto-redesign`, que se
+> **borró el 2026-08-17** tras traerlos a `docs/reestructura-documentacion` — la rama no
+> contenía otra cosa que estos cuatro archivos. La rama se vuelve a crear desde `develop`
+> cuando el trabajo arranque.
+
+- **Rama Git:** `feature/field-app-parto-redesign` (desde `develop`, en `2988946`).
 - **Fecha:** 2026-08-15.
 - **Fase del ROADMAP:** 3.5 — Adaptación porcina (en curso). Este trabajo corrige el
   registro de partos entregado en 3.5a.0 y 3.5a.4; no abre fase nueva.
-- **ADRs vigentes que respalda:** ADR-0006 (padre dual: animal o pajuela),
+- **ADRs vigentes que respalda o respeta:** ADR-0006 (padre dual: animal o pajuela),
   ADR-0008 (protocolo de sincronización), ADR-0012 (adaptador WatermelonDB),
   ADR-0019 (visibilidad de módulos).
+- **Reglas duras que gobiernan este trabajo:** `AGENTS.md` regla 4 (rama desde `develop`),
+  regla 5 (integración contra PostgreSQL real, nunca InMemory), regla 9 (un PR, un
+  propósito — la tensión que D9 reconoce y mitiga) y regla 10 (no se destruye dato del
+  usuario: el reset nunca toca `sync_outbox`, D8).
 
 ---
 
@@ -194,7 +207,7 @@ pasando y da una falsa sensación de cobertura.
 
 ## 4. Alcance
 
-### Dentro
+### Entra
 
 - Colecciones `pregnancies` y `breedingServices` en el pull, con su espejo local.
 - Guard de colecciones desconocidas en `applyCollections`.
@@ -207,7 +220,7 @@ pasando y da una falsa sensación de cobertura.
 - Rediseño de espaciado y scroll de `ActivitiesHub`.
 - Eliminación de `HomeScreen.tsx` y su test.
 
-### Fuera
+### No entra
 
 - Cualquier cambio en `Hato.Modules.Breeding.Domain` — el dominio ya hace lo correcto (2.3).
 - Registrar preñeces o servicios **desde** la app. Sigue siendo tarea de admin-web.

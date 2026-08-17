@@ -4,29 +4,61 @@
 > orden de los commits, qué archivos toca cada uno, qué pruebas exige y cómo se mergea.
 > Las decisiones no se relitigan acá — si algo no cuadra, se corrige el spec primero.
 
-- **Rama:** `feature/field-app-parto-redesign` desde `develop`.
-- **Estrategia:** una rama, **seis commits secuenciales** por propósito. No se abren PRs
-  intermedios: el conjunto entra como un PR único, pero los commits permiten revisarlo por
-  partes (mitigación de la decisión D9 del spec).
+**Objetivo:** corregir los cuatro problemas que el cliente reportó contra la pantalla de
+parto de la app de campo, incluidos los dos que no se pueden resolver sin arreglar antes la
+capa de sincronización.
+
+**Enfoque:** una rama, **seis commits secuenciales** por propósito, más **una compuerta**
+que detiene el trabajo si su verificación falla. No se abren PRs intermedios: el conjunto
+entra como un PR único, pero los commits permiten revisarlo por partes (mitigación de la
+decisión D9 del spec). El punto de no retorno es el commit 4, que sube `SCHEMA_VERSION`.
+
+**Spec:** [`spec.md`](./spec.md).
+
+---
+
+## Restricciones globales
+
+Aplican a **todos** los commits de esta rama. Copiadas de las decisiones de `spec.md`.
+
+- **Cero cambios en `Hato.Modules.Breeding.Domain`** (spec sec. 2.3 y sec. 4, "No entra"). El
+  dominio ya resuelve el padre y ya cierra la preñez. Si un commit necesita tocarlo, algo se
+  entendió mal — volver al spec.
+- **El reset nunca toca `sync_outbox`** (D8, regla dura 10). Lo registrado y no enviado es la
+  única copia que existe.
+- **Ningún paso del asistente ofrece elegir el padre** (D3). Es de solo lectura en toda la
+  rama.
+- **Pruebas de backend contra PostgreSQL real**, nunca InMemory (`AGENTS.md` regla 5).
+- **Nada se marca completo** sin `dotnet test` y `npm test` en `clients/field-app` en verde —
+  la suite completa, no solo los archivos tocados.
+- **No se reordenan los sujetos de `ActivitiesHub`** (spec sec. 8): el orden es una pregunta
+  abierta al cliente, no una decisión de esta rama.
+- **Idioma:** español para documentación y dominio; inglés para código y mensajes de commit
+  (Conventional Commits).
 
 ---
 
 ## Índice
 
-1. [Compuerta: tarea 0](#1-compuerta-tarea-0)
+1. [Compuerta 0 — Tarea 0](#compuerta-0--tarea-0)
 2. [Commit 1 — Saneamiento del pull en el servidor](#commit-1--saneamiento-del-pull-en-el-servidor)
 3. [Commit 2 — Saneamiento del motor de sync en el cliente](#commit-2--saneamiento-del-motor-de-sync-en-el-cliente)
 4. [Commit 3 — Preñeces y servicios en el pull](#commit-3--preñeces-y-servicios-en-el-pull)
 5. [Commit 4 — Espejo local y `loadPregnantDams`](#commit-4--espejo-local-y-loadpregnantdams)
 6. [Commit 5 — Asistente de parto en cuatro pasos](#commit-5--asistente-de-parto-en-cuatro-pasos)
 7. [Commit 6 — Inicio y limpieza](#commit-6--inicio-y-limpieza)
-8. [Orden, dependencias y puntos de no retorno](#8-orden-dependencias-y-puntos-de-no-retorno)
-9. [Cómo se prueba](#9-cómo-se-prueba)
-10. [Descripción del PR](#10-descripción-del-pr)
+8. [Orden, dependencias y puntos de no retorno](#orden-dependencias-y-puntos-de-no-retorno)
+9. [Cómo se prueba](#cómo-se-prueba)
+10. [Descripción del PR](#descripción-del-pr)
 
 ---
 
-## 1. Compuerta: tarea 0
+## Compuerta 0 — Tarea 0
+
+> **✅ CERRADA el 2026-08-16.** Sin filas: hipótesis confirmada, el plan procede tal cual. La
+> evidencia completa está en `spec.md` sec. 2.4 y el desglose en [`tasks.md`](./tasks.md)
+> T0.1–T0.4. Se conserva el enunciado porque es la razón por la que el resto del plan tiene
+> la forma que tiene.
 
 **Nada de lo que sigue se escribe hasta cerrar esto.**
 
@@ -171,7 +203,7 @@ Perder cualquiera de las dos es una regresión sobre correcciones que el cliente
 **Pruebas:** `tests/ActivitiesHub.test.tsx` sigue pasando sin cambios en el orden esperado;
 la suite completa pasa sin el test eliminado.
 
-## 8. Orden, dependencias y puntos de no retorno
+## Orden, dependencias y puntos de no retorno
 
 ```
 Tarea 0 (compuerta)
@@ -190,7 +222,7 @@ Commit 6 (independiente, puede ir en cualquier momento tras el 2)
   teléfono sin poder abrir la app. Si hay que revertir después de instalar en un dispositivo
   real, se revierte hacia adelante (nueva migración), nunca borrando el paso.
 
-## 9. Cómo se prueba
+## Cómo se prueba
 
 **Backend** (regla dura 5 — integración contra PostgreSQL real, nunca InMemory):
 
@@ -212,16 +244,26 @@ La suite completa, no solo los archivos tocados, antes de cada push.
 teléfono con datos huérfanos) es el que valida el pedido original del cliente sobre los
 `101/102/103` y no puede omitirse.
 
-## 10. Descripción del PR
+## Descripción del PR
 
-Debe incluir, según el protocolo del AGENTS.md:
+**Título:** `feat(field-app): redesign birth recording and fix the sync layer it needs`
 
-- **Propósito:** los cuatro problemas reportados por el cliente, enlazando al spec.
-- **Resultado de la tarea 0**, con la consulta y lo que devolvió.
-- **Por qué la rama mezcla saneamiento de sync con el rediseño** (decisión D9), reconociendo
-  la tensión con el "un PR = un propósito" y la lista de commits que permite revisarlo por
-  partes.
-- **Cómo probarlo manualmente:** referencia a `test-e2e.md`.
-- **Qué NO incluye:** registro de preñeces desde la app, reconciliación automática, rediseño
-  de las demás pantallas.
-- **Advertencia de migración:** `SCHEMA_VERSION` 10 → 11.
+**Cuerpo:**
+
+- **Qué:** las colecciones `pregnancies` y `breedingServices` en el pull con su espejo local,
+  cuatro correcciones en la capa de sincronización, el rediseño de `BirthScreen` como
+  asistente de cuatro pasos, y el scroll de `ActivitiesHub`. Seis commits, uno por propósito.
+- **Por qué:** los cuatro problemas reportados por el cliente ([`spec.md`](./spec.md) sec. 1).
+  Dos de ellos no se pueden resolver dentro de la app tal como está: el dato de preñez nunca
+  llega al teléfono y la base local puede quedar desalineada sin forma de repararla.
+- **Resultado de la compuerta 0:** la consulta y lo que devolvió, textual ([`spec.md`](./spec.md)
+  sec. 2.4).
+- **Decisiones:** las once de [`spec.md`](./spec.md) sec. 3. Explicitar **D9** — por qué la
+  rama mezcla saneamiento de sync con el rediseño, reconociendo la tensión con el "un PR, un
+  propósito" de la regla 9 y enumerando los commits que permiten revisarlo por partes.
+- **Qué NO incluye:** registro de preñeces o servicios desde la app, reconciliación
+  automática de existencia por checksum, rediseño de las demás pantallas
+  (`MilkingScreen`, `EventsScreen`, `TreatScreen`, `LotEventsScreen`), cambios en el tema.
+- **Cómo probarlo:** ejecutar [`test-e2e.md`](./test-e2e.md). El E2E-1 no puede omitirse.
+- **Riesgo declarado — advertencia de migración:** `SCHEMA_VERSION` 10 → 11 en el commit 4.
+  Es el punto de no retorno; revertir se hace hacia adelante, nunca borrando el paso.

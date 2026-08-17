@@ -58,24 +58,24 @@
 
 ## Commit 3 — Preñeces y servicios en el pull
 
-- [ ] **T3.1** `SyncPregnancyDto(Id, DamId, ServiceId, Status, ExpectedBirthDate,
+- [x] **T3.1** `SyncPregnancyDto(Id, DamId, ServiceId, Status, ExpectedBirthDate,
       CreatedAt, UpdatedAt, IsDeleted)` implementando `ISyncRow`.
-- [ ] **T3.2** `SyncBreedingServiceDto(Id, DamId, ServiceType, SireAnimalId, StrawId,
+- [x] **T3.2** `SyncBreedingServiceDto(Id, DamId, ServiceType, SireAnimalId, StrawId,
       CreatedAt, UpdatedAt, IsDeleted)` implementando `ISyncRow`.
-- [ ] **T3.3** Ambas en `SyncCollectionsDto` y en `RequiredPermissionByCollection` bajo
+- [x] **T3.3** Ambas en `SyncCollectionsDto` y en `RequiredPermissionByCollection` bajo
       `SystemPermissions.BreedingEventsRead`.
-- [ ] **T3.4** Inyectar `IBreedingDbContext` en `GetSyncPullQueryHandler` y agregar sus dos
+- [x] **T3.4** Inyectar `IBreedingDbContext` en `GetSyncPullQueryHandler` y agregar sus dos
       llamadas a `ReadAsync`.
-- [ ] **T3.5** Verificar que **no se tocó** ningún archivo de
+- [x] **T3.5** Verificar que **no se tocó** ningún archivo de
       `Hato.Modules.Breeding.Domain`. **Terminado:** `git diff --stat` no lista archivos de
       ese proyecto.
-- [ ] **T3.6** Prueba de integración: usuario con `breeding.events.read` recibe ambas.
-- [ ] **T3.7** Prueba de integración: usuario sin el permiso no las recibe **ni pidiéndolas
+- [x] **T3.6** Prueba de integración: usuario con `breeding.events.read` recibe ambas.
+- [x] **T3.7** Prueba de integración: usuario sin el permiso no las recibe **ni pidiéndolas
       por nombre** en `collections=`.
-- [ ] **T3.8** Prueba de integración: registrar un parto pasa la preñez a `Completed` y el
+- [x] **T3.8** Prueba de integración: registrar un parto pasa la preñez a `Completed` y el
       cambio viaja en el siguiente pull.
-- [ ] **T3.9** Prueba de integración: el cursor avanza bien con las colecciones nuevas.
-- [ ] **T3.10** `dotnet test` completo en verde.
+- [x] **T3.9** Prueba de integración: el cursor avanza bien con las colecciones nuevas.
+- [x] **T3.10** `dotnet test` completo en verde.
 
 ---
 

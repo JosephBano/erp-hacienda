@@ -1,4 +1,5 @@
 using System.Linq.Expressions;
+using Hato.Modules.Breeding.Application.Abstractions;
 using Hato.Modules.Inventory.Application.Abstractions;
 using Hato.Modules.Livestock.Application.Abstractions;
 using Hato.Modules.People.Application.Abstractions;
@@ -42,7 +43,9 @@ public record SyncCollectionsDto(
     List<SyncTreatmentReasonDto> TreatmentReasons,
     List<SyncDoseKindDto> DoseKinds,
     List<SyncPlausibilityRangeDto> PlausibilityRanges,
-    List<SyncAnimalEventDto> AnimalEvents);
+    List<SyncAnimalEventDto> AnimalEvents,
+    List<SyncPregnancyDto> Pregnancies,
+    List<SyncBreedingServiceDto> BreedingServices);
 
 public record SyncAnimalDto(
     Guid Id,
@@ -283,6 +286,26 @@ public record SyncAnimalEventDto(
     DateTimeOffset? UpdatedAt,
     bool IsDeleted) : ISyncRow;
 
+public record SyncPregnancyDto(
+    Guid Id,
+    Guid DamId,
+    Guid? ServiceId,
+    string Status,
+    DateOnly ExpectedBirthDate,
+    DateTimeOffset CreatedAt,
+    DateTimeOffset? UpdatedAt,
+    bool IsDeleted) : ISyncRow;
+
+public record SyncBreedingServiceDto(
+    Guid Id,
+    Guid DamId,
+    string ServiceType,
+    Guid? SireAnimalId,
+    Guid? StrawId,
+    DateTimeOffset CreatedAt,
+    DateTimeOffset? UpdatedAt,
+    bool IsDeleted) : ISyncRow;
+
 public record GetSyncPullQuery(
     string? Since = null,
     string? Collections = null,
@@ -292,6 +315,7 @@ public class GetSyncPullQueryHandler(
     ILivestockDbContext livestockDb,
     IInventoryDbContext inventoryDb,
     IPeopleDbContext peopleDb,
+    IBreedingDbContext breedingDb,
     IUserPermissionsReader permissionsReader,
     ICurrentUser currentUser)
     : IRequestHandler<GetSyncPullQuery, SyncPullResponseDto>
@@ -326,6 +350,8 @@ public class GetSyncPullQueryHandler(
             ["doseKinds"] = SystemPermissions.LivestockAnimalsRead,
             ["plausibilityRanges"] = SystemPermissions.LivestockAnimalsRead,
             ["animalEvents"] = SystemPermissions.LivestockAnimalsRead,
+            ["pregnancies"] = SystemPermissions.BreedingEventsRead,
+            ["breedingServices"] = SystemPermissions.BreedingEventsRead,
         };
 
     public async Task<SyncPullResponseDto> Handle(GetSyncPullQuery request, CancellationToken cancellationToken)
@@ -461,11 +487,26 @@ public class GetSyncPullQueryHandler(
                 e.CreatedAt, e.UpdatedAt, e.DeletedAt != null),
             cancellationToken);
 
+        var pregnancies = await ReadAsync(
+            effective, "pregnancies", breedingDb.Pregnancies, since, limit, frontier,
+            p => new SyncPregnancyDto(
+                p.Id, p.DamId, p.ServiceId, p.Status.ToString(), p.ExpectedBirthDate,
+                p.CreatedAt, p.UpdatedAt, p.DeletedAt != null),
+            cancellationToken);
+
+        var breedingServices = await ReadAsync(
+            effective, "breedingServices", breedingDb.BreedingServices, since, limit, frontier,
+            s => new SyncBreedingServiceDto(
+                s.Id, s.DamId, s.ServiceType.ToString(), s.SireAnimalId, s.StrawId,
+                s.CreatedAt, s.UpdatedAt, s.DeletedAt != null),
+            cancellationToken);
+
         var collections = new SyncCollectionsDto(
             animals, identifiers, groups, memberships,
             speciesList, breeds, categories, items, withdrawals, mortalityCauses, farmModules,
             administrationRoutes, treatmentReasons, doseKinds,
-            plausibilityRanges, animalEvents);
+            plausibilityRanges, animalEvents,
+            pregnancies, breedingServices);
 
         return new SyncPullResponseDto(frontier.Next.Format(), frontier.HasMore, collections);
     }

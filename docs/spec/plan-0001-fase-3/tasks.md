@@ -68,7 +68,7 @@
       rechazos con resolución manual en `admin-web`, bitácora de conflictos LWW alcanzable
       desde uso real (antes, ningún cliente podía disparar un conflicto LWW fuera de una
       prueba).
-- [ ] **T3C.2** El piloto real: una semana completa de registros de campo hechos por un
+- [x] **T3C.2** El piloto real: una semana completa de registros de campo hechos por un
       empleado desde un teléfono de verdad, incluyendo días sin señal, sin pérdida ni
       duplicación de datos — el criterio de salida de la fase (`spec.md` sec. 4, cita de
       `ROADMAP.md:121-125`: *"sólo falta una cosa y es deliberadamente ajena al código: el

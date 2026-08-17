@@ -6,7 +6,7 @@
 > no se borra ni se vacía.
 >
 > **Qué es este documento.** La especificación de la Fase 3 tal como quedó ejecutada,
-> trasladada desde `docs/planes/PLAN-FASE-3-4.md` (que cubría las Fases 3 **y** 4 juntas)
+> trasladada desde `docs/spec/PLAN-FASE-3-4.md` (que cubría las Fases 3 **y** 4 juntas)
 > más el estado real de la fase desde `docs/ROADMAP.md`. El *cómo se ejecutó* vive en
 > [`plan.md`](./plan.md), el desglose con casillas en [`tasks.md`](./tasks.md) y la
 > verificación de los escenarios de sincronización en [`test-e2e.md`](./test-e2e.md).
@@ -16,7 +16,7 @@
 > `PLAN-FASE-3-4 sec.2.2` y `sec.3.A`/`3.B`/`3.C`. Separar la Fase 3 en su propia carpeta,
 > con esos mismos números de sección preservados intactos, permite que `PLAN-FASE-3-4.md`
 > se retire sin romper ninguna de esas 21 citas (D6 de
-> `docs/planes/reestructura-documentacion/spec.md`).
+> `docs/spec/feature-0003-reestructura-documentacion/spec.md`).
 >
 > **Procedencia exacta del contenido.** Sec. 2 y sec. 3 de este documento son un traslado
 > literal de `PLAN-FASE-3-4.md` secs. 2.2 y 3 (bloques 3.A–3.C) — no una paráfrasis. Sec. 4
@@ -427,9 +427,9 @@ de fotos (Fase 4) y el ciclo de vida de `Lactation` (Fase 2, nunca implementado)
 
 ## 7. Criterios de aceptación
 
-1. `docs/planes/fase-3/spec.md` existe y su encabezado declara la carpeta como archivada.
+1. `docs/spec/plan-0001-fase-3/spec.md` existe y su encabezado declara la carpeta como archivada.
 2. La sección `2.2` existe con ese número exacto y contiene los 10 escenarios de
    sincronización, verificable con
-   `grep -nE '^#+ .*(2\.2|3\.[ABC])' docs/planes/fase-3/spec.md`.
+   `grep -nE '^#+ .*(2\.2|3\.[ABC])' docs/spec/plan-0001-fase-3/spec.md`.
 3. Las secciones `3.A`, `3.B` y `3.C` existen con esos números exactos, mismo comando.
-4. `docs/planes/PLAN-FASE-3-4.md` no se modifica ni se borra en este commit.
+4. `docs/spec/PLAN-FASE-3-4.md` no se modifica ni se borra en este commit.

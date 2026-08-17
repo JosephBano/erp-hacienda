@@ -24,14 +24,14 @@ tareas 1, 5 y 6—, `sec.3.5a.8`, `sec.7`) existe con el mismo número en `spec.
 
 ### V-2 — Tamaño de archivo
 
-**Comando:** `wc -l docs/planes/fase-3-5/*.md`
+**Comando:** `wc -l docs/spec/plan-0002-fase-3-5/*.md`
 **Debe pasar:** cada archivo ronda las ~400 líneas; si alguno se dispara muy por encima,
 se reparte, conservando la numeración (D6).
 
 ### V-3 — Los sub-planes se movieron pero no se absorbieron
 
 Los ocho sub-planes viven hoy en [`sub-planes/`](./sub-planes/) (commit `d9699a4`); antes
-colgaban de `docs/planes/sub_planes/` con el prefijo `PLAN-FASE-3-5-PORCINO-`. El
+colgaban de `docs/spec/sub_planes/` con el prefijo `PLAN-FASE-3-5-PORCINO-`. El
 movimiento y el renombrado **no podían tocar el cuerpo** de los archivos: sólo las rutas
 relativas de sus enlaces y el encabezado.
 
@@ -46,8 +46,8 @@ del movimiento** (`875c65f` es el commit inmediatamente anterior):
 
 ```bash
 for f in 3.5a.2-A 3.5a.2-B 3.5a.2-C 3.5a.9-A 3.5a.9-B 3.5b.5-A 3.5b.5-B 3.5b.5-C; do
-  diff <(git show 875c65f:docs/planes/sub_planes/PLAN-FASE-3-5-PORCINO-$f.md | grep '^##') \
-       <(grep '^##' docs/planes/fase-3-5/sub-planes/$f.md) >/dev/null \
+  diff <(git show 875c65f:docs/spec/sub_planes/PLAN-FASE-3-5-PORCINO-$f.md | grep '^##') \
+       <(grep '^##' docs/spec/plan-0002-fase-3-5/sub-planes/$f.md) >/dev/null \
     && echo "OK  $f" || echo "DIFF $f"
 done
 ```
@@ -60,8 +60,8 @@ reemplaza la cita al plan borrado. Cualquier otro delta es contenido perdido o a
 
 ```bash
 for f in 3.5a.2-A 3.5a.2-B 3.5a.2-C 3.5a.9-A 3.5a.9-B 3.5b.5-A 3.5b.5-B 3.5b.5-C; do
-  a=$(git show 875c65f:docs/planes/sub_planes/PLAN-FASE-3-5-PORCINO-$f.md | wc -l)
-  b=$(wc -l < docs/planes/fase-3-5/sub-planes/$f.md)
+  a=$(git show 875c65f:docs/spec/sub_planes/PLAN-FASE-3-5-PORCINO-$f.md | wc -l)
+  b=$(wc -l < docs/spec/plan-0002-fase-3-5/sub-planes/$f.md)
   echo "$f $((b-a))"
 done
 ```
@@ -75,7 +75,7 @@ done
 python3 - <<'PY'
 import re, os, glob
 bad = [(f, m.group(1))
-       for f in sorted(glob.glob("docs/planes/fase-3-5/sub-planes/*.md"))
+       for f in sorted(glob.glob("docs/spec/plan-0002-fase-3-5/sub-planes/*.md"))
        for m in re.finditer(r'\]\((\.[^)#]*?)(#[^)]*)?\)', open(f).read())
        if not os.path.exists(os.path.normpath(os.path.join(os.path.dirname(f), m.group(1))))]
 print(*bad, sep="\n") if bad else print("todos los enlaces relativos resuelven")
@@ -86,7 +86,7 @@ PY
 [`plan.md`](./plan.md) sec. 5, `spec-3.5a.md` y `spec.md` — nunca copiados dentro de ellos.
 
 ```bash
-ls docs/planes/fase-3-5/sub-planes/*.md | wc -l   # 8
+ls docs/spec/plan-0002-fase-3-5/sub-planes/*.md | wc -l   # 8
 ```
 
 ### V-4 — Comando de verificación sección-por-sección (citado desde `spec.md`)
@@ -94,7 +94,7 @@ ls docs/planes/fase-3-5/sub-planes/*.md | wc -l   # 8
 ```bash
 for sec in "2\.3" "3\.5a\.3" "3\.5a\.4" "3\.5a\.5" "3\.5a\.7" "3\.5a\.8" "^## 7"; do
   echo "== $sec =="
-  grep -nE "$sec" docs/planes/fase-3-5/spec.md docs/planes/fase-3-5/spec-3.5a.md
+  grep -nE "$sec" docs/spec/plan-0002-fase-3-5/spec.md docs/spec/plan-0002-fase-3-5/spec-3.5a.md
 done
 ```
 
@@ -169,7 +169,7 @@ de BD se verifica en integración, no sólo el dominio · `LiveHeadCount` tras a
 salidas · baja parcial no cierra ninguna fila de `Animal` · al llegar a cero cabezas se
 cierran todas las membresías restantes y el conteo global de animales vivos no deja
 fantasmas · push duplicado de un evento grupal → un registro (exigencia de
-`docs/planes/fase-3/spec.md` sec.2.2) · migración corre desde cero.
+`docs/spec/plan-0001-fase-3/spec.md` sec.2.2) · migración corre desde cero.
 
 **3.5a.2 (A/B/C)** — catálogos configurables desde el panel (A) · `applied_by` ≠
 `recorded_by` (A) · `health_plan_item_id` nullable ahora (A) · dosis con valor y sin unidad

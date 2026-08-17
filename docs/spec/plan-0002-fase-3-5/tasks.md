@@ -28,7 +28,7 @@
       `confirm-birth`). **Nota**: no es una pantalla separada de confirmación — es un
       resumen persistente en la misma vista, mostrado antes de tocar "Registrar parto".
       Cumple la intención funcional, no la forma literal de "pantalla". El plan
-      `docs/planes/field-app-parto-redesign/` rediseña `BirthScreen` como un asistente de
+      `docs/spec/feature-0002-field-app-parto-redesign/` rediseña `BirthScreen` como un asistente de
       cuatro pasos, lo que confirma que la versión actual todavía no lo es.
 - [x] **T-3.5a.0-4** Fijar en código el principio "tres toques para lo normal, cuatro para
       lo raro".
@@ -362,7 +362,7 @@
 - [ ] **TC.1** Ejecutar [`test-e2e.md`](./test-e2e.md) completo (partes V y E2E).
       No verificable como tarea de código — es un procedimiento manual. No hay evidencia de
       ejecución (ni reporte, ni artefacto de resultados) dentro del repo para
-      `docs/planes/fase-3-5/test-e2e.md`.
+      `docs/spec/plan-0002-fase-3-5/test-e2e.md`.
 - [ ] **TC.2** Verificar contra `docs/BACKLOG.md` sección 3.5 que la deuda declarada en
       `plan.md` sec. 3 sigue anotada allí.
       No verificable por código — es una tarea de auditoría documental cruzada, no una

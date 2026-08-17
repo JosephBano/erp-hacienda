@@ -10,10 +10,10 @@
 > **Por qué esta subcarpeta.** El trabajo de esta fase no es una sola rama: son ~17 ramas de
 > feature (3.5a.0 a 3.5a.9, 3.5b.1 a 3.5b.7) que comparten un mismo objetivo, un mismo
 > conjunto de decisiones (sec. 2) y un mismo criterio de salida. Repartir eso en documentos
-> sueltos de `docs/planes/` los deja huérfanos entre sí — de ahí la carpeta.
+> sueltos de `docs/spec/` los deja huérfanos entre sí — de ahí la carpeta.
 >
 > **Este documento reemplaza a `PLAN-FASE-3-5-PORCINO.md`** como fuente citable desde el
-> código. El original permanece en `docs/planes/` sin editarse: es la fuente de este traslado
+> código. El original permanece en `docs/spec/` sin editarse: es la fuente de este traslado
 > y el commit 11 de esta rama reapunta las 85 citas del código hacia esta carpeta.
 
 - **Fase del ROADMAP:** Fase 3.5 — Adaptación porcina (`docs/ROADMAP.md:146-217`), **en

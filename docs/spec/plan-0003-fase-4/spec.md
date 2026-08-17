@@ -8,7 +8,7 @@
 > da una falsa sensación de plan.
 >
 > **Por qué esta carpeta y no un documento suelto.** Sigue el mismo patrón de
-> `docs/planes/<fase>/` que el resto del ROADMAP, para que cuando la Fase 4 sí se planifique,
+> `docs/spec/<fase>/` que el resto del ROADMAP, para que cuando la Fase 4 sí se planifique,
 > `plan.md` y `tasks.md` tengan dónde nacer sin reorganizar nada.
 
 - **Fase del ROADMAP:** Fase 4 — Dinero completo: ventas, compras, costos
@@ -57,7 +57,7 @@ misma falla de documentación que esta reestructura vino a eliminar.
 
 La Fase 3.5 adelantó cinco piezas de Fase 4 porque el piloto porcino no podía esperar a
 Purchasing. Están documentadas, con su contrato de caducidad citado en código, en
-[`docs/planes/fase-3-5/spec.md` sec. 2.9 — "Adelantos de Fase 4 que viven aquí"](../fase-3-5/spec.md#29-adelantos-de-fase-4-que-viven-aquí).
+[`docs/spec/plan-0002-fase-3-5/spec.md` sec. 2.9 — "Adelantos de Fase 4 que viven aquí"](../fase-3-5/spec.md#29-adelantos-de-fase-4-que-viven-aquí).
 Esta sección **no repite esa tabla** — solo resume qué debe jubilar la Fase 4 antes de poder
 cerrarse, y remite a la fuente para el detalle exacto (archivo, línea, cita literal).
 
@@ -145,7 +145,7 @@ el contador), `feature/admin-web-finance` (panel Angular de ventas, compras, con
 `docs/BACKLOG.md`).
 
 El texto completo, con cada tarea numerada y las pruebas propuestas por rama, no se
-trasladó a esta carpeta (D5 de `docs/planes/reestructura-documentacion/spec.md`: escribir
+trasladó a esta carpeta (D5 de `docs/spec/feature-0003-reestructura-documentacion/spec.md`: escribir
 `plan.md`/`tasks.md`/`test-e2e.md` de la Fase 4 no entra en esta rama) y solo sigue
 disponible en el historial de git, en la versión del plan superado de las Fases 3 y 4
 previa a su borrado (commit 11 de `docs/reestructura-documentacion`).

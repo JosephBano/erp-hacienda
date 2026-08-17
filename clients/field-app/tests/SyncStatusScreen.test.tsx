@@ -92,4 +92,92 @@ describe('SyncStatusScreen', () => {
       expect(screen.getByText(/sin señal/i)).toBeTruthy();
     });
   });
+
+  it('handles redownload with confirmation flow preserving outbox', async () => {
+    const entry = await outbox.enqueue('recordMilking', { totalLiters: 8 });
+
+    let resetCalled = false;
+    const engine = new SyncEngine(database, api);
+    const originalResetMirror = engine.resetMirror.bind(engine);
+    engine.resetMirror = async () => {
+      resetCalled = true;
+      // Before reset
+      expect(await outbox.pending()).toHaveLength(1);
+      await originalResetMirror();
+      // After resetMirror, outbox still has the pending entry intact
+      expect(await outbox.pending()).toHaveLength(1);
+    };
+
+    await render(<SyncStatusScreen engine={engine} outbox={outbox} visibility={visibility} />);
+
+    // Press "Rehacer descarga"
+    fireEvent.press(screen.getByTestId('redownload'));
+
+    // Confirmation card should appear with explanation
+    await waitFor(() => {
+      expect(screen.getByText(/se volverán a descargar los datos/i)).toBeTruthy();
+      expect(screen.getByText(/lo que registraste hoy.*se conserva/i)).toBeTruthy();
+    });
+
+    // Press confirm
+    fireEvent.press(screen.getByTestId('confirm-redownload'));
+
+    await waitFor(() => {
+      expect(resetCalled).toBe(true);
+    });
+
+    // Outbox was never wiped; the record still exists in the local database
+    const allOutbox = await outbox.all();
+    expect(allOutbox).toHaveLength(1);
+    expect(allOutbox[0].clientOperationId).toBe(entry.clientOperationId);
+  });
+
+  it('dismisses redownload confirmation on cancel without resetting', async () => {
+    let resetCalled = false;
+    const engine = new SyncEngine(database, api);
+    engine.resetMirror = async () => {
+      resetCalled = true;
+    };
+
+    await render(<SyncStatusScreen engine={engine} outbox={outbox} visibility={visibility} />);
+
+    fireEvent.press(screen.getByTestId('redownload'));
+
+    await waitFor(() => {
+      expect(screen.getByText(/se volverán a descargar los datos/i)).toBeTruthy();
+    });
+
+    fireEvent.press(screen.getByTestId('cancel-redownload'));
+
+    await waitFor(() => {
+      expect(screen.queryByText(/se volverán a descargar los datos/i)).toBeNull();
+    });
+    expect(resetCalled).toBe(false);
+  });
+
+  it('surfaces a visible warning notice when sync fails due to an unmapped collection', async () => {
+    const brokenApi: SyncApi = {
+      async push(): Promise<PushResponse> {
+        return { processedCount: 0, results: [] };
+      },
+      async pull(): Promise<PullResponse> {
+        return {
+          cursor: 'c',
+          hasMore: false,
+          collections: {
+            unmappedMysteryCollection: [{ id: 'mystery-1' }],
+          },
+        };
+      },
+    };
+
+    const engine = new SyncEngine(database, brokenApi);
+    await render(<SyncStatusScreen engine={engine} outbox={outbox} visibility={visibility} />);
+
+    fireEvent.press(screen.getByTestId('sync-now'));
+
+    await waitFor(() => {
+      expect(screen.getByText(/no se pudo enviar/i)).toBeTruthy();
+    });
+  });
 });

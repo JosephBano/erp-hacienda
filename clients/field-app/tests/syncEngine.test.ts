@@ -5,7 +5,8 @@ import { schema } from '../src/database/schema';
 import { migrations } from '../src/database/migrations';
 import { modelClasses } from '../src/database/models';
 import { Outbox } from '../src/services/outbox';
-import { SyncEngine, backoffDelayMs } from '../src/services/syncEngine';
+import { SyncEngine, backoffDelayMs, applyRow } from '../src/services/syncEngine';
+import { LoggerService } from '../src/services/loggerService';
 import type { PullResponse, PushResponse, SyncApi } from '../src/services/syncApi';
 
 /**
@@ -461,6 +462,31 @@ describe('SyncEngine', () => {
       expect(api.pullCalls[1]).toBe('cursor-42');
     });
 
+    it('surfaces an unknown collection as a sync failure and logs it via loggerService', async () => {
+      const logger = new LoggerService();
+      const customEngine = new SyncEngine(database, api, { logger });
+
+      api.pullHandler = async () => ({
+        cursor: 'cursor-unknown',
+        hasMore: false,
+        collections: {
+          mysteryCollection: [{ id: 'mystery-1', name: 'Unknown' }],
+        },
+      });
+
+      const result = await customEngine.syncNow();
+
+      expect(result.ok).toBe(false);
+      const errorLogs = logger.getLogs().filter((l) => l.level === 'error');
+      expect(errorLogs.some((l) => l.message.includes('mysteryCollection'))).toBe(true);
+    });
+
+    it('honours server isDeleted without forcing it to false in applyRow', () => {
+      const record: any = { id: 'test-1', isDeleted: false };
+      applyRow(record, { id: 'test-1', isDeleted: true });
+      expect(record.isDeleted).toBe(true);
+    });
+
     it('keeps following the cursor while the server reports more pages', async () => {
       let call = 0;
       api.pullHandler = async () => {
@@ -471,6 +497,57 @@ describe('SyncEngine', () => {
       await engine.syncNow();
 
       expect(api.pullCalls).toHaveLength(3);
+    });
+  });
+
+  describe('resetMirror', () => {
+    it('clears all mirror tables and pull cursor while leaving outbox intact', async () => {
+      // 1. Populate mirror tables and cursor
+      api.pullHandler = async () => ({
+        cursor: 'cursor-initial',
+        hasMore: false,
+        collections: {
+          species: [{ id: 'sp-1', name: 'Bovino', gestationDays: 283, isDeleted: false }],
+          animals: [
+            {
+              id: 'an-1',
+              sex: 'Female',
+              speciesId: 'sp-1',
+              motherId: null,
+              isDeleted: false,
+              createdAt: '2026-08-01T00:00:00Z',
+              updatedAt: null,
+            },
+          ],
+        },
+      });
+      await engine.syncNow();
+
+      // Verify mirror tables and cursor populated
+      expect(await database.get('animals').query().fetchCount()).toBe(1);
+      expect(await database.get('species').query().fetchCount()).toBe(1);
+      expect(api.pullCalls).toContain(undefined);
+
+      // 2. Populate outbox with pending work
+      const outboxEntry = await outbox.enqueue('recordMilking', { totalLiters: 12 });
+      expect(await outbox.pending()).toHaveLength(1);
+
+      // 3. Reset mirror
+      await engine.resetMirror();
+
+      // 4. Verify mirror tables are empty and cursor is cleared
+      expect(await database.get('animals').query().fetchCount()).toBe(0);
+      expect(await database.get('species').query().fetchCount()).toBe(0);
+
+      // Verify outbox is 100% intact (Rule 10 & D8)
+      const pendingOutbox = await outbox.pending();
+      expect(pendingOutbox).toHaveLength(1);
+      expect(pendingOutbox[0].clientOperationId).toBe(outboxEntry.clientOperationId);
+
+      // Verify next pull starts from beginning (undefined cursor)
+      api.pullCalls = [];
+      await engine.syncNow();
+      expect(api.pullCalls[0]).toBeUndefined();
     });
   });
 

@@ -38,21 +38,21 @@
 
 ## Commit 2 — Saneamiento del motor de sync en el cliente
 
-- [ ] **T2.1** `applyCollections` (`syncEngine.ts`): ante colección desconocida, registrar
+- [x] **T2.1** `applyCollections` (`syncEngine.ts`): ante colección desconocida, registrar
       por `loggerService` y contarla como error de sincronización en vez de `continue`.
       **Terminado:** existe una prueba que falla si se vuelve a poner el `continue` mudo.
-- [ ] **T2.2** `applyRow` (`syncEngine.ts:365`): eliminar `record.isDeleted = false`.
-- [ ] **T2.3** Implementar el reset de tablas espejo: borra las tablas de
+- [x] **T2.2** `applyRow` (`syncEngine.ts:365`): eliminar `record.isDeleted = false`.
+- [x] **T2.3** Implementar el reset de tablas espejo: borra las tablas de
       `TABLE_BY_COLLECTION` y la fila `pull_cursor` de `sync_meta`.
       **Nunca `sync_outbox` ni `milk_yields`.**
-- [ ] **T2.4** Acción "Rehacer descarga" en `SyncStatusScreen.tsx`, con confirmación
+- [x] **T2.4** Acción "Rehacer descarga" en `SyncStatusScreen.tsx`, con confirmación
       explícita en español llano que diga qué se conserva y qué se vuelve a bajar.
-- [ ] **T2.5** El reset dispara `syncNow()` al confirmar.
-- [ ] **T2.6** Prueba: colección desconocida → error visible.
-- [ ] **T2.7** Prueba: fila con `isDeleted: true` del servidor no queda en `false`.
-- [ ] **T2.8** **Prueba: rehacer descarga vacía las espejo y `sync_outbox` sobrevive
+- [x] **T2.5** El reset dispara `syncNow()` al confirmar.
+- [x] **T2.6** Prueba: colección desconocida → error visible.
+- [x] **T2.7** Prueba: fila con `isDeleted: true` del servidor no queda en `false`.
+- [x] **T2.8** **Prueba: rehacer descarga vacía las espejo y `sync_outbox` sobrevive
       intacto.** Sin esta prueba el commit no entra (regla dura 10).
-- [ ] **T2.9** `npm test` completo en verde.
+- [x] **T2.9** `npm test` completo en verde.
 
 ---
 

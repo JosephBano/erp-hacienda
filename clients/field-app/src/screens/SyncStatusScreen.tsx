@@ -40,6 +40,7 @@ export function SyncStatusScreen({
   });
   const [pendingConfirm, setPendingConfirm] = useState<{ key: ModuleKey; wasEnabled: boolean } | null>(null);
   const [moduleError, setModuleError] = useState<string | null>(null);
+  const [showRedownloadConfirm, setShowRedownloadConfirm] = useState(false);
 
   const refresh = useCallback(async () => {
     setStats(await outbox.stats());
@@ -62,6 +63,18 @@ export function SyncStatusScreen({
   const sync = async () => {
     setBusy(true);
     try {
+      setResult(await engine.syncNow());
+    } finally {
+      await refresh();
+      setBusy(false);
+    }
+  };
+
+  const confirmRedownload = async () => {
+    setShowRedownloadConfirm(false);
+    setBusy(true);
+    try {
+      await engine.resetMirror();
       setResult(await engine.syncNow());
     } finally {
       await refresh();
@@ -112,6 +125,34 @@ export function SyncStatusScreen({
       </Card>
 
       <BigButton testID="sync-now" label="Enviar ahora" busy={busy} onPress={sync} />
+      <BigButton
+        testID="redownload"
+        label="Rehacer descarga"
+        tone="neutral"
+        busy={busy}
+        onPress={() => setShowRedownloadConfirm(true)}
+      />
+
+      {showRedownloadConfirm ? (
+        <Card>
+          <Body>
+            Se volverán a descargar los datos del servidor (el hato, lotes y catálogos). Lo que registraste hoy y aún no se ha enviado se conserva en el teléfono. Requiere conexión a internet. ¿Continuar?
+          </Body>
+          <BigButton
+            testID="confirm-redownload"
+            label="Sí, rehacer descarga"
+            tone="danger"
+            busy={busy}
+            onPress={confirmRedownload}
+          />
+          <BigButton
+            testID="cancel-redownload"
+            label="Cancelar"
+            tone="neutral"
+            onPress={() => setShowRedownloadConfirm(false)}
+          />
+        </Card>
+      ) : null}
 
       {result && !result.ok ? (
         <Notice

@@ -4,9 +4,14 @@
 > Las casillas se marcaron el 2026-08-17, al convertir
 > `docs/spec/PLAN-ADMIN-WEB-ANIMAL-GROUPS.md` a esta carpeta, **verificando cada una contra
 > el código actual** — nunca contra lo que el plan original afirmara. Cada `[x]` cita archivo
-> y línea. Lo que no se pudo verificar quedó `[ ]` con la explicación debajo: son cuatro
-> casillas, y las cuatro son cobertura de pruebas que el plan prometió y que no está donde
-> decía.
+> y línea. Esa verificación dejó cuatro casillas en `[ ]`: las cuatro eran cobertura de
+> pruebas que el plan prometió y que no estaba donde decía.
+>
+> **Las cuatro se cerraron el mismo 2026-08-17**, después de la conversión y fuera de la serie
+> original de PRs. T1.10 en el PR #105; T1.11 y T2.5 en el PR que sigue a éste. T1.12 se
+> cerró como desviación deliberada —cobertura por integración en vez de unitarias con
+> dobles—, no escribiendo pruebas nuevas. Cada una explica abajo qué se hizo y cuándo, para
+> que la fecha de la casilla no se confunda con la del PR que la originó.
 >
 > Checklist de la serie `admin-web-animal-groups`. Agrupada **por PR**, que es la unidad de
 > entrega de este trabajo — no por commit, porque fueron tres ramas y tres revisiones
@@ -56,25 +61,32 @@
       `SpeciesName` con un `IN (...)` aparte (D6).
       Evidencia: `GetAnimalGroupQueries.cs`, handler de la lista; verificado por la prueba de
       T1.8.
-- [ ] **T1.10** Prueba de integración que cuenta consultas con `DbCommandInterceptor`: 50
+- [x] **T1.10** Prueba de integración que cuenta consultas con `DbCommandInterceptor`: 50
       grupos, ≤4 consultas.
-      **No se hizo.** `grep -rn "DbCommandInterceptor" tests/ src/` no devuelve nada. Era la
-      mitigación declarada del riesgo de N+1 de `spec.md` sec. 8, así que ese riesgo hoy no
-      tiene red: si el batching se rompe, ninguna prueba lo detecta. Anotado como deuda en
-      `docs/BACKLOG.md`.
-- [ ] **T1.11** Pruebas unitarias de dominio `Update_WithNullDescription_AllowsNull` y
+      **Terminado el 2026-08-17 (PR #105)**, no en la serie original. Evidencia:
+      `tests/Hato.Modules.Livestock.IntegrationTests/Api/GetAnimalGroupsQueryCountApiTests.cs`
+      (`GetAnimalGroupsQuery_Over50Groups_ExecutesAtMostFourQueries`), con
+      `QueryCountingInterceptor.cs` y `QueryCountingApiFactory.cs`. Conteo real observado:
+      exactamente 4 consultas, los cuatro round-trips documentados del handler. El riesgo de
+      N+1 de `spec.md` sec. 8 ya tiene su red. La prueba afirma las dos cotas: `>0`, para que
+      un interceptor desconectado no la satisfaga de forma vacua, y `<=4` para el contrato de
+      batching.
+- [x] **T1.11** Pruebas unitarias de dominio `Update_WithNullDescription_AllowsNull` y
       `Update_WithEmptyName_Throws`.
-      **No están.** `grep -rn "Update_With" tests/` no devuelve nada. La regla equivalente sí
-      está cubierta, pero un nivel más arriba: el validador del comando
-      (`AnimalGroupApiTests.cs:121`) y el endpoint (`:354`,
-      `PutGroup_WithEmptyName_Returns400_ProblemDetails`). Queda `[ ]` porque la cobertura de
-      dominio que el plan pedía no existe, no porque el comportamiento esté sin probar.
-- [ ] **T1.12** Archivos de prueba unitaria nuevos en
+      **Terminado el 2026-08-17**, no en la serie original. Evidencia:
+      `AnimalGroupTests.cs:230` y `:241`. La regla ya estaba cubierta un nivel más arriba —el
+      validador del comando (`AnimalGroupApiTests.cs:121`) y el endpoint (`:354`)— pero la
+      invariante la posee la entidad, así que ahora tiene su prueba propia: un llamador futuro
+      que esquive el validador tampoco puede dejar sin nombre a un grupo.
+- [x] **T1.12** Archivos de prueba unitaria nuevos en
       `tests/Hato.Modules.Livestock.UnitTests/Application/AnimalGroups/`.
-      **No se hizo así.** Ese directorio no existe. Los comandos se prueban contra Postgres
-      real en `AnimalGroupApiTests.cs:94-235` (doce escenarios que invocan los handlers
-      directamente). Es una desviación de forma, no de cobertura: el plan pedía pruebas
-      unitarias con dobles y se optó por integración con base real.
+      **Cerrada como desviación deliberada, no como pendiente.** Ese directorio no existe y no
+      se va a crear. Los comandos se prueban contra Postgres real en
+      `AnimalGroupApiTests.cs:94-235` (doce escenarios que invocan los handlers directamente).
+      El plan pedía unitarias con dobles; se optó por integración con base real, que es lo que
+      `AGENTS.md` regla 5 exige para persistencia. Es desviación de forma, no de cobertura:
+      escribir unitarias con dobles ahora sería duplicar lo ya probado para satisfacer la
+      letra del plan.
 - [x] **T1.13** Ninguna migración EF Core.
       **Terminado:** no hay migración con `AnimalGroup` en el nombre posterior al 2026-08-08;
       `DeletedAt`/`UpdatedAt` los hereda `AuditableEntity`.
@@ -98,12 +110,13 @@
       Evidencia: `AnimalGroupsEndpoints.cs:76`, permiso en `:80`. Pruebas:
       `AnimalGroupApiTests.cs:447` (204), `:463` (409 con evento), `:487` (400 con grupo
       inactivo).
-- [ ] **T2.5** Prueba HTTP `PatchTrackingMode_OnGroupWithMembership_Returns409`.
-      **No está a nivel HTTP.** El caso sí está cubierto un nivel más abajo, en el comando:
-      `AnimalGroupApiTests.cs:201`
-      (`ChangeAnimalGroupTrackingModeCommand_OnGroupWithActiveMember_ThrowsStateException`). El
-      hermano con evento sí llega hasta HTTP (`:463`), así que la asimetría es un olvido, no
-      una decisión.
+- [x] **T2.5** Prueba HTTP `PatchTrackingMode_OnGroupWithMembership_Returns409`.
+      **Terminado el 2026-08-17**, no en la serie original. Evidencia:
+      `AnimalGroupApiTests.cs:487`
+      (`PatchTrackingMode_OnGroupWithMembership_Returns409_ProblemDetails`). Cierra la
+      asimetría que quedó al entregar: el hermano con evento llegaba hasta HTTP (`:463`) y el
+      de membresía activa se quedaba en el comando (`:201`). Además de los 409 y el
+      `ProblemDetails`, verifica que el cambio rechazado no se haya persistido.
 - [x] **T2.6** Endurecer el `POST /` de creación, que no exigía permiso.
       Evidencia: `AnimalGroupsEndpoints.cs:46` con el permiso en `:50`. Prueba:
       `AnimalGroupAuthApiTests.cs:52`

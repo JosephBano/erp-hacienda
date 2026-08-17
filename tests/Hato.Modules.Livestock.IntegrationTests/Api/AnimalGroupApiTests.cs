@@ -484,6 +484,34 @@ public class AnimalGroupApiTests(HatoApiFactory factory) : IClassFixture<HatoApi
     }
 
     [Fact]
+    public async Task PatchTrackingMode_OnGroupWithMembership_Returns409_ProblemDetails()
+    {
+        // ADR-0025 T2.5: the sibling guard (group with events) is covered at HTTP level
+        // above; this is the active-membership half of the same 409. Handler-level
+        // coverage lives in ChangeAnimalGroupTrackingModeCommand_OnGroupWithActiveMember_
+        // ThrowsStateException — this test pins that AnimalGroupStateException still
+        // surfaces as 409 Conflict through the endpoint, not just as an exception.
+        var (groupId, _) = await CreateGroupWithSpeciesAsync("Patch Member Blocked");
+
+        var animalId = await CreateAnimalAsync();
+        await SendAsync(new AddGroupMemberCommand(groupId, animalId, new DateOnly(2026, 8, 1)));
+
+        var response = await _client.PatchAsJsonAsync($"/api/v1/animal-groups/{groupId}/tracking-mode", new
+        {
+            trackingMode = "Headcount",
+        });
+
+        Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
+        var problem = await response.Content.ReadFromJsonAsync<ProblemDetails>();
+        Assert.NotNull(problem);
+        Assert.Contains("miembros activos", problem!.Detail, StringComparison.OrdinalIgnoreCase);
+
+        // The rejected change must not have been persisted.
+        var after = await GetByIdAsync(groupId);
+        Assert.Equal(TrackingMode.Individual, after.TrackingMode);
+    }
+
+    [Fact]
     public async Task PatchTrackingMode_OnInactiveGroup_Returns400_ProblemDetails()
     {
         var (groupId, _) = await CreateGroupWithSpeciesAsync("Patch Inactive Target");

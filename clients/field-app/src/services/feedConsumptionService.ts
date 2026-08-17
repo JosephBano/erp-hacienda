@@ -30,7 +30,7 @@ export interface QueuedFeedConsumption {
  * an `AnimalEvent` (ADR-0015 sujeto lote), it is an `Inventory` module write
  * (`GroupFeedConsumption`) that decrements a batch and lets the cost-prorate engine read
  * kilograms regardless of what unit the operator typed ("bug del saco",
- * docs/planes/fase-3-5/spec-3.5a.md sec.3.5a.5). The outbox operation type
+ * docs/spec/plan-0002-fase-3-5/spec-3.5a.md sec.3.5a.5). The outbox operation type
  * (`recordFeedConsumption`) is routed server-side to `RecordGroupFeedConsumptionCommand`
  * via `PushSyncCommands.cs` — see that file for the exact field names this payload must
  * match, since a misnamed field is dropped silently (no `UnmappedMemberHandling.Disallow`)

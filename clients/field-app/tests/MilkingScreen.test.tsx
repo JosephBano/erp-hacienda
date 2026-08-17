@@ -89,7 +89,7 @@ describe('MilkingScreen', () => {
     // 2 — type the litres. The act() wrapper is load-bearing: without it the
     // setLiters('12.5') update is not yet in React state when the next fireEvent
     // fires, and `record()` reads `liters = ''`, producing 0 — which assertVolume
-    // (docs/planes/fase-3-5/spec.md 3.5a.0 #1) now correctly refuses. The test was passing
+    // (docs/spec/plan-0002-fase-3-5/spec.md 3.5a.0 #1) now correctly refuses. The test was passing
     // before because the old guard let 0 through; that was the bug this fix is closing.
     await act(async () => {
       fireEvent.changeText(await screen.findByTestId('liters-input'), '12.5');

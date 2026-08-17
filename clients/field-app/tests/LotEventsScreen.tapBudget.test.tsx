@@ -12,7 +12,7 @@ import { FeedConsumptionService } from '../src/services/feedConsumptionService';
 import { LotEventsScreen } from '../src/screens/LotEventsScreen';
 
 /**
- * `TapBudget` (GLOSSARY.md "Conteo de toques"): the standard docs/planes/fase-3-5/spec.md
+ * `TapBudget` (GLOSSARY.md "Conteo de toques"): the standard docs/spec/plan-0002-fase-3-5/spec.md
  * sec.2.3 fixes is three taps for the normal path of an activity, four when the
  * "confirmar lo improbable" (ADR-0022) case fires. ADR-0021 left the second level of the
  * "lote" branch gated specifically on this being enforced by test, not by hand-count —
@@ -26,7 +26,7 @@ import { LotEventsScreen } from '../src/screens/LotEventsScreen';
  * inside MilkingScreen's own three-tap claim. Typing into a field is not a tap.
  *
  * If any of these ever needs a fourth (or fifth) `fireEvent.press` to reach the outbox,
- * that is the compuerta firing: docs/planes/fase-3-5/spec.md sec.2.3 says fix the flow, not
+ * that is the compuerta firing: docs/spec/plan-0002-fase-3-5/spec.md sec.2.3 says fix the flow, not
  * relax the number.
  */
 describe('LotEventsScreen TapBudget (ADR-0021 condition 2)', () => {

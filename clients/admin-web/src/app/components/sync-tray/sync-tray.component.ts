@@ -5,7 +5,7 @@ import { ApiService, SyncConflictDto, SyncOperationDto } from '../../services/ap
 import { IconComponent } from '../../shared/icon/icon.component';
 
 /**
- * Two related trays a device's sync push feeds. Rejected operations (docs/planes/fase-3/spec.md sec.3.C:
+ * Two related trays a device's sync push feeds. Rejected operations (docs/spec/plan-0001-fase-3/spec.md sec.3.C:
  * "bandeja de conflictos y rechazos") are the invariant of zero silent loss made visible —
  * a push the server refused is never deleted, it lands here with its reason. LWW conflicts
  * (ADR-0008) are the narrower case of two devices editing the very same field.

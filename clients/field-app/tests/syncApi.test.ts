@@ -1,7 +1,7 @@
 import { AuthenticationExpiredError, HttpSyncApi } from '../src/services/syncApi';
 
 /**
- * Scenario 9 of docs/planes/fase-3/spec.md sec.2.2: the JWT expires mid-sync (a batch push can easily
+ * Scenario 9 of docs/spec/plan-0001-fase-3/spec.md sec.2.2: the JWT expires mid-sync (a batch push can easily
  * outlast a short-lived token on a slow rural connection). The retry must use the
  * *refreshed* token and must not duplicate anything — duplication safety here comes for
  * free from the server's clientOperationId idempotency (proven server-side), so what this

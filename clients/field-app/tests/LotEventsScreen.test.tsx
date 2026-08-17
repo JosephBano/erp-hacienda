@@ -12,7 +12,7 @@ import { FeedConsumptionService } from '../src/services/feedConsumptionService';
 import { LotEventsScreen } from '../src/screens/LotEventsScreen';
 
 /**
- * docs/planes/fase-3-5/spec-3.5a.md sec.3.5a.7 tasks 1–5: the "Un lote" registration forms.
+ * docs/spec/plan-0002-fase-3-5/spec-3.5a.md sec.3.5a.7 tasks 1–5: the "Un lote" registration forms.
  * Every test here asserts the operation reaches the local outbox with `global.fetch`
  * wired to throw — the plan's mandatory "registro sin red" proof (docs/PROTOCOLO-DE-TRABAJO.md sec.2.1)
  * applied per screen/activity, since a network dependency anywhere in a *registration*
@@ -95,7 +95,7 @@ describe('LotEventsScreen (3.5a.7 tasks 1–5)', () => {
     expect(payload.maxKg).toBe(52);
     // The average sent is exactly the average this screen computed from the raw
     // weights array carried in the same payload — the app calculates it, the
-    // operator never types it (docs/planes/fase-3-5/spec-3.5a.md sec.3.5a.7 task 1).
+    // operator never types it (docs/spec/plan-0002-fase-3-5/spec-3.5a.md sec.3.5a.7 task 1).
     const rawAverage = payload.weights.reduce((sum: number, w: number) => sum + w, 0) / payload.weights.length;
     expect(payload.avgKg).toBe(Math.round(rawAverage * 100) / 100);
   });

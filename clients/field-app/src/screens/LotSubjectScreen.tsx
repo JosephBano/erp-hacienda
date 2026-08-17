@@ -25,7 +25,7 @@ interface LotSubjectScreenProps {
   onClearSelection: () => void;
   onActivity: (groupId: string, activity: LotActivity) => void;
   /**
-   * The lot record read (docs/planes/fase-3-5/spec-3.5a.md sec.3.5a.7 task 6, already
+   * The lot record read (docs/spec/plan-0002-fase-3-5/spec-3.5a.md sec.3.5a.7 task 6, already
    * delivered server-side). Optional: passing it in lets the caller own the fetch
    * lifecycle (App.tsx composes services), and its absence never blocks the six
    * activity buttons below — Art. 9 governs registration, not this read.
@@ -40,7 +40,7 @@ interface LotSubjectScreenProps {
  *
  * Activity order follows the frequency-declared assumption documented in
  * `ActivitiesHub.tsx` and `BACKLOG.md`: alimento is the most frequent touch on a lot
- * (docs/planes/fase-3-5/spec.md sec.2.3, "el más frecuente"), so it leads; pesaje muestral is
+ * (docs/spec/plan-0002-fase-3-5/spec.md sec.2.3, "el más frecuente"), so it leads; pesaje muestral is
  * regular but not daily; vacunar/tratar and diagnóstico are occasional; baja is the
  * least frequent of the six. This order is a placeholder pending the client conversation
  * of sec.7-C — not a claim about what the client actually wants.

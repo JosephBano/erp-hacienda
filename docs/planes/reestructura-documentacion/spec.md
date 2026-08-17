@@ -69,7 +69,10 @@ no por suposición.
 ### 2.1 La plantilla de cuatro archivos ya existe y funciona
 
 `docs/planes/field-app-parto-redesign/` contiene `spec.md` (396 líneas), `plan.md` (227),
-`tasks.md` (167) y `test-e2e.md` (273). Es el único lugar del repositorio donde un trabajo
+`tasks.md` (167) y `test-e2e.md` (273) — medido el 2026-08-16, cuando la carpeta vivía en la
+rama `feature/field-app-parto-redesign`. El 2026-08-17 se trajo al repo y se alineó con las
+plantillas que salieron de ella, así que hoy son 409 / 269 / 168 / 282. Es el único lugar
+donde un trabajo
 tiene decisión, secuencia, checklist y verificación separadas y enlazadas entre sí. **Este
 spec no inventa una convención nueva: promueve esa a estándar.**
 
@@ -293,8 +296,12 @@ con el dueño del proyecto lo indican.
   `DATA-MODEL.md`, `LEGAL-ECUADOR.md`, `BACKUPS.md` ni `ROADMAP.md`.** Se les actualizan
   las referencias que cambien y nada más. Su contenido es bueno; tocarlo aquí sería un
   segundo propósito en el mismo PR (regla 9).
-- **`docs/planes/sub_planes/`** (8 archivos) y `PLAN-ADMIN-WEB-ANIMAL-GROUPS.md`. Quedan
-  como están; su reorganización se anota en `docs/BACKLOG.md`.
+- **`docs/planes/sub_planes/`** (8 archivos). Quedan como están; su reorganización se anota en
+  `docs/BACKLOG.md`.
+  `PLAN-ADMIN-WEB-ANIMAL-GROUPS.md` **también estaba fuera de alcance por este motivo**, pero
+  el dueño del proyecto pidió convertirlo el 2026-08-17, ya con las plantillas disponibles:
+  hoy es `docs/planes/admin-web-animal-groups/`, con los cuatro documentos y marcado como
+  archivado. El archivo suelto ya no existe.
 - **`field-app-parto-redesign/`**. Es el modelo, no el objeto.
 - **Cualquier cambio de código que no sea un comentario reapuntado.** En particular, la
   normalización de unidades de inventario va en su propia rama,
@@ -369,7 +376,7 @@ vacía se llena mal.
 | Carpeta | `spec.md` | `plan.md` | `tasks.md` | `test-e2e.md` | Origen |
 |---|---|---|---|---|---|
 | `fase-3/` | Sí | Sí | Sí, casi todo `[x]` | Sí | `PLAN-FASE-3-4.md` secs. 2.2 y 3 |
-| `fase-3-5/` | Sí | Sí | Sí, micro-tareas | Sí | `PLAN-FASE-3-5-PORCINO.md` (833 líneas) |
+| `fase-3-5/` | Sí, partido en `spec.md` + `spec-3.5a.md` (sec. 7.3) | Sí | Sí, micro-tareas | Sí | `PLAN-FASE-3-5-PORCINO.md` (833 líneas) |
 | `fase-4/` | Sí | — | — | — | `PLAN-FASE-3-4.md` secs. 2.3 y 4 |
 | `fase-5/` | Sí | — | — | — | `ROADMAP.md:235-243` |
 
@@ -393,6 +400,16 @@ caducidad**. Así, el día que se abra Purchasing, la lista de lo que hay que ju
 escrita y no depende de que alguien recuerde haber leído un comentario (D7).
 
 Su `tasks.md` es el que audita el agente de la sec. 12.
+
+**Partición del spec (desviación ejecutada, commit 091e94c).** Las 833 líneas no entraban en
+un solo archivo sin recrear el riesgo que la sec. 13 anticipaba ("`fase-3-5/spec.md` hereda
+833 líneas y vuelve a ser inmanejable"). Se partió en dos: `spec.md` se queda con las
+decisiones (sec. 2), el bloque 3.5b y el resto de la fase; el bloque 3.5a —sus nueve ramas y
+la numeración de tarea que 85 citas del código usan para apuntar— se mueve a
+`spec-3.5a.md`. `plan.md`, `tasks.md` y `test-e2e.md` no se tocan: la partición es solo del
+spec. Consecuencia documentada en T11.2 de `tasks.md`: el reapuntado de citas ya no puede
+ser un único patrón, tiene que rutear `3.5a.*` a `spec-3.5a.md` antes que el resto a
+`spec.md`.
 
 ### 7.4 `fase-4/` — objetivo virgen
 
@@ -500,14 +517,16 @@ Se lanza **después** de que exista `docs/planes/fase-3-5/tasks.md`, no antes.
 | Riesgo | Mitigación |
 |---|---|
 | **El reapuntado de 238 citas rompe referencias en silencio.** Una cita mal reemplazada no falla en compilación: es prosa en un comentario. | D6 preserva la numeración, así que el cambio es mecánico. `test-e2e.md` incluye un `grep` que falla si sobrevive cualquier mención a los nombres viejos, y otro que verifica que cada sección citada existe en el destino. |
-| **`fase-3-5/spec.md` hereda 833 líneas y vuelve a ser inmanejable.** | Se parte por bloques (`3.5a` / `3.5b`) y lo ejecutable se va a `plan.md` y `tasks.md`. El spec se queda con decisiones y hallazgos, que es lo que un spec es. |
+| **`fase-3-5/spec.md` hereda 833 líneas y vuelve a ser inmanejable.** | Se parte el spec por bloque: `3.5a` (nueve ramas, la numeración de tarea citada 85 veces desde el código) se va a `spec-3.5a.md`; `3.5b` y el resto de la narrativa se quedan en `spec.md`, junto con las decisiones. Lo puramente ejecutable —secuencia, checklist— ya vivía aparte, en `plan.md` y `tasks.md`. |
 | **El agente auditor marca de más por optimismo.** | D13 y la exigencia de archivo:línea en cada `[x]`. Las discrepancias son entregable obligatorio: un informe sin discrepancias en un repositorio de este tamaño es sospechoso, no tranquilizador. |
 | **La auditoría de seguridad encuentra algo grave.** | Se documenta y se abre entrada en `docs/BACKLOG.md`; si es explotable, se corrige en rama propia y con prioridad, no dentro de este PR. |
 | **Se pierde contenido al absorber.** | El borrado de los dos planes viejos ocurre en el **último** commit de la rama, no en el primero. Hasta entonces conviven con las carpetas nuevas y el diff es auditable. |
 
-**Deuda que esta rama crea y declara:** la reorganización de `sub_planes/` (8 archivos) y de
-`PLAN-ADMIN-WEB-ANIMAL-GROUPS.md` bajo la convención nueva queda anotada en
-`docs/BACKLOG.md`. No entra aquí porque el PR ya tiene un propósito.
+**Deuda que esta rama crea y declara:** la reorganización de `sub_planes/` (8 archivos) bajo
+la convención nueva queda anotada en `docs/BACKLOG.md`. No entra aquí porque el PR ya tiene un
+propósito. `PLAN-ADMIN-WEB-ANIMAL-GROUPS.md` estaba en esta misma deuda hasta que el dueño
+pidió convertirlo dentro de la rama: hoy es `docs/planes/admin-web-animal-groups/` (ver
+sec. 4).
 
 ## 14. Criterios de aceptación
 
@@ -516,15 +535,26 @@ Se lanza **después** de que exista `docs/planes/fase-3-5/tasks.md`, no antes.
    perdió.
 3. `docs/plantillas/` tiene las seis plantillas, cada una con instrucciones y ejemplo.
 4. Existen `docs/DOCUMENTACION.md`, `docs/PROTOCOLO-DE-TRABAJO.md` y `docs/SEGURIDAD.md`.
-5. Existen `fase-3/` y `fase-3-5/` con sus cuatro archivos, y `fase-4/` y `fase-5/` con su
-   `spec.md`.
+5. Existe `fase-3/` con sus cuatro archivos (`spec.md`, `plan.md`, `tasks.md`,
+   `test-e2e.md`); `fase-3-5/` con esos mismos cuatro más `spec-3.5a.md` —cinco en
+   total—, producto de partir el spec en dos para no recrear el archivo de 833 líneas
+   (sec. 7.3, sec. 13 fila "hereda 833 líneas"); y `fase-4/` y `fase-5/` con su `spec.md`.
 6. `PLAN-FASE-3-5-PORCINO.md` y `PLAN-FASE-3-4.md` **no existen**.
 7. `grep -rn "PLAN-FASE-3-5-PORCINO\|PLAN-FASE-3-4"` **en código** (`.cs`, `.ts`, `.tsx`),
-   excluyendo `node_modules` y `.claude/`, devuelve **cero resultados**.
-   En `.md` las únicas menciones que sobreviven son las **históricas y deliberadas**: las de
-   esta carpeta (`reestructura-documentacion/`, que documenta la migración) y las de los
-   encabezados de `fase-3/` y `fase-3-5/` que declaran de qué archivo provienen. Cualquier
-   otra mención en `.md` es un reapuntado olvidado y falla el criterio.
+   excluyendo `node_modules`, `.claude/` y las líneas que mencionan `sub_planes/`, devuelve
+   **cero resultados**. La exclusión de `sub_planes/` existe porque esos ocho sub-planes
+   conservan el nombre viejo en el suyo propio (`PLAN-FASE-3-5-PORCINO-3.5a.2-{A,B,C}.md`,
+   etc.) y la sec. 4 "No entra" los deja fuera de alcance de este PR.
+   En `.md`, `grep -rln "PLAN-FASE-3-5-PORCINO\|PLAN-FASE-3-4" --include=*.md .` (mismas
+   exclusiones) devuelve **26 archivos**, todos dentro de seis categorías deliberadas
+   (detalle y conteo por categoría en `test-e2e.md` V-5): esta carpeta
+   (`reestructura-documentacion/`, 4), los encabezados de procedencia de `fase-3/` y
+   `fase-3-5/` (6), los 6 ADR que citan el plan viejo como texto o enlace (un ADR no se
+   edita, se reemplaza), `docs/BACKLOG.md` (declara esa deuda de enlace roto de forma
+   explícita), `docs/PROTOCOLO-DE-TRABAJO.md` (cita el plan viejo como origen histórico de
+   un riesgo, no como ruta viva) y los 8 de `docs/planes/sub_planes/` (nombre heredado, fuera
+   de alcance por la sec. 4). Cualquier archivo `.md` fuera de estas seis categorías, o
+   cualquier conteo que no cierre en 26, es un reapuntado olvidado y falla el criterio.
 8. Toda sección citada desde el código existe con el mismo número en su documento destino.
 9. Los cinco DER están auditados contra el esquema real y todo elemento aspiracional está
    marcado.

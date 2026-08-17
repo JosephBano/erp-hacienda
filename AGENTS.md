@@ -74,10 +74,12 @@ exigencia de pruebas por capa y los umbrales de salida por fase— vive en
 ## Dónde están las cosas
 
 `SOUL.md` (por qué) · `CONSTITUTION.md` (reglas) · `GLOSSARY.md` (lenguaje) ·
-`ARCHITECTURE.md` (módulos y modelo) · `ROADMAP.md` (fases y estado actual) ·
-`LEGAL-ECUADOR.md` (cumplimiento) · `docs/adr/` (decisiones) · `docs/planes/` (planes de
-ejecución por fase) · `docs/diagramas/` (diagramas ER en Mermaid) · `docs/BACKLOG.md` (ideas y
-deuda) · `docs/DOCUMENTACION.md` (qué documento responde qué pregunta y cuándo se actualiza) ·
+`ARCHITECTURE.md` (módulos y modelo) · `docs/DATA-MODEL.md` (qué datos existen y por qué) ·
+`ROADMAP.md` (fases y estado actual) · `LEGAL-ECUADOR.md` (cumplimiento) ·
+`docs/SEGURIDAD.md` (cómo se protege y qué está expuesto) · `docs/adr/` (decisiones) ·
+`docs/planes/` (planes de ejecución por fase) · `docs/diagramas/` (diagramas ER en Mermaid) ·
+`docs/BACKLOG.md` (ideas y deuda) · `docs/BACKUPS.md` (cómo se respalda y se restaura) ·
+`docs/DOCUMENTACION.md` (qué documento responde qué pregunta y cuándo se actualiza) ·
 `docs/PROTOCOLO-DE-TRABAJO.md` (cómo se lleva una rama de la idea al merge).
 
 ## Convenciones de `docs/` (no las improvises)
@@ -92,9 +94,21 @@ archivo es ruido.
   rechaza. La plantilla es `docs/plantillas/TEMPLATE-adr.md` y no lleva número porque no es
   un ADR.
   Dentro del documento el título **sí** dice `# ADR-NNNN — …`.
-- **Planes de ejecución** → `docs/planes/`. Uno por fase.
+- **Planes de ejecución** → `docs/planes/<nombre-en-kebab-case>/`, **una carpeta por trabajo**,
+  con los cuatro documentos de la convención: `spec.md` (qué se construye y qué queda fijado),
+  `plan.md` (en qué orden y en qué commits), `tasks.md` (el desglose con casillas) y
+  `test-e2e.md` (cómo se verifica a mano). Las plantillas están en `docs/plantillas/`.
+  Un plan **no** tiene que ser de una fase: puede ser de una feature —
+  `docs/planes/admin-web-animal-groups/` lo es — siempre que cumpla la convención. Lo que no
+  se hace es dejar un plan como archivo suelto en `docs/planes/`.
+  Un plan de un trabajo terminado no se borra: se marca como archivado en el encabezado
+  (`docs/DOCUMENTACION.md` sec. 4).
 - **Diagramas** → `docs/diagramas/`, en `.mermaid`. Los diagramas embebidos en un `.md` se
   quedan donde están; acá van los completos por núcleo.
+- **Plantillas** → `docs/plantillas/`. Es la única subcarpeta nueva que se creó bajo esta
+  regla, y la razón cabe en una línea: las plantillas se buscan en un solo lugar. Reúne las
+  seis: `TEMPLATE-adr.md`, `TEMPLATE-diagrama.md`, `TEMPLATE-plan.md`, `TEMPLATE-spec.md`,
+  `TEMPLATE-tasks.md` y `TEMPLATE-test-e2e.md`.
 - **El resto de los documentos vive en la raíz de `docs/`**, en `MAYÚSCULAS.md`. No se crean
   subcarpetas nuevas sin una razón que se pueda escribir en una línea.
 - Al mover o renombrar un documento, **arreglá las referencias en el mismo commit**. Ojo con

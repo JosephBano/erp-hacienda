@@ -7,9 +7,9 @@
 > el alcance de esta sub-rama.
 
 - **Rama Git:** `feature/field-app-module-visibility`
-- **ADR que la respalda:** [ADR-0019](../adr/0019-visibilidad-de-modulos.md)
+- **ADR que la respalda:** [ADR-0019](../../adr/0019-visibilidad-de-modulos.md)
 - **Par de split:** [PLAN-FASE-3-5-PORCINO-3.5a.9-B.md](./PLAN-FASE-3-5-PORCINO-3.5a.9-B.md) (navegación por árbol de actividades)
-- **Fuente original:** [`PLAN-FASE-3-5-PORCINO.md` sec.3.5a.9](../PLAN-FASE-3-5-PORCINO.md#35a9--featurefield-app-herd-navigation)
+- **Fuente original:** [`spec-3.5a.md` sec.3.5a.9](../fase-3-5/spec-3.5a.md#35a9--featurefield-app-herd-navigation--split-en-35a9-a-y-35a9-b)
 - **Compuerta:** ninguna (no depende del árbol de actividades cerrado con el cliente).
   Esto es deliberado: el interruptor es un cambio de producto pequeño, transversal y
   testeable en aislamiento; el árbol de actividades es UX-estructural y bloqueado por

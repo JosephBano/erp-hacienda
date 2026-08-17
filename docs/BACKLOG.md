@@ -65,7 +65,7 @@ camino principal (ActivitiesHub → Tratar/Vacunar) que 3.5a.2-C mide. Agregar
   documentada abajo en `[docs] Orden de actividades del sujeto "lote"
   pendiente de validar con el operador`).
 - **Disparador**: cuando el cliente pida abrir el piloto real contra el sistema,
-  abrir [ADR-0024](./docs/adr/0024-pilot-decoupling-from-3-5a.md) y arrancar por
+  abrir [ADR-0024](./adr/0024-pilot-decoupling-from-3-5a.md) y arrancar por
   3.5a.4 task 4. La cadena (3.5a.4 task 4 + sec.7-C) es lo mínimo que queda
   para cerrar el criterio de salida completo de 3.5a.
 
@@ -107,7 +107,7 @@ camino principal (ActivitiesHub → Tratar/Vacunar) que 3.5a.2-C mide. Agregar
   exigen `livestock.animals.write` (gap preexistente cerrado). 18 specs vitest
   + 13 integration nuevos.
 - **ADR**: `docs/adr/0025-gestion-administrativa-grupos.md`.
-- **Plan**: `docs/planes/PLAN-ADMIN-WEB-ANIMAL-GROUPS.md`.
+- **Plan**: [`docs/planes/admin-web-animal-groups/`](./planes/admin-web-animal-groups/spec.md).
 - **Nota**: el disparador original "cuando se priorice trabajo de UI admin-web"
   queda **parcialmente satisfecho** para `animalGroups` pero **no** para los
   catálogos puros (especies, causas de mortalidad, ítems de inventario); esos
@@ -143,8 +143,8 @@ camino principal (ActivitiesHub → Tratar/Vacunar) que 3.5a.2-C mide. Agregar
 ## Pendiente 3.5b — diferido del barrido 2026-08-07
 
 > 3.5b está fuera del alcance del barrido integral del 2026-08-07 (lo deja
-> sentado [ADR-0021](./docs/adr/0021-cierre-retroactivo-compuerta-3-5a-9-B.md) ·
-> que a su vez reemplaza a [ADR-0020](./docs/adr/0020-fase-3-5-estado-al-cierre-del-barrido-p0-p1.md)),
+> sentado [ADR-0021](./adr/0021-cierre-retroactivo-compuerta-3-5a-9-B.md) ·
+> que a su vez reemplaza a [ADR-0020](./adr/0020-fase-3-5-estado-al-cierre-del-barrido-p0-p1.md)),
 > pero hay **una pieza concreta** que el barrido de 3.5a.2-A dejó sembrada y
 > que tiene que cerrarse con la primera rama de 3.5b. Lo siguiente es
 > trazabilidad, no trabajo del barrido actual.
@@ -168,7 +168,7 @@ camino principal (ActivitiesHub → Tratar/Vacunar) que 3.5a.2-C mide. Agregar
   `src/Modules/Livestock/Hato.Modules.Livestock.Infrastructure/Persistence/Migrations/20260807214557_AddAnimalEventTreatmentPayload.cs:29`)
   — pendiente el `FOREIGN KEY` a `health_plan_items.id` cuando esa tabla exista.
 - **Por qué se sembró así**: el plan
-  [`3.5a.2-A`](./docs/planes/sub_planes/PLAN-FASE-3-5-PORCINO-3.5a.2-A.md)
+  [`3.5a.2-A`](./planes/sub_planes/PLAN-FASE-3-5-PORCINO-3.5a.2-A.md)
   sec."Forward-compat con el cronograma" fija la decisión: si el piloto corre
   un mes registrando tratamientos sin el campo, **esos datos no se pueden
   enlazar retroactivamente** al cronograma cuando aparezca. Cuesta una línea
@@ -367,6 +367,23 @@ camino principal (ActivitiesHub → Tratar/Vacunar) que 3.5a.2-C mide. Agregar
   sobre la columna. Backfill no necesario (es columna booleana). Validar con
   `EXPLAIN ANALYZE` antes y después.
 - **Disparador**: deploys con >500 grupos activos.
+
+### [test] El riesgo de N+1 de `GetAnimalGroupsHandler` quedó sin red
+
+- **Causa raíz**: el plan de la serie de animal-groups declaró como mitigación una prueba de
+  integración que contara consultas con un `DbCommandInterceptor` (50 grupos, ≤4 consultas), y
+  esa prueba **nunca se escribió**: `grep -rn "DbCommandInterceptor" tests/ src/` no devuelve
+  nada. La agregación server-side de `GetAnimalGroupsHandler` funciona hoy, pero si alguien
+  rompe el batching al tocarla, ninguna prueba lo detecta — el resultado sigue siendo correcto,
+  sólo que lento.
+- **Detectado**: 2026-08-17, al convertir `PLAN-ADMIN-WEB-ANIMAL-GROUPS.md` a
+  `docs/planes/admin-web-animal-groups/`. Queda como `[ ]` T1.10 en el `tasks.md` de esa
+  carpeta.
+- **Trabajo a hacer**: la prueba que el plan describía, o descartar explícitamente la
+  mitigación y borrar el riesgo del `spec.md` — lo que no puede quedar es un riesgo con una
+  mitigación que no existe.
+- **Disparador**: el próximo cambio a `GetAnimalGroupQueries.cs`, o el primer reporte de
+  lentitud en la lista de lotes.
 
 ### [UI] Refactors de mantenibilidad post-#82/#83
 
@@ -735,6 +752,27 @@ camino principal (ActivitiesHub → Tratar/Vacunar) que 3.5a.2-C mide. Agregar
   "¿de qué lote salió este consumo?" del panel para trazabilidad de vencimientos o de costo
   por lote; la corrección probable es capturar los ids de los lotes tocados dentro del mismo
   bucle de `DeductFromBatchesFifo`, no re-derivarlos después.
+
+- **[docs] `docs/adr/0022-rangos-plausibilidad.md:11` enlaza a
+  `../planes/PLAN-FASE-3-5-PORCINO.md`, archivo que esta rama borró (commit `8a33d41`).**
+  Es el único ADR de la fase con un enlace markdown real (`](...)`) al archivo eliminado;
+  `0019-visibilidad-de-modulos.md`, `0021-cierre-retroactivo-compuerta-3-5a-9-B.md`,
+  `0023-eventos-clasificacion-por-peso.md` y `0024-pilot-decoupling-from-3-5a.md` también
+  citan `PLAN-FASE-3-5-PORCINO.md` pero solo como texto/código (`` `PLAN-FASE-3-5-PORCINO.md`
+  sec.X.Y ``), sin sintaxis de enlace, así que no rompen la verificación de enlaces. No se
+  arregla en esta rama: un ADR no se edita retroactivamente, se reemplaza por uno nuevo (regla
+  del propio proyecto, tarea T11.4b del plan de reestructuración). Queda declarado para que no
+  se pierda por descuido. **Disparador:** el ADR que reemplace o cierre 0022 debería repuntar
+  esa cita a `docs/planes/fase-3-5/spec-3.5a.md` sec.3.5a.6 (destino real de esa sección tras
+  la fusión).
+
+- **[docs] `docs/PROTOCOLO-DE-TRABAJO.md` cita `AGENTS.md sec.5` (línea 78) y
+  `AGENTS.md sec.2` (línea 103), pero `AGENTS.md` ya no numera sus encabezados** — un
+  `grep -n "^#" AGENTS.md` no devuelve ninguna sección con esos números. Es deuda preexistente
+  a esta rama (tarea TC.0b del plan de reestructuración) y no se corrige acá: es otro
+  propósito (regla 9). **Disparador:** cualquier edición de `AGENTS.md` o
+  `PROTOCOLO-DE-TRABAJO.md` que toque esas secciones debería resolver la cita — por número si
+  se vuelve a numerar, o por nombre de encabezado si no.
 
 ## Ideas sin fase asignada
 

@@ -411,8 +411,9 @@ tiempo, son los candidatos a salir a rama aparte — pero no pueden quedarse a m
   tablas inexistentes con tablas faltantes, cero documentación de seguridad, y un archivo
   llamado "plan de las fases 3 y 4" que contenía el manual de trabajo del proyecto.
 - **Decisiones:** las 14 del spec, con quién decidió cada una.
-- **Qué NO incluye:** `sub_planes/`, `PLAN-ADMIN-WEB-ANIMAL-GROUPS.md`, ningún cambio de
-  código ejecutable, y los `plan.md`/`tasks.md`/`test-e2e.md` de las Fases 4 y 5 (D5).
+- **Qué NO incluye:** `sub_planes/`, ningún cambio de código ejecutable, y los
+  `plan.md`/`tasks.md`/`test-e2e.md` de las Fases 4 y 5 (D5). `PLAN-ADMIN-WEB-ANIMAL-GROUPS.md`
+  sí entró, a pedido del dueño: se convirtió a `docs/planes/admin-web-animal-groups/`.
 - **Cómo probarlo:** ejecutar [`test-e2e.md`](./test-e2e.md), los ocho escenarios.
 - **Riesgo declarado:** el commit 11 es punto de no retorno; hasta el 10 todo es
   `git revert`.

@@ -13,7 +13,7 @@
 - **Pares del split:**
   - [`3.5a.2-B`](./PLAN-FASE-3-5-PORCINO-3.5a.2-B.md) (rama `feature/livestock-treatment-dose-logic`): las tres formas de dosis, calculada vs. administrada, opcionalidad, observación libre y `TreatmentCourse`.
   - [`3.5a.2-C`](./PLAN-FASE-3-5-PORCINO-3.5a.2-C.md) (rama `feature/field-app-treatment-ui`): vacunación como camino separado y pantalla de campo con vía y motivo en la misma pasada.
-- **Fuente original:** [`PLAN-FASE-3-5-PORCINO.md` sec.3.5a.2](../PLAN-FASE-3-5-PORCINO.md#35a2--featurelivestock-treatment-detail--estructural)
+- **Fuente original:** [`spec-3.5a.md` sec.3.5a.2](../fase-3-5/spec-3.5a.md#35a2--featurelivestock-treatment-detail--estructural--split-en-35a2-a-35a2-b-y-35a2-c)
 
 ---
 
@@ -85,7 +85,7 @@ recuperar tarde y el que menos depende del resto.
    desigualdad semántica: las dos FKs conviven, el sistema **no** asume que son
    la misma persona. Aplicar esto ahora evita que después se codifique "el que
    registra es el que aplica" como un `default` oculto.
-4. **`Disposal.Cause` y `GroupMortality.Cause`** ya los introduce [3.5a.3](./../PLAN-FASE-3-5-PORCINO.md#35a3--featurelivestock-mortality-causes)
+4. **`Disposal.Cause` y `GroupMortality.Cause`** ya los introduce [3.5a.3](../fase-3-5/spec-3.5a.md#35a3--featurelivestock-mortality-causes)
    (catálogo de causas de muerte). Esta sub-rama **referencia** el catálogo pero
    no lo crea — `mortality_causes` es responsabilidad de 3.5a.3.
 5. **Migración EF Core:** tablas nuevas `administration_routes` y
@@ -144,7 +144,7 @@ Adicional recomendado:
   entre tratamiento y vacunación en la app →
   [3.5a.2-C](./PLAN-FASE-3-5-PORCINO-3.5a.2-C.md).
 - El catálogo `mortality_causes` no es de esta sub-rama — vive en
-  [3.5a.3](../PLAN-FASE-3-5-PORCINO.md#35a3--featurelivestock-mortality-causes).
+  [3.5a.3](../fase-3-5/spec-3.5a.md#35a3--featurelivestock-mortality-causes).
 
 ## Cómo probarlo
 

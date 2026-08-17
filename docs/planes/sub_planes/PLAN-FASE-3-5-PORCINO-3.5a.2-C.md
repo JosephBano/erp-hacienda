@@ -12,7 +12,7 @@
 - **Pares del split:**
   - [`3.5a.2-A`](./PLAN-FASE-3-5-PORCINO-3.5a.2-A.md) (rama `feature/livestock-treatment-catalog`): catálogos y payload — **requerido**.
   - [`3.5a.2-B`](./PLAN-FASE-3-5-PORCINO-3.5a.2-B.md) (rama `feature/livestock-treatment-dose-logic`): lógica de dosis y `TreatmentCourse` — **requerido**.
-- **Fuente original:** [`PLAN-FASE-3-5-PORCINO.md` sec.3.5a.2](../PLAN-FASE-3-5-PORCINO.md#35a2--featurelivestock-treatment-detail--estructural)
+- **Fuente original:** [`spec-3.5a.md` sec.3.5a.2](../fase-3-5/spec-3.5a.md#35a2--featurelivestock-treatment-detail--estructural--split-en-35a2-a-35a2-b-y-35a2-c)
 
 ---
 
@@ -153,7 +153,7 @@ Pantallas que consumen los catálogos locales de C.1. Requieren C.1 mergeado
    para que la lista del día pueda filtrarlas. El estado `cancelled` ya
    existe en `outbox.ts:6` (ADR-0017 ya entregado al nivel de tipos). Este
    sub-cambio se conecta con
-   [3.5a.8](../PLAN-FASE-3-5-PORCINO.md#35a8--featurefield-app-correcciones-adr-0017)
+   [3.5a.8](../fase-3-5/spec-3.5a.md#35a8--featurefield-app-corrections-adr-0017)
    cuando exista (correcciones; es opcional acá).
 9. **`TreatmentCourse` se refleja en la UI como una sola fila de la lista
    del día**, no como N eventos sueltos (decisión de
@@ -164,7 +164,7 @@ Pantallas que consumen los catálogos locales de C.1. Requieren C.1 mergeado
 10. **Caminos de salida y "cancelar" explícitos** — si la pantalla se cierra a
     mitad, la cola queda limpia, no queda un estado sucio en
     `VaccinateScreen`/`TreatScreen`. Mismo patrón que
-    [`3.5a.0`](../PLAN-FASE-3-5-PORCINO.md#35a0--featurefield-app-input-guards--empezar-por-acá)
+    [`3.5a.0`](../fase-3-5/spec-3.5a.md#35a0--featurefield-app-input-guards--empezar-por-acá)
     fijó para `BirthScreen`.
 11. **Pruebas críticas** (detalladas más abajo).
 
@@ -235,9 +235,9 @@ Adicional recomendado:
 ## Lo que NO incluye (queda para otras ramas)
 
 - Las pantallas de **corrección** sobre tratamientos ya registrados — es
-  [`3.5a.8`](../PLAN-FASE-3-5-PORCINO.md#35a8--featurefield-app-correcciones-adr-0017).
+  [`3.5a.8`](../fase-3-5/spec-3.5a.md#35a8--featurefield-app-corrections-adr-0017).
 - La **ficha del lote** con el último tratamiento aplicado — eso es
-  [`3.5a.7`](../PLAN-FASE-3-5-PORCINO.md#35a7--featurefield-app-lot-registration).
+  [`3.5a.7`](../fase-3-5/spec-3.5a.md#35a7--featurefield-app-lot-registration).
 - El escaneo **QR/RFID**. La estructura de la pantalla queda lista, pero la
   integración va cuando llegue el aretado.
 - **El árbol de actividades completo** que ubica estas pantallas en su

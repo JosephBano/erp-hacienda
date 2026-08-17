@@ -49,10 +49,10 @@ Son 20 entradas y cubren, sin resto, todo `.md` de la raíz del repositorio y de
 `diagramas/`). Verificable con `ls *.md` y `ls docs/*.md`: todo lo que devuelven aparece
 arriba.
 
-`PROTOCOLO-DE-TRABAJO.md` y `SEGURIDAD.md` están en la tabla aunque todavía no existan al
-escribir este documento — los crea esta misma rama, en commits posteriores. No son
-aspiracionales: son referencias hacia adelante dentro de un mismo trabajo, no una promesa sin
-fecha.
+`PROTOCOLO-DE-TRABAJO.md` y `SEGURIDAD.md` están en la tabla porque esta misma rama los creó,
+en los commits `f2a714c` y `614cebd` respectivamente. No fueron aspiracionales: eran
+referencias hacia adelante dentro de un mismo trabajo, no una promesa sin fecha, y ya se
+cumplieron.
 
 ## 3. Disparadores de actualización
 

@@ -11,7 +11,7 @@
   las consecuencias del ADR-0019 para visibilidad — implementado en
   [3.5a.9-A](./PLAN-FASE-3-5-PORCINO-3.5a.9-A.md)).
 - **Par de split:** [PLAN-FASE-3-5-PORCINO-3.5a.9-A.md](./PLAN-FASE-3-5-PORCINO-3.5a.9-A.md) (visibilidad de módulos por interruptor explícito)
-- **Fuente original:** [`PLAN-FASE-3-5-PORCINO.md` sec.3.5a.9](../PLAN-FASE-3-5-PORCINO.md#35a9--featurefield-app-herd-navigation)
+- **Fuente original:** [`spec-3.5a.md` sec.3.5a.9](../fase-3-5/spec-3.5a.md#35a9--featurefield-app-herd-navigation--split-en-35a9-a-y-35a9-b)
 - **Compuerta:** sec.2.3 y sec.7-C del macro plan: **el árbol sólo se implementa cuando
   esté dibujado y los toques contados** con el cliente. Sin esa conversación este
   PR no arranca. Es deliberado y es la promesa de los tres toques para 15+

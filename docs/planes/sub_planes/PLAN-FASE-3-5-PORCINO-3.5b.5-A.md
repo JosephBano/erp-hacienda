@@ -8,11 +8,11 @@
 > las decisiones y el alcance de esta sub-rama.
 
 - **Rama Git:** `feature/livestock-animal-traits-core`
-- **ADR que la respalda:** [ADR-0018](../adr/0018-caracteristicas-observables-del-animal.md)
+- **ADR que la respalda:** [ADR-0018](../../adr/0018-caracteristicas-observables-del-animal.md)
 - **Pares del split:**
   - [`3.5b.5-B`](./PLAN-FASE-3-5-PORCINO-3.5b.5-B.md) (rama `feature/livestock-selection-criterion-deprecation`): absorbe `SelectionCriterion` y depreca la tabla paralela.
   - [`3.5b.5-C`](./PLAN-FASE-3-5-PORCINO-3.5b.5-C.md) (rama `feature/livestock-trait-alerts-and-versioning`): advertencias visibles en la ficha + versionado de definiciones usadas.
-- **Fuente original:** [`PLAN-FASE-3-5-PORCINO.md` sec.3.5b.5](../PLAN-FASE-3-5-PORCINO.md#45--featurelivestock-animal-traits--estructural-adr-0018)
+- **Fuente original:** [`spec.md` sec.4.5](../fase-3-5/spec.md#45--featurelivestock-animal-traits--estructural-adr-0018--split-en-35b5-a-35b5-b-y-35b5-c)
 
 ---
 

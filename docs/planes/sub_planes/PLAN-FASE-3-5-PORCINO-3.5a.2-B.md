@@ -13,7 +13,7 @@
 - **Pares del split:**
   - [`3.5a.2-A`](./PLAN-FASE-3-5-PORCINO-3.5a.2-A.md) (rama `feature/livestock-treatment-catalog`): los catálogos `administration_routes`, `TreatmentReason`, el payload, `health_plan_item_id` nullable, y `applied_by` ≠ `recorded_by`. **Esta sub-rama requiere A mergeado.**
   - [`3.5a.2-C`](./PLAN-FASE-3-5-PORCINO-3.5a.2-C.md) (rama `feature/field-app-treatment-ui`): la pantalla de campo que consume lo definido aquí.
-- **Fuente original:** [`PLAN-FASE-3-5-PORCINO.md` sec.3.5a.2](../PLAN-FASE-3-5-PORCINO.md#35a2--featurelivestock-treatment-detail--estructural)
+- **Fuente original:** [`spec-3.5a.md` sec.3.5a.2](../fase-3-5/spec-3.5a.md#35a2--featurelivestock-treatment-detail--estructural--split-en-35a2-a-35a2-b-y-35a2-c)
 
 ---
 

@@ -6,11 +6,11 @@
 > Depende de A mergeada.
 
 - **Rama Git:** `feature/livestock-selection-criterion-deprecation`
-- **ADR que la respalda:** [ADR-0018](../adr/0018-caracteristicas-observables-del-animal.md) sec.5 ("Absorbe `SelectionCriterion` y elimina `MaternalBehaviorAssessment`")
+- **ADR que la respalda:** [ADR-0018](../../adr/0018-caracteristicas-observables-del-animal.md) sec.5 ("Absorbe `SelectionCriterion` y elimina `MaternalBehaviorAssessment`")
 - **Pares del split:**
   - [`3.5b.5-A`](./PLAN-FASE-3-5-PORCINO-3.5b.5-B.md) (rama `feature/livestock-animal-traits-core`): núcleo de AnimalTrait y TraitObservation — **requerido**.
   - [`3.5b.5-C`](./PLAN-FASE-3-5-PORCINO-3.5b.5-C.md) (rama `feature/livestock-trait-alerts-and-versioning`): advertencias visibles y versionado.
-- **Fuente original:** [`PLAN-FASE-3-5-PORCINO.md` sec.3.5b.5](../PLAN-FASE-3-5-PORCINO.md#45--featurelivestock-animal-traits--estructural-adr-0018)
+- **Fuente original:** [`spec.md` sec.4.5](../fase-3-5/spec.md#45--featurelivestock-animal-traits--estructural-adr-0018--split-en-35b5-a-35b5-b-y-35b5-c)
 
 ---
 

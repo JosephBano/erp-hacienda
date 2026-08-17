@@ -63,12 +63,13 @@ archivos originales. Si es menor, se perdió contenido: comparar contra
 ```bash
 grep -rn "BACKLOG\.md" --include=*.md . | grep -v node_modules | grep -v '\.claude/' \
   | grep -v 'docs/BACKLOG\.md' | grep -v 'docs/adr/' \
-  | grep -v 'docs/planes/reestructura-documentacion/'
+  | grep -v 'docs/planes/reestructura-documentacion/' \
+  | grep -v 'docs/PROTOCOLO-DE-TRABAJO\.md'
 ```
 
 **Esperado:** cero líneas.
 
-**Dos exclusiones, y por qué.** La versión original de este escenario exigía cero
+**Tres exclusiones, y por qué.** La versión original de este escenario exigía cero
 coincidencias sin excepciones, y era **imposible de cumplir** (hallada durante la ejecución
 del commit 1):
 
@@ -78,6 +79,17 @@ del commit 1):
   mundo tal como era el día que se aceptó, y así debe quedar.
 - **`docs/planes/reestructura-documentacion/`** — esta carpeta documenta la fusión; sus
   menciones son deliberadas, igual que la excepción del criterio 7 del spec.
+- **`docs/PROTOCOLO-DE-TRABAJO.md`** — su única mención (línea 136) es la fila "Deuda
+  técnica arrastrada" de una tabla de riesgos, que escribe `` A `BACKLOG.md` `` sin ruta
+  como abreviatura dentro de una celda angosta (el resto del documento sí usa
+  `docs/BACKLOG.md` con ruta completa, ya cubierto por la exclusión anterior). Se excluye
+  por archivo, igual que `docs/adr/`, en vez de filtrar por el texto de la fila: una
+  exclusión por prosa es frágil (cualquier reescritura de esa celda la desactiva, y podría
+  además silenciar una ruta rota real que cayera en la misma línea por coincidencia), y
+  este documento no tiene más menciones de `BACKLOG.md` que revisar — es nuevo, de esta
+  misma rama. Probado: inyectar una ruta rota real (`[BACKLOG.md](../BACKLOG.md)`) en
+  cualquier otro archivo de la raíz sigue disparando el escenario; esta exclusión no la
+  habría silenciado.
 
 Las referencias de `PLAN-FASE-3-5-PORCINO.md` y `PLAN-FASE-3-4.md` no necesitan exclusión:
 esos archivos dejan de existir en el commit 11.
@@ -101,8 +113,10 @@ for f in docs/plantillas/*.md; do
 done
 ```
 
-**Esperado:** ninguna por debajo de 20 líneas. Una plantilla de 10 líneas es un título con
-viñetas, no una plantilla.
+**Esperado:** ninguna por debajo de 20 líneas, **excepto `TEMPLATE-adr.md`** (18 líneas).
+Una plantilla de 10 líneas es un título con viñetas, no una plantilla — pero
+`TEMPLATE-adr.md` es la excepción deliberada que detalla el siguiente párrafo, no un
+descuido.
 
 ```bash
 ls docs/adr/TEMPLATE.md 2>/dev/null
@@ -113,7 +127,14 @@ grep -rn "docs/adr/TEMPLATE\.md" --include=*.md . | grep -v node_modules | grep 
 **Esperado:** el archivo ya no existe y ninguna referencia lo menciona.
 
 **Juicio humano:** abrir las seis y confirmar que cada una tiene instrucciones embebidas
-**y** un ejemplo corto real de este repositorio (T2.8).
+**y** un ejemplo corto real de este repositorio (T2.8) — **con la excepción de
+`TEMPLATE-adr.md`**, que solo necesita las instrucciones. T2.1 (D10 del `spec.md`) exige
+mover `docs/adr/TEMPLATE.md` **sin cambios de contenido**; T2.8 exigía ejemplo embebido en
+las seis. Las dos no pueden cumplirse a la vez sobre el mismo archivo, y el commit
+`2155b75` resolvió el conflicto a favor de T2.1: la plantilla de ADR no necesita ejemplo
+propio porque tiene 26 ADR reales al lado, en `docs/adr/`, mejor ejemplo del que cabría en
+una cita de bloque. Confirmar en las otras cinco que el ejemplo es literal (con elipsis
+visible si está recortado), no solo presente.
 
 ---
 
@@ -152,15 +173,26 @@ cerrada —son pocas decenas de secciones únicas— y el paso 2 se corre una ve
 
 **Por qué:** es el criterio 7 del spec, con su excepción explícita.
 
-**En código — tolerancia cero:**
+**En código — tolerancia cero, con una excepción:**
 
 ```bash
 grep -rn "PLAN-FASE-3-5-PORCINO\|PLAN-FASE-3-4" \
   --include=*.cs --include=*.ts --include=*.tsx . \
-  | grep -v node_modules | grep -v '\.claude/'
+  | grep -v node_modules | grep -v '\.claude/' | grep -v 'sub_planes/'
 ```
 
 **Esperado:** cero líneas.
+
+**Una exclusión, y por qué.** La versión original de este escenario exigía cero
+coincidencias sin excepciones, y era **imposible de cumplir** (hallada al correr el
+comando sin la exclusión: devuelve 24, no cero). Las 24 son citas a
+`docs/planes/sub_planes/PLAN-FASE-3-5-PORCINO-3.5a.2-{A,B,C}.md` —tres de los ocho
+sub-planes que la sec. 4 "No entra" de este `spec.md` deja explícitamente fuera de alcance
+del PR. El commit 987d325 las repuntó a `sub_planes/` a propósito, corrigiendo un error del
+commit 8a33d41 que las había mandado al lugar equivocado. Esos archivos existen y su nombre
+propio hereda el del plan borrado —no es una cita olvidada, es el nombre del archivo— así
+que excluir sus rutas no relaja el escenario: sigue atrapando cualquier cita al plan viejo
+que no pase por `sub_planes/`, que es exactamente lo que hay que atrapar.
 
 **En documentación — solo sobreviven las históricas y deliberadas:**
 
@@ -169,9 +201,29 @@ grep -rln "PLAN-FASE-3-5-PORCINO\|PLAN-FASE-3-4" --include=*.md . \
   | grep -v node_modules | grep -v '\.claude/'
 ```
 
-**Esperado:** únicamente archivos de `docs/planes/reestructura-documentacion/` (que
-documenta la migración) y los encabezados de procedencia de `fase-3/` y `fase-3-5/`.
-Cualquier otro archivo en la lista es un reapuntado olvidado.
+**Esperado:** 26 archivos, todos dentro de seis categorías. Cualquier archivo fuera de
+estas seis es un reapuntado olvidado:
+
+- **`docs/planes/reestructura-documentacion/`** (4: `plan.md`, `spec.md`, `tasks.md`,
+  `test-e2e.md`) — esta carpeta documenta la migración; sus menciones son deliberadas.
+- **Encabezados de procedencia de `fase-3/` y `fase-3-5/`** (6: `fase-3/plan.md`,
+  `fase-3/spec.md`, `fase-3-5/plan.md`, `fase-3-5/spec.md`, `fase-3-5/spec-3.5a.md`,
+  `fase-3-5/test-e2e.md`) — citan el plan viejo como su origen histórico, igual que la
+  excepción del criterio 7 del spec.
+- **Los 6 ADR que mencionan el plan viejo** (0019, 0021, 0022, 0023, 0024, 0026) — un ADR
+  no se edita, se reemplaza (misma regla que la exclusión `docs/adr/` de V-2). `0022` tiene
+  el único enlace markdown real y roto (`](../planes/PLAN-FASE-3-5-PORCINO.md)`); los otros
+  cinco solo citan el nombre como texto.
+- **`docs/BACKLOG.md`** — declara esta deuda explícitamente en su entrada
+  `docs/adr/0022-rangos-plausibilidad.md:11`, con disparador para el ADR que reemplace o
+  cierre 0022; no se arregla en esta rama por la misma regla de "un ADR no se edita".
+- **`docs/PROTOCOLO-DE-TRABAJO.md`** — documento nuevo de esta rama; su sec. de riesgos
+  cita `PLAN-FASE-3-4.md` sec. 6 como origen histórico del riesgo de deuda técnica
+  transversal, no como ruta viva.
+- **Los 8 de `docs/planes/sub_planes/`** — llevan el nombre del plan borrado en su propio
+  nombre de archivo (heredado, no una cita olvidada) y están fuera de alcance del PR por la
+  sec. 4 "No entra" del `spec.md`, igual que en la exclusión `sub_planes/` del bloque "En
+  código" de este mismo escenario.
 
 **Y los archivos ya no existen:**
 
@@ -208,7 +260,13 @@ ls docs/planes/fase-4/ docs/planes/fase-5/
 ls docs/planes/fase-3/ docs/planes/fase-3-5/
 ```
 
-**Esperado:** los cuatro archivos en cada una.
+**Esperado:** `fase-3/` con sus cuatro archivos (`spec.md`, `plan.md`, `tasks.md`,
+`test-e2e.md`); `fase-3-5/` con esos mismos cuatro más `spec-3.5a.md` —cinco en total—. El
+commit 6 partió el spec de fase 3.5 en dos (`spec.md` y `spec-3.5a.md`, tarea T11.2) para no
+recrear el archivo de 833 líneas que la sec. 13 del `spec.md` de esta carpeta advertía como
+inmanejable. La versión original de este escenario pedía "los cuatro archivos" en ambas
+carpetas por igual, sin contemplar la partición: era imposible de cumplir en `fase-3-5/` sin
+deshacer esa decisión.
 
 ---
 

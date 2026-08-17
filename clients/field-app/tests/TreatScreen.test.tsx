@@ -11,7 +11,7 @@ import { EventService } from '../src/services/eventService';
 import { TreatScreen } from '../src/screens/TreatScreen';
 
 /**
- * docs/planes/sub_planes/PLAN-FASE-3-5-PORCINO-3.5a.2-C.md, test 5: the curative path is deeper than
+ * docs/planes/fase-3-5/sub-planes/3.5a.2-C.md, test 5: the curative path is deeper than
  * vaccination but still bounded — exactly four taps: animal, product, the
  * combined form (one pass, same accounting `MilkingScreen` uses for "type
  * the litres"), confirm.

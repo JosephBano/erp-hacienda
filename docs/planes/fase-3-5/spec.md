@@ -282,9 +282,9 @@ sobre un animal. Dos ramas planificadas se vuelven una, y más chica.
 
 | Sub-rama | Alcance principal | Depende de | Rama Git |
 |---|---|---|---|
-| [`3.5b.5-A`](../sub_planes/PLAN-FASE-3-5-PORCINO-3.5b.5-A.md) | Núcleo: `animal_traits`, `trait_kinds`, `trait_value_types`, `trait_observations`. Cuatro tipos de valor y nada más. `CurrentDisposition` derivado. | — | `feature/livestock-animal-traits-core` |
-| [`3.5b.5-B`](../sub_planes/PLAN-FASE-3-5-PORCINO-3.5b.5-B.md) | Absorción de `SelectionCriterion` y drenaje de `MaternalBehaviorAssessment`. Semilla de las morfológicas porcinas. | A | `feature/livestock-selection-criterion-deprecation` |
-| [`3.5b.5-C`](../sub_planes/PLAN-FASE-3-5-PORCINO-3.5b.5-C.md) | Advertencias visibles en la ficha del animal + versionado por clonado de las definiciones usadas. | A (recomendada B) | `feature/livestock-trait-alerts-and-versioning` |
+| [`3.5b.5-A`](./sub-planes/3.5b.5-A.md) | Núcleo: `animal_traits`, `trait_kinds`, `trait_value_types`, `trait_observations`. Cuatro tipos de valor y nada más. `CurrentDisposition` derivado. | — | `feature/livestock-animal-traits-core` |
+| [`3.5b.5-B`](./sub-planes/3.5b.5-B.md) | Absorción de `SelectionCriterion` y drenaje de `MaternalBehaviorAssessment`. Semilla de las morfológicas porcinas. | A | `feature/livestock-selection-criterion-deprecation` |
+| [`3.5b.5-C`](./sub-planes/3.5b.5-C.md) | Advertencias visibles en la ficha del animal + versionado por clonado de las definiciones usadas. | A (recomendada B) | `feature/livestock-trait-alerts-and-versioning` |
 
 Tareas resumidas: 1) `AnimalTrait` + `TraitObservation`, `kind` ∈ {Conductual, Morfológica,
 Manejo}; 2) "se observan, no se asignan" — `CurrentDisposition` derivado, nunca columna

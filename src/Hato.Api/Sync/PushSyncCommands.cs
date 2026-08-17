@@ -63,7 +63,7 @@ public class PushSyncBatchCommandHandler(
     public const int MaxBatchSize = 500;
 
     // UnmappedMemberHandling.Disallow closes the exact hole 3.5a.2-C was written to
-    // fix (see docs/planes/sub_planes/PLAN-FASE-3-5-PORCINO-3.5a.2-C.md): before this, an operation with a
+    // fix (see docs/planes/fase-3-5/sub-planes/3.5a.2-C.md): before this, an operation with a
     // field the target command does not declare — `reasonId` instead of `reason`,
     // a stray `doseKg` — was silently dropped and the push still answered
     // "Accepted", because `Deserialize<T>` just ignored what it did not recognise.

@@ -123,16 +123,22 @@ una feature, el nivel de exigencia en pruebas, el formato de PR) es el de
 de reversa sobre datos ya cargados en producción, no un `git revert` limpio. Todo lo
 posterior a 3.5a.1 asume el modelo grupal.
 
-## 5. Sub-planes enlazados (fuera de alcance de esta carpeta)
+## 5. Sub-planes (`sub-planes/`)
 
-Estos ocho archivos **no se absorben** — quedan donde están, en `docs/planes/sub_planes/`,
-y esta carpeta sólo los enlaza:
+Ocho sub-ramas ejecutables que salieron de tres secciones partidas de esta fase. Viven en
+[`sub-planes/`](./sub-planes/) y **no se absorben** en este `plan.md`: cada archivo es
+*un sub-plan = una rama Git = un PR*, ejecutable por sí solo, y sus estados divergen dentro
+de un mismo grupo (3.5a.2 está mergeada; 3.5a.9-B sigue con la compuerta parcialmente
+cerrada por ADR-0021). Fusionarlos obligaría a llevar el estado por sección dentro de un
+archivo, que es justo lo que el split resolvió. El detalle de cada sub-rama —alcance,
+dependencias y rama— está tabulado en [`spec.md`](./spec.md) sec. 4.5 y
+[`spec-3.5a.md`](./spec-3.5a.md) sec. 3.5a.2 y 3.5a.9.
 
-- [`PLAN-FASE-3-5-PORCINO-3.5a.2-A.md`](../sub_planes/PLAN-FASE-3-5-PORCINO-3.5a.2-A.md)
-- [`PLAN-FASE-3-5-PORCINO-3.5a.2-B.md`](../sub_planes/PLAN-FASE-3-5-PORCINO-3.5a.2-B.md)
-- [`PLAN-FASE-3-5-PORCINO-3.5a.2-C.md`](../sub_planes/PLAN-FASE-3-5-PORCINO-3.5a.2-C.md)
-- [`PLAN-FASE-3-5-PORCINO-3.5a.9-A.md`](../sub_planes/PLAN-FASE-3-5-PORCINO-3.5a.9-A.md)
-- [`PLAN-FASE-3-5-PORCINO-3.5a.9-B.md`](../sub_planes/PLAN-FASE-3-5-PORCINO-3.5a.9-B.md)
-- [`PLAN-FASE-3-5-PORCINO-3.5b.5-A.md`](../sub_planes/PLAN-FASE-3-5-PORCINO-3.5b.5-A.md)
-- [`PLAN-FASE-3-5-PORCINO-3.5b.5-B.md`](../sub_planes/PLAN-FASE-3-5-PORCINO-3.5b.5-B.md)
-- [`PLAN-FASE-3-5-PORCINO-3.5b.5-C.md`](../sub_planes/PLAN-FASE-3-5-PORCINO-3.5b.5-C.md)
+- [`3.5a.2-A.md`](./sub-planes/3.5a.2-A.md)
+- [`3.5a.2-B.md`](./sub-planes/3.5a.2-B.md)
+- [`3.5a.2-C.md`](./sub-planes/3.5a.2-C.md)
+- [`3.5a.9-A.md`](./sub-planes/3.5a.9-A.md)
+- [`3.5a.9-B.md`](./sub-planes/3.5a.9-B.md)
+- [`3.5b.5-A.md`](./sub-planes/3.5b.5-A.md)
+- [`3.5b.5-B.md`](./sub-planes/3.5b.5-B.md)
+- [`3.5b.5-C.md`](./sub-planes/3.5b.5-C.md)

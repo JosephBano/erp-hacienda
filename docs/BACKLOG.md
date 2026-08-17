@@ -46,7 +46,7 @@ camino principal (ActivitiesHub → Tratar/Vacunar) que 3.5a.2-C mide. Agregar
 ### [3.5a] Reactivar el criterio de salida — sin esto no hay piloto
 
 - **3.5a.2 (treatment detail)** — sub-ramas A/B/C ya escritas en
-  `docs/planes/sub_planes/PLAN-FASE-3-5-PORCINO-3.5a.2-{A,B,C}.md`. **A y B ya
+  `docs/planes/fase-3-5/sub-planes/3.5a.2-{A,B,C}.md`. **A y B ya
   mergeadas a integración** (A: `feature/livestock-treatment-dose-logic` →
   PR para catalogos y payload; B: parte de la misma ola). **C mergeada
   2026-08-09** vía `feature/field-app-treatment-ui` →
@@ -168,7 +168,7 @@ camino principal (ActivitiesHub → Tratar/Vacunar) que 3.5a.2-C mide. Agregar
   `src/Modules/Livestock/Hato.Modules.Livestock.Infrastructure/Persistence/Migrations/20260807214557_AddAnimalEventTreatmentPayload.cs:29`)
   — pendiente el `FOREIGN KEY` a `health_plan_items.id` cuando esa tabla exista.
 - **Por qué se sembró así**: el plan
-  [`3.5a.2-A`](./planes/sub_planes/PLAN-FASE-3-5-PORCINO-3.5a.2-A.md)
+  [`3.5a.2-A`](./planes/fase-3-5/sub-planes/3.5a.2-A.md)
   sec."Forward-compat con el cronograma" fija la decisión: si el piloto corre
   un mes registrando tratamientos sin el campo, **esos datos no se pueden
   enlazar retroactivamente** al cronograma cuando aparezca. Cuesta una línea
@@ -765,6 +765,15 @@ camino principal (ActivitiesHub → Tratar/Vacunar) que 3.5a.2-C mide. Agregar
   se pierda por descuido. **Disparador:** el ADR que reemplace o cierre 0022 debería repuntar
   esa cita a `docs/planes/fase-3-5/spec-3.5a.md` sec.3.5a.6 (destino real de esa sección tras
   la fusión).
+
+- **[docs] `docs/adr/0020-fase-3-5-estado-al-cierre-del-barrido-p0-p1.md:36` y
+  `docs/adr/0021-cierre-retroactivo-compuerta-3-5a-9-B.md:155` citan `docs/planes/sub_planes/`,
+  carpeta que ya no existe:** los ocho sub-planes se movieron a
+  `docs/planes/fase-3-5/sub-planes/` y perdieron el prefijo `PLAN-FASE-3-5-PORCINO-` de su
+  nombre. `0021` lo cita como ruta en texto y `0020` como mención en prosa; ninguno usa
+  sintaxis de enlace, así que no rompen la verificación de enlaces. No se arreglan por la
+  misma regla que la entrada de arriba: un ADR no se edita retroactivamente. **Disparador:**
+  el ADR que cierre la compuerta de 3.5a.9-B debería citar la ruta nueva.
 
 - **[docs] `docs/PROTOCOLO-DE-TRABAJO.md` cita `AGENTS.md sec.5` (línea 78) y
   `AGENTS.md sec.2` (línea 103), pero `AGENTS.md` ya no numera sus encabezados** — un

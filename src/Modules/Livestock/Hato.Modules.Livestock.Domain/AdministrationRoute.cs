@@ -5,7 +5,7 @@ namespace Hato.Modules.Livestock.Domain;
 
 /// <summary>
 /// Configurable catalog of how a treatment is delivered to an animal
-/// (docs/planes/sub_planes/PLAN-FASE-3-5-PORCINO-3.5a.2-A.md): oral in water, oral in feed, intramuscular,
+/// (docs/planes/fase-3-5/sub-planes/3.5a.2-A.md): oral in water, oral in feed, intramuscular,
 /// subcutaneous, topical, intranasal, intrauterine. The list lives in the
 /// database, not in an enum (Art. 8): a new route the client adopts is an INSERT,
 /// never a deploy.

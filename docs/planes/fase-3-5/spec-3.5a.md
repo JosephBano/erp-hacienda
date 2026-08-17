@@ -102,9 +102,9 @@ Tareas:
 
 ### 3.5a.2 · `feature/livestock-treatment-detail` · **estructural — split en 3.5a.2-A, 3.5a.2-B y 3.5a.2-C**
 
-> Se partió en tres sub-ramas ejecutables ([`3.5a.2-A`](../sub_planes/PLAN-FASE-3-5-PORCINO-3.5a.2-A.md),
-> [`3.5a.2-B`](../sub_planes/PLAN-FASE-3-5-PORCINO-3.5a.2-B.md),
-> [`3.5a.2-C`](../sub_planes/PLAN-FASE-3-5-PORCINO-3.5a.2-C.md)) porque la rama original de 11
+> Se partió en tres sub-ramas ejecutables ([`3.5a.2-A`](./sub-planes/3.5a.2-A.md),
+> [`3.5a.2-B`](./sub-planes/3.5a.2-B.md),
+> [`3.5a.2-C`](./sub-planes/3.5a.2-C.md)) porque la rama original de 11
 > tareas violaba la regla "un PR = un propósito". Detalle de tareas y pruebas en cada
 > sub-plan; no absorbido aquí.
 
@@ -260,8 +260,8 @@ Tareas:
 ### 3.5a.9 · `feature/field-app-herd-navigation` — **split en 3.5a.9-A y 3.5a.9-B**
 
 > Partida en dos sub-planes independientes durante la revisión del macro plan (#43). El
-> alcance ejecutable vive en [`3.5a.9-A`](../sub_planes/PLAN-FASE-3-5-PORCINO-3.5a.9-A.md) y
-> [`3.5a.9-B`](../sub_planes/PLAN-FASE-3-5-PORCINO-3.5a.9-B.md). Cada sub-rama tiene su
+> alcance ejecutable vive en [`3.5a.9-A`](./sub-planes/3.5a.9-A.md) y
+> [`3.5a.9-B`](./sub-planes/3.5a.9-B.md). Cada sub-rama tiene su
 > compuerta, sus pruebas y su propio criterio de salida; no absorbidas aquí.
 
 *Por qué:* `EventsScreen.tsx:113-124` pinta **un `BigButton` por animal**. Con 3 vacas

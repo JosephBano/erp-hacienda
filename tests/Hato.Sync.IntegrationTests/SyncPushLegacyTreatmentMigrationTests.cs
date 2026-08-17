@@ -5,7 +5,7 @@ using Xunit;
 namespace Hato.Sync.IntegrationTests;
 
 /// <summary>
-/// docs/planes/sub_planes/PLAN-FASE-3-5-PORCINO-3.5a.2-B.md task 9 / test 10: a device with a legacy
+/// docs/planes/fase-3-5/sub-planes/3.5a.2-B.md task 9 / test 10: a device with a legacy
 /// <c>treatment</c> event (a free-text <c>dose</c> in its payload, from before
 /// <c>TreatmentCourse</c> existed) syncs through the exact same
 /// <c>recordAnimalEvent</c> push path every other event uses. The handler

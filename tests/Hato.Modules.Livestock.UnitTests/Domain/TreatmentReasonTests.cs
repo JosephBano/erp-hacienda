@@ -45,7 +45,7 @@ public class TreatmentReasonTests
     [Fact]
     public void Create_AcceptsTheThreeFoundationalReasons()
     {
-        // The plan seeds exactly these three (docs/planes/sub_planes/PLAN-FASE-3-5-PORCINO-3.5a.2-A.md):
+        // The plan seeds exactly these three (docs/planes/fase-3-5/sub-planes/3.5a.2-A.md):
         // distinguishing "tocaba por cronograma" from "curé algo" from
         // "preventivo fuera de cronograma" is the point of this catalogue.
         Assert.NotNull(TreatmentReason.Create("scheduled", "Programada (cronograma)"));

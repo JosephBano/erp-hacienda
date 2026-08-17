@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace Hato.Modules.Livestock.Infrastructure.Persistence.Migrations
 {
     /// <summary>
-    /// Seeds the closed set of dose forms (docs/planes/fase-3-5/sub-planes/3.5a.2-B.md task 1):
+    /// Seeds the closed set of dose forms (docs/spec/plan-0002-fase-3-5/sub-planes/3.5a.2-B.md task 1):
     /// <c>absolute</c>, <c>per_weight</c>, <c>per_head</c>. A table, not an enum
     /// (Art. 8) — the seed is what makes the catalogue usable from day one, the
     /// same posture ADR-0022 took for plausibility ranges.

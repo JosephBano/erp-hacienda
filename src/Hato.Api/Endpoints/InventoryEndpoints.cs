@@ -87,7 +87,7 @@ public static class InventoryEndpoints
         .RequireAuthorization(policy => policy.RequirePermission(SystemPermissions.InventoryReceptionsManage))
         .WithName("RecordInventoryReception");
 
-        // Per-item unit conversions (docs/planes/fase-3-5/spec-3.5a.md sec.3.5a.5). The
+        // Per-item unit conversions (docs/spec/plan-0002-fase-3-5/spec-3.5a.md sec.3.5a.5). The
         // field-app reaches these through the pull once the sync layer is wired;
         // today the admin-web / swagger tooling is the consumer.
         group.MapPost("/items/{itemId:guid}/unit-conversions", async (
@@ -116,7 +116,7 @@ public static class InventoryEndpoints
             return Results.Ok(rows);
         });
 
-        // Feed stage catalog (docs/planes/fase-3-5/spec-3.5a.md sec.3.5a.5 task 3): preiniciador,
+        // Feed stage catalog (docs/spec/plan-0002-fase-3-5/spec-3.5a.md sec.3.5a.5 task 3): preiniciador,
         // iniciador, crecimiento, engorde, gestación, lactancia. Listing only for now —
         // no consumer needs to create/deactivate stages yet (see BACKLOG.md).
         group.MapPost("/feed-stages", async (CreateFeedStageCommand command, ISender sender) =>

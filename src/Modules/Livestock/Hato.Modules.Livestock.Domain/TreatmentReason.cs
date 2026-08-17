@@ -5,7 +5,7 @@ namespace Hato.Modules.Livestock.Domain;
 
 /// <summary>
 /// Configurable catalog of why a treatment was applied
-/// (docs/planes/fase-3-5/sub-planes/3.5a.2-A.md): distinguishing
+/// (docs/spec/plan-0002-fase-3-5/sub-planes/3.5a.2-A.md): distinguishing
 /// "tocaba por cronograma" (<see cref="Scheduled"/>) from "curé algo"
 /// (<see cref="Curative"/>) from "preventivo fuera de cronograma"
 /// (<see cref="Preventive"/>) is what separates "vacuna de calendario" from

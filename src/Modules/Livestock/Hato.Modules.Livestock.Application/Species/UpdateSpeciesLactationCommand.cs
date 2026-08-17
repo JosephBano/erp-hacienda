@@ -7,7 +7,7 @@ using Microsoft.EntityFrameworkCore;
 namespace Hato.Modules.Livestock.Application.Species;
 
 /// <summary>
-/// docs/planes/fase-3-5/spec-3.5a.md sec.3.5a.4 task: the lactation parameters (DaysOfLactation,
+/// docs/spec/plan-0002-fase-3-5/spec-3.5a.md sec.3.5a.4 task: the lactation parameters (DaysOfLactation,
 /// CohortWindowDays) used to be exposed on the entity but had no command, no endpoint and
 /// no caller. RecordCohortWeaningCommand reached for them through IAnimalSpeciesReader and
 /// refused with "Configure el parámetro en el panel" — except the panel never had a way

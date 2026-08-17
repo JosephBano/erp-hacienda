@@ -10,7 +10,7 @@ using Microsoft.EntityFrameworkCore;
 namespace Hato.Modules.Breeding.Application.Cohorts;
 
 /// <summary>
-/// Weans a nursing cohort as a whole (docs/planes/fase-3-5/spec-3.5a.md sec.3.5a.4, task 2).
+/// Weans a nursing cohort as a whole (docs/spec/plan-0002-fase-3-5/spec-3.5a.md sec.3.5a.4, task 2).
 ///
 /// The teaching date is computed, not declared: <c>weaning_date = max(BirthDate of its
 /// Birthings) + DaysOfLactation</c>. The handler then walks the cohort's birthings and

@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore;
 namespace Hato.Modules.Inventory.Application.Items;
 
 /// <summary>
-/// docs/planes/fase-3-5/spec-3.5a.md sec.3.5a.5 task 1: a per-item unit conversion lives in the
+/// docs/spec/plan-0002-fase-3-5/spec-3.5a.md sec.3.5a.5 task 1: a per-item unit conversion lives in the
 /// database so the field-app can record feed consumption in the operator's unit
 /// (a 40-kg sack, a 25-kg bag) and the cost engine can still read the kg number
 /// without an <c>if</c> per presentation (Art. 8). One row per (from_unit, to_unit) pair;

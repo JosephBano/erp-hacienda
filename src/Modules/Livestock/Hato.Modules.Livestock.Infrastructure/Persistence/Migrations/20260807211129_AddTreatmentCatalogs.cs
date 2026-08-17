@@ -7,7 +7,7 @@ namespace Hato.Modules.Livestock.Infrastructure.Persistence.Migrations
 {
     /// <summary>
     /// Adds the two new configurable catalogs required by the treatment-detail
-    /// feature (docs/planes/fase-3-5/sub-planes/3.5a.2-A.md):
+    /// feature (docs/spec/plan-0002-fase-3-5/sub-planes/3.5a.2-A.md):
     ///
     /// <list type="bullet">
     /// <item><c>livestock.administration_routes</c> — vías de administración
@@ -120,7 +120,7 @@ namespace Hato.Modules.Livestock.Infrastructure.Persistence.Migrations
                 unique: true,
                 filter: "deleted_at IS NULL");
 
-            // Seed the catalogue (docs/planes/fase-3-5/sub-planes/3.5a.2-A.md sec."Tareas"
+            // Seed the catalogue (docs/spec/plan-0002-fase-3-5/sub-planes/3.5a.2-A.md sec."Tareas"
             // punto 1-2). Routes: oral en agua, oral en alimento, IM, SC,
             // tópica, intranasal, intrauterina. Reasons: scheduled, curative,
             // preventive. IDs are stable so re-seeding in dev environments is

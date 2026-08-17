@@ -37,7 +37,7 @@ public interface IAnimalRegistrationService
 
     /// <summary>
     /// Reads the species id of an animal. Used by Breeding to pick the right cohort
-    /// window when a birthing is recorded (docs/planes/fase-3-5/spec-3.5a.md sec.3.5a.4). Returns
+    /// window when a birthing is recorded (docs/spec/plan-0002-fase-3-5/spec-3.5a.md sec.3.5a.4). Returns
     /// null when the animal does not exist or has been soft-deleted, so the calling
     /// command can fall back to "no cohort" without an exception.
     /// </summary>
@@ -46,7 +46,7 @@ public interface IAnimalRegistrationService
     /// <summary>
     /// Counts how many of this litter's offspring already carry a Disposal event.
     /// Used by Breeding's cohort-weaning handler to compute the actual weaned count
-    /// (docs/planes/fase-3-5/spec-3.5a.md sec.3.5a.4 task 5): a weaning that records BornAlive
+    /// (docs/spec/plan-0002-fase-3-5/spec-3.5a.md sec.3.5a.4 task 5): a weaning that records BornAlive
     /// silently ignores the preweaning deaths that 3.5a.3 was built to capture.
     /// Animals that were tombstoned (mis-registration) are excluded: their absence is
     /// not a death.
@@ -65,7 +65,7 @@ public interface IAnimalSpeciesReader
     Task<int?> GetGestationDaysAsync(Guid animalId, CancellationToken cancellationToken);
 
     /// <summary>
-    /// Reads the lactation parameters of a species directly (docs/planes/fase-3-5/spec.md
+    /// Reads the lactation parameters of a species directly (docs/spec/plan-0002-fase-3-5/spec.md
     /// sec.3.5a.4). Returns nulls when the species has not been configured yet, so the
     /// application layer can refuse cohort weaning with a clear message instead of
     /// silently defaulting to 24. The cohort window is the only addition relative to

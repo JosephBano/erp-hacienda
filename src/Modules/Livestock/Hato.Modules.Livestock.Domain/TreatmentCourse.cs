@@ -5,7 +5,7 @@ namespace Hato.Modules.Livestock.Domain;
 
 /// <summary>
 /// A treatment of several days modelled as **one** series with its applications
-/// (docs/planes/fase-3-5/sub-planes/3.5a.2-B.md task 5), not as N disconnected
+/// (docs/spec/plan-0002-fase-3-5/sub-planes/3.5a.2-B.md task 5), not as N disconnected
 /// <see cref="AnimalEvent"/> rows. The withdrawal period is computed from
 /// <see cref="Applications"/>'s last <c>AppliedAt</c>, never per loose application.
 ///

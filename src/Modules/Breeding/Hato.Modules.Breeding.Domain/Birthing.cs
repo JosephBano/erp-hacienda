@@ -20,7 +20,7 @@ public class Birthing : AuditableEntity
     public int? WeanedCount { get; private set; }
 
     /// <summary>
-    /// Cohort this birth belongs to (docs/planes/fase-3-5/spec-3.5a.md sec.3.5a.4). The cohort
+    /// Cohort this birth belongs to (docs/spec/plan-0002-fase-3-5/spec-3.5a.md sec.3.5a.4). The cohort
     /// is the unit of weaning: <c>weaning_date = max(BirthDate) + DaysOfLactation</c>
     /// across every Birthing in the cohort, not litter by litter. Set once and never
     /// moved: rewriting the cohort would rewrite the weaning day the farmer already saw.

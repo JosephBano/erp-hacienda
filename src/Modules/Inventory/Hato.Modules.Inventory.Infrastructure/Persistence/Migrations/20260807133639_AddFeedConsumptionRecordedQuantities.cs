@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace Hato.Modules.Inventory.Infrastructure.Persistence.Migrations
 {
     /// <summary>
-    /// Schema half of docs/planes/fase-3-5/spec-3.5a.md sec.3.5a.5 task 2: a feed consumption keeps
+    /// Schema half of docs/spec/plan-0002-fase-3-5/spec-3.5a.md sec.3.5a.5 task 2: a feed consumption keeps
     /// both quantities, the one the operator typed ("3 sacos") and the one the cost engine
     /// reads (120 kg), plus the factor that links them.
     ///

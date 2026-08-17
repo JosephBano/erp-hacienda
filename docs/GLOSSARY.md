@@ -117,7 +117,7 @@
 
 > Términos que entran con el pivote a porcinos. **Ninguno está implementado todavía**:
 > esta sección existe porque el Art. 20 exige que el término entre al glosario antes que
-> al código. Ver `PLAN-FASE-3-5-PORCINO.md` y los ADR-0015/0016/0017.
+> al código. Ver `docs/spec/plan-0002-fase-3-5/spec.md` y los ADR-0015/0016/0017.
 
 ### Lote, conteo y trazabilidad
 
@@ -166,8 +166,8 @@
 
 | Término (ES) | Código (EN) | Definición |
 |---|---|---|
-| Modo fail-open | — | Política de captura: cuando no existe configuración aplicable a un caso, el sistema **acepta el valor** en lugar de rechazarlo. Aplica a reglas de captura (no de seguridad): el costo de perder un dato real del campo se considera mayor que el costo de aceptar un valor raro. Distinto del fail-closed (default `false`) de `Species.IsMilkable` y de los permisos (ADR-0007) — esas son reglas de seguridad, donde el costo de un falso positivo es bajo y la simetría es al revés. La decisión de romper la simetría es consciente y está justificada caso por caso. Aplicaciones formalizadas: `PlausibilityRange` (esta sección) y, en general, todo catálogo consultivo que se evalúa en tiempo de captura. Ver [ADR-0022](../adr/0022-rangos-plausibilidad.md) sec.3. |
-| Rango de plausibilidad | `PlausibilityRange` | Catálogo configurable por **especie y categoría**: `plausible_min` / `plausible_max` (→ confirmación: *"¿es correcto?"*) y `absolute_min` / `absolute_max` (→ bloqueo: imposible de registrar). Aplica a magnitudes físicas (peso en kg, volumen en litros para ordeño). **Fail-open por diseño** (ver `Modo fail-open` arriba): si no hay rango configurado para una combinación, el sistema acepta el valor — un rango olvidado no debe impedir registrar la realidad del campo. **Evaluado localmente en el móvil** (Art. 9): los rangos bajan vía pull. Distinto de `Species.IsMilkable` (fail-closed, default `false`) y de los permisos (ADR-0007, fail-closed por defecto) — esas son reglas de seguridad; los rangos de plausibilidad son reglas de captura. Ver `PLAN-FASE-3-5-PORCINO.md` sec.3.5a.6 y [ADR-0022](../adr/0022-rangos-plausibilidad.md). |
+| Modo fail-open | — | Política de captura: cuando no existe configuración aplicable a un caso, el sistema **acepta el valor** en lugar de rechazarlo. Aplica a reglas de captura (no de seguridad): el costo de perder un dato real del campo se considera mayor que el costo de aceptar un valor raro. Distinto del fail-closed (default `false`) de `Species.IsMilkable` y de los permisos (ADR-0007) — esas son reglas de seguridad, donde el costo de un falso positivo es bajo y la simetría es al revés. La decisión de romper la simetría es consciente y está justificada caso por caso. Aplicaciones formalizadas: `PlausibilityRange` (esta sección) y, en general, todo catálogo consultivo que se evalúa en tiempo de captura. Ver [ADR-0022](./adr/0022-rangos-plausibilidad.md) sec.3. |
+| Rango de plausibilidad | `PlausibilityRange` | Catálogo configurable por **especie y categoría**: `plausible_min` / `plausible_max` (→ confirmación: *"¿es correcto?"*) y `absolute_min` / `absolute_max` (→ bloqueo: imposible de registrar). Aplica a magnitudes físicas (peso en kg, volumen en litros para ordeño). **Fail-open por diseño** (ver `Modo fail-open` arriba): si no hay rango configurado para una combinación, el sistema acepta el valor — un rango olvidado no debe impedir registrar la realidad del campo. **Evaluado localmente en el móvil** (Art. 9): los rangos bajan vía pull. Distinto de `Species.IsMilkable` (fail-closed, default `false`) y de los permisos (ADR-0007, fail-closed por defecto) — esas son reglas de seguridad; los rangos de plausibilidad son reglas de captura. Ver `docs/spec/plan-0002-fase-3-5/spec-3.5a.md` sec.3.5a.6 y [ADR-0022](./adr/0022-rangos-plausibilidad.md). |
 
 ### Alimentación
 

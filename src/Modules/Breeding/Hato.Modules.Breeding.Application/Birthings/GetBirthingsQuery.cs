@@ -12,7 +12,7 @@ namespace Hato.Modules.Breeding.Application.Birthings;
 /// created — the offspring rows in particular carry the per-calf initial weight,
 /// which is the data point the user explicitly asked for. Ordered most-recent-first
 /// to match the panel's "Lo que registré hoy" mental model
-/// (PLAN-FASE-3-5-PORCINO.md sec.2.3).
+/// (docs/spec/plan-0002-fase-3-5/spec.md sec.2.3).
 /// </summary>
 public record GetBirthingsQuery() : IRequest<List<BirthingListItemDto>>;
 

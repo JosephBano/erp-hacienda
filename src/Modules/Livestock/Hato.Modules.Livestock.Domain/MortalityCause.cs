@@ -5,7 +5,7 @@ namespace Hato.Modules.Livestock.Domain;
 /// <summary>
 /// Configurable catalog of why an animal died (Art. 8): crushing, starvation, weak at
 /// birth, diarrhea, hernia, unknown… The farm's own list, not a fixed enum — "unknown"
-/// covers the gap while the client refines the rest (PLAN-FASE-3-5-PORCINO.md sec.7-B).
+/// covers the gap while the client refines the rest (docs/spec/plan-0002-fase-3-5/spec.md sec.7-B).
 /// Rows are deactivated, never deleted: a cause already referenced by history stays
 /// readable (Art. 1) even after the panel retires it from new use.
 /// </summary>

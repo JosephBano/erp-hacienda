@@ -5,7 +5,7 @@ namespace Hato.Modules.Livestock.UnitTests.Domain;
 
 /// <summary>
 /// 3.5a.2-A second half: the structured treatment payload (route + reason +
-/// batch + applied_by + forward-compat health_plan_item_id). PLAN-FASE-3-5-PORCINO-3.5a.2-A
+/// batch + applied_by + forward-compat health_plan_item_id). docs/spec/plan-0002-fase-3-5/sub-planes/3.5a.2-A.md
 /// sec."Tareas" punto 3, mirrored from the macro plan sec.3.5a.2.
 ///
 /// The fields are added as typed columns next to the existing JSONB payload,

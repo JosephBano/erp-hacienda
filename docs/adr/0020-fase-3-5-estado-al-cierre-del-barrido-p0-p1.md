@@ -33,7 +33,7 @@ y la tarea 6 de **3.5a.7** (ficha del lote). Quedan explícitamente fuera del al
    salida de 3.5a (registrar tratamientos con vía y motivo); la decisión de parar
    acá es consciente, no por accidente. Si el cliente decide que necesita
    tratamientos con vía antes del piloto, esta rama se reactiva con su propio
-   sub-plan (3.5a.2-A/B/C ya están escritos en `docs/planes/sub_planes/`).
+   sub-plan (3.5a.2-A/B/C ya están escritos en `docs/spec/sub_planes/`).
 2. **3.5a.6 (plausibility ranges)** — la tarea 1 de 3.5a.7 (pesaje muestral del
    lote) requiere rangos de plausibilidad por especie/categoría; sin 3.5a.6,
    validar el pesaje sería un `if` hardcoded por especie (violación del Art. 8).

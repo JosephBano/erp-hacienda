@@ -6,7 +6,7 @@ using Xunit;
 namespace Hato.Sync.IntegrationTests;
 
 /// <summary>
-/// PLAN-FASE-3-5-PORCINO.md sec.3.5a.7 task 5: "consumo de alimento del lote en sacos"
+/// docs/spec/plan-0002-fase-3-5/spec-3.5a.md sec.3.5a.7 task 5: "consumo de alimento del lote en sacos"
 /// pushed offline. This is the exact defect class the task calls out — `PushSyncCommands`
 /// has no <c>UnmappedMemberHandling.Disallow</c>, so a field the client names differently
 /// from <see cref="Hato.Modules.Inventory.Application.Consumptions.RecordGroupFeedConsumptionCommand"/>
@@ -67,7 +67,7 @@ public class SyncPushFeedConsumptionTests(SyncApiFactory factory)
 
     /// <summary>
     /// Same "never duplicate" guarantee every push operation gets from the generic claim
-    /// step (PLAN-FASE-3-4 sec.2.2), exercised here because feed consumption decrements a
+    /// step (docs/spec/plan-0001-fase-3/spec.md sec.2.2), exercised here because feed consumption decrements a
     /// batch — a duplicate would double-deduct stock, not just double a row.
     /// </summary>
     [Fact]

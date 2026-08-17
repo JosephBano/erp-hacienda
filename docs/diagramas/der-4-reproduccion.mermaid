@@ -1,3 +1,17 @@
+%% Verificado el 2026-08-16 contra Breeding 20260808014236_AddNursingCohortSortedAt
+%% y Production 20260802163710_AddAuditRecordedBy
+%% Auditoría commit 10 (docs/reestructura-documentacion): BREEDING_SERVICES y BIRTHINGS
+%% perdieron `recorded_by` (no existe esa columna; solo created_by/updated_by de auditoria).
+%% PREGNANCY_CHECKS gano `dam_id` directo (ademas de service_id). BIRTHINGS gano
+%% `nursing_cohort_id`/`weaned_at`/`weaned_count` (Fase 3.5, ADR-0015/0016) — se agrega
+%% NURSING_COHORTS porque `birthings.nursing_cohort_id` es un FK real, aunque el resto del
+%% nucleo de manejo por lote vive en su propio diagrama (DATA-MODEL.md "Nucleo 6"), no aqui.
+%% LACTATIONS existe como tabla y como metodo de dominio (`Lactation.Start`/`Close`) pero
+%% **no hay ningun comando de aplicacion que los invoque** (grep sin resultados en todo src/):
+%% la relacion "el parto inicia la lactancia" esta en el diseño (DATA-MODEL.md Nucleo 4/5) y en
+%% el schema (la tabla existe), pero el codigo no la conecta — no hay FK birthing_id en
+%% lactations ni un flujo que cree la fila. Se documenta como hueco, no se marca FUTURO (la
+%% tabla ya existe) ni se dibuja la relacion con BIRTHINGS (no hay FK que la respalde).
 erDiagram
     %% ============================================
     %% NUCLEO 4: REPRODUCCION Y GENETICA (Fase 2)
@@ -9,13 +23,13 @@ erDiagram
     ANIMALS |o--o{ BREEDING_SERVICES : "semental (monta)"
     SEMEN_STRAWS |o--o{ BREEDING_SERVICES : "pajuela usada (IA)"
     BREEDING_SERVICES ||--o{ PREGNANCY_CHECKS : "verificado por"
-    BREEDING_SERVICES |o--o| PREGNANCIES : "si positivo, origina"
+    ANIMALS ||--o{ PREGNANCY_CHECKS : "madre (dam_id directo)"
+    BREEDING_SERVICES |o--o| PREGNANCIES : "si positivo, origina (opcional)"
     ANIMALS ||--o{ PREGNANCIES : "gesta"
-    PREGNANCIES |o--o| BIRTHINGS : "termina en"
+    PREGNANCIES |o--o| BIRTHINGS : "termina en (opcional)"
     ANIMALS ||--o{ BIRTHINGS : "madre pare"
     BIRTHINGS ||--o{ ANIMALS : "crea crias enlazadas"
-    BIRTHINGS |o--o| LACTATIONS : "inicia (en lecheras)"
-    ANIMALS ||--o{ LACTATIONS : "produce durante"
+    NURSING_COHORTS |o--o{ BIRTHINGS : "agrupa camadas (opcional)"
 
     BREEDING_SERVICES {
         uuid id PK
@@ -24,20 +38,21 @@ erDiagram
         uuid sire_animal_id FK "nullable (monta)"
         uuid straw_id FK "nullable (IA) - excluyente"
         date service_date
-        varchar technician "quien inseminó"
-        text notes "celo observado, condicion corporal"
-        uuid recorded_by FK
+        varchar technician "nullable; quien insemino"
+        numeric body_condition_score "nullable"
+        text notes "nullable; celo observado"
         timestamptz created_at
     }
 
     PREGNANCY_CHECKS {
         uuid id PK
+        uuid dam_id FK "directo, ademas del servicio"
         uuid service_id FK
         date check_date
         varchar method "palpacion / ecografia / no_retorno"
         varchar result "positivo / negativo / dudoso"
-        varchar checked_by "veterinario"
-        uuid recorded_by FK
+        varchar checked_by "texto libre, nullable; no es FK a users"
+        timestamptz created_at
     }
 
     PREGNANCIES {
@@ -47,32 +62,44 @@ erDiagram
         date confirmed_at
         date expected_birth_date "calculada: service_date + gestation_days de la especie"
         varchar status "activa / abortada / completada"
-        text notes
+        text notes "nullable"
     }
 
     BIRTHINGS {
         uuid id PK
         uuid dam_id FK
         uuid pregnancy_id FK "nullable si no se registro la gestacion"
+        uuid nursing_cohort_id FK "nullable (Fase 3.5, ADR-0015)"
         date birth_date
         varchar difficulty "normal / asistido / cesarea / distocia"
         int total_born "camada total (clave en cerdas)"
         int born_alive
         int born_dead
         int mummified "momias (porcinos)"
-        numeric litter_weight "peso de camada, opcional"
-        text notes
-        uuid recorded_by FK
+        numeric litter_weight "peso de camada, nullable"
+        date weaned_at "nullable; destete individual de esta camada"
+        int weaned_count "nullable"
+        text notes "nullable"
     }
 
+    NURSING_COHORTS {
+        uuid id PK
+        uuid species_id FK
+        date started_at
+        date sorted_at "nullable; cuando se clasifico por peso y se mezclo"
+        date weaned_at "nullable; se calcula desde la ULTIMA camada, no camada por camada"
+        date closed_at "nullable"
+        text notes "nullable"
+    }
+
+    %% NOTA: LACTATIONS existe (Production module) pero ningun comando la crea ni la cierra hoy.
+    %% No tiene birthing_id: no hay FK que respalde "BIRTHINGS inicia LACTATIONS".
     LACTATIONS {
         uuid id PK
         uuid animal_id FK "la vaca"
-        uuid birthing_id FK "parto que la inicio"
-        int lactation_number "1ra, 2da, 3ra..."
-        date started_at
-        date dried_off_at "secado; nullable = en produccion"
-        varchar status "activa / seca"
+        int lactation_number "1ra, 2da, 3ra... UK junto a animal_id"
+        date start_date
+        date end_date "nullable = en produccion (no hay columna status; se deriva de esta)"
     }
 
     ANIMALS {

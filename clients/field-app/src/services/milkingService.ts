@@ -19,7 +19,7 @@ import { Outbox } from './outbox';
  *      `isPlausibilityConfirmed` on the payload. Only a value outside the
  *      *absolute* range is rejected outright, same as this layer's floor.
  *
- * The rule both layers obey (PLAN-FASE-3-5-PORCINO 3.5a.0 #4):
+ * The rule both layers obey (docs/spec/plan-0002-fase-3-5/spec.md 3.5a.0 #4):
  *
  *   "3 taps for the normal, 4 for the rare. Do not punish the operator:
  *    confirm the improbable, block only the impossible."
@@ -276,7 +276,7 @@ export class MilkingService {
 }
 
 /**
- * 3-toque input guard for the milking round (see PLAN-FASE-3-5-PORCINO 3.5a.0 #4):
+ * 3-toque input guard for the milking round (see docs/spec/plan-0002-fase-3-5/spec.md 3.5a.0 #4):
  *
  *   - `NaN` / `Infinity`              → rejected. A missing or absurd value is a typo.
  *   - `liters < 0`                    → rejected. The sanity floor.

@@ -21,7 +21,7 @@ export interface VaccinateProductOption {
 }
 
 /**
- * Vaccination as its own path (PLAN-FASE-3-5-PORCINO-3.5a.2-C sec.C.2 task 5):
+ * Vaccination as its own path (docs/spec/plan-0002-fase-3-5/sub-planes/3.5a.2-C.md sec.C.2 task 5):
  * "voy a aplicar el cronograma de vacunas de hoy" is the common case and it
  * costs exactly **three taps** — animal, product, confirm. Reason is fixed to
  * `scheduled`, dose form is fixed to `per_head` (one dose of the product per

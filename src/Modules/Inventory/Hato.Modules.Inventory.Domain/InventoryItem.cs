@@ -17,7 +17,7 @@ public class InventoryItem : AuditableEntity
     public string? Description { get; private set; }
 
     /// <summary>
-    /// Feeding stage (PLAN-FASE-3-5-PORCINO.md sec.3.5a.5 task 3): preiniciador, iniciador,
+    /// Feeding stage (docs/spec/plan-0002-fase-3-5/spec-3.5a.md sec.3.5a.5 task 3): preiniciador, iniciador,
     /// crecimiento, engorde, gestación, lactancia — see <see cref="FeedStage"/>. Only
     /// meaningful for items of <see cref="ItemCategory.Feed"/>; the invariant is enforced in
     /// <see cref="Create"/>, not left to callers (Art. 8: the classification is data, but the

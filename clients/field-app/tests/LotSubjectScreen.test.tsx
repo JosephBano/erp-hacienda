@@ -104,7 +104,7 @@ describe('LotSubjectScreen', () => {
   });
 
   /**
-   * "La ficha refleja las bajas" (PLAN-FASE-3-5-PORCINO.md sec.3.5a.7, pruebas): the
+   * "La ficha refleja las bajas" (docs/spec/plan-0002-fase-3-5/spec-3.5a.md sec.3.5a.7, pruebas): the
    * summary this screen renders is whatever the server's derived `LiveHeadCount`
    * (ADR-0015 sec.4) says, including after a disposal lowered it. This test proves the
    * wiring — the screen displays what the API returns — without recomputing the count

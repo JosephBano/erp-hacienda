@@ -13,7 +13,7 @@ import { ModuleVisibility } from '../src/services/moduleVisibility';
 import type { PullResponse, PushResponse, SyncApi } from '../src/services/syncApi';
 
 /**
- * The screen from PLAN-FASE-3-4 sec. 3.C: sync status an employee can act on, and the tray
+ * The screen from docs/spec/plan-0001-fase-3/spec.md sec. 3.C: sync status an employee can act on, and the tray
  * where refused records stay visible instead of disappearing.
  */
 describe('SyncStatusScreen', () => {

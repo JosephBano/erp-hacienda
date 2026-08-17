@@ -33,7 +33,7 @@ export function BirthScreen({
   const addCalf = (sex: Sex) => setOffspring((current) => [...current, { sex }]);
 
   /**
-   * PLAN-FASE-3-5-PORCINO 3.5a.0 #2: the litter is editable, not append-only. The client
+   * docs/spec/plan-0002-fase-3-5/spec.md 3.5a.0 #2: the litter is editable, not append-only. The client
    * reported "agregué cinco, la tercera era otra cosa y no la pude sacar" — once a calf
    * was added the screen had no way back. These two handlers keep the surviving order
    * intact because the payload that `recordBirth` receives is the same `offspring` array,
@@ -59,7 +59,7 @@ export function BirthScreen({
   };
 
   /**
-   * PLAN-FASE-3-5-PORCINO 3.5a.4 task 3: birth weight is the first-day metric the client
+   * docs/spec/plan-0002-fase-3-5/spec.md 3.5a.4 task 3: birth weight is the first-day metric the client
    * uses to decide future mothers — a gilt of ≥1 kg is a promise, <0.7 kg usually is not.
    * The field-app lets the operator leave it blank (the litter is still valid), and the
    * input only accepts positive decimals so a typo doesn't silently land in the database.

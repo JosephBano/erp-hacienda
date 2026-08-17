@@ -24,7 +24,7 @@ public static class SpeciesEndpoints
             return Results.Created($"/api/v1/species/{id}", new { id });
         }).RequireAuthorization(policy => policy.RequirePermission(SystemPermissions.LivestockSpeciesManage));
 
-        // Lactation parameters (PLAN-FASE-3-5-PORCINO.md sec.3.5a.4): the entity carries
+        // Lactation parameters (docs/spec/plan-0002-fase-3-5/spec-3.5a.md sec.3.5a.4): the entity carries
         // DaysOfLactation and CohortWindowDays, but for too long nothing reached them. The
         // PATCH closes the loop end-to-end: the admin-web panel can flip the values, the
         // field app reads the result through the pull, and the cohort-weaning handler

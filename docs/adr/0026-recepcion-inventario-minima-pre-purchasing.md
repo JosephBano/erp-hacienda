@@ -40,7 +40,7 @@ Hechos verificables en este repositorio (al 2026-08-13, develop local):
   (clientes/field-app/src/screens/LotEventsScreen.tsx:446-449 muestra el
   mensaje "No hay alimentos en el inventario. Agréguelos desde el panel y
   sincronice para poder registrar el consumo.").
-- `docs/planes/PLAN-FASE-3-4.md:516-521` ya menciona como Fase 4 los
+- `docs/spec/PLAN-FASE-3-4.md:516-521` ya menciona como Fase 4 los
   `suppliers`, órdenes de compra y recepciones que alimentan lotes de inventario
   por purchase order. Adelantar la Fase 4 a esta fase para tapar el hueco es
   una sobredimensión injustificable: Fase 4 introduce CxP, evaluación de

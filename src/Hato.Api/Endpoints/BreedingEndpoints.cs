@@ -51,7 +51,7 @@ public static class BreedingEndpoints
             return Results.Created($"/api/v1/breeding/birthings/{birthing.Id}", birthing);
         });
 
-        // The read-side of the partos/camadas feature (PLAN-FASE-3-5-PORCINO.md sec.3.5a.4):
+        // The read-side of the partos/camadas feature (docs/spec/plan-0002-fase-3-5/spec-3.5a.md sec.3.5a.4):
         // the field-app and the panel have always been able to register a birthing, but
         // there was no way to list the ones already on file. This endpoint powers the
         // "Partos" tab in the breeding dashboard — most-recent-first, with the dam's
@@ -69,7 +69,7 @@ public static class BreedingEndpoints
             return Results.Ok(birthing);
         });
 
-        // ----- Nursing cohorts (PLAN-FASE-3-5-PORCINO.md sec.3.5a.4) -----
+        // ----- Nursing cohorts (docs/spec/plan-0002-fase-3-5/spec-3.5a.md sec.3.5a.4) -----
         // Weaning is recorded at the cohort level rather than litter by litter. The
         // command computes the date from the species' DaysOfLactation setting and
         // walks every birthings row to record the per-birthing weaning event

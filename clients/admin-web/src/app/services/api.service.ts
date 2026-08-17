@@ -11,7 +11,7 @@ export interface Animal {
   birthDate?: string;
   /**
    * Initial weight (kg) recorded at birth. Null for animals whose birth was not
-   * weighed or were registered before 3.5a.4 (PLAN-FASE-3-5-PORCINO.md sec.3.5a.4
+   * weighed or were registered before 3.5a.4 (docs/spec/plan-0002-fase-3-5/spec-3.5a.md sec.3.5a.4
    * task 3). Surface only on detail views — not on list rows — to keep the list
    * lean.
    */

@@ -131,7 +131,7 @@ móvil, incluyendo días sin señal, sin pérdida ni duplicación de datos.
 > podía disparar un conflicto LWW fuera de una prueba) y otra en `admin-web` que la
 > expone, los endpoints de lectura de especies/razas/categorías que faltaban para poder
 > registrar un animal desde cualquier cliente con su pantalla correspondiente, los 10
-> escenarios obligatorios de sincronización de PLAN-FASE-3-4 sec.2.2 (los últimos dos —
+> escenarios obligatorios de sincronización de `docs/spec/plan-0001-fase-3/spec.md` sec.2.2 (los últimos dos —
 > token expirado a mitad de push y corte de red a mitad de un lote — encontraron y
 > corrigieron un bug real en el cliente), la prueba de convergencia end-to-end con dos
 > dispositivos simulados, y las pantallas de roles/permisos (con edición), auditoría y
@@ -206,7 +206,7 @@ plan) puede ocurrir en paralelo al uso real:
 > ficha del animal en el móvil, que transfieren el conocimiento del empleado veterano al que
 > recién entra — valor que no tiene nada que ver con esta fase ni con esta especie.
 
-El plan de ejecución detallado está en `PLAN-FASE-3-5-PORCINO.md`.
+El plan de ejecución detallado está en `docs/spec/plan-0002-fase-3-5/spec.md`.
 
 **Criterio de salida (3.5a):** una camada real nacida, pesada y seguida dentro del sistema
 hasta su clasificación por peso a los 24 días, con sus tratamientos registrados con vía y
@@ -269,7 +269,7 @@ con un análisis del sistema.
 ## Reglas anti-estancamiento
 
 1. Si una fase pasa de ~3 meses sin uso real → **recortar alcance**, no extender plazo.
-2. Ideas nuevas van a `BACKLOG.md`, no a la fase actual. Se revisan al cerrar fase.
+2. Ideas nuevas van a `docs/BACKLOG.md`, no a la fase actual. Se revisan al cerrar fase.
 3. Cada cierre de fase: retrospectiva de 5 líneas aquí mismo (qué costó, qué aprendí).
 4. Está permitido pausar el proyecto; está prohibido abandonarlo en silencio: se escribe
    una nota con fecha y estado, para que el regreso sea fácil.

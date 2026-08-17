@@ -52,7 +52,7 @@ describe('Outbox', () => {
     await outbox.enqueue('recordMilking', { totalLiters: 8 });
 
     // Yesterday: enqueue first, then rewind the queued_at column directly. The public
-    // enqueue API stamps queued_at = Date.now() on purpose (PLAN-FASE-3-4 sec. 2.2) —
+    // enqueue API stamps queued_at = Date.now() on purpose (docs/spec/plan-0001-fase-3/spec.md sec. 2.2) —
     // simulating yesterday needs to bypass that contract.
     await outbox.enqueue('recordMilking', { totalLiters: 5 });
     await database.write(async () => {

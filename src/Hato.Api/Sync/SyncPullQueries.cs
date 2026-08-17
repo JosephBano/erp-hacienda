@@ -184,7 +184,7 @@ public record SyncFarmModuleDto(
 /// The administration routes catalog (3.5a.2-A). The field app uses these to
 /// populate the "via de administración" picker when registering a treatment
 /// offline — without them it cannot build a structured treatment payload
-/// (PLAN-FASE-3-5-PORCINO-3.5a.2-A sec.7).
+/// (docs/spec/plan-0002-fase-3-5/sub-planes/3.5a.2-A.md sec.7).
 /// </summary>
 public record SyncAdministrationRouteDto(
     Guid Id,
@@ -348,7 +348,7 @@ public class GetSyncPullQueryHandler(
     public const int MaxBatchSize = 1000;
 
     /// <summary>
-    /// The permission a role needs to read each collection (PLAN-FASE-3-4 sec.3.A, pull task
+    /// The permission a role needs to read each collection (docs/spec/plan-0001-fase-3/spec.md sec.3.A, pull task
     /// 4: "el empleado solo baja lo que le corresponde"). Reference tables (species,
     /// breeds, categories) sit under the same permission as animals: they exist to
     /// support working with animals, so a role with no livestock access has no use for

@@ -1,7 +1,7 @@
 import { schemaMigrations, createTable, addColumns } from '@nozbe/watermelondb/Schema/migrations';
 
 /**
- * Versioned local migrations (PLAN-FASE-3-4 sec.3.B).
+ * Versioned local migrations (docs/spec/plan-0001-fase-3/spec.md sec.3.B).
  *
  * A phone in the field cannot be wiped and re-seeded to pick up a schema change: it may
  * be carrying a week of unsynced records. Every schema bump therefore needs a migration
@@ -198,7 +198,7 @@ export const migrations = schemaMigrations({
         // 3.5a.1 (ADR-0015) + BACKLOG "AnimalEvent grupal aún no viaja en el
         // pull": the event history (individual and group-subject) now travels
         // on the pull, which is what 3.5a.7's lot record needs. A phone in
-        // the field cannot be wiped to pick this up (PLAN-FASE-3-4 sec.3.B),
+        // the field cannot be wiped to pick this up (docs/spec/plan-0001-fase-3/spec.md sec.3.B),
         // so this is a real migration, not a fresh install requirement.
         createTable({
           name: 'animal_events',

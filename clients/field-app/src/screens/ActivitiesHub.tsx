@@ -41,7 +41,7 @@ interface ActivitiesHubProps {
  * `LotEventsScreen.tapBudget.test.tsx` (ADR-0021 condition 2), so the compuerta ADR-0021
  * left open for the second level of this branch closes with this rama.
  *
- * The order of the subjects is the responsible default. PLAN-FASE-3-5-PORCINO sec. 7-C
+ * The order of the subjects is the responsible default. docs/spec/plan-0002-fase-3-5/spec.md sec. 7-C
  * marks the final order as a question only the client can answer; the test pins the
  * current default so a reorder is a deliberate change, not a regression.
  */

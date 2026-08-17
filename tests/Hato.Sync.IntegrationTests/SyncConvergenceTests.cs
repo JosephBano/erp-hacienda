@@ -4,7 +4,7 @@ using Xunit;
 namespace Hato.Sync.IntegrationTests;
 
 /// <summary>
-/// PLAN-FASE-3-4 sec.2.2, the closing requirement: "dos dispositivos simulados registran
+/// docs/spec/plan-0001-fase-3/spec.md sec.2.2, the closing requirement: "dos dispositivos simulados registran
 /// offline, sincronizan y terminan con estado idéntico." Every other test in this suite
 /// proves one mechanism in isolation (idempotency, cursor correctness, LWW…) — this one
 /// runs the whole protocol the way two actual phones would use it: each device works

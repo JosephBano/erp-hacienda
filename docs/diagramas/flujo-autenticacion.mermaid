@@ -1,0 +1,50 @@
+%% Verificado el 2026-08-16 contra src/Hato.Api/Endpoints/PeopleEndpoints.cs,
+%% src/Modules/People/Hato.Modules.People.Application/Auth/LoginCommand.cs y
+%% RefreshTokenCommands.cs, src/Modules/People/Hato.Modules.People.Infrastructure/JwtTokenGenerator.cs,
+%% src/Modules/People/Hato.Modules.People.Domain/RefreshToken.cs y
+%% clients/field-app/src/services/syncApi.ts. JWT expira a los 480 min (8h, appsettings.json
+%% "Jwt:ExpiryMinutes"); el refresh token expira a los 30 dias (RefreshToken.Create default).
+%% Nota de diseño real: el refresh token no lleva claims de rol/permiso — cada refresh
+%% relee al usuario con sus roles/permisos actuales de BD, asi que un permiso revocado
+%% se refleja en el siguiente refresh, no en el JWT vigente (que dura hasta 8h con los
+%% permisos de cuando se emitio).
+flowchart TD
+    Login([Operario ingresa email + password]) --> LoginCall["POST /api/v1/people/auth/login\n(AllowAnonymous)"]
+    LoginCall --> FindUser["Busca users WHERE email = lower(trim(email))\ncon UserRoles->Role->RolePermissions->Permission"]
+    FindUser --> Valid{"¿existe, is_active\ny VerifyPassword(password) ok?"}
+    Valid -- no --> Unauthorized401(["401: 'Correo o contraseña incorrectos'\n(mismo mensaje exista o no el usuario)"])
+    Valid -- si --> GenJwt["GenerateToken(user):\nclaims sub/email/name +\nrole por cada UserRole +\npermission por cada RolePermission\nexpira: now + 480 min"]
+    GenJwt --> GenRefresh["RefreshToken.Create(userId):\n64 bytes random -> base64 (raw)\nSHA256(raw) -> token_hash guardado\nexpires_at = now + 30 dias"]
+    GenRefresh --> SaveRT["INSERT refresh_tokens"]
+    SaveRT --> ReturnTokens(["200: {token, refreshToken(raw),\nexpiresAt, userId, fullName,\nroles[], permissions[]}"])
+    ReturnTokens --> DeviceStores["Dispositivo guarda JWT + refresh token\n(uso: Authorization: Bearer JWT en cada request)"]
+
+    DeviceStores --> AnyCall["Cualquier request autenticado\n(sync push/pull, endpoints REST)"]
+    AnyCall --> Check401{"¿respuesta 401?"}
+    Check401 -- no --> Ok(["Continua normalmente"])
+    Check401 -- si --> AlreadyRetried{"¿esta request ya\nse reintento una vez?"}
+    AlreadyRetried -- si --> ExpiredError(["AuthenticationExpiredError\n(no hay segundo reintento;\nel operario debe re-loguearse)"])
+    AlreadyRetried -- no --> CallRefresh["POST /api/v1/people/auth/refresh\n{refreshToken} (AllowAnonymous)"]
+
+    CallRefresh --> HashLookup["hash = SHA256(refreshToken)\nSELECT refresh_tokens WHERE token_hash = hash"]
+    HashLookup --> RTValid{"¿existe y IsActive?\n(no revocado, no expirado)"}
+    RTValid -- no --> Unauthorized401b(["401: 'token de refresco no es\nvalido o ha sido revocado'"]) --> ExpiredError
+    RTValid -- si --> ReloadUser["Recarga user + roles/permisos\nACTUALES de BD"]
+    ReloadUser --> UserOk{"¿user existe y is_active?"}
+    UserOk -- no --> Unauthorized401c(["401: 'usuario no existe\no esta desactivado'"]) --> ExpiredError
+    UserOk -- si --> Rotate["Rotacion (ADR-0008):\ncrea RefreshToken nuevo;\nrevoca el viejo con\nreplaced_by_token_hash = nuevo"]
+    Rotate --> SaveRotated["INSERT nuevo + UPDATE viejo\n(revoked_at, replaced_by_token_hash)"]
+    SaveRotated --> NewJwt["Nuevo JWT (480 min) con\nclaims recalculados desde BD"]
+    NewJwt --> ReturnRefreshed(["200: mismo shape que login\n(token, refreshToken, expiresAt, ...)"])
+    ReturnRefreshed --> DeviceUpdates["Dispositivo reemplaza JWT + refresh token\nguardados"]
+    DeviceUpdates --> RetryOriginal["Reintenta la request ORIGINAL\nuna sola vez (isRetry=true)"]
+    RetryOriginal --> Check401b{"¿401 otra vez?"}
+    Check401b -- si --> ExpiredError
+    Check401b -- no --> Ok
+
+    Logout([Operario cierra sesion]) --> RevokeCall["POST /api/v1/people/auth/revoke\n{refreshToken} (AllowAnonymous)"]
+    RevokeCall --> RevokeHash["hash = SHA256(refreshToken)\nSELECT + si IsActive: Revoke()\n(revoked_at = now, sin replaced_by)"]
+    RevokeHash --> RevokeDone(["204: token de refresco inutilizable;\nel JWT ya emitido sigue valido\nhasta su propia expiracion (480 min)\n— revoke no invalida JWTs en vuelo"])
+
+    ExpiredError --> ForceLogin["UI fuerza pantalla de login\n(el JWT vigente puede seguir\nvalido hasta 8h, pero sin refresh\nusable el proximo 401 ya no se recupera)"]
+    ForceLogin --> Login

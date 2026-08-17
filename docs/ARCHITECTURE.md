@@ -170,8 +170,8 @@ Una fila sin sellar queda en `0001-01-01` y sale del flujo de cambios.
 
 ### Filtrado por permisos
 
-El pull sólo entrega las colecciones que el rol del usuario puede leer (PLAN-FASE-3-4
-sec.3.A, tarea 4). `Hato.Api` resuelve el conjunto de permisos efectivos vía
+El pull sólo entrega las colecciones que el rol del usuario puede leer
+(`docs/spec/plan-0001-fase-3/spec.md` sec.3.A, tarea 4). `Hato.Api` resuelve el conjunto de permisos efectivos vía
 `IUserPermissionsReader` (contrato público de People, implementado en
 `People.Infrastructure/CrossModule`, sin que Livestock ni Inventory dependan de People —
 Art. 6) y lo cruza contra un mapa colección→permiso: `animals`, `animalIdentifiers`,

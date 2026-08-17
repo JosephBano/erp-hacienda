@@ -115,31 +115,31 @@
 
 ## Commit 5 — Asistente de parto en cuatro pasos
 
-- [ ] **T5.1** Crear `src/screens/birth/` con el contenedor de pasos y el estado
+- [x] **T5.1** Crear `src/screens/birth/` con el contenedor de pasos y el estado
       compartido del asistente.
-- [ ] **T5.2** Paso 1 — Elegir madre: lista de preñadas con fecha probable de parto.
-- [ ] **T5.3** Paso 1 — `EmptyState` que explique que solo aparecen hembras con preñez
+- [x] **T5.2** Paso 1 — Elegir madre: lista de preñadas con fecha probable de parto.
+- [x] **T5.3** Paso 1 — `EmptyState` que explique que solo aparecen hembras con preñez
       activa y que la preñez se registra en el panel.
-- [ ] **T5.4** Paso 2 — Confirmar datos: padre de **solo lectura**, fecha del parto (hoy por
+- [x] **T5.4** Paso 2 — Confirmar datos: padre de **solo lectura**, fecha del parto (hoy por
       defecto, editable), dificultad (`Normal` por defecto).
-- [ ] **T5.5** Paso 3 — Crías: header fijo (total y desglose M/F), lista scrolleable, footer
+- [x] **T5.5** Paso 3 — Crías: header fijo (total y desglose M/F), lista scrolleable, footer
       fijo con `+Hembra` / `+Macho` y avanzar.
-- [ ] **T5.6** Paso 3 — conservar arete opcional, peso opcional con validación de decimal
+- [x] **T5.6** Paso 3 — conservar arete opcional, peso opcional con validación de decimal
       positivo, cambio de sexo y quitar cría (3.5a.0 #2 y 3.5a.4).
-- [ ] **T5.7** Paso 4 — Resumen y confirmación; encolar y volver a Inicio.
-- [ ] **T5.8** Indicador de progreso de cuatro puntos en todos los pasos.
-- [ ] **T5.9** Atrás conserva lo ya cargado.
-- [ ] **T5.10** `App.tsx`: dejar de pasar `dams`/`sires`; pasar las preñadas.
-- [ ] **T5.11** Verificar que ningún archivo de `src/screens/birth/` pase de ~150 líneas.
-- [ ] **T5.12** Prueba: el paso 1 lista solo preñadas y muestra el `EmptyState` cuando no
+- [x] **T5.7** Paso 4 — Resumen y confirmación; encolar y volver a Inicio.
+- [x] **T5.8** Indicador de progreso de cuatro puntos en todos los pasos.
+- [x] **T5.9** Atrás conserva lo ya cargado.
+- [x] **T5.10** `App.tsx`: dejar de pasar `dams`/`sires`; pasar las preñadas.
+- [x] **T5.11** Verificar que ningún archivo de `src/screens/birth/` pase de ~150 líneas.
+- [x] **T5.12** Prueba: el paso 1 lista solo preñadas y muestra el `EmptyState` cuando no
       hay ninguna.
-- [ ] **T5.13** Prueba: **no existe ningún `testID` `sire-*`** en toda la pantalla.
-- [ ] **T5.14** Prueba: camada editable — agregar, quitar, cambiar sexo, arete, peso.
-- [ ] **T5.15** Prueba: el peso rechaza valores no positivos.
-- [ ] **T5.16** Prueba: retroceder de paso conserva las crías cargadas.
-- [ ] **T5.17** Prueba: confirmar encola con `pregnancyId` y **sin** padre.
-- [ ] **T5.18** Prueba: camada de 20 — contador y botones siguen accesibles.
-- [ ] **T5.19** `npm test` completo en verde.
+- [x] **T5.13** Prueba: **no existe ningún `testID` `sire-*`** en toda la pantalla.
+- [x] **T5.14** Prueba: camada editable — agregar, quitar, cambiar sexo, arete, peso.
+- [x] **T5.15** Prueba: el peso rechaza valores no positivos.
+- [x] **T5.16** Prueba: retroceder de paso conserva las crías cargadas.
+- [x] **T5.17** Prueba: confirmar encola con `pregnancyId` y **sin** padre.
+- [x] **T5.18** Prueba: camada de 20 — contador y botones siguen accesibles.
+- [x] **T5.19** `npm test` completo en verde.
 
 ---
 

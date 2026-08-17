@@ -8,14 +8,25 @@ import { migrations } from '../src/database/migrations';
 import { modelClasses } from '../src/database/models';
 import { BirthService } from '../src/services/birthService';
 import { BirthScreen } from '../src/screens/BirthScreen';
+import type { PregnantDam } from '../src/services/herdQueries';
 
-/**
- * Smoke-level coverage for the Birth screen. The interaction-heavy paths are intentionally
- * covered by the logic suites against the real WatermelonDB schema; this file exists
- * specifically to lock the empty-state copy that an employee sees on first launch (no
- * dams yet because the herd has not been synced down).
- */
-describe('BirthScreen', () => {
+const sampleDam: PregnantDam = {
+  animalId: 'dam-1',
+  label: 'La Pinta',
+  pregnancyId: 'preg-1',
+  sireLabel: 'Padre: Inseminación artificial',
+  expectedBirthDate: '2026-09-01',
+};
+
+const sampleNaturalDam: PregnantDam = {
+  animalId: 'dam-2',
+  label: 'Carlota',
+  pregnancyId: 'preg-2',
+  sireLabel: 'Padre: Don Juan',
+  expectedBirthDate: '2026-10-08',
+};
+
+describe('BirthScreen — Step 1 & Empty State', () => {
   let database: Database;
   let service: BirthService;
 
@@ -36,42 +47,34 @@ describe('BirthScreen', () => {
     }) as unknown as typeof fetch;
   });
 
-  it('points the employee to Sync when there are no dams to choose from', async () => {
-    await render(<BirthScreen service={service} dams={[]} sires={[]} />);
+  it('T5.12: points the employee to admin panel when there are no pregnant dams', async () => {
+    await render(<BirthScreen service={service} dams={[]} />);
 
     expect(await screen.findByTestId('dam-list-empty')).toBeTruthy();
+    expect(screen.getByText('No hay hembras con preñez activa')).toBeTruthy();
+    expect(screen.getByText(/Solo aparecen hembras con preñez activa confirmada/)).toBeTruthy();
     expect(screen.queryByTestId('dam-anything')).toBeNull();
   });
 
-  it('renders the dam picker when at least one dam is available', async () => {
-    const dams = [{ animalId: 'dam-1', label: 'La Pinta' }];
-    await render(<BirthScreen service={service} dams={dams} sires={[]} />);
+  it('T5.12: renders pregnant dam list with expected birth dates', async () => {
+    await render(<BirthScreen service={service} dams={[sampleDam, sampleNaturalDam]} />);
 
     expect(await screen.findByTestId('dam-dam-1')).toBeTruthy();
+    expect(screen.getByTestId('dam-dam-2')).toBeTruthy();
+    expect(screen.getByText(/La Pinta · FPP: 2026-09-01/)).toBeTruthy();
+    expect(screen.getByText(/Carlota · FPP: 2026-10-08/)).toBeTruthy();
     expect(screen.queryByTestId('dam-list-empty')).toBeNull();
   });
 });
 
-/**
- * Calf management: the screen used to only know how to add. The client reported the exact
- * scenario "agregué cinco, la tercera era otra cosa y no la pude sacar": once a calf was
- * added it stayed. Removing and changing the sex of an already-added calf is now part of
- * the same screen, no modal, no extra step. These tests pin the order-preserving behaviour
- * — removing index 2 of five must leave the other four in their original order.
- */
-describe('BirthScreen — calf management', () => {
+describe('BirthScreen — Wizard flow and Calf management', () => {
   let recordBirth: jest.Mock;
 
-  /**
-   * A stub service. The DB setup is intentionally skipped: the rule we are locking is the
-   * UI's behaviour around the `offspring` array, not what the service does with it, which
-   * has its own suite. The "no network" guarantee is kept as a tripwire.
-   */
   const buildService = () => {
     recordBirth = jest.fn().mockResolvedValue({
       clientOperationId: 'op-1',
       damId: 'dam-1',
-      birthDate: '2026-08-06',
+      birthDate: '2026-08-17',
       offspringCount: 0,
     });
     return { recordBirth } as unknown as BirthService;
@@ -83,9 +86,21 @@ describe('BirthScreen — calf management', () => {
     }) as unknown as typeof fetch;
   });
 
-  const pickDam = async () => {
+  const pickDam = async (damId = 'dam-1') => {
     await act(async () => {
-      fireEvent.press(await screen.findByTestId('dam-dam-1'));
+      fireEvent.press(await screen.findByTestId(`dam-${damId}`));
+    });
+  };
+
+  const goToStep3 = async () => {
+    await act(async () => {
+      fireEvent.press(screen.getByTestId('next-step-2'));
+    });
+  };
+
+  const goToStep4 = async () => {
+    await act(async () => {
+      fireEvent.press(screen.getByTestId('next-step-3'));
     });
   };
 
@@ -101,119 +116,195 @@ describe('BirthScreen — calf management', () => {
     });
   };
 
-  it('lets the employee remove a calf and submits the remaining four in order', async () => {
-    await render(<BirthScreen service={buildService()} dams={[{ animalId: 'dam-1', label: 'La Pinta' }]} sires={[]} />);
+  it('T5.13: does NOT have any sire-* testID anywhere in the wizard', async () => {
+    await render(<BirthScreen service={buildService()} dams={[sampleDam]} />);
+
+    // Step 1
+    expect(screen.queryAllByTestId(/^sire-/)).toHaveLength(0);
+
+    // Step 2
+    await pickDam();
+    expect(screen.queryAllByTestId(/^sire-/)).toHaveLength(0);
+    expect(screen.getByText('Padre: Inseminación artificial')).toBeTruthy();
+
+    // Step 3
+    await goToStep3();
+    expect(screen.queryAllByTestId(/^sire-/)).toHaveLength(0);
+
+    // Step 4
+    await tapAdd('female');
+    await goToStep4();
+    expect(screen.queryAllByTestId(/^sire-/)).toHaveLength(0);
+    expect(screen.getByText('Padre: Inseminación artificial')).toBeTruthy();
+  });
+
+  it('T5.14: allows adding, removing, toggling sex, entering tag and weight', async () => {
+    await render(<BirthScreen service={buildService()} dams={[sampleDam]} />);
 
     await pickDam();
+    await goToStep3();
+
     await tapAdd('male');
     await tapAdd('male');
     await tapAdd('male');
     await tapAdd('female');
     await tapAdd('female');
 
-    // remove the third calf (the third male) — the four survivors keep their order.
+    // Remove third calf (index 2)
     await tap('remove-offspring-2');
-
     expect(screen.getByText('Crías: 4')).toBeTruthy();
 
-    await tap('confirm-birth');
-
-    await waitFor(() => expect(recordBirth).toHaveBeenCalledTimes(1));
-    expect(recordBirth.mock.calls[0][0].offspring).toEqual([
-      { sex: 'M' },
-      { sex: 'M' },
-      { sex: 'F' },
-      { sex: 'F' },
-    ]);
-  });
-
-  it('toggles the sex of a single calf without disturbing the others', async () => {
-    await render(<BirthScreen service={buildService()} dams={[{ animalId: 'dam-1', label: 'La Pinta' }]} sires={[]} />);
-
-    await pickDam();
-    await tapAdd('male');
-    await tapAdd('male');
-    await tapAdd('female');
-
-    // swap the first male to a female — the rest stay put.
+    // Toggle sex of first calf from M to F
     await tap('toggle-offspring-0');
 
-    await tap('confirm-birth');
-
-    await waitFor(() => expect(recordBirth).toHaveBeenCalledTimes(1));
-    expect(recordBirth.mock.calls[0][0].offspring).toEqual([
-      { sex: 'F' },
-      { sex: 'M' },
-      { sex: 'F' },
-    ]);
-  });
-
-  /**
-   * "Cancelar tras quitar no deja estado sucio" (PLAN 3.5a.0 #2): after a remove that
-   * got the litter right, cancelling must take the user back to the dam picker with an
-   * empty litter — not a half-cleared draft that re-appears on the next visit.
-   */
-  it('cancel after a remove clears the litter and sends nothing to the server', async () => {
-    await render(<BirthScreen service={buildService()} dams={[{ animalId: 'dam-1', label: 'La Pinta' }]} sires={[]} />);
-
-    await pickDam();
-    await tapAdd('male');
-    await tapAdd('male');
-    await tapAdd('female');
-
-    await tap('remove-offspring-1');
-
-    await tap('cancel-birth');
-
-    // back at the dam picker, no leftover calf list, nothing enqueued.
-    expect(await screen.findByTestId('dam-dam-1')).toBeTruthy();
-    expect(screen.queryByTestId('offspring-count')).toBeNull();
-    expect(recordBirth).not.toHaveBeenCalled();
-  });
-
-  /**
-   * PLAN 3.5a.0 #3: a summary the employee can glance at before confirming — mother,
-   * father, count by sex, the list. Confirming is one extra tap IF anything looks off;
-   * the inline summary is the review, not a separate screen.
-   *
-   * Pinned here: a litter of 3M + 2F is shown as 'M: 3 · F: 2', not just as 'Crías: 5',
-   * because the sex split is what the operator audits at a glance — nobody counts five
-   * buttons to figure out how many were males.
-   */
-  it('shows the litter broken down by sex on the summary', async () => {
-    await render(<BirthScreen service={buildService()} dams={[{ animalId: 'dam-1', label: 'La Pinta' }]} sires={[]} />);
-
-    await pickDam();
-    await tapAdd('male');
-    await tapAdd('male');
-    await tapAdd('male');
-    await tapAdd('female');
-    await tapAdd('female');
-
-    expect(screen.getByText(/M: 3/)).toBeTruthy();
-    expect(screen.getByText(/F: 2/)).toBeTruthy();
-  });
-
-  it('allows entering farm tag and birth weight for offspring', async () => {
-    await render(<BirthScreen service={buildService()} dams={[{ animalId: 'dam-1', label: 'La Pinta' }]} sires={[]} />);
-
-    await pickDam();
-    await tapAdd('female');
-    await tapAdd('male');
-
+    // Edit tags and weights
     await act(async () => {
-      fireEvent.changeText(screen.getByTestId('offspring-tag-0'), 'LECHON-01');
+      fireEvent.changeText(screen.getByTestId('offspring-tag-0'), 'CRIA-01');
       fireEvent.changeText(screen.getByTestId('offspring-weight-0'), '1.45');
-      fireEvent.changeText(screen.getByTestId('offspring-tag-1'), 'LECHON-02');
+      fireEvent.changeText(screen.getByTestId('offspring-tag-1'), 'CRIA-02');
       fireEvent.changeText(screen.getByTestId('offspring-weight-1'), '1.60');
     });
 
+    await goToStep4();
     await tap('confirm-birth');
 
     await waitFor(() => expect(recordBirth).toHaveBeenCalledTimes(1));
     expect(recordBirth.mock.calls[0][0].offspring).toEqual([
-      { sex: 'F', farmTag: 'LECHON-01', birthWeightKg: 1.45 },
-      { sex: 'M', farmTag: 'LECHON-02', birthWeightKg: 1.6 },
+      { sex: 'F', farmTag: 'CRIA-01', birthWeightKg: 1.45 },
+      { sex: 'M', farmTag: 'CRIA-02', birthWeightKg: 1.6 },
+      { sex: 'F', farmTag: undefined, birthWeightKg: undefined },
+      { sex: 'F', farmTag: undefined, birthWeightKg: undefined },
     ]);
+  });
+
+  it('T5.15: rejects non-positive weight values', async () => {
+    await render(<BirthScreen service={buildService()} dams={[sampleDam]} />);
+
+    await pickDam();
+    await goToStep3();
+    await tapAdd('female');
+
+    await act(async () => {
+      fireEvent.changeText(screen.getByTestId('offspring-weight-0'), '0');
+    });
+    expect(screen.getByText('El peso al nacer debe ser un valor positivo (en kilogramos).')).toBeTruthy();
+
+    await act(async () => {
+      fireEvent.changeText(screen.getByTestId('offspring-weight-0'), '-1.5');
+    });
+    expect(screen.getByText('El peso al nacer debe ser un valor positivo (en kilogramos).')).toBeTruthy();
+
+    await act(async () => {
+      fireEvent.changeText(screen.getByTestId('offspring-weight-0'), 'abc');
+    });
+    expect(screen.getByText('El peso al nacer debe ser un valor positivo (en kilogramos).')).toBeTruthy();
+
+    await act(async () => {
+      fireEvent.changeText(screen.getByTestId('offspring-weight-0'), '2.3');
+    });
+    expect(screen.queryByText('El peso al nacer debe ser un valor positivo (en kilogramos).')).toBeNull();
+  });
+
+  it('T5.16: going back and forth between steps preserves offspring and inputs', async () => {
+    await render(<BirthScreen service={buildService()} dams={[sampleDam]} />);
+
+    await pickDam();
+    // Step 2: change difficulty
+    await tap('difficulty-assisted');
+    await goToStep3();
+
+    // Step 3: add 3 calves
+    await tapAdd('male');
+    await tapAdd('female');
+    await tapAdd('female');
+    await act(async () => {
+      fireEvent.changeText(screen.getByTestId('offspring-tag-0'), 'LECHON-A');
+      fireEvent.changeText(screen.getByTestId('offspring-weight-0'), '1.35');
+    });
+
+    // Go back to Step 2
+    await tap('prev-step-3');
+    expect(screen.getByText('Dificultad del parto')).toBeTruthy();
+
+    // Go back to Step 1
+    await tap('prev-step-2');
+    expect(await screen.findByTestId('dam-dam-1')).toBeTruthy();
+
+    // Re-enter
+    await pickDam();
+    await goToStep3();
+
+    // Calves still intact
+    expect(screen.getByText('Crías: 3')).toBeTruthy();
+    expect(screen.getByText(/M: 1 · F: 2/)).toBeTruthy();
+
+    // Proceed to Step 4
+    await goToStep4();
+    expect(screen.getByText(/Dificultad: Asistido/)).toBeTruthy();
+    expect(screen.getByText('Crías: 3')).toBeTruthy();
+
+    // Back to Step 3 from Step 4
+    await tap('prev-step-4');
+    expect(screen.getByText('Crías: 3')).toBeTruthy();
+  });
+
+  it('T5.17: confirms and enqueues with pregnancyId and without sire', async () => {
+    await render(<BirthScreen service={buildService()} dams={[sampleDam]} />);
+
+    await pickDam();
+    await goToStep3();
+    await tapAdd('female');
+    await goToStep4();
+
+    await tap('confirm-birth');
+
+    await waitFor(() => expect(recordBirth).toHaveBeenCalledTimes(1));
+    const payload = recordBirth.mock.calls[0][0];
+    expect(payload.damId).toBe('dam-1');
+    expect(payload.pregnancyId).toBe('preg-1');
+    expect(payload.sireAnimalId).toBeUndefined();
+    expect(payload.sireStrawId).toBeUndefined();
+    expect(payload.difficulty).toBe('Normal');
+    expect(payload.offspring).toEqual([{ sex: 'F' }]);
+  });
+
+  it('T5.18: handles large litter of 20 calves with accessible counter and buttons', async () => {
+    await render(<BirthScreen service={buildService()} dams={[sampleDam]} />);
+
+    await pickDam();
+    await goToStep3();
+
+    for (let i = 0; i < 20; i++) {
+      await tapAdd(i % 2 === 0 ? 'male' : 'female');
+    }
+
+    expect(screen.getByText('Crías: 20')).toBeTruthy();
+    expect(screen.getByText(/M: 10 · F: 10/)).toBeTruthy();
+    expect(screen.getByTestId('add-male')).toBeTruthy();
+    expect(screen.getByTestId('add-female')).toBeTruthy();
+    expect(screen.getByTestId('next-step-3')).toBeTruthy();
+
+    await goToStep4();
+    expect(screen.getByText('Crías: 20')).toBeTruthy();
+    await tap('confirm-birth');
+
+    await waitFor(() => expect(recordBirth).toHaveBeenCalledTimes(1));
+    expect(recordBirth.mock.calls[0][0].offspring).toHaveLength(20);
+  });
+
+  it('cancel clears the wizard and resets to Step 1', async () => {
+    const onCancel = jest.fn();
+    await render(<BirthScreen service={buildService()} dams={[sampleDam]} onCancel={onCancel} />);
+
+    await pickDam();
+    await goToStep3();
+    await tapAdd('male');
+    await goToStep4();
+
+    await tap('cancel-birth');
+
+    expect(onCancel).toHaveBeenCalledTimes(1);
+    expect(await screen.findByTestId('dam-dam-1')).toBeTruthy();
+    expect(screen.queryByTestId('offspring-count')).toBeNull();
   });
 });

@@ -28,7 +28,6 @@ import { AnimalEditScreen } from './screens/AnimalEditScreen';
 import { AnimalSubjectScreen } from './screens/AnimalSubjectScreen';
 import { BirthScreen } from './screens/BirthScreen';
 import { EventsScreen } from './screens/EventsScreen';
-import { HomeScreen } from './screens/HomeScreen';
 import { LoginScreen } from './screens/LoginScreen';
 import { LotEventsScreen } from './screens/LotEventsScreen';
 import { LotSubjectScreen, type LotActivity } from './screens/LotSubjectScreen';
@@ -324,7 +323,7 @@ export default function App() {
         ) : null}
 
         {/*
-          Defense in depth: HomeScreen hides the entry, but if `tab === 'milking'` ever
+          Defense in depth: ActivitiesHub hides the entry, but if `tab === 'milking'` ever
           ended up set while the module was off — a stale state across a sign-out, a
           deep-link we have not built yet — we still do not render the screen. The data
           path stays open (OutboxService is independent of this branch).

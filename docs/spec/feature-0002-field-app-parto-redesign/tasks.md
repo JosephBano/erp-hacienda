@@ -145,16 +145,16 @@
 
 ## Commit 6 — Inicio y limpieza
 
-- [ ] **T6.1** `ActivitiesHub.tsx`: activar `scrollable` y revisar el espaciado entre
+- [x] **T6.1** `ActivitiesHub.tsx`: activar `scrollable` y revisar el espaciado entre
       grupos, respetando el mínimo de 64pt del tema.
-- [ ] **T6.2** Verificar que **no se alteró el orden de los sujetos** (spec sec. 8).
-- [ ] **T6.3** Eliminar `src/screens/HomeScreen.tsx`.
-- [ ] **T6.4** Eliminar su import en `src/App.tsx`.
-- [ ] **T6.5** Eliminar `tests/HomeScreen.test.tsx`.
-- [ ] **T6.6** `BACKLOG.md`: anotar la reconciliación automática de existencia.
-- [ ] **T6.7** `BACKLOG.md`: anotar `MilkingScreen`, `EventsScreen`, `TreatScreen` y
+- [x] **T6.2** Verificar que **no se alteró el orden de los sujetos** (spec sec. 8).
+- [x] **T6.3** Eliminar `src/screens/HomeScreen.tsx`.
+- [x] **T6.4** Eliminar su import en `src/App.tsx`.
+- [x] **T6.5** Eliminar `tests/HomeScreen.test.tsx`.
+- [x] **T6.6** `BACKLOG.md`: anotar la reconciliación automática de existencia.
+- [x] **T6.7** `BACKLOG.md`: anotar `MilkingScreen`, `EventsScreen`, `TreatScreen` y
       `LotEventsScreen` con el mismo problema de espacio.
-- [ ] **T6.8** `npm test` completo en verde.
+- [x] **T6.8** `npm test` completo en verde.
 
 ---
 

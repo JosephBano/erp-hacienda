@@ -416,10 +416,34 @@ camino principal (ActivitiesHub → Tratar/Vacunar) que 3.5a.2-C mide. Agregar
   actualizado a propósito — nunca como un efecto colateral de otro cambio.
 - **Disparador**: la sesión con el cliente de sec.7-C (`docs/spec/plan-0002-fase-3-5/spec.md`).
 
-  *(Relacionado: "3.5a.7.1–5 — UI del sujeto \"lote\"" en la sección "Ideas
-  fuera de la fase actual" — mismo disparador sec.7-C; este ítem es la
-  descripción operativa del reorden pendiente, ese otro es el registro de
-  deuda por desacople del piloto vía ADR-0024.)*
+### [sync] Reconciliación automática de existencia entre servidor y dispositivo
+
+- **Archivos**: `src/Hato.Api/Sync/SyncPullQueries.cs`, `clients/field-app/src/services/syncEngine.ts`.
+- **Causa raíz**: el pull actual entrega deltas basados en `(UpdatedAt ?? CreatedAt) > cursor`
+  y propaga tombstones lógicos (`deleted_at`), pero no reconcilia eliminaciones físicas en BD
+  (reset de ambiente, restauración de backup, depuraciones directas). La rama `feature/field-app-parto-redesign`
+  mitigó esto con la acción manual "Rehacer descarga" en `SyncStatusScreen.tsx` (D7), pero no
+  existe detección ni purga automática de filas huérfanas en el cliente.
+- **Trabajo a hacer**: implementar un mecanismo de reconciliación automática periódica o bajo demanda
+  (mediante checksum por colección o lista compacta/bloom filter de IDs vigentes) que permita
+  al cliente detectar y purgar localmente registros inexistentes en el servidor sin requerir
+  intervención manual del usuario.
+- **Disparador**: cuando el uso en múltiples fincas o entornos muestre recurrencia de datos locales
+  desalineados tras restauraciones de servidor, o cuando se diseñe una versión 2 del protocolo de sync.
+
+### [mobile] Rediseño de espacio y scroll en pantallas de registro (Milking, Events, Treat, LotEvents)
+
+- **Archivos**: `clients/field-app/src/screens/MilkingScreen.tsx`, `clients/field-app/src/screens/EventsScreen.tsx`,
+  `clients/field-app/src/screens/TreatScreen.tsx`, `clients/field-app/src/screens/LotEventsScreen.tsx`.
+- **Causa raíz**: las pantallas de captura mencionadas comparten el mismo patrón que motivó el rediseño
+  de `BirthScreen` y `ActivitiesHub` (spec `feature-0002-field-app-parto-redesign` sec. 1 y sec. 9):
+  contenedores con `scrollable = false` o vistas con listas internas anidadas compitiendo por espacio flex,
+  lo que dificulta la navegación y el espaciado en teléfonos de pantallas reducidas manteniendo los objetivos
+  táctiles de 64pt del tema.
+- **Trabajo a hacer**: rediseñar o ajustar el layout de cada pantalla para asegurar que el contenido
+  fluya con scroll holgado o se organice en pasos guiados (asistentes) sin comprimir elementos interactivos.
+- **Disparador**: cuando los operarios reporten incomodidad de uso en esas pantallas específicas o se
+  abra una sub-rama de UX dedicada al flujo de captura diaria en campo.
 
 ## Reglas para este archivo
 

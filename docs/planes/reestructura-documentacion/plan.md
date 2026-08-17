@@ -210,7 +210,8 @@ El commit más grande. **Archivos:** crear `docs/planes/fase-3-5/{spec,plan,task
 **Origen:** las 833 líneas de `PLAN-FASE-3-5-PORCINO.md`, repartidas según qué es cada
 cosa: decisiones y hallazgos a `spec.md`, secuencia a `plan.md`, checklist a `tasks.md`,
 verificación manual a `test-e2e.md`. Más el estado de `ROADMAP.md:146-217` y los ocho
-`sub_planes/`, que **se enlazan, no se absorben** (quedan fuera de alcance).
+sub-planes, que **se enlazan, no se absorben** — en este commit todavía desde
+`docs/planes/sub_planes/`; el commit 14 los mueve a `fase-3-5/sub-planes/`.
 
 **Numeración (D6):** `3.5a.0` … `3.5a.9` y `3.5b.1` … conservan su número. 85 citas del
 código dependen de esto.
@@ -372,6 +373,23 @@ git rm docs/planes/PLAN-FASE-3-5-PORCINO.md docs/planes/PLAN-FASE-3-4.md
 
 **Verificación completa:** [`test-e2e.md`](./test-e2e.md), los ocho escenarios.
 
+## Commits 12–17 — correcciones y alcance añadido después del no retorno
+
+El commit 11 fijó la estructura, pero no la dejó cerrada. Lo que vino después no estaba en
+el plan original y se documenta acá para que la secuencia real sea auditable:
+
+| # | Commit | Qué |
+|---|---|---|
+| 12 | `987d325` | Corrección del propio commit 11: 24 citas del código habían quedado apuntando a `spec.md-3.5a.2-A`, una ruta inexistente producto del `sed` masivo. Se repuntaron a `sub_planes/`. |
+| 13 | `8cc7a2c` | Rescate de secciones huérfanas de `PLAN-FASE-3-4.md` (ADR, riesgos, resumen de ramas) que el borrado se llevó por delante. |
+| 14 | `53bc71b`, `215105c` | Se trae el plan de rediseño de parto de `field-app` y se alinea con las plantillas. |
+| 15 | `875c65f` | **Alcance añadido a pedido del dueño:** `PLAN-ADMIN-WEB-ANIMAL-GROUPS.md` → `docs/planes/admin-web-animal-groups/`, y la convención de carpeta escrita en `AGENTS.md`. |
+| 16 | `d9699a4` | **Alcance añadido a pedido del dueño:** `docs/planes/sub_planes/` → `docs/planes/fase-3-5/sub-planes/`, con los ocho archivos renombrados a `3.5a.2-A.md` … `3.5b.5-C.md` y las 24 citas del código repuntadas otra vez, ahora a la ruta definitiva. |
+| 17 | este | Alcance y verificaciones alineados con 15 y 16: el criterio 7 pierde la exclusión `sub_planes/` y baja de 26 a 16 archivos `.md`; V-3 de `fase-3-5` y V-5 de esta carpeta se reescriben. |
+
+Los commits 12 y 13 son la evidencia de por qué el 11 se declaró punto de no retorno: un
+`sed` sobre 238 citas deja residuo, y el residuo sólo aparece al releer el resultado.
+
 ## 14. Orden, dependencias y puntos de no retorno
 
 ```
@@ -411,9 +429,11 @@ tiempo, son los candidatos a salir a rama aparte — pero no pueden quedarse a m
   tablas inexistentes con tablas faltantes, cero documentación de seguridad, y un archivo
   llamado "plan de las fases 3 y 4" que contenía el manual de trabajo del proyecto.
 - **Decisiones:** las 14 del spec, con quién decidió cada una.
-- **Qué NO incluye:** `sub_planes/`, ningún cambio de código ejecutable, y los
-  `plan.md`/`tasks.md`/`test-e2e.md` de las Fases 4 y 5 (D5). `PLAN-ADMIN-WEB-ANIMAL-GROUPS.md`
-  sí entró, a pedido del dueño: se convirtió a `docs/planes/admin-web-animal-groups/`.
+- **Qué NO incluye:** ningún cambio de código ejecutable —salvo comentarios reapuntados— y
+  los `plan.md`/`tasks.md`/`test-e2e.md` de las Fases 4 y 5 (D5).
+  `PLAN-ADMIN-WEB-ANIMAL-GROUPS.md` y los ocho `sub_planes/` **sí entraron**, a pedido del
+  dueño: hoy son `docs/planes/admin-web-animal-groups/` y
+  `docs/planes/fase-3-5/sub-planes/`. Con eso `docs/planes/` no tiene ningún `.md` suelto.
 - **Cómo probarlo:** ejecutar [`test-e2e.md`](./test-e2e.md), los ocho escenarios.
 - **Riesgo declarado:** el commit 11 es punto de no retorno; hasta el 10 todo es
   `git revert`.

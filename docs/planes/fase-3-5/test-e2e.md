@@ -28,11 +28,66 @@ tareas 1, 5 y 6—, `sec.3.5a.8`, `sec.7`) existe con el mismo número en `spec.
 **Debe pasar:** cada archivo ronda las ~400 líneas; si alguno se dispara muy por encima,
 se reparte, conservando la numeración (D6).
 
-### V-3 — Los sub_planes no se absorbieron
+### V-3 — Los sub-planes se movieron pero no se absorbieron
 
-**Comando:** `diff <(git show HEAD~1:docs/planes/sub_planes/PLAN-FASE-3-5-PORCINO-3.5a.2-A.md) docs/planes/sub_planes/PLAN-FASE-3-5-PORCINO-3.5a.2-A.md`
-**Debe pasar:** sin diferencias — los ocho archivos de `sub_planes/` siguen intactos y sólo
-están **enlazados** desde `spec-3.5a.md` y `spec.md`, nunca copiados.
+Los ocho sub-planes viven hoy en [`sub-planes/`](./sub-planes/) (commit `d9699a4`); antes
+colgaban de `docs/planes/sub_planes/` con el prefijo `PLAN-FASE-3-5-PORCINO-`. El
+movimiento y el renombrado **no podían tocar el cuerpo** de los archivos: sólo las rutas
+relativas de sus enlaces y el encabezado.
+
+**No se verifica con un `diff` completo**, porque el cuerpo sí cambió en dos puntos
+legítimos: los enlaces a pares perdieron el prefijo del nombre y las citas al
+`PLAN-FASE-3-4.md` borrado se repuntaron a `PROTOCOLO-DE-TRABAJO.md`. Lo que debe
+demostrarse es que **no se perdió ni se movió contenido**, y eso se verifica por
+estructura:
+
+**1. Los ocho existen y la estructura de secciones de cada uno es idéntica a la de antes
+del movimiento** (`875c65f` es el commit inmediatamente anterior):
+
+```bash
+for f in 3.5a.2-A 3.5a.2-B 3.5a.2-C 3.5a.9-A 3.5a.9-B 3.5b.5-A 3.5b.5-B 3.5b.5-C; do
+  diff <(git show 875c65f:docs/planes/sub_planes/PLAN-FASE-3-5-PORCINO-$f.md | grep '^##') \
+       <(grep '^##' docs/planes/fase-3-5/sub-planes/$f.md) >/dev/null \
+    && echo "OK  $f" || echo "DIFF $f"
+done
+```
+
+**Debe pasar:** ocho `OK`. Sólo el `#` de nivel 1 cambió —lleva el nombre nuevo— y por eso
+el filtro es `^##`.
+
+**2. Cada archivo creció exactamente 2 líneas**, las del blockquote de procedencia que
+reemplaza la cita al plan borrado. Cualquier otro delta es contenido perdido o añadido:
+
+```bash
+for f in 3.5a.2-A 3.5a.2-B 3.5a.2-C 3.5a.9-A 3.5a.9-B 3.5b.5-A 3.5b.5-B 3.5b.5-C; do
+  a=$(git show 875c65f:docs/planes/sub_planes/PLAN-FASE-3-5-PORCINO-$f.md | wc -l)
+  b=$(wc -l < docs/planes/fase-3-5/sub-planes/$f.md)
+  echo "$f $((b-a))"
+done
+```
+
+**Debe pasar:** `2` en los ocho.
+
+**3. Todo enlace relativo resuelve** — el movimiento cambió la profundidad (`../../adr/` →
+`../../../adr/`, `../fase-3-5/spec.md` → `../spec.md`, `../../src/` → `../../../../src/`):
+
+```bash
+python3 - <<'PY'
+import re, os, glob
+bad = [(f, m.group(1))
+       for f in sorted(glob.glob("docs/planes/fase-3-5/sub-planes/*.md"))
+       for m in re.finditer(r'\]\((\.[^)#]*?)(#[^)]*)?\)', open(f).read())
+       if not os.path.exists(os.path.normpath(os.path.join(os.path.dirname(f), m.group(1))))]
+print(*bad, sep="\n") if bad else print("todos los enlaces relativos resuelven")
+PY
+```
+
+**4. Y siguen sin absorberse:** ocho archivos, uno por rama Git, sólo **enlazados** desde
+[`plan.md`](./plan.md) sec. 5, `spec-3.5a.md` y `spec.md` — nunca copiados dentro de ellos.
+
+```bash
+ls docs/planes/fase-3-5/sub-planes/*.md | wc -l   # 8
+```
 
 ### V-4 — Comando de verificación sección-por-sección (citado desde `spec.md`)
 

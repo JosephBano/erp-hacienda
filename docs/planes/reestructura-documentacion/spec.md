@@ -296,12 +296,14 @@ con el dueño del proyecto lo indican.
   `DATA-MODEL.md`, `LEGAL-ECUADOR.md`, `BACKUPS.md` ni `ROADMAP.md`.** Se les actualizan
   las referencias que cambien y nada más. Su contenido es bueno; tocarlo aquí sería un
   segundo propósito en el mismo PR (regla 9).
-- **`docs/planes/sub_planes/`** (8 archivos). Quedan como están; su reorganización se anota en
-  `docs/BACKLOG.md`.
-  `PLAN-ADMIN-WEB-ANIMAL-GROUPS.md` **también estaba fuera de alcance por este motivo**, pero
-  el dueño del proyecto pidió convertirlo el 2026-08-17, ya con las plantillas disponibles:
-  hoy es `docs/planes/admin-web-animal-groups/`, con los cuatro documentos y marcado como
-  archivado. El archivo suelto ya no existe.
+- **`docs/planes/sub_planes/` y `PLAN-ADMIN-WEB-ANIMAL-GROUPS.md` estaban fuera de alcance por
+  este motivo**, y el dueño del proyecto pidió meter los dos el 2026-08-17, ya con las
+  plantillas disponibles. Hoy `PLAN-ADMIN-WEB-ANIMAL-GROUPS.md` es
+  `docs/planes/admin-web-animal-groups/`, con los cuatro documentos y marcado como archivado;
+  y los ocho sub-planes son `docs/planes/fase-3-5/sub-planes/3.5a.2-A.md` …
+  `3.5b.5-C.md`, bajo el dueño que les corresponde y sin el prefijo
+  `PLAN-FASE-3-5-PORCINO-` heredado del plan borrado. Ninguno de los archivos sueltos
+  existe ya. Ver sec. 13.
 - **`field-app-parto-redesign/`**. Es el modelo, no el objeto.
 - **Cualquier cambio de código que no sea un comentario reapuntado.** En particular, la
   normalización de unidades de inventario va en su propia rama,
@@ -522,11 +524,21 @@ Se lanza **después** de que exista `docs/planes/fase-3-5/tasks.md`, no antes.
 | **La auditoría de seguridad encuentra algo grave.** | Se documenta y se abre entrada en `docs/BACKLOG.md`; si es explotable, se corrige en rama propia y con prioridad, no dentro de este PR. |
 | **Se pierde contenido al absorber.** | El borrado de los dos planes viejos ocurre en el **último** commit de la rama, no en el primero. Hasta entonces conviven con las carpetas nuevas y el diff es auditable. |
 
-**Deuda que esta rama crea y declara:** la reorganización de `sub_planes/` (8 archivos) bajo
-la convención nueva queda anotada en `docs/BACKLOG.md`. No entra aquí porque el PR ya tiene un
-propósito. `PLAN-ADMIN-WEB-ANIMAL-GROUPS.md` estaba en esta misma deuda hasta que el dueño
-pidió convertirlo dentro de la rama: hoy es `docs/planes/admin-web-animal-groups/` (ver
-sec. 4).
+**Deuda que esta rama declaró y luego cerró:** la reorganización de `sub_planes/` (8 archivos)
+y la conversión de `PLAN-ADMIN-WEB-ANIMAL-GROUPS.md` se anotaron primero como deuda en
+`docs/BACKLOG.md`, por la regla de un PR = un propósito. El dueño del proyecto pidió meter
+ambas dentro de la rama el 2026-08-17: las plantillas y la convención de carpeta ya existían
+para entonces, así que el trabajo era aplicar una regla recién escrita, no abrir un segundo
+propósito. Los sub-planes son hoy `docs/planes/fase-3-5/sub-planes/` (ver sec. 4).
+
+Meter los sub-planes tuvo un efecto sobre las verificaciones que conviene dejar explícito:
+el criterio 7 llevaba una **exclusión** `sub_planes/` porque esos ocho archivos cargaban el
+nombre del plan borrado en el suyo propio y hacían imposible el "cero coincidencias". Al
+renombrarlos, la exclusión sobra y el criterio pasa a cero real, sin excepciones. Esa
+exclusión fue justamente el síntoma que destapó el problema de ubicación.
+
+**Deuda que esta rama sí deja abierta:** los ADR que citan rutas viejas (0020, 0021, 0022).
+No se editan retroactivamente; quedan declarados en `docs/BACKLOG.md` con su disparador.
 
 ## 14. Criterios de aceptación
 
@@ -538,23 +550,25 @@ sec. 4).
 5. Existe `fase-3/` con sus cuatro archivos (`spec.md`, `plan.md`, `tasks.md`,
    `test-e2e.md`); `fase-3-5/` con esos mismos cuatro más `spec-3.5a.md` —cinco en
    total—, producto de partir el spec en dos para no recrear el archivo de 833 líneas
-   (sec. 7.3, sec. 13 fila "hereda 833 líneas"); y `fase-4/` y `fase-5/` con su `spec.md`.
+   (sec. 7.3, sec. 13 fila "hereda 833 líneas"), más su subcarpeta `sub-planes/` con los
+   ocho sub-planes de las tres secciones partidas; y `fase-4/` y `fase-5/` con su `spec.md`.
+   `docs/planes/` no contiene ningún `.md` suelto: todo plan es una carpeta.
 6. `PLAN-FASE-3-5-PORCINO.md` y `PLAN-FASE-3-4.md` **no existen**.
 7. `grep -rn "PLAN-FASE-3-5-PORCINO\|PLAN-FASE-3-4"` **en código** (`.cs`, `.ts`, `.tsx`),
-   excluyendo `node_modules`, `.claude/` y las líneas que mencionan `sub_planes/`, devuelve
-   **cero resultados**. La exclusión de `sub_planes/` existe porque esos ocho sub-planes
-   conservan el nombre viejo en el suyo propio (`PLAN-FASE-3-5-PORCINO-3.5a.2-{A,B,C}.md`,
-   etc.) y la sec. 4 "No entra" los deja fuera de alcance de este PR.
+   excluyendo `node_modules` y `.claude/`, devuelve **cero resultados, sin excepciones**.
+   Este criterio llevaba una exclusión `sub_planes/` mientras esos ocho sub-planes
+   conservaron el nombre del plan borrado en el suyo propio; al moverlos a
+   `docs/planes/fase-3-5/sub-planes/` y renombrarlos a `3.5a.2-A.md` … `3.5b.5-C.md`, las
+   24 citas del código quedaron repuntadas y la exclusión sobra (sec. 13).
    En `.md`, `grep -rln "PLAN-FASE-3-5-PORCINO\|PLAN-FASE-3-4" --include=*.md .` (mismas
-   exclusiones) devuelve **26 archivos**, todos dentro de seis categorías deliberadas
+   exclusiones) devuelve **16 archivos**, todos dentro de cinco categorías deliberadas
    (detalle y conteo por categoría en `test-e2e.md` V-5): esta carpeta
    (`reestructura-documentacion/`, 4), los encabezados de procedencia de `fase-3/` y
-   `fase-3-5/` (6), los 6 ADR que citan el plan viejo como texto o enlace (un ADR no se
-   edita, se reemplaza), `docs/BACKLOG.md` (declara esa deuda de enlace roto de forma
-   explícita), `docs/PROTOCOLO-DE-TRABAJO.md` (cita el plan viejo como origen histórico de
-   un riesgo, no como ruta viva) y los 8 de `docs/planes/sub_planes/` (nombre heredado, fuera
-   de alcance por la sec. 4). Cualquier archivo `.md` fuera de estas seis categorías, o
-   cualquier conteo que no cierre en 26, es un reapuntado olvidado y falla el criterio.
+   `fase-3-5/` (4), los 6 ADR que citan el plan viejo como texto o enlace (un ADR no se
+   edita, se reemplaza), `docs/BACKLOG.md` (declara esas deudas de enlace roto de forma
+   explícita) y `docs/PROTOCOLO-DE-TRABAJO.md` (cita el plan viejo como origen histórico de
+   un riesgo, no como ruta viva). Cualquier archivo `.md` fuera de estas cinco categorías, o
+   cualquier conteo que no cierre en 16, es un reapuntado olvidado y falla el criterio.
 8. Toda sección citada desde el código existe con el mismo número en su documento destino.
 9. Los cinco DER están auditados contra el esquema real y todo elemento aspiracional está
    marcado.

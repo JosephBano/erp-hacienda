@@ -173,26 +173,24 @@ cerrada —son pocas decenas de secciones únicas— y el paso 2 se corre una ve
 
 **Por qué:** es el criterio 7 del spec, con su excepción explícita.
 
-**En código — tolerancia cero, con una excepción:**
+**En código — tolerancia cero, sin excepciones:**
 
 ```bash
 grep -rn "PLAN-FASE-3-5-PORCINO\|PLAN-FASE-3-4" \
   --include=*.cs --include=*.ts --include=*.tsx . \
-  | grep -v node_modules | grep -v '\.claude/' | grep -v 'sub_planes/'
+  | grep -v node_modules | grep -v '\.claude/'
 ```
 
 **Esperado:** cero líneas.
 
-**Una exclusión, y por qué.** La versión original de este escenario exigía cero
-coincidencias sin excepciones, y era **imposible de cumplir** (hallada al correr el
-comando sin la exclusión: devuelve 24, no cero). Las 24 son citas a
-`docs/planes/sub_planes/PLAN-FASE-3-5-PORCINO-3.5a.2-{A,B,C}.md` —tres de los ocho
-sub-planes que la sec. 4 "No entra" de este `spec.md` deja explícitamente fuera de alcance
-del PR. El commit 987d325 las repuntó a `sub_planes/` a propósito, corrigiendo un error del
-commit 8a33d41 que las había mandado al lugar equivocado. Esos archivos existen y su nombre
-propio hereda el del plan borrado —no es una cita olvidada, es el nombre del archivo— así
-que excluir sus rutas no relaja el escenario: sigue atrapando cualquier cita al plan viejo
-que no pase por `sub_planes/`, que es exactamente lo que hay que atrapar.
+**Este escenario llevó una exclusión `sub_planes/` y ya no la lleva.** La versión original
+exigía cero sin excepciones y era imposible de cumplir: devolvía 24, todas citas a
+`docs/planes/sub_planes/PLAN-FASE-3-5-PORCINO-3.5a.2-{A,B,C}.md`. No eran citas olvidadas
+—era el nombre de archivos que existían—, así que se excluyeron. La causa real era la
+ubicación: esos ocho sub-planes colgaban huérfanos de `docs/planes/` cargando el nombre de
+un plan ya borrado. El commit `d9699a4` los movió a `docs/planes/fase-3-5/sub-planes/` y
+los renombró a `3.5a.2-A.md` … `3.5b.5-C.md`; las 24 citas quedaron repuntadas y la
+exclusión sobra. **Si esta exclusión vuelve a hacer falta, algo se movió mal.**
 
 **En documentación — solo sobreviven las históricas y deliberadas:**
 
@@ -201,29 +199,36 @@ grep -rln "PLAN-FASE-3-5-PORCINO\|PLAN-FASE-3-4" --include=*.md . \
   | grep -v node_modules | grep -v '\.claude/'
 ```
 
-**Esperado:** 26 archivos, todos dentro de seis categorías. Cualquier archivo fuera de
-estas seis es un reapuntado olvidado:
+**Esperado:** 16 archivos, todos dentro de cinco categorías. Cualquier archivo fuera de
+estas cinco es un reapuntado olvidado:
 
 - **`docs/planes/reestructura-documentacion/`** (4: `plan.md`, `spec.md`, `tasks.md`,
   `test-e2e.md`) — esta carpeta documenta la migración; sus menciones son deliberadas.
-- **Encabezados de procedencia de `fase-3/` y `fase-3-5/`** (6: `fase-3/plan.md`,
-  `fase-3/spec.md`, `fase-3-5/plan.md`, `fase-3-5/spec.md`, `fase-3-5/spec-3.5a.md`,
-  `fase-3-5/test-e2e.md`) — citan el plan viejo como su origen histórico, igual que la
-  excepción del criterio 7 del spec.
+- **Encabezados de procedencia de `fase-3/` y `fase-3-5/`** (4: `fase-3/plan.md`,
+  `fase-3/spec.md`, `fase-3-5/spec.md`, `fase-3-5/test-e2e.md`) — citan el plan viejo como
+  su origen histórico, igual que la excepción del criterio 7 del spec.
 - **Los 6 ADR que mencionan el plan viejo** (0019, 0021, 0022, 0023, 0024, 0026) — un ADR
   no se edita, se reemplaza (misma regla que la exclusión `docs/adr/` de V-2). `0022` tiene
   el único enlace markdown real y roto (`](../planes/PLAN-FASE-3-5-PORCINO.md)`); los otros
   cinco solo citan el nombre como texto.
-- **`docs/BACKLOG.md`** — declara esta deuda explícitamente en su entrada
-  `docs/adr/0022-rangos-plausibilidad.md:11`, con disparador para el ADR que reemplace o
-  cierre 0022; no se arregla en esta rama por la misma regla de "un ADR no se edita".
+- **`docs/BACKLOG.md`** — declara estas deudas explícitamente: la entrada de
+  `docs/adr/0022-rangos-plausibilidad.md:11` y la de `0020`/`0021`, que citan la ruta
+  `sub_planes/` ya inexistente. Ambas con disparador; no se arreglan en esta rama por la
+  regla de "un ADR no se edita".
 - **`docs/PROTOCOLO-DE-TRABAJO.md`** — documento nuevo de esta rama; su sec. de riesgos
   cita `PLAN-FASE-3-4.md` sec. 6 como origen histórico del riesgo de deuda técnica
   transversal, no como ruta viva.
-- **Los 8 de `docs/planes/sub_planes/`** — llevan el nombre del plan borrado en su propio
-  nombre de archivo (heredado, no una cita olvidada) y están fuera de alcance del PR por la
-  sec. 4 "No entra" del `spec.md`, igual que en la exclusión `sub_planes/` del bloque "En
-  código" de este mismo escenario.
+
+**Tres categorías desaparecieron respecto de la versión anterior de este escenario**, que
+esperaba 26 archivos en seis categorías:
+
+- Los **8 de `docs/planes/sub_planes/`** ya no existen con ese nombre (commit `d9699a4`).
+- `fase-3-5/plan.md` y `fase-3-5/spec-3.5a.md` salieron de la categoría de procedencia: sus
+  únicas menciones eran los nombres de archivo de los sub-planes, hoy renombrados.
+- `docs/planes/field-app-parto-redesign/spec.md` **nunca estuvo en las seis categorías** y
+  sin embargo aparecía en el `grep`: entró con el commit `53bc71b`, después de que se
+  escribiera esta lista, citando `PLAN-FASE-3-5-PORCINO sec. 7-C`. Es decir, el conteo real
+  era 27, no 26, y el escenario fallaba. Se repuntó a `fase-3-5/spec.md` sec. 7.
 
 **Y los archivos ya no existen:**
 

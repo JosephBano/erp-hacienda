@@ -492,6 +492,67 @@
 
 ---
 
+## Commit 16 — `sub-planes/` bajo su dueño
+
+Alcance añadido a pedido del dueño el 2026-08-17, en la misma conversación que pidió
+convertir `PLAN-ADMIN-WEB-ANIMAL-GROUPS.md`. **T6.5 no se reescribe**: era correcta cuando
+se marcó —los sub-planes se enlazaron y no se absorbieron, y siguen sin absorberse— y su
+evidencia (`commit-6-report.md:64`) sigue siendo válida. Lo que cambia es dónde viven.
+
+- [x] **T16.1** `docs/planes/sub_planes/` → `docs/planes/fase-3-5/sub-planes/`, con `git mv`
+      para conservar la detección de renombrado en el diff. Los ocho archivos pierden el
+      prefijo `PLAN-FASE-3-5-PORCINO-`: `3.5a.2-A.md` … `3.5b.5-C.md`.
+      Verificado: `ls docs/planes/fase-3-5/sub-planes/*.md | wc -l` → 8, y el diff del
+      commit `d9699a4` muestra los ocho como `R` (rename), no como `D`+`A`.
+- [x] **T16.2** Ajustar la profundidad de los enlaces relativos dentro de los ocho:
+      `../../adr/` → `../../../adr/`, `../fase-3-5/spec*.md` → `../spec*.md`, y en
+      `3.5a.2-C.md` los dos enlaces a `src/` y `clients/`.
+      Verificado con el comprobador de enlaces de `fase-3-5/test-e2e.md` V-3 paso 3:
+      "todos los enlaces relativos resuelven".
+- [x] **T16.3** Repuntar las 24 citas del código (`.cs`/`.ts`/`.tsx`) a la ruta nueva.
+      Verificado: `grep -rn "sub_planes\|PLAN-FASE-3-5-PORCINO" --include=*.cs --include=*.ts
+      --include=*.tsx . | grep -v node_modules` → 0 líneas. Es la segunda vez que estas 24
+      se mueven (la primera fue `987d325`); ésta es la ruta definitiva.
+- [x] **T16.4** Repuntar las referencias en `.md`: `fase-3-5/{plan,spec,spec-3.5a}.md` y
+      `docs/BACKLOG.md` (2). Los ADR **no** se tocan.
+      Verificado: `grep -rn sub_planes docs/` sólo devuelve `0020`, `0021` y las menciones
+      históricas de esta carpeta.
+- [x] **T16.5** Declarar en `docs/BACKLOG.md` la deuda nueva: `ADR-0020:36` y `ADR-0021:155`
+      citan una ruta que ya no existe y no se editan (un ADR se reemplaza, no se edita).
+      Entrada añadida junto a la equivalente de `ADR-0022`, con disparador.
+- [x] **T16.6** Corregir de paso tres enlaces rotos **preexistentes** hallados al mover:
+      `3.5b.5-B.md:13` y `3.5b.5-C.md:15` enlazaban a sí mismos donde decían apuntar a
+      `3.5b.5-A`, y `3.5a.2-A.md:98` citaba `PLAN-FASE-3-4 sec.3.A "Bitácora"`, una sección
+      que nunca existió con ese título (el contenido real es el Bloque 3.A, hoy
+      `fase-3/spec.md:139`). Verificado contra `git show a3f8a96:docs/planes/PLAN-FASE-3-4.md`.
+
+## Commit 17 — Alcance y verificaciones alineados
+
+- [x] **T17.1** `spec.md` sec. 4 "No entra": los sub-planes salen de la lista y pasan a la
+      sec. 13 junto a `PLAN-ADMIN-WEB-ANIMAL-GROUPS.md`, con el mismo argumento (el dueño
+      pidió aplicar una convención recién escrita, no abrir un segundo propósito).
+- [x] **T17.2** `spec.md` criterio 7: **eliminar la exclusión `sub_planes/`** — el `grep` en
+      código pasa a cero real, sin excepciones — y bajar el conteo `.md` de 26 en seis
+      categorías a **16 en cinco**.
+      Verificado corriendo ambos `grep`: código → 0, `.md` → 16.
+- [x] **T17.3** `spec.md` criterio 5: añadir `sub-planes/` como subcarpeta esperada de
+      `fase-3-5/` y la exigencia de que `docs/planes/` no tenga ningún `.md` suelto.
+      Verificado: `ls docs/planes/*.md 2>&1` → "No such file or directory".
+- [x] **T17.4** `plan.md`: quitar `sub_planes/` de "Qué NO incluye" y documentar los commits
+      12–17, que no estaban en el plan original. Incluye los dos commits de corrección del
+      propio commit 11 (`987d325`, `8cc7a2c`), que son la evidencia de por qué se declaró
+      punto de no retorno.
+- [x] **T17.5** `test-e2e.md` V-5: quitar la exclusión y reescribir las categorías.
+      **Hallazgo:** el escenario estaba fallando desde el commit `53bc71b` —
+      `docs/planes/field-app-parto-redesign/spec.md` citaba `PLAN-FASE-3-5-PORCINO sec. 7-C`
+      y no encajaba en ninguna de las seis categorías, así que el conteo real era 27 y no
+      26. Se repuntó a `fase-3-5/spec.md` sec. 7 y queda documentado en V-5.
+- [x] **T17.6** `fase-3-5/test-e2e.md` V-3: el `diff` byte a byte contra `HEAD~1` dejó de
+      aplicar (el cuerpo sí cambió, en los enlaces a pares y en las citas repuntadas a
+      `PROTOCOLO-DE-TRABAJO.md`). Se reemplaza por cuatro comprobaciones estructurales
+      —encabezados `^##` idénticos, delta de exactamente 2 líneas, enlaces que resuelven, y
+      los ocho sin absorber— corridas las cuatro contra el árbol real: pasan.
+
 ## Cierre
 
 - [x] **TC.0** Marcar las casillas de **este mismo archivo** en una sola pasada, contra el

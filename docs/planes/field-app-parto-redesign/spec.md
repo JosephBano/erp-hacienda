@@ -374,7 +374,8 @@ Misma raíz que el problema de partos: `Screen` sin scroll con dos tarjetas que 
 nueve botones de 64pt mínimo. Se activa `scrollable`, se revisa el espaciado entre grupos y
 se conserva el orden actual de sujetos — el orden está fijado por
 `tests/ActivitiesHub.test.tsx` justamente para que un reordenamiento sea deliberado
-(PLAN-FASE-3-5-PORCINO sec. 7-C lo marca como pregunta abierta para el cliente). **Este spec
+([`fase-3-5/spec.md`](../fase-3-5/spec.md#7-lo-que-sólo-el-cliente-puede-responder) sec. 7-C
+lo marca como pregunta abierta para el cliente). **Este spec
 no lo reordena.**
 
 Se elimina `HomeScreen.tsx`, su import en `App.tsx` y `tests/HomeScreen.test.tsx` (D10).

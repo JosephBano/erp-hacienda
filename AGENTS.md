@@ -77,7 +77,7 @@ exigencia de pruebas por capa y los umbrales de salida por fase— vive en
 `ARCHITECTURE.md` (módulos y modelo) · `docs/DATA-MODEL.md` (qué datos existen y por qué) ·
 `ROADMAP.md` (fases y estado actual) · `LEGAL-ECUADOR.md` (cumplimiento) ·
 `docs/SEGURIDAD.md` (cómo se protege y qué está expuesto) · `docs/adr/` (decisiones) ·
-`docs/planes/` (planes de ejecución por fase) · `docs/diagramas/` (diagramas ER en Mermaid) ·
+`docs/spec/` (especificaciones y planes de ejecución) · `docs/diagramas/` (diagramas ER en Mermaid) ·
 `docs/BACKLOG.md` (ideas y deuda) · `docs/BACKUPS.md` (cómo se respalda y se restaura) ·
 `docs/DOCUMENTACION.md` (qué documento responde qué pregunta y cuándo se actualiza) ·
 `docs/PROTOCOLO-DE-TRABAJO.md` (cómo se lleva una rama de la idea al merge).
@@ -94,14 +94,14 @@ archivo es ruido.
   rechaza. La plantilla es `docs/plantillas/TEMPLATE-adr.md` y no lleva número porque no es
   un ADR.
   Dentro del documento el título **sí** dice `# ADR-NNNN — …`.
-- **Planes de ejecución** → `docs/planes/<nombre-en-kebab-case>/`, **una carpeta por trabajo**,
+- **Especificaciones y planes** → `docs/spec/feature-NNNN-<nombre>/` (para features) o
+  `docs/spec/plan-NNNN-<nombre>/` (para fases o planes generales), **una carpeta por trabajo**,
   con los cuatro documentos de la convención: `spec.md` (qué se construye y qué queda fijado),
   `plan.md` (en qué orden y en qué commits), `tasks.md` (el desglose con casillas) y
   `test-e2e.md` (cómo se verifica a mano). Las plantillas están en `docs/plantillas/`.
-  Un plan **no** tiene que ser de una fase: puede ser de una feature —
-  `docs/planes/admin-web-animal-groups/` lo es — siempre que cumpla la convención. Lo que no
-  se hace es dejar un plan como archivo suelto en `docs/planes/`.
-  Un plan de un trabajo terminado no se borra: se marca como archivado en el encabezado
+  Ejemplos: `docs/spec/feature-0001-admin-web-animal-groups/`, `docs/spec/plan-0001-fase-3/`.
+  Lo que no se hace es dejar un plan o spec como archivo suelto en `docs/spec/`.
+  Un trabajo terminado no se borra: se marca como archivado en el encabezado
   (`docs/DOCUMENTACION.md` sec. 4).
 - **Diagramas** → `docs/diagramas/`, en `.mermaid`. Los diagramas embebidos en un `.md` se
   quedan donde están; acá van los completos por núcleo.
@@ -113,8 +113,8 @@ archivo es ruido.
   subcarpetas nuevas sin una razón que se pueda escribir en una línea.
 - Al mover o renombrar un documento, **arreglá las referencias en el mismo commit**. Ojo con
   las citas en prosa desde el código, en `src/`, `tests/` y `clients/` (medido el
-  2026-08-16): `docs/planes/fase-3-5/spec-3.5a.md` en 59 archivos, `docs/planes/fase-3/spec.md`
-  en 18 (`sec.2.2` sola en 11), `docs/planes/fase-3-5/spec.md` en 15 y
+  2026-08-16): `docs/spec/plan-0002-fase-3-5/spec-3.5a.md` en 59 archivos, `docs/spec/plan-0001-fase-3/spec.md`
+  en 18 (`sec.2.2` sola en 11), `docs/spec/plan-0002-fase-3-5/spec.md` en 15 y
   `docs/PROTOCOLO-DE-TRABAJO.md` en 2. Son por nombre, no por ruta, así que mover no las
   rompe pero **renombrar sí**.
 

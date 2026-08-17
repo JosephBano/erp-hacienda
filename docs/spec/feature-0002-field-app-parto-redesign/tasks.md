@@ -81,35 +81,35 @@
 
 ## Commit 4 — Espejo local y `loadPregnantDams`
 
-- [ ] **T4.1** `schema.ts`: `tableSchema` de `pregnancies`
+- [x] **T4.1** `schema.ts`: `tableSchema` de `pregnancies`
       (`dam_id`, `service_id`, `status`, `expected_birth_date`, `is_deleted`,
       `server_created_at`, `server_updated_at`).
-- [ ] **T4.2** `schema.ts`: `tableSchema` de `breeding_services`
+- [x] **T4.2** `schema.ts`: `tableSchema` de `breeding_services`
       (`dam_id`, `service_type`, `sire_animal_id`, `straw_id`, `is_deleted`,
       `server_created_at`, `server_updated_at`).
-- [ ] **T4.3** `SCHEMA_VERSION` de 10 a 11.
-- [ ] **T4.4** `migrations.ts`: paso `toVersion: 11` con los dos `createTable`.
+- [x] **T4.3** `SCHEMA_VERSION` de 10 a 11.
+- [x] **T4.4** `migrations.ts`: paso `toVersion: 11` con los dos `createTable`.
       **Terminado:** una base en v10 con datos abre en v11 sin perderlos.
-- [ ] **T4.5** `models.ts`: modelos `Pregnancy` y `BreedingService`, registrados en
+- [x] **T4.5** `models.ts`: modelos `Pregnancy` y `BreedingService`, registrados en
       `modelClasses`.
-- [ ] **T4.6** `syncEngine.ts`: `pregnancies` y `breedingServices` en
+- [x] **T4.6** `syncEngine.ts`: `pregnancies` y `breedingServices` en
       `TABLE_BY_COLLECTION`.
-- [ ] **T4.7** `herdQueries.ts`: `loadPregnantDams` con la interfaz `PregnantDam` del spec
+- [x] **T4.7** `herdQueries.ts`: `loadPregnantDams` con la interfaz `PregnantDam` del spec
       sec. 6.3.
-- [ ] **T4.8** Resolución de `sireLabel` según las cuatro filas de la tabla del spec 6.3.
-- [ ] **T4.9** Filtrar `status === 'Active'` y `!isDeleted`; excluir animales borrados;
+- [x] **T4.8** Resolución de `sireLabel` según las cuatro filas de la tabla del spec 6.3.
+- [x] **T4.9** Filtrar `status === 'Active'` y `!isDeleted`; excluir animales borrados;
       ordenar por fecha probable de parto ascendente.
-- [ ] **T4.10** `birthService.ts`: enviar `pregnancyId`; dejar de rellenar padre desde la
+- [x] **T4.10** `birthService.ts`: enviar `pregnancyId`; dejar de rellenar padre desde la
       pantalla.
-- [ ] **T4.10b** `loadHerd`: corregir la etiqueta de respaldo (D11) para que distinga
+- [x] **T4.10b** `loadHerd`: corregir la etiqueta de respaldo (D11) para que distinga
       animales cuyos ids comparten prefijo. **Terminado:** una prueba con dos ids del
       patrón real `00000000-0000-5000-8000-XXXXXXXX0000` produce dos etiquetas distintas.
-- [ ] **T4.11** Prueba por cada fila de la tabla de `sireLabel`, incluido el semental
+- [x] **T4.11** Prueba por cada fila de la tabla de `sireLabel`, incluido el semental
       ausente localmente → `sin registrar`, nunca un id crudo.
-- [ ] **T4.12** Prueba: preñeces `Completed` y `Aborted` quedan fuera.
-- [ ] **T4.13** Prueba: el orden es por fecha probable de parto ascendente.
-- [ ] **T4.14** Prueba en `schema.test.ts`: la migración 10 → 11 conserva los datos.
-- [ ] **T4.15** `npm test` completo en verde.
+- [x] **T4.12** Prueba: preñeces `Completed` y `Aborted` quedan fuera.
+- [x] **T4.13** Prueba: el orden es por fecha probable de parto ascendente.
+- [x] **T4.14** Prueba en `schema.test.ts`: la migración 10 → 11 conserva los datos.
+- [x] **T4.15** `npm test` completo en verde.
 
 ---
 

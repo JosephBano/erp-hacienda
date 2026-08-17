@@ -382,6 +382,8 @@ const TABLE_BY_COLLECTION: Record<string, string> = {
   // 3.5a.1 (ADR-0015) + BACKLOG "AnimalEvent grupal aún no viaja en el pull":
   // animal- and group-subject event history, needed by 3.5a.7's lot record.
   animalEvents: 'animal_events',
+  pregnancies: 'pregnancies',
+  breedingServices: 'breeding_services',
 };
 
 /**

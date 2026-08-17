@@ -13,6 +13,7 @@ export interface OffspringInput {
 
 export interface RecordBirthInput {
   damId: string;
+  pregnancyId?: string;
   offspring: OffspringInput[];
   /** Dual father (ADR-0006): an animal or a straw, never both. */
   sireAnimalId?: string;
@@ -66,6 +67,7 @@ export class BirthService {
       'recordBirth',
       {
         damId: input.damId,
+        pregnancyId: input.pregnancyId,
         birthDate,
         difficulty: input.difficulty ?? 'Normal',
         bornAlive: input.offspring.length,

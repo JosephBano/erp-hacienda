@@ -137,4 +137,19 @@ describe('BirthService', () => {
     expect(first.clientOperationId).not.toBe(second.clientOperationId);
     expect(await outbox.pending()).toHaveLength(2);
   });
+
+  it('carries pregnancyId in the queued operation payload', async () => {
+    await service.recordBirth({
+      damId: 'dam-1',
+      pregnancyId: 'preg-123',
+      offspring: [{ sex: 'F' }],
+    });
+
+    const [entry] = await outbox.pending();
+    expect(entry.payload).toMatchObject({
+      damId: 'dam-1',
+      pregnancyId: 'preg-123',
+    });
+  });
 });
+

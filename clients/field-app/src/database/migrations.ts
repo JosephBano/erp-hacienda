@@ -240,5 +240,35 @@ export const migrations = schemaMigrations({
         }),
       ],
     },
+    {
+      toVersion: 11,
+      steps: [
+        createTable({
+          name: 'pregnancies',
+          columns: [
+            { name: 'dam_id', type: 'string', isIndexed: true },
+            { name: 'service_id', type: 'string', isOptional: true },
+            { name: 'status', type: 'string', isIndexed: true },
+            { name: 'expected_birth_date', type: 'string', isOptional: true },
+            { name: 'is_deleted', type: 'boolean' },
+            { name: 'server_created_at', type: 'number' },
+            { name: 'server_updated_at', type: 'number', isOptional: true },
+          ],
+        }),
+        createTable({
+          name: 'breeding_services',
+          columns: [
+            { name: 'dam_id', type: 'string', isIndexed: true },
+            { name: 'service_type', type: 'string' },
+            { name: 'sire_animal_id', type: 'string', isOptional: true },
+            { name: 'straw_id', type: 'string', isOptional: true },
+            { name: 'is_deleted', type: 'boolean' },
+            { name: 'server_created_at', type: 'number' },
+            { name: 'server_updated_at', type: 'number', isOptional: true },
+          ],
+        }),
+      ],
+    },
   ],
 });
+

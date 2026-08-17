@@ -41,9 +41,6 @@ public record SyncCollectionsDto(
     List<SyncAdministrationRouteDto> AdministrationRoutes,
     List<SyncTreatmentReasonDto> TreatmentReasons,
     List<SyncDoseKindDto> DoseKinds,
-    List<SyncHealthPlanDto> HealthPlans,
-    List<SyncHealthPlanItemDto> HealthPlanItems,
-    List<SyncHealthPlanAssignmentDto> HealthPlanAssignments,
     List<SyncPlausibilityRangeDto> PlausibilityRanges,
     List<SyncAnimalEventDto> AnimalEvents);
 
@@ -225,51 +222,6 @@ public record SyncTreatmentReasonDto(
     bool IsDeleted) : ISyncRow;
 
 /// <summary>
-/// Health plan catalog (3.5b.1, ADR-0016). The field-app needs the cronogram
-/// locally so it can resolve theoretical dates offline and stamp the
-/// <c>health_plan_item_id</c> on a treatment when the user is in the corral.
-/// </summary>
-public record SyncHealthPlanDto(
-    Guid Id,
-    string Name,
-    Guid SpeciesId,
-    bool IsActive,
-    DateTimeOffset CreatedAt,
-    DateTimeOffset? UpdatedAt,
-    bool IsDeleted) : ISyncRow;
-
-public record SyncHealthPlanItemDto(
-    Guid Id,
-    Guid HealthPlanId,
-    string Name,
-    string EventType,
-    string Anchor,
-    int AnchorOffsetDays,
-    int ComplianceWindowDays,
-    Guid? InventoryItemId,
-    Guid? RouteId,
-    decimal? DoseQuantity,
-    Guid? DoseUnitId,
-    int? Repetitions,
-    Guid? AppliesToCategoryId,
-    string? AppliesToSex,
-    bool IsActive,
-    DateTimeOffset CreatedAt,
-    DateTimeOffset? UpdatedAt,
-    bool IsDeleted) : ISyncRow;
-
-public record SyncHealthPlanAssignmentDto(
-    Guid Id,
-    Guid HealthPlanId,
-    Guid? AnimalId,
-    Guid? GroupId,
-    DateTimeOffset AssignedAt,
-    bool IsActive,
-    DateTimeOffset CreatedAt,
-    DateTimeOffset? UpdatedAt,
-    bool IsDeleted) : ISyncRow;
-
-/// <summary>
 /// Plausibility range catalog (3.5a.6, ADR-0022). The field-app uses these to
 /// validate weights, milk volumes and future magnitudes locally before enqueuing
 /// the operation. The ranges reach the device via the pull so the validation
@@ -302,7 +254,7 @@ public record SyncPlausibilityRangeDto(
 /// cref="AnimalId"/> and <see cref="GroupId"/> are never both set and never both null.
 /// Faking an <c>animalId</c> on a group event to keep the wire shape uniform is exactly
 /// the synthetic data ADR-0015 exists to prevent, so the DTO stays honest about the
-/// subject the same way <see cref="SyncHealthPlanAssignmentDto"/> already does.
+/// subject.
 ///
 /// Events are append-only (Art. 1): a correction is a new row referencing the original
 /// via <see cref="RelatedEventId"/>, never an edit. So <see cref="UpdatedAt"/> is always
@@ -372,9 +324,6 @@ public class GetSyncPullQueryHandler(
             ["administrationRoutes"] = SystemPermissions.LivestockAnimalsRead,
             ["treatmentReasons"] = SystemPermissions.LivestockAnimalsRead,
             ["doseKinds"] = SystemPermissions.LivestockAnimalsRead,
-            ["healthPlans"] = SystemPermissions.LivestockAnimalsRead,
-            ["healthPlanItems"] = SystemPermissions.LivestockAnimalsRead,
-            ["healthPlanAssignments"] = SystemPermissions.LivestockAnimalsRead,
             ["plausibilityRanges"] = SystemPermissions.LivestockAnimalsRead,
             ["animalEvents"] = SystemPermissions.LivestockAnimalsRead,
         };
@@ -494,29 +443,6 @@ public class GetSyncPullQueryHandler(
                 k.Id, k.Key, k.LabelEs, k.IsActive, k.CreatedAt, k.UpdatedAt, k.DeletedAt != null),
             cancellationToken);
 
-        var healthPlans = await ReadAsync(
-            effective, "healthPlans", livestockDb.HealthPlans, since, limit, frontier,
-            p => new SyncHealthPlanDto(
-                p.Id, p.Name, p.SpeciesId, p.IsActive, p.CreatedAt, p.UpdatedAt, p.DeletedAt != null),
-            cancellationToken);
-
-        var healthPlanItems = await ReadAsync(
-            effective, "healthPlanItems", livestockDb.HealthPlanItems, since, limit, frontier,
-            i => new SyncHealthPlanItemDto(
-                i.Id, i.HealthPlanId, i.Name, i.EventType, i.Anchor.ToString(),
-                i.AnchorOffsetDays, i.ComplianceWindowDays,
-                i.InventoryItemId, i.RouteId, i.DoseQuantity, i.DoseUnitId,
-                i.Repetitions, i.AppliesToCategoryId, i.AppliesToSex, i.IsActive,
-                i.CreatedAt, i.UpdatedAt, i.DeletedAt != null),
-            cancellationToken);
-
-        var healthPlanAssignments = await ReadAsync(
-            effective, "healthPlanAssignments", livestockDb.HealthPlanAssignments, since, limit, frontier,
-            a => new SyncHealthPlanAssignmentDto(
-                a.Id, a.HealthPlanId, a.AnimalId, a.GroupId, a.AssignedAt,
-                a.IsActive, a.CreatedAt, a.UpdatedAt, a.DeletedAt != null),
-            cancellationToken);
-
         var plausibilityRanges = await ReadAsync(
             effective, "plausibilityRanges", livestockDb.PlausibilityRanges, since, limit, frontier,
             r => new SyncPlausibilityRangeDto(
@@ -539,7 +465,6 @@ public class GetSyncPullQueryHandler(
             animals, identifiers, groups, memberships,
             speciesList, breeds, categories, items, withdrawals, mortalityCauses, farmModules,
             administrationRoutes, treatmentReasons, doseKinds,
-            healthPlans, healthPlanItems, healthPlanAssignments,
             plausibilityRanges, animalEvents);
 
         return new SyncPullResponseDto(frontier.Next.Format(), frontier.HasMore, collections);

@@ -23,16 +23,16 @@
 
 ## Commit 1 — Saneamiento del pull en el servidor
 
-- [ ] **T1.1** `grep` de `healthPlans`, `healthPlanItems`, `healthPlanAssignments` en todo
+- [x] **T1.1** `grep` de `healthPlans`, `healthPlanItems`, `healthPlanAssignments` en todo
       el repo para confirmar que ningún consumidor los lee del pull.
       **Terminado:** lista de coincidencias revisada; ninguna es un consumidor real.
-- [ ] **T1.2** Retirar las tres colecciones de `RequiredPermissionByCollection`, de
+- [x] **T1.2** Retirar las tres colecciones de `RequiredPermissionByCollection`, de
       `SyncCollectionsDto` y de las lecturas de `GetSyncPullQueryHandler`
       (`src/Hato.Api/Sync/SyncPullQueries.cs`).
-- [ ] **T1.3** Borrar los DTOs `SyncHealthPlanDto`, `SyncHealthPlanItemDto` y
+- [x] **T1.3** Borrar los DTOs `SyncHealthPlanDto`, `SyncHealthPlanItemDto` y
       `SyncHealthPlanAssignmentDto` si quedan sin uso.
-- [ ] **T1.4** Actualizar las pruebas de integración de sync que afirmen sobre ellas.
-- [ ] **T1.5** `dotnet test` completo en verde.
+- [x] **T1.4** Actualizar las pruebas de integración de sync que afirmen sobre ellas.
+- [x] **T1.5** `dotnet test` completo en verde.
 
 ---
 

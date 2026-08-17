@@ -6,9 +6,11 @@ import {
   AnimalGroup,
   AnimalIdentifier,
   Breed,
+  BreedingService,
   DoseKind,
   InventoryItem,
   MortalityCause,
+  Pregnancy,
   Species,
   WithdrawalPeriod,
 } from '../database/models';
@@ -25,6 +27,14 @@ export interface HerdMember {
   categoryId?: string;
   birthDate?: string;
   motherId?: string;
+}
+
+export interface PregnantDam {
+  animalId: string;
+  label: string;
+  expectedBirthDate?: string;
+  sireLabel: string;
+  pregnancyId: string;
 }
 
 /**
@@ -90,7 +100,7 @@ export async function loadHerd(database: Database, date = todayIso()): Promise<H
       } else if (tag) {
         label = tag;
       } else {
-        label = `Sin arete · ${animal.id.slice(0, 6)}`;
+        label = `Sin arete · ${animal.id.slice(-6)}`;
       }
 
       return {
@@ -109,6 +119,81 @@ export async function loadHerd(database: Database, date = todayIso()): Promise<H
     })
     .sort((a, b) => a.label.localeCompare(b.label));
 }
+
+/**
+ * Loads pregnant dams whose pregnancy is active and not deleted, joining their
+ * breeding service to deduce the sire label.
+ */
+export async function loadPregnantDams(database: Database): Promise<PregnantDam[]> {
+  const [pregnancies, services, herd] = await Promise.all([
+    database.get<Pregnancy>('pregnancies').query().fetch(),
+    database.get<BreedingService>('breeding_services').query().fetch(),
+    loadHerd(database),
+  ]);
+
+  const herdByAnimalId = new Map<string, HerdMember>();
+  for (const member of herd) {
+    herdByAnimalId.set(member.animalId, member);
+  }
+
+  const serviceById = new Map<string, BreedingService>();
+  for (const service of services) {
+    if (!service.isDeleted) {
+      serviceById.set(service.id, service);
+    }
+  }
+
+  const pregnantDams: PregnantDam[] = [];
+
+  for (const pregnancy of pregnancies) {
+    if (pregnancy.isDeleted || pregnancy.status !== 'Active') {
+      continue;
+    }
+
+    const dam = herdByAnimalId.get(pregnancy.damId);
+    if (!dam) {
+      continue;
+    }
+
+    let sireLabel = 'Padre: sin registrar';
+    if (pregnancy.serviceId) {
+      const service = serviceById.get(pregnancy.serviceId);
+      if (service) {
+        if (service.serviceType === 'ArtificialInsemination') {
+          sireLabel = 'Padre: Inseminación artificial';
+        } else if (service.serviceType === 'Natural') {
+          if (service.sireAnimalId) {
+            const sire = herdByAnimalId.get(service.sireAnimalId);
+            if (sire) {
+              sireLabel = `Padre: ${sire.label}`;
+            } else {
+              sireLabel = 'Padre: sin registrar';
+            }
+          } else {
+            sireLabel = 'Padre: sin registrar';
+          }
+        }
+      }
+    }
+
+    pregnantDams.push({
+      animalId: dam.animalId,
+      label: dam.label,
+      expectedBirthDate: pregnancy.expectedBirthDate,
+      sireLabel,
+      pregnancyId: pregnancy.id,
+    });
+  }
+
+  return pregnantDams.sort((a, b) => {
+    const dateA = a.expectedBirthDate ?? '9999-12-31';
+    const dateB = b.expectedBirthDate ?? '9999-12-31';
+    const cmp = dateA.localeCompare(dateB);
+    if (cmp !== 0) return cmp;
+    return a.label.localeCompare(b.label);
+  });
+}
+
 
 export async function loadGroups(database: Database) {
   const groups = await database.get<AnimalGroup>('animal_groups').query().fetch();

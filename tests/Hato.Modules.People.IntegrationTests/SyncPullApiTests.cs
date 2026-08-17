@@ -28,6 +28,8 @@ public class SyncPullApiTests(PeopleApiFactory factory) : IClassFixture<PeopleAp
         Assert.NotNull(pull.Collections.Animals);
         Assert.NotNull(pull.Collections.AnimalGroups);
         Assert.NotNull(pull.Collections.Species);
+        Assert.NotNull(pull.Collections.Pregnancies);
+        Assert.NotNull(pull.Collections.BreedingServices);
     }
 
     [Fact]

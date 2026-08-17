@@ -47,7 +47,7 @@ interface ActivitiesHubProps {
  */
 export function ActivitiesHub({ pending, onSelect }: ActivitiesHubProps) {
   return (
-    <Screen testID="activities-hub">
+    <Screen testID="activities-hub" scrollable>
       <Title>HATO</Title>
       <Body testID="home-pending">{`${pending} registro(s) sin enviar`}</Body>
 

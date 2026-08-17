@@ -23,138 +23,138 @@
 
 ## Commit 1 — Saneamiento del pull en el servidor
 
-- [ ] **T1.1** `grep` de `healthPlans`, `healthPlanItems`, `healthPlanAssignments` en todo
+- [x] **T1.1** `grep` de `healthPlans`, `healthPlanItems`, `healthPlanAssignments` en todo
       el repo para confirmar que ningún consumidor los lee del pull.
       **Terminado:** lista de coincidencias revisada; ninguna es un consumidor real.
-- [ ] **T1.2** Retirar las tres colecciones de `RequiredPermissionByCollection`, de
+- [x] **T1.2** Retirar las tres colecciones de `RequiredPermissionByCollection`, de
       `SyncCollectionsDto` y de las lecturas de `GetSyncPullQueryHandler`
       (`src/Hato.Api/Sync/SyncPullQueries.cs`).
-- [ ] **T1.3** Borrar los DTOs `SyncHealthPlanDto`, `SyncHealthPlanItemDto` y
+- [x] **T1.3** Borrar los DTOs `SyncHealthPlanDto`, `SyncHealthPlanItemDto` y
       `SyncHealthPlanAssignmentDto` si quedan sin uso.
-- [ ] **T1.4** Actualizar las pruebas de integración de sync que afirmen sobre ellas.
-- [ ] **T1.5** `dotnet test` completo en verde.
+- [x] **T1.4** Actualizar las pruebas de integración de sync que afirmen sobre ellas.
+- [x] **T1.5** `dotnet test` completo en verde.
 
 ---
 
 ## Commit 2 — Saneamiento del motor de sync en el cliente
 
-- [ ] **T2.1** `applyCollections` (`syncEngine.ts`): ante colección desconocida, registrar
+- [x] **T2.1** `applyCollections` (`syncEngine.ts`): ante colección desconocida, registrar
       por `loggerService` y contarla como error de sincronización en vez de `continue`.
       **Terminado:** existe una prueba que falla si se vuelve a poner el `continue` mudo.
-- [ ] **T2.2** `applyRow` (`syncEngine.ts:365`): eliminar `record.isDeleted = false`.
-- [ ] **T2.3** Implementar el reset de tablas espejo: borra las tablas de
+- [x] **T2.2** `applyRow` (`syncEngine.ts:365`): eliminar `record.isDeleted = false`.
+- [x] **T2.3** Implementar el reset de tablas espejo: borra las tablas de
       `TABLE_BY_COLLECTION` y la fila `pull_cursor` de `sync_meta`.
       **Nunca `sync_outbox` ni `milk_yields`.**
-- [ ] **T2.4** Acción "Rehacer descarga" en `SyncStatusScreen.tsx`, con confirmación
+- [x] **T2.4** Acción "Rehacer descarga" en `SyncStatusScreen.tsx`, con confirmación
       explícita en español llano que diga qué se conserva y qué se vuelve a bajar.
-- [ ] **T2.5** El reset dispara `syncNow()` al confirmar.
-- [ ] **T2.6** Prueba: colección desconocida → error visible.
-- [ ] **T2.7** Prueba: fila con `isDeleted: true` del servidor no queda en `false`.
-- [ ] **T2.8** **Prueba: rehacer descarga vacía las espejo y `sync_outbox` sobrevive
+- [x] **T2.5** El reset dispara `syncNow()` al confirmar.
+- [x] **T2.6** Prueba: colección desconocida → error visible.
+- [x] **T2.7** Prueba: fila con `isDeleted: true` del servidor no queda en `false`.
+- [x] **T2.8** **Prueba: rehacer descarga vacía las espejo y `sync_outbox` sobrevive
       intacto.** Sin esta prueba el commit no entra (regla dura 10).
-- [ ] **T2.9** `npm test` completo en verde.
+- [x] **T2.9** `npm test` completo en verde.
 
 ---
 
 ## Commit 3 — Preñeces y servicios en el pull
 
-- [ ] **T3.1** `SyncPregnancyDto(Id, DamId, ServiceId, Status, ExpectedBirthDate,
+- [x] **T3.1** `SyncPregnancyDto(Id, DamId, ServiceId, Status, ExpectedBirthDate,
       CreatedAt, UpdatedAt, IsDeleted)` implementando `ISyncRow`.
-- [ ] **T3.2** `SyncBreedingServiceDto(Id, DamId, ServiceType, SireAnimalId, StrawId,
+- [x] **T3.2** `SyncBreedingServiceDto(Id, DamId, ServiceType, SireAnimalId, StrawId,
       CreatedAt, UpdatedAt, IsDeleted)` implementando `ISyncRow`.
-- [ ] **T3.3** Ambas en `SyncCollectionsDto` y en `RequiredPermissionByCollection` bajo
+- [x] **T3.3** Ambas en `SyncCollectionsDto` y en `RequiredPermissionByCollection` bajo
       `SystemPermissions.BreedingEventsRead`.
-- [ ] **T3.4** Inyectar `IBreedingDbContext` en `GetSyncPullQueryHandler` y agregar sus dos
+- [x] **T3.4** Inyectar `IBreedingDbContext` en `GetSyncPullQueryHandler` y agregar sus dos
       llamadas a `ReadAsync`.
-- [ ] **T3.5** Verificar que **no se tocó** ningún archivo de
+- [x] **T3.5** Verificar que **no se tocó** ningún archivo de
       `Hato.Modules.Breeding.Domain`. **Terminado:** `git diff --stat` no lista archivos de
       ese proyecto.
-- [ ] **T3.6** Prueba de integración: usuario con `breeding.events.read` recibe ambas.
-- [ ] **T3.7** Prueba de integración: usuario sin el permiso no las recibe **ni pidiéndolas
+- [x] **T3.6** Prueba de integración: usuario con `breeding.events.read` recibe ambas.
+- [x] **T3.7** Prueba de integración: usuario sin el permiso no las recibe **ni pidiéndolas
       por nombre** en `collections=`.
-- [ ] **T3.8** Prueba de integración: registrar un parto pasa la preñez a `Completed` y el
+- [x] **T3.8** Prueba de integración: registrar un parto pasa la preñez a `Completed` y el
       cambio viaja en el siguiente pull.
-- [ ] **T3.9** Prueba de integración: el cursor avanza bien con las colecciones nuevas.
-- [ ] **T3.10** `dotnet test` completo en verde.
+- [x] **T3.9** Prueba de integración: el cursor avanza bien con las colecciones nuevas.
+- [x] **T3.10** `dotnet test` completo en verde.
 
 ---
 
 ## Commit 4 — Espejo local y `loadPregnantDams`
 
-- [ ] **T4.1** `schema.ts`: `tableSchema` de `pregnancies`
+- [x] **T4.1** `schema.ts`: `tableSchema` de `pregnancies`
       (`dam_id`, `service_id`, `status`, `expected_birth_date`, `is_deleted`,
       `server_created_at`, `server_updated_at`).
-- [ ] **T4.2** `schema.ts`: `tableSchema` de `breeding_services`
+- [x] **T4.2** `schema.ts`: `tableSchema` de `breeding_services`
       (`dam_id`, `service_type`, `sire_animal_id`, `straw_id`, `is_deleted`,
       `server_created_at`, `server_updated_at`).
-- [ ] **T4.3** `SCHEMA_VERSION` de 10 a 11.
-- [ ] **T4.4** `migrations.ts`: paso `toVersion: 11` con los dos `createTable`.
+- [x] **T4.3** `SCHEMA_VERSION` de 10 a 11.
+- [x] **T4.4** `migrations.ts`: paso `toVersion: 11` con los dos `createTable`.
       **Terminado:** una base en v10 con datos abre en v11 sin perderlos.
-- [ ] **T4.5** `models.ts`: modelos `Pregnancy` y `BreedingService`, registrados en
+- [x] **T4.5** `models.ts`: modelos `Pregnancy` y `BreedingService`, registrados en
       `modelClasses`.
-- [ ] **T4.6** `syncEngine.ts`: `pregnancies` y `breedingServices` en
+- [x] **T4.6** `syncEngine.ts`: `pregnancies` y `breedingServices` en
       `TABLE_BY_COLLECTION`.
-- [ ] **T4.7** `herdQueries.ts`: `loadPregnantDams` con la interfaz `PregnantDam` del spec
+- [x] **T4.7** `herdQueries.ts`: `loadPregnantDams` con la interfaz `PregnantDam` del spec
       sec. 6.3.
-- [ ] **T4.8** Resolución de `sireLabel` según las cuatro filas de la tabla del spec 6.3.
-- [ ] **T4.9** Filtrar `status === 'Active'` y `!isDeleted`; excluir animales borrados;
+- [x] **T4.8** Resolución de `sireLabel` según las cuatro filas de la tabla del spec 6.3.
+- [x] **T4.9** Filtrar `status === 'Active'` y `!isDeleted`; excluir animales borrados;
       ordenar por fecha probable de parto ascendente.
-- [ ] **T4.10** `birthService.ts`: enviar `pregnancyId`; dejar de rellenar padre desde la
+- [x] **T4.10** `birthService.ts`: enviar `pregnancyId`; dejar de rellenar padre desde la
       pantalla.
-- [ ] **T4.10b** `loadHerd`: corregir la etiqueta de respaldo (D11) para que distinga
+- [x] **T4.10b** `loadHerd`: corregir la etiqueta de respaldo (D11) para que distinga
       animales cuyos ids comparten prefijo. **Terminado:** una prueba con dos ids del
       patrón real `00000000-0000-5000-8000-XXXXXXXX0000` produce dos etiquetas distintas.
-- [ ] **T4.11** Prueba por cada fila de la tabla de `sireLabel`, incluido el semental
+- [x] **T4.11** Prueba por cada fila de la tabla de `sireLabel`, incluido el semental
       ausente localmente → `sin registrar`, nunca un id crudo.
-- [ ] **T4.12** Prueba: preñeces `Completed` y `Aborted` quedan fuera.
-- [ ] **T4.13** Prueba: el orden es por fecha probable de parto ascendente.
-- [ ] **T4.14** Prueba en `schema.test.ts`: la migración 10 → 11 conserva los datos.
-- [ ] **T4.15** `npm test` completo en verde.
+- [x] **T4.12** Prueba: preñeces `Completed` y `Aborted` quedan fuera.
+- [x] **T4.13** Prueba: el orden es por fecha probable de parto ascendente.
+- [x] **T4.14** Prueba en `schema.test.ts`: la migración 10 → 11 conserva los datos.
+- [x] **T4.15** `npm test` completo en verde.
 
 ---
 
 ## Commit 5 — Asistente de parto en cuatro pasos
 
-- [ ] **T5.1** Crear `src/screens/birth/` con el contenedor de pasos y el estado
+- [x] **T5.1** Crear `src/screens/birth/` con el contenedor de pasos y el estado
       compartido del asistente.
-- [ ] **T5.2** Paso 1 — Elegir madre: lista de preñadas con fecha probable de parto.
-- [ ] **T5.3** Paso 1 — `EmptyState` que explique que solo aparecen hembras con preñez
+- [x] **T5.2** Paso 1 — Elegir madre: lista de preñadas con fecha probable de parto.
+- [x] **T5.3** Paso 1 — `EmptyState` que explique que solo aparecen hembras con preñez
       activa y que la preñez se registra en el panel.
-- [ ] **T5.4** Paso 2 — Confirmar datos: padre de **solo lectura**, fecha del parto (hoy por
+- [x] **T5.4** Paso 2 — Confirmar datos: padre de **solo lectura**, fecha del parto (hoy por
       defecto, editable), dificultad (`Normal` por defecto).
-- [ ] **T5.5** Paso 3 — Crías: header fijo (total y desglose M/F), lista scrolleable, footer
+- [x] **T5.5** Paso 3 — Crías: header fijo (total y desglose M/F), lista scrolleable, footer
       fijo con `+Hembra` / `+Macho` y avanzar.
-- [ ] **T5.6** Paso 3 — conservar arete opcional, peso opcional con validación de decimal
+- [x] **T5.6** Paso 3 — conservar arete opcional, peso opcional con validación de decimal
       positivo, cambio de sexo y quitar cría (3.5a.0 #2 y 3.5a.4).
-- [ ] **T5.7** Paso 4 — Resumen y confirmación; encolar y volver a Inicio.
-- [ ] **T5.8** Indicador de progreso de cuatro puntos en todos los pasos.
-- [ ] **T5.9** Atrás conserva lo ya cargado.
-- [ ] **T5.10** `App.tsx`: dejar de pasar `dams`/`sires`; pasar las preñadas.
-- [ ] **T5.11** Verificar que ningún archivo de `src/screens/birth/` pase de ~150 líneas.
-- [ ] **T5.12** Prueba: el paso 1 lista solo preñadas y muestra el `EmptyState` cuando no
+- [x] **T5.7** Paso 4 — Resumen y confirmación; encolar y volver a Inicio.
+- [x] **T5.8** Indicador de progreso de cuatro puntos en todos los pasos.
+- [x] **T5.9** Atrás conserva lo ya cargado.
+- [x] **T5.10** `App.tsx`: dejar de pasar `dams`/`sires`; pasar las preñadas.
+- [x] **T5.11** Verificar que ningún archivo de `src/screens/birth/` pase de ~150 líneas.
+- [x] **T5.12** Prueba: el paso 1 lista solo preñadas y muestra el `EmptyState` cuando no
       hay ninguna.
-- [ ] **T5.13** Prueba: **no existe ningún `testID` `sire-*`** en toda la pantalla.
-- [ ] **T5.14** Prueba: camada editable — agregar, quitar, cambiar sexo, arete, peso.
-- [ ] **T5.15** Prueba: el peso rechaza valores no positivos.
-- [ ] **T5.16** Prueba: retroceder de paso conserva las crías cargadas.
-- [ ] **T5.17** Prueba: confirmar encola con `pregnancyId` y **sin** padre.
-- [ ] **T5.18** Prueba: camada de 20 — contador y botones siguen accesibles.
-- [ ] **T5.19** `npm test` completo en verde.
+- [x] **T5.13** Prueba: **no existe ningún `testID` `sire-*`** en toda la pantalla.
+- [x] **T5.14** Prueba: camada editable — agregar, quitar, cambiar sexo, arete, peso.
+- [x] **T5.15** Prueba: el peso rechaza valores no positivos.
+- [x] **T5.16** Prueba: retroceder de paso conserva las crías cargadas.
+- [x] **T5.17** Prueba: confirmar encola con `pregnancyId` y **sin** padre.
+- [x] **T5.18** Prueba: camada de 20 — contador y botones siguen accesibles.
+- [x] **T5.19** `npm test` completo en verde.
 
 ---
 
 ## Commit 6 — Inicio y limpieza
 
-- [ ] **T6.1** `ActivitiesHub.tsx`: activar `scrollable` y revisar el espaciado entre
+- [x] **T6.1** `ActivitiesHub.tsx`: activar `scrollable` y revisar el espaciado entre
       grupos, respetando el mínimo de 64pt del tema.
-- [ ] **T6.2** Verificar que **no se alteró el orden de los sujetos** (spec sec. 8).
-- [ ] **T6.3** Eliminar `src/screens/HomeScreen.tsx`.
-- [ ] **T6.4** Eliminar su import en `src/App.tsx`.
-- [ ] **T6.5** Eliminar `tests/HomeScreen.test.tsx`.
-- [ ] **T6.6** `BACKLOG.md`: anotar la reconciliación automática de existencia.
-- [ ] **T6.7** `BACKLOG.md`: anotar `MilkingScreen`, `EventsScreen`, `TreatScreen` y
+- [x] **T6.2** Verificar que **no se alteró el orden de los sujetos** (spec sec. 8).
+- [x] **T6.3** Eliminar `src/screens/HomeScreen.tsx`.
+- [x] **T6.4** Eliminar su import en `src/App.tsx`.
+- [x] **T6.5** Eliminar `tests/HomeScreen.test.tsx`.
+- [x] **T6.6** `BACKLOG.md`: anotar la reconciliación automática de existencia.
+- [x] **T6.7** `BACKLOG.md`: anotar `MilkingScreen`, `EventsScreen`, `TreatScreen` y
       `LotEventsScreen` con el mismo problema de espacio.
-- [ ] **T6.8** `npm test` completo en verde.
+- [x] **T6.8** `npm test` completo en verde.
 
 ---
 

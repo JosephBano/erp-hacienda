@@ -152,9 +152,56 @@ public class SyncTestContext
         return login!;
     }
 
-    public async Task<Guid> CreateSpeciesAsync(string name)
+    public async Task<Guid> CreateSpeciesAsync(string name, int? gestationDays = 283)
     {
-        var response = await Client.PostAsJsonAsync("/api/v1/species", new { name = $"{name}-{Guid.NewGuid():N}" });
+        var response = await Client.PostAsJsonAsync("/api/v1/species", new
+        {
+            name = $"{name}-{Guid.NewGuid():N}",
+            gestationDays = gestationDays ?? 283,
+        });
+        response.EnsureSuccessStatusCode();
+
+        var body = await response.Content.ReadFromJsonAsync<JsonElement>();
+        return body.GetProperty("id").GetGuid();
+    }
+
+    public async Task<Guid> RegisterBreedingServiceAsync(
+        Guid damId,
+        Guid? sireAnimalId = null,
+        Guid? strawId = null,
+        string serviceType = "Natural",
+        DateOnly? serviceDate = null)
+    {
+        var date = serviceDate ?? DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-30));
+        var response = await Client.PostAsJsonAsync("/api/v1/breeding/services", new
+        {
+            damId,
+            serviceType,
+            serviceDate = date,
+            sireAnimalId,
+            strawId,
+        });
+        response.EnsureSuccessStatusCode();
+
+        var body = await response.Content.ReadFromJsonAsync<JsonElement>();
+        return body.GetProperty("id").GetGuid();
+    }
+
+    public async Task<Guid> RecordPregnancyCheckAsync(
+        Guid serviceId,
+        string result = "Positive",
+        DateOnly? checkDate = null,
+        int? gestationDays = null)
+    {
+        var date = checkDate ?? DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-10));
+        var response = await Client.PostAsJsonAsync("/api/v1/breeding/pregnancy-checks", new
+        {
+            serviceId,
+            checkDate = date,
+            method = "Ultrasound",
+            result,
+            gestationDays,
+        });
         response.EnsureSuccessStatusCode();
 
         var body = await response.Content.ReadFromJsonAsync<JsonElement>();

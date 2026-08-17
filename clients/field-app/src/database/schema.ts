@@ -13,7 +13,7 @@ import { appSchema, tableSchema } from '@nozbe/watermelondb';
  * representable locally, otherwise a record deleted on the server would live on in the
  * employee's list forever.
  */
-export const SCHEMA_VERSION = 10;
+export const SCHEMA_VERSION = 11;
 
 export const schema = appSchema({
   version: SCHEMA_VERSION,
@@ -260,5 +260,30 @@ export const schema = appSchema({
         { name: 'is_deleted', type: 'boolean' },
       ],
     }),
+    tableSchema({
+      name: 'pregnancies',
+      columns: [
+        { name: 'dam_id', type: 'string', isIndexed: true },
+        { name: 'service_id', type: 'string', isOptional: true },
+        { name: 'status', type: 'string', isIndexed: true },
+        { name: 'expected_birth_date', type: 'string', isOptional: true },
+        { name: 'is_deleted', type: 'boolean' },
+        { name: 'server_created_at', type: 'number' },
+        { name: 'server_updated_at', type: 'number', isOptional: true },
+      ],
+    }),
+    tableSchema({
+      name: 'breeding_services',
+      columns: [
+        { name: 'dam_id', type: 'string', isIndexed: true },
+        { name: 'service_type', type: 'string' },
+        { name: 'sire_animal_id', type: 'string', isOptional: true },
+        { name: 'straw_id', type: 'string', isOptional: true },
+        { name: 'is_deleted', type: 'boolean' },
+        { name: 'server_created_at', type: 'number' },
+        { name: 'server_updated_at', type: 'number', isOptional: true },
+      ],
+    }),
   ],
 });
+

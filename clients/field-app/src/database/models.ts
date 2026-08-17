@@ -255,6 +255,30 @@ export class AnimalEvent extends Model {
   @field('is_deleted') declare isDeleted: boolean;
 }
 
+export class Pregnancy extends Model {
+  static table = 'pregnancies';
+
+  @text('dam_id') declare damId: string;
+  @text('service_id') serviceId?: string;
+  @text('status') declare status: string;
+  @text('expected_birth_date') expectedBirthDate?: string;
+  @field('is_deleted') declare isDeleted: boolean;
+  @field('server_created_at') declare serverCreatedAt: number;
+  @field('server_updated_at') serverUpdatedAt?: number;
+}
+
+export class BreedingService extends Model {
+  static table = 'breeding_services';
+
+  @text('dam_id') declare damId: string;
+  @text('service_type') declare serviceType: string;
+  @text('sire_animal_id') sireAnimalId?: string;
+  @text('straw_id') strawId?: string;
+  @field('is_deleted') declare isDeleted: boolean;
+  @field('server_created_at') declare serverCreatedAt: number;
+  @field('server_updated_at') serverUpdatedAt?: number;
+}
+
 export const modelClasses = [
   Animal,
   AnimalIdentifier,
@@ -275,4 +299,7 @@ export const modelClasses = [
   DoseKind,
   PlausibilityRange,
   AnimalEvent,
+  Pregnancy,
+  BreedingService,
 ];
+

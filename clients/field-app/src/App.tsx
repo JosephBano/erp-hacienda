@@ -19,14 +19,15 @@ import {
   loadHerd,
   loadMedications,
   loadMortalityCauses,
+  loadPregnantDams,
   loadTreatmentProducts,
+  type PregnantDam,
 } from './services/herdQueries';
 import { ActivitiesHub } from './screens/ActivitiesHub';
 import { AnimalEditScreen } from './screens/AnimalEditScreen';
 import { AnimalSubjectScreen } from './screens/AnimalSubjectScreen';
 import { BirthScreen } from './screens/BirthScreen';
 import { EventsScreen } from './screens/EventsScreen';
-import { HomeScreen } from './screens/HomeScreen';
 import { LoginScreen } from './screens/LoginScreen';
 import { LotEventsScreen } from './screens/LotEventsScreen';
 import { LotSubjectScreen, type LotActivity } from './screens/LotSubjectScreen';
@@ -97,6 +98,7 @@ export default function App() {
   const [medications, setMedications] = useState<Awaited<ReturnType<typeof loadMedications>>>([]);
   const [mortalityCauses, setMortalityCauses] = useState<Awaited<ReturnType<typeof loadMortalityCauses>>>([]);
   const [feedItems, setFeedItems] = useState<Awaited<ReturnType<typeof loadFeedItems>>>([]);
+  const [pregnantDams, setPregnantDams] = useState<PregnantDam[]>([]);
   // ADR-0019: the production module is on by default; the pull flips it off for the
   // pig pilot. ModuleVisibility answers from the local DB with no network, so this is
   // offline-safe by construction.
@@ -126,13 +128,14 @@ export default function App() {
   const visibility = useMemo(() => new ModuleVisibility(database, api), [database, api]);
 
   const refresh = useCallback(async () => {
-    const [nextHerd, nextGroups, nextTreatmentProducts, nextMedications, nextMortalityCauses, nextFeedItems, stats, productionVisible, today] = await Promise.all([
+    const [nextHerd, nextGroups, nextTreatmentProducts, nextMedications, nextMortalityCauses, nextFeedItems, nextPregnantDams, stats, productionVisible, today] = await Promise.all([
       loadHerd(database),
       loadGroups(database),
       loadTreatmentProducts(database),
       loadMedications(database),
       loadMortalityCauses(database),
       loadFeedItems(database),
+      loadPregnantDams(database),
       outbox.stats(),
       visibility.canShow('production'),
       outbox.today(),
@@ -144,6 +147,7 @@ export default function App() {
     setMedications(nextMedications);
     setMortalityCauses(nextMortalityCauses);
     setFeedItems(nextFeedItems);
+    setPregnantDams(nextPregnantDams);
     setPending(stats.pending);
     setProductionOn(productionVisible);
     setTodayEntries(
@@ -319,7 +323,7 @@ export default function App() {
         ) : null}
 
         {/*
-          Defense in depth: HomeScreen hides the entry, but if `tab === 'milking'` ever
+          Defense in depth: ActivitiesHub hides the entry, but if `tab === 'milking'` ever
           ended up set while the module was off — a stale state across a sign-out, a
           deep-link we have not built yet — we still do not render the screen. The data
           path stays open (OutboxService is independent of this branch).
@@ -372,9 +376,12 @@ export default function App() {
         {tab === 'birth' ? (
           <BirthScreen
             service={births}
-            dams={herd.filter((member) => member.sex === 'Female')}
-            sires={herd.filter((member) => member.sex === 'Male')}
-            onRecorded={refresh}
+            dams={pregnantDams}
+            onRecorded={() => {
+              refresh();
+              setTab('home');
+            }}
+            onCancel={() => setTab('home')}
           />
         ) : null}
 

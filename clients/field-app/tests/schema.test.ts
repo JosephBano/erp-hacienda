@@ -26,6 +26,8 @@ describe('local schema', () => {
         'farm_modules',
         'mortality_causes',
         'animal_events',
+        'pregnancies',
+        'breeding_services',
       ]),
     );
   });
@@ -149,8 +151,65 @@ describe('local schema', () => {
         row.endsAt = '2026-08-06';
         row.isDeleted = false;
       });
+      await database.get('pregnancies').create((row: any) => {
+        row._raw.id = 'preg-1';
+        row.damId = 'dam-1';
+        row.status = 'Active';
+        row.isDeleted = false;
+        row.serverCreatedAt = Date.now();
+      });
+      await database.get('breeding_services').create((row: any) => {
+        row._raw.id = 'serv-1';
+        row.damId = 'dam-1';
+        row.serviceType = 'Natural';
+        row.isDeleted = false;
+        row.serverCreatedAt = Date.now();
+      });
     });
 
     expect(await database.get('withdrawal_periods').query().fetchCount()).toBe(1);
+    expect(await database.get('pregnancies').query().fetchCount()).toBe(1);
+    expect(await database.get('breeding_services').query().fetchCount()).toBe(1);
+  });
+
+  it('defines a migration from version 10 to 11 creating pregnancies and breeding_services (T4.14)', () => {
+    const allMigrations = (migrations as any).sortedMigrations ?? (migrations as any).migrations ?? [];
+    const v11Migration = allMigrations.find((m: any) => m.toVersion === 11);
+    expect(v11Migration).toBeDefined();
+
+    const tableNames = v11Migration?.steps.map((s: any) => s.schema?.name ?? s.name);
+    expect(tableNames).toEqual(['pregnancies', 'breeding_services']);
+
+    const pregStep = v11Migration?.steps.find((s: any) => (s.schema?.name ?? s.name) === 'pregnancies') as any;
+    const servStep = v11Migration?.steps.find((s: any) => (s.schema?.name ?? s.name) === 'breeding_services') as any;
+
+    expect(pregStep.type).toBe('create_table');
+    expect(servStep.type).toBe('create_table');
+
+    // Columns match the schema definitions
+    const pregCols = Object.keys(pregStep.schema.columns);
+    expect(pregCols).toEqual([
+      'dam_id',
+      'service_id',
+      'status',
+      'expected_birth_date',
+      'is_deleted',
+      'server_created_at',
+      'server_updated_at',
+    ]);
+
+    const servCols = Object.keys(servStep.schema.columns);
+    expect(servCols).toEqual([
+      'dam_id',
+      'service_type',
+      'sire_animal_id',
+      'straw_id',
+      'is_deleted',
+      'server_created_at',
+      'server_updated_at',
+    ]);
   });
 });
+
+
+

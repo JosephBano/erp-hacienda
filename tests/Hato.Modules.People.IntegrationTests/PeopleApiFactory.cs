@@ -1,3 +1,4 @@
+using Hato.Modules.Breeding.Infrastructure.Persistence;
 using Hato.Modules.Inventory.Infrastructure.Persistence;
 using Hato.Modules.Livestock.Infrastructure.Persistence;
 using Hato.Modules.People.Infrastructure.Persistence;
@@ -49,6 +50,12 @@ public class PeopleApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
             .Options;
         await using var inventoryContext = new InventoryDbContext(inventoryOptions);
         await inventoryContext.Database.MigrateAsync();
+
+        var breedingOptions = new DbContextOptionsBuilder<BreedingDbContext>()
+            .UseNpgsql(_database.ConnectionString, n => n.MigrationsHistoryTable("__ef_migrations_history", BreedingDbContext.Schema))
+            .Options;
+        await using var breedingContext = new BreedingDbContext(breedingOptions);
+        await breedingContext.Database.MigrateAsync();
 
         var peopleOptions = new DbContextOptionsBuilder<PeopleDbContext>()
             .UseNpgsql(_database.ConnectionString, n => n.MigrationsHistoryTable("__ef_migrations_history", PeopleDbContext.Schema))

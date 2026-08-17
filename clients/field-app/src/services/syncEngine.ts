@@ -3,6 +3,7 @@ import NetInfo from '@react-native-community/netinfo';
 
 import { SyncMeta } from '../database/models';
 import { Outbox, OutboxStats } from './outbox';
+import { LoggerService } from './loggerService';
 import type { PushOperation, PushResult, SyncApi } from './syncApi';
 
 const CURSOR_KEY = 'pull_cursor';
@@ -22,6 +23,7 @@ export interface SyncResult {
 export interface SyncEngineOptions {
   /** Must stay at or below the server's own batch ceiling (500). */
   batchSize?: number;
+  logger?: LoggerService;
 }
 
 /**
@@ -49,6 +51,7 @@ export function backoffDelayMs(consecutiveFailures: number): number {
 export class SyncEngine {
   private readonly outbox: Outbox;
   private readonly batchSize: number;
+  private readonly logger: LoggerService;
   private consecutiveFailures = 0;
   private running = false;
   private unsubscribe?: () => void;
@@ -60,6 +63,7 @@ export class SyncEngine {
   ) {
     this.outbox = new Outbox(database);
     this.batchSize = options.batchSize ?? 100;
+    this.logger = options.logger ?? new LoggerService();
   }
 
   /**
@@ -175,6 +179,34 @@ export class SyncEngine {
     }
   }
 
+  /**
+   * Resets all mirror tables (those populated from the server via TABLE_BY_COLLECTION)
+   * and clears the stored pull cursor so the next sync performs a clean full download.
+   *
+   * CRITICAL (Rule 10 & D8): NEVER touches sync_outbox, milk_yields, or any local-only tables.
+   */
+  async resetMirror(): Promise<void> {
+    const mirrorTables = Array.from(new Set(Object.values(TABLE_BY_COLLECTION)));
+
+    await this.database.write(async () => {
+      for (const table of mirrorTables) {
+        const collection = this.database.get(table);
+        const records = await collection.query().fetch();
+        const destroyOps = records.map((r) => r.prepareDestroyPermanently());
+        if (destroyOps.length > 0) {
+          await this.database.batch(...destroyOps);
+        }
+      }
+
+      const metaCollection = this.database.get<SyncMeta>('sync_meta');
+      const metaRecords = await metaCollection.query(Q.where('key', CURSOR_KEY)).fetch();
+      const metaDestroyOps = metaRecords.map((r) => r.prepareDestroyPermanently());
+      if (metaDestroyOps.length > 0) {
+        await this.database.batch(...metaDestroyOps);
+      }
+    });
+  }
+
   private async pullChanges(): Promise<{
     ok: boolean;
     reason?: SyncFailureReason;
@@ -191,7 +223,11 @@ export class SyncEngine {
         return { ok: false, reason: classify(error), pulled };
       }
 
-      pulled += await this.applyCollections(response.collections);
+      try {
+        pulled += await this.applyCollections(response.collections);
+      } catch (error) {
+        return { ok: false, reason: classify(error), pulled };
+      }
 
       cursor = response.cursor || cursor;
       if (cursor) {
@@ -215,10 +251,20 @@ export class SyncEngine {
     collections: Record<string, Array<Record<string, unknown>>>,
   ): Promise<number> {
     let applied = 0;
+    let hasUnknown = false;
 
     for (const [collectionName, rows] of Object.entries(collections)) {
       const table = TABLE_BY_COLLECTION[collectionName];
-      if (!table || !Array.isArray(rows) || rows.length === 0) {
+      if (!table) {
+        this.logger.logError(`Colección no reconocida en sincronización: ${collectionName}`, {
+          collection: collectionName,
+          count: Array.isArray(rows) ? rows.length : 0,
+        });
+        hasUnknown = true;
+        continue;
+      }
+
+      if (!Array.isArray(rows) || rows.length === 0) {
         continue;
       }
 
@@ -259,6 +305,10 @@ export class SyncEngine {
       });
 
       applied += ops.length;
+    }
+
+    if (hasUnknown) {
+      throw new Error('Colección no reconocida recibida durante la sincronización');
     }
 
     return applied;
@@ -332,6 +382,8 @@ const TABLE_BY_COLLECTION: Record<string, string> = {
   // 3.5a.1 (ADR-0015) + BACKLOG "AnimalEvent grupal aún no viaja en el pull":
   // animal- and group-subject event history, needed by 3.5a.7's lot record.
   animalEvents: 'animal_events',
+  pregnancies: 'pregnancies',
+  breedingServices: 'breeding_services',
 };
 
 /**
@@ -339,7 +391,7 @@ const TABLE_BY_COLLECTION: Record<string, string> = {
  * are stored under `server*` names because WatermelonDB reserves the plain ones for its
  * own bookkeeping.
  */
-function applyRow(record: any, row: Record<string, unknown>): void {
+export function applyRow(record: any, row: Record<string, unknown>): void {
   for (const [key, value] of Object.entries(row)) {
     if (key === 'id') continue;
 
@@ -357,10 +409,6 @@ function applyRow(record: any, row: Record<string, unknown>): void {
     if (key in record) {
       record[key] = value ?? undefined;
     }
-  }
-
-  if ('isDeleted' in record) {
-    record.isDeleted = false;
   }
 }
 

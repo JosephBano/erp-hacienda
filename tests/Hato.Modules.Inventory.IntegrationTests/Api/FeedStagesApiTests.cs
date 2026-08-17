@@ -7,7 +7,7 @@ using Xunit;
 namespace Hato.Modules.Inventory.IntegrationTests.Api;
 
 /// <summary>
-/// docs/planes/fase-3-5/spec-3.5a.md sec.3.5a.5 task 3: feed_stage catalog. Verifies the seed
+/// docs/spec/plan-0002-fase-3-5/spec-3.5a.md sec.3.5a.5 task 3: feed_stage catalog. Verifies the seed
 /// lands via the real migration, the listing endpoint reads it back through Postgres,
 /// and the domain invariant ("only Feed items may declare a stage") holds end-to-end
 /// through the HTTP surface, not just in the unit tests.

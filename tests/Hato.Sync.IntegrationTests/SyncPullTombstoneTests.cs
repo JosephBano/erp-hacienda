@@ -4,7 +4,7 @@ using Xunit;
 namespace Hato.Sync.IntegrationTests;
 
 /// <summary>
-/// Scenario 5 of docs/planes/fase-3/spec.md sec.2.2: a logical delete reaches the client and disappears
+/// Scenario 5 of docs/spec/plan-0001-fase-3/spec.md sec.2.2: a logical delete reaches the client and disappears
 /// from its local base. Until <c>Animal.Delete()</c> existed, no domain operation ever set
 /// <c>deleted_at</c> anywhere in the system, so this path was entirely untested — the
 /// tombstone plumbing in the pull query had never actually carried a real tombstone.

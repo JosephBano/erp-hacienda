@@ -10,7 +10,7 @@ namespace Hato.Modules.Livestock.IntegrationTests.Api;
 /// <summary>
 /// 3.5a.2-A second half: the structured treatment payload (route + reason +
 /// batch + applied_by + forward-compat health_plan_item_id) round-trips
-/// through the API and survives a read-back. docs/planes/fase-3-5/sub-planes/3.5a.2-A.md
+/// through the API and survives a read-back. docs/spec/plan-0002-fase-3-5/sub-planes/3.5a.2-A.md
 /// sec."Pruebas" punto 8 ("se guarda el dato").
 /// </summary>
 public class TreatmentEventPayloadApiTests(HatoApiFactory factory) : IClassFixture<HatoApiFactory>

@@ -6,7 +6,7 @@ using Xunit;
 namespace Hato.Sync.IntegrationTests;
 
 /// <summary>
-/// The mandatory push scenarios of docs/planes/fase-3/spec.md sec.2.2. This is the file the plan says to
+/// The mandatory push scenarios of docs/spec/plan-0001-fase-3/spec.md sec.2.2. This is the file the plan says to
 /// write before looking at the endpoint signature, because push is where farm records get
 /// duplicated or quietly dropped.
 /// </summary>
@@ -103,7 +103,7 @@ public class SyncPushProtocolTests(SyncApiFactory factory)
     }
 
     /// <summary>
-    /// ADR-0015 + docs/planes/fase-3/spec.md sec.2.2: a group disposal replayed by a retry or a double
+    /// ADR-0015 + docs/spec/plan-0001-fase-3/spec.md sec.2.2: a group disposal replayed by a retry or a double
     /// tap must decrement <c>LiveHeadCount</c> exactly once, the same "never duplicate"
     /// guarantee every other push operation gets from the generic claim step.
     /// </summary>

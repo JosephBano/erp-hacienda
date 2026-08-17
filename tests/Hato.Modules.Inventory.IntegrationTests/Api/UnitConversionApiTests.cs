@@ -13,7 +13,7 @@ namespace Hato.Modules.Inventory.IntegrationTests.Api;
 /// The API surface for conversions is the minimum the field-app needs to
 /// download the catalog today: an item's conversions are listed under
 /// /api/v1/inventory/items/{id}/unit-conversions, and a new conversion is
-/// posted through the same path. Future sync work (docs/planes/fase-3/spec.md sec.2.2)
+/// posted through the same path. Future sync work (docs/spec/plan-0001-fase-3/spec.md sec.2.2)
 /// will fold these into the pull collection; for now the endpoint is
 /// reachable for the admin-web / swagger tooling that is already wired up.
 /// </summary>
@@ -85,7 +85,7 @@ public class UnitConversionApiTests(InventoryApiFactory factory) : IClassFixture
         Assert.Equal(40m, consumption.AppliedFactor);
 
         // 5. And the stock moved by the kilos, not by the number the operator typed.
-        // This is the assertion docs/planes/fase-3-5/spec-3.5a.md sec.3.5a.5 asks for by name
+        // This is the assertion docs/spec/plan-0002-fase-3-5/spec-3.5a.md sec.3.5a.5 asks for by name
         // ("consumo en sacos descuenta los kilos correctos del batch"); without it the
         // "bug del saco" survives on the stock side while the consumption row looks right.
         var item = await Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions

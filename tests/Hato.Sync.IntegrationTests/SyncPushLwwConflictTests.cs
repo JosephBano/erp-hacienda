@@ -5,7 +5,7 @@ using Xunit;
 namespace Hato.Sync.IntegrationTests;
 
 /// <summary>
-/// Scenario 8 of docs/planes/fase-3/spec.md sec.2.2: "dos dispositivos editan el mismo campo → LWW
+/// Scenario 8 of docs/spec/plan-0001-fase-3/spec.md sec.2.2: "dos dispositivos editan el mismo campo → LWW
 /// aplicado y entrada en la bitácora de conflictos." Animal's mutable fields (breed,
 /// category, birth date) are the "Datos de Animales" example ADR-0008 names for the
 /// editable-entity LWW strategy — everything else in the sync protocol is append-only

@@ -5,7 +5,7 @@ namespace Hato.Sync.IntegrationTests;
 
 /// <summary>
 /// Births are the one field flow where the client creates a brand new animal offline
-/// (docs/planes/fase-3/spec.md sec.3.B). The calf has to arrive on the server exactly once and with its
+/// (docs/spec/plan-0001-fase-3/spec.md sec.3.B). The calf has to arrive on the server exactly once and with its
 /// genealogy intact — a calf without a dam is a silently corrupted pedigree that nobody
 /// notices until someone asks who its mother was, years later.
 /// </summary>

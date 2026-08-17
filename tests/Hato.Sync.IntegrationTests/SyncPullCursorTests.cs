@@ -6,7 +6,7 @@ using Xunit;
 namespace Hato.Sync.IntegrationTests;
 
 /// <summary>
-/// Cursor semantics (docs/planes/fase-3/spec.md sec.2.2, scenario 4). A cursor that repeats rows wastes
+/// Cursor semantics (docs/spec/plan-0001-fase-3/spec.md sec.2.2, scenario 4). A cursor that repeats rows wastes
 /// bandwidth; a cursor that skips them loses farm records silently, which is the failure
 /// mode this whole suite exists to prevent.
 /// </summary>

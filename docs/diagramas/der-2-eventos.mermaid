@@ -2,7 +2,7 @@
 %% Auditoría commit 10 (docs/reestructura-documentacion): EVENT_TYPES nunca fue tabla —
 %% `animal_events.event_type` es varchar libre, sin catalogo respaldando el codigo; se retira
 %% (no hay fase que la comprometa). ATTACHMENTS no existe; esta comprometida para Fase 4
-%% (`feature/shared-attachments`, docs/planes/fase-4/spec.md sec. "Bloque 4.A") y se marca
+%% (`feature/shared-attachments`, docs/spec/plan-0003-fase-4/spec.md sec. "Bloque 4.A") y se marca
 %% FUTURO en vez de borrarse. `animal_events` gano columnas de Fase 3.5 (group_id, cause_id,
 %% route_id, batch_id, health_plan_item_id, migrated_to_course_id, applied_by_user_id) que no
 %% tenian tabla propia dibujada aqui — el CHECK animal_id XOR group_id que Nucleo 2 dejo como
@@ -22,7 +22,7 @@ erDiagram
     ANIMAL_EVENTS |o--o{ WITHDRAWAL_PERIODS : "tratamiento genera (event_id, opcional)"
     ANIMALS ||--o{ WITHDRAWAL_PERIODS : "bloqueado por"
 
-    %% FUTURO — Fase 4 (feature/shared-attachments, docs/planes/fase-4/spec.md)
+    %% FUTURO — Fase 4 (feature/shared-attachments, docs/spec/plan-0003-fase-4/spec.md)
     ANIMAL_EVENTS ||--o{ ATTACHMENTS : "documentado por"
 
     ANIMAL_EVENTS {

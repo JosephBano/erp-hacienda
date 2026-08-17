@@ -6,7 +6,7 @@
 %% la opcion "por tanque sin animal" a nivel de fila — y no tiene `group_id`, `lactation_id`,
 %% `is_sellable` ni `withdrawal_period_id`. `milk_quality_tests` no existe en ninguna migracion.
 %% Ninguna de las dos brechas esta comprometida en un plan de fase (grep sin resultados en
-%% docs/planes/): se retiran en vez de marcarse FUTURO. Lo que si existe es `group_id` a nivel
+%% docs/spec/): se retiran en vez de marcarse FUTURO. Lo que si existe es `group_id` a nivel
 %% de MILKING_SESSIONS (la sesion completa puede anotarse "de que grupo se ordeño", pero cada
 %% fila de leche sigue siendo por animal) y `total_liters` denormalizado en la sesion.
 erDiagram

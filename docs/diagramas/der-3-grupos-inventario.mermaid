@@ -1,7 +1,7 @@
 %% Verificado el 2026-08-16 contra Inventory 20260813141042_AddInventoryReceptionFields
 %% y Livestock 20260806191243_AddAnimalGroupTrackingModeAndGroupEvents
 %% Auditoría commit 10 (docs/reestructura-documentacion), diagnostico original en spec.md sec. 2.5:
-%% PADDOCKS y GRAZING_MOVEMENTS son Fase 5 (docs/planes/fase-5/spec.md), nunca se construyeron —
+%% PADDOCKS y GRAZING_MOVEMENTS son Fase 5 (docs/spec/plan-0004-fase-5/spec.md), nunca se construyeron —
 %% se marcan FUTURO. UNITS nunca se construyo y no esta planificada como tabla propia: lo que
 %% existe es `unit_conversions` por item (from_unit/to_unit son varchar, no FK a un catalogo
 %% global) — se retira en vez de marcarse. Falta FEED_STAGES, que existe desde
@@ -21,7 +21,7 @@ erDiagram
     ANIMAL_GROUPS ||--o{ GROUP_MEMBERSHIPS : "compuesto por"
     ANIMALS ||--o{ GROUP_MEMBERSHIPS : "pertenece con historial"
 
-    %% FUTURO — Fase 5 (docs/planes/fase-5/spec.md)
+    %% FUTURO — Fase 5 (docs/spec/plan-0004-fase-5/spec.md)
     ANIMAL_GROUPS ||--o{ GRAZING_MOVEMENTS : "rota por"
     %% FUTURO — Fase 5
     PADDOCKS ||--o{ GRAZING_MOVEMENTS : "recibe"

@@ -104,7 +104,7 @@
       exactamente la falla que esta tarea existe para impedir. Se corrigió comparando
       línea por línea contra la fuente, que entonces vivía en la rama
       `feature/field-app-parto-redesign` y hoy vive en el repo:
-      `docs/planes/field-app-parto-redesign/test-e2e.md` (la rama se trajo acá y se borró el
+      `docs/spec/feature-0002-field-app-parto-redesign/test-e2e.md` (la rama se trajo acá y se borró el
       2026-08-17; solo contenía esos cuatro documentos).
 
       > **Excepción, dictada durante la ejecución (2026-08-16): `TEMPLATE-adr.md`.**
@@ -116,7 +116,7 @@
 - [x] **T2.9** `ls docs/plantillas/*.md | wc -l` imprime `6`. Verificado ahora mismo:
       imprime `6`.
 - [x] **T2.10** `grep -rn "docs/adr/TEMPLATE\.md" --include=*.md . | grep -v node_modules |
-      grep -v 'docs/planes/reestructura-documentacion/'` devuelve cero.
+      grep -v 'docs/spec/feature-0003-reestructura-documentacion/'` devuelve cero.
       La exclusión es la misma de siempre: esta carpeta narra la migración y sus menciones
       a rutas viejas son deliberadas (spec criterio 7, `test-e2e.md` V-2 y V-5).
       Verificado ahora mismo: el comando devuelve cero líneas.
@@ -136,7 +136,7 @@
       `commit-3-report.md:23`, sec. 3 de `docs/DOCUMENTACION.md`.
 - [x] **T3.4** Sección de archivado (spec sec. 5.2): un plan de fase cerrada no se borra,
       se marca en el encabezado. `commit-3-report.md:24`. Aplicada en la práctica: el
-      encabezado de `docs/planes/fase-3/spec.md` dice "**Documento archivado**" citando
+      encabezado de `docs/spec/plan-0001-fase-3/spec.md` dice "**Documento archivado**" citando
       esta misma regla.
 - [x] **T3.5** `AGENTS.md` lo enlaza desde "Dónde están las cosas".
       `commit-3-report.md:25`: un solo hunk, una sola línea. Confirmado ahora:
@@ -180,11 +180,11 @@
 ## Commit 5 — `fase-3/`
 
 - [x] **T5.1** `spec.md`: encabezado declarando procedencia (`PLAN-FASE-3-4.md` secs. 2.2
-      y 3) y estado de la fase. Confirmado: `docs/planes/fase-3/spec.md` abre con
+      y 3) y estado de la fase. Confirmado: `docs/spec/plan-0001-fase-3/spec.md` abre con
       "**Documento archivado**" y cita su procedencia.
 - [x] **T5.2** Absorber sec. 2.2 — los 10 escenarios obligatorios de sincronización —
       **conservando el número `2.2`** (D6). Verificado ahora:
-      `grep -nE '^#+ .*2\.2' docs/planes/fase-3/spec.md` → línea 66.
+      `grep -nE '^#+ .*2\.2' docs/spec/plan-0001-fase-3/spec.md` → línea 66.
 - [x] **T5.3** Absorber sec. 3 — bloques 3.A–3.C — **conservando los números `3.x`** (D6).
       Verificado ahora: bloques 3.A (línea 108), 3.B (196), 3.C (270) presentes.
 - [x] **T5.4** Incorporar el estado y la retrospectiva de `ROADMAP.md:33-56` (el cierre
@@ -195,19 +195,19 @@
       y `commit-5b-report.md`); ahora cita los dos rangos correctos, verificados leyendo
       `docs/ROADMAP.md:33-56` y `:109-142` directamente.
 - [x] **T5.5** `plan.md`: la secuencia de ~11 ramas, marcada como ejecutada.
-      `docs/planes/fase-3/plan.md` existe con la secuencia y su estado de ejecución.
+      `docs/spec/plan-0001-fase-3/plan.md` existe con la secuencia y su estado de ejecución.
 - [x] **T5.6** `tasks.md`: todo `[x]` salvo el piloto real, que queda `[ ]` con la cita de
-      `ROADMAP.md:121-125`. Verificado ahora: `docs/planes/fase-3/tasks.md` tiene 23
+      `ROADMAP.md:121-125`. Verificado ahora: `docs/spec/plan-0001-fase-3/tasks.md` tiene 23
       tareas `[x]` y una sola `[ ]` (**T3C.2**, el piloto real), con la cita literal de
       `ROADMAP.md:121-125` en el texto de la tarea.
 - [x] **T5.7** `test-e2e.md`: los 10 escenarios de sync como guion ejecutable.
       `commit-5-report.md:16`: `SYNC-1`…`SYNC-11` (10 escenarios + prueba de
-      convergencia), `docs/planes/fase-3/test-e2e.md` existe.
+      convergencia), `docs/spec/plan-0001-fase-3/test-e2e.md` existe.
 - [x] **T5.8** Marcar la carpeta como **archivada** en el encabezado, según la regla T3.4.
       Verificado ahora: encabezado de `fase-3/spec.md` dice "**Documento archivado**"
       citando la regla de `DOCUMENTACION.md` sec. 4.
 - [x] **T5.9** Verificar que las secciones `2.2` y `3.x` existen con esos números exactos.
-      **Terminado:** `grep -nE '^#+ .*(2\.2|3\.[ABC])' docs/planes/fase-3/spec.md` las
+      **Terminado:** `grep -nE '^#+ .*(2\.2|3\.[ABC])' docs/spec/plan-0001-fase-3/spec.md` las
       encuentra. Ejecutado ahora mismo: devuelve las cuatro líneas esperadas.
       Desviación declarada en `commit-5-report.md:38-51`: la numeración de **nivel 1**
       del documento (1–7) no hereda la del `PLAN-FASE-3-4.md` original — solo las
@@ -233,13 +233,13 @@
       `3.5a.{3,4,5,7,8}`, `7`) resuelven en `spec.md`/`spec-3.5a.md` con el número exacto.
 - [x] **T6.3** Sección **"Adelantos de Fase 4 que viven aquí"** con las cinco piezas del
       spec 2.9, cada una con archivo, línea y contrato de caducidad literal (D7).
-      Existe en `docs/planes/fase-3-5/spec.md` sec. 2.9. Corregida en la ronda 1 tras el
+      Existe en `docs/spec/plan-0002-fase-3-5/spec.md` sec. 2.9. Corregida en la ronda 1 tras el
       hallazgo Crítico de T6.1 (fila 1 de la tabla citaba mal el código).
 - [x] **T6.4** Incorporar el estado de `ROADMAP.md:146-217`, incluidos ADR-0024, ADR-0021 y
       la recepción de inventario del PR #94. `commit-6-report.md:59`: trasladado a
       `plan.md` sec. 3 "Estado real contra develop", verbatim.
 - [x] **T6.5** **Enlazar** los ocho `sub_planes/`; no absorberlos (fuera de alcance).
-      Verificado ahora: `docs/planes/fase-3-5/plan.md:131-138` enlaza los ocho, y los
+      Verificado ahora: `docs/spec/plan-0002-fase-3-5/plan.md:131-138` enlaza los ocho, y los
       ocho archivos existen sin diffs contra su versión original (confirmado en
       `commit-6-report.md:64`).
 - [x] **T6.6** `tasks.md` con todas las tareas de 3.5a y 3.5b, **todas en `[ ]`**. Las
@@ -247,7 +247,7 @@
       tareas, ninguna marcada al momento del commit `746e557`. (Las marcó después la
       Compuerta A, ver T6.6 vs. estado actual en Compuerta A / T7 abajo.)
 - [x] **T6.7** `test-e2e.md` con el criterio de salida de 3.5a y 3.5b como guion.
-      `commit-6-report.md:63`: escenarios E2E-1/2/3, `docs/planes/fase-3-5/test-e2e.md`
+      `commit-6-report.md:63`: escenarios E2E-1/2/3, `docs/spec/plan-0002-fase-3-5/test-e2e.md`
       existe.
 - [x] **T6.8** Verificar que ningún archivo de la carpeta pasa de ~400 líneas. Si `spec.md`
       se pasa, partirlo por bloque `3.5a` / `3.5b`.
@@ -267,7 +267,7 @@
       3.5: SUPERADA", "Repositorio intacto (solo lectura)".
 - [x] **TA.2** El agente entrega `tasks.md` marcado. `.superpowers/sdd/plan/
       auditoria-3-5-tasks.md` es la copia marcada que entregó el auditor; aplicada a
-      `docs/planes/fase-3-5/tasks.md` en el commit 7 (`0f7aab9`).
+      `docs/spec/plan-0002-fase-3-5/tasks.md` en el commit 7 (`0f7aab9`).
 - [x] **TA.3** El agente entrega la lista de discrepancias documento-vs-código.
       `.superpowers/sdd/plan/auditoria-3-5-hallazgos.md` (137 líneas) + resumen de 3
       discrepancias en `progress.md:286-293` (D-1 unificación de `EventType`, D-2 bloque
@@ -279,14 +279,14 @@
       la línea que citó. **Terminado:** las tres se sostienen.
       `progress.md:283-285` cita las tres: `TrackingMode.cs:14`,
       `LiveHeadCountCalculator.cs:10`, `SyncPullQueries.cs:32`. Re-verificadas ahora mismo
-      contra `docs/planes/fase-3-5/tasks.md` (líneas 42, 57, 74): las tres citas de
+      contra `docs/spec/plan-0002-fase-3-5/tasks.md` (líneas 42, 57, 74): las tres citas de
       evidencia existen y apuntan a los archivos reales.
 
 ---
 
 ## Commit 7 — Marcas verificadas
 
-- [x] **T7.1** Aplicar las marcas del agente a `docs/planes/fase-3-5/tasks.md`.
+- [x] **T7.1** Aplicar las marcas del agente a `docs/spec/plan-0002-fase-3-5/tasks.md`.
       Commit `0f7aab9`. Verificado ahora mismo: 61 `[x]` / 23 `[ ]` (84 tareas), igual al
       resultado de la auditoría.
 - [x] **T7.2** Cada `[x]` cita archivo y línea. **Terminado:** no queda ningún `[x]` sin
@@ -310,14 +310,14 @@
 ## Commit 8 — `fase-4/` y `fase-5/`
 
 - [x] **T8.1** `fase-4/spec.md` parte 1: objetivo y criterio de salida de
-      `ROADMAP.md:220-231`. `docs/planes/fase-4/spec.md` existe, 150 líneas
+      `ROADMAP.md:220-231`. `docs/spec/plan-0003-fase-4/spec.md` existe, 150 líneas
       (`commit-8-report.md:5`), sec. 1 con objetivo/criterio.
 - [x] **T8.2** Parte 2: deuda heredada, enlazando la sección de adelantos de
       `fase-3-5/spec.md`, con las cinco piezas y sus contratos de caducidad.
       `commit-8-report.md:33-37`: paráfrasis fiel (declarada explícitamente, no copia
       literal), la tabla original se enlaza, no se copia.
 - [x] **T8.3** Parte 3: preguntas abiertas — proveedor autorizado del SRI, plan de cuentas,
-      qué acepta el contador. Presente en `docs/planes/fase-4/spec.md`.
+      qué acepta el contador. Presente en `docs/spec/plan-0003-fase-4/spec.md`.
 - [x] **T8.4** Parte 4: apéndice **"Planificación previa (2026-08-02): insumo, no
       compromiso"** con los bloques 4.A–4.D (D8). `commit-8-report.md:9`: apéndice
       rotulado así, confirmado por el revisor de tarea. Desviación menor declarada: el
@@ -329,10 +329,10 @@
       repitieron, se enlaza a `PROTOCOLO-DE-TRABAJO.md` sec. 2.3–2.5.
 - [x] **T8.6** `fase-5/spec.md`: objetivo, criterio de salida (`ROADMAP.md:235-243`) y
       preguntas abiertas — ARCSA, el caso del queso fresco, alcance de Grazing.
-      `docs/planes/fase-5/spec.md` existe, 54 líneas (`commit-8-report.md:5`).
+      `docs/spec/plan-0004-fase-5/spec.md` existe, 54 líneas (`commit-8-report.md:5`).
 - [x] **T8.7** **Verificar que no se creó `plan.md`, `tasks.md` ni `test-e2e.md`** en
       ninguna de las dos carpetas (D5).
-      **Terminado:** `ls docs/planes/fase-4 docs/planes/fase-5` muestra solo `spec.md`.
+      **Terminado:** `ls docs/spec/plan-0003-fase-4 docs/spec/plan-0004-fase-5` muestra solo `spec.md`.
       Ejecutado ahora mismo: confirmado, solo `spec.md` en cada carpeta.
 
 ---
@@ -455,7 +455,7 @@
       `PLAN-FASE-3-5-PORCINO-3.5a.2-{A,B,C}`, que son **nombres de archivo** de
       `sub_planes/`, no secciones) a `spec.md-3.5a.2-A`; y la primera corrección las mandó
       al destino incorrecto (`spec-3.5a.md sec.3.5a.2-C`, que no existe) antes de
-      reapuntarlas bien a `docs/planes/sub_planes/` (`commit-11-report.md:8-38`).
+      reapuntarlas bien a `docs/spec/sub_planes/` (`commit-11-report.md:8-38`).
 - [x] **T11.3** `sed` de las 21 citas restantes de `PLAN-FASE-3-4` en código.
       Ejecutado ahora mismo: `grep -rn "PLAN-FASE-3-4"` en código devuelve cero.
 - [x] **T11.4** Reapuntar las 130 citas en `.md`, respetando las excepciones del criterio 7
@@ -468,8 +468,8 @@
       plan, encabezados de procedencia de fase-3/fase-3-5, los 6 ADR que no se editan,
       `PROTOCOLO-DE-TRABAJO.md` y los 8 `sub_planes/`).
 - [x] **T11.4b** Reapuntar las 9 referencias a `BACKLOG.md` de la raíz que quedaron del
-      commit 1: `docs/ROADMAP.md` (1), `docs/planes/PLAN-ADMIN-WEB-ANIMAL-GROUPS.md` (4) y
-      `docs/planes/sub_planes/` (4) → `docs/BACKLOG.md`.
+      commit 1: `docs/ROADMAP.md` (1), `docs/spec/PLAN-ADMIN-WEB-ANIMAL-GROUPS.md` (4) y
+      `docs/spec/sub_planes/` (4) → `docs/BACKLOG.md`.
       **No tocar `docs/adr/`** (7 referencias): un ADR no se edita, se reemplaza.
       **Terminado:** el comando de `test-e2e.md` V-2, con sus dos exclusiones, devuelve cero.
       Ejecutado ahora mismo con las exclusiones vigentes de `test-e2e.md` V-2 (tres, tras
@@ -482,9 +482,9 @@
       comentarios**. Un `sed` que tocó código ejecutable se revierte entero.
       `commit-11-report.md:61-75`: 87 archivos, 108 inserciones/108 eliminaciones, todas
       dentro de comentarios (`//`, `///`, `/**`, `*`), verificado línea por línea.
-- [x] **T11.6** `git rm docs/planes/PLAN-FASE-3-5-PORCINO.md docs/planes/PLAN-FASE-3-4.md`.
-      Verificado ahora mismo: `ls docs/planes/PLAN-FASE-3-5-PORCINO.md
-      docs/planes/PLAN-FASE-3-4.md` → "No such file or directory" para ambos.
+- [x] **T11.6** `git rm docs/spec/PLAN-FASE-3-5-PORCINO.md docs/spec/PLAN-FASE-3-4.md`.
+      Verificado ahora mismo: `ls docs/spec/PLAN-FASE-3-5-PORCINO.md
+      docs/spec/PLAN-FASE-3-4.md` → "No such file or directory" para ambos.
 - [x] **T11.7** `AGENTS.md`: la advertencia sobre citas en prosa se actualiza con los
       nombres y el conteo reales. Verificado ahora: `AGENTS.md:106-109` cita conteos
       reales medidos el 2026-08-16 (`spec-3.5a.md` en 59 archivos, `fase-3/spec.md` en 18,
@@ -499,10 +499,10 @@ convertir `PLAN-ADMIN-WEB-ANIMAL-GROUPS.md`. **T6.5 no se reescribe**: era corre
 se marcó —los sub-planes se enlazaron y no se absorbieron, y siguen sin absorberse— y su
 evidencia (`commit-6-report.md:64`) sigue siendo válida. Lo que cambia es dónde viven.
 
-- [x] **T16.1** `docs/planes/sub_planes/` → `docs/planes/fase-3-5/sub-planes/`, con `git mv`
+- [x] **T16.1** `docs/spec/sub_planes/` → `docs/spec/plan-0002-fase-3-5/sub-planes/`, con `git mv`
       para conservar la detección de renombrado en el diff. Los ocho archivos pierden el
       prefijo `PLAN-FASE-3-5-PORCINO-`: `3.5a.2-A.md` … `3.5b.5-C.md`.
-      Verificado: `ls docs/planes/fase-3-5/sub-planes/*.md | wc -l` → 8, y el diff del
+      Verificado: `ls docs/spec/plan-0002-fase-3-5/sub-planes/*.md | wc -l` → 8, y el diff del
       commit `d9699a4` muestra los ocho como `R` (rename), no como `D`+`A`.
 - [x] **T16.2** Ajustar la profundidad de los enlaces relativos dentro de los ocho:
       `../../adr/` → `../../../adr/`, `../fase-3-5/spec*.md` → `../spec*.md`, y en
@@ -524,7 +524,7 @@ evidencia (`commit-6-report.md:64`) sigue siendo válida. Lo que cambia es dónd
       `3.5b.5-B.md:13` y `3.5b.5-C.md:15` enlazaban a sí mismos donde decían apuntar a
       `3.5b.5-A`, y `3.5a.2-A.md:98` citaba `PLAN-FASE-3-4 sec.3.A "Bitácora"`, una sección
       que nunca existió con ese título (el contenido real es el Bloque 3.A, hoy
-      `fase-3/spec.md:139`). Verificado contra `git show a3f8a96:docs/planes/PLAN-FASE-3-4.md`.
+      `fase-3/spec.md:139`). Verificado contra `git show a3f8a96:docs/spec/PLAN-FASE-3-4.md`.
 
 ## Commit 17 — Alcance y verificaciones alineados
 
@@ -536,15 +536,15 @@ evidencia (`commit-6-report.md:64`) sigue siendo válida. Lo que cambia es dónd
       categorías a **16 en cinco**.
       Verificado corriendo ambos `grep`: código → 0, `.md` → 16.
 - [x] **T17.3** `spec.md` criterio 5: añadir `sub-planes/` como subcarpeta esperada de
-      `fase-3-5/` y la exigencia de que `docs/planes/` no tenga ningún `.md` suelto.
-      Verificado: `ls docs/planes/*.md 2>&1` → "No such file or directory".
+      `fase-3-5/` y la exigencia de que `docs/spec/` no tenga ningún `.md` suelto.
+      Verificado: `ls docs/spec/*.md 2>&1` → "No such file or directory".
 - [x] **T17.4** `plan.md`: quitar `sub_planes/` de "Qué NO incluye" y documentar los commits
       12–17, que no estaban en el plan original. Incluye los dos commits de corrección del
       propio commit 11 (`987d325`, `8cc7a2c`), que son la evidencia de por qué se declaró
       punto de no retorno.
 - [x] **T17.5** `test-e2e.md` V-5: quitar la exclusión y reescribir las categorías.
       **Hallazgo:** el escenario estaba fallando desde el commit `53bc71b` —
-      `docs/planes/field-app-parto-redesign/spec.md` citaba `PLAN-FASE-3-5-PORCINO sec. 7-C`
+      `docs/spec/feature-0002-field-app-parto-redesign/spec.md` citaba `PLAN-FASE-3-5-PORCINO sec. 7-C`
       y no encajaba en ninguna de las seis categorías, así que el conteo real era 27 y no
       26. Se repuntó a `fase-3-5/spec.md` sec. 7 y queda documentado en V-5.
 - [x] **T17.6** `fase-3-5/test-e2e.md` V-3: el `diff` byte a byte contra `HEAD~1` dejó de

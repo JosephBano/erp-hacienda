@@ -6,7 +6,7 @@
 > [`tasks.md`](./tasks.md) y la verificación manual en [`test-e2e.md`](./test-e2e.md).
 >
 > **Por qué esta subcarpeta.** Los cuatro documentos son un solo entregable de una sola
-> rama; separarlos en `docs/planes/` los dejaría huérfanos entre sí. Esta carpeta es el
+> rama; separarlos en `docs/spec/` los dejaría huérfanos entre sí. Esta carpeta es el
 > **precedente** del que salieron las de `reestructura-documentacion/` y
 > `admin-web-animal-groups/`, y la fuente de la que se calcaron las plantillas de
 > `docs/plantillas/` (ver `reestructura-documentacion/spec.md` sec. 6).

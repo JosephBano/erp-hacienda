@@ -2,7 +2,7 @@
 
 > **Documento archivado.** El trabajo está terminado (PRs #80–#83, cerrados el 2026-08-08).
 > Las casillas se marcaron el 2026-08-17, al convertir
-> `docs/planes/PLAN-ADMIN-WEB-ANIMAL-GROUPS.md` a esta carpeta, **verificando cada una contra
+> `docs/spec/PLAN-ADMIN-WEB-ANIMAL-GROUPS.md` a esta carpeta, **verificando cada una contra
 > el código actual** — nunca contra lo que el plan original afirmara. Cada `[x]` cita archivo
 > y línea. Lo que no se pudo verificar quedó `[ ]` con la explicación debajo: son cuatro
 > casillas, y las cuatro son cobertura de pruebas que el plan prometió y que no está donde

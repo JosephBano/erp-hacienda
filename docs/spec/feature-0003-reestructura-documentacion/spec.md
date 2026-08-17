@@ -9,7 +9,7 @@
 > existe.
 >
 > **Por qué esta subcarpeta.** Los cuatro documentos son un solo entregable de una sola
-> rama; separarlos en `docs/planes/` los dejaría huérfanos entre sí. Es el mismo motivo y
+> rama; separarlos en `docs/spec/` los dejaría huérfanos entre sí. Es el mismo motivo y
 > el mismo precedente que `field-app-parto-redesign/`.
 
 - **Rama Git:** `docs/reestructura-documentacion` (desde `develop`, en `2988946`).
@@ -68,7 +68,7 @@ no por suposición.
 
 ### 2.1 La plantilla de cuatro archivos ya existe y funciona
 
-`docs/planes/field-app-parto-redesign/` contiene `spec.md` (396 líneas), `plan.md` (227),
+`docs/spec/feature-0002-field-app-parto-redesign/` contiene `spec.md` (396 líneas), `plan.md` (227),
 `tasks.md` (167) y `test-e2e.md` (273) — medido el 2026-08-16, cuando la carpeta vivía en la
 rama `feature/field-app-parto-redesign`. El 2026-08-17 se trajo al repo y se alineó con las
 plantillas que salieron de ella, así que hoy son 409 / 269 / 168 / 282. Es el único lugar
@@ -83,7 +83,7 @@ Su `tasks.md` fija además la convención de marcas que se reutiliza:
 
 `AGENTS.md` dice, literal:
 
-> - **Planes de ejecución** → `docs/planes/`. Uno por fase.
+> - **Planes de ejecución** → `docs/spec/`. Uno por fase.
 > - **El resto de los documentos vive en la raíz de `docs/`**, en `MAYÚSCULAS.md`. No se
 >   crean subcarpetas nuevas sin una razón que se pueda escribir en una línea.
 > - Al mover o renombrar un documento, **arreglá las referencias en el mismo commit**. Ojo
@@ -281,10 +281,10 @@ con el dueño del proyecto lo indican.
 - `docs/DOCUMENTACION.md` — el sistema: taxonomía, ciclo de vida, convenciones.
 - `docs/PROTOCOLO-DE-TRABAJO.md` — extraído de `PLAN-FASE-3-4.md` secs. 1 y 2.1.
 - `docs/SEGURIDAD.md` — nuevo, desde auditoría del código.
-- `docs/planes/fase-3/` — cuatro archivos, histórico.
-- `docs/planes/fase-3-5/` — cuatro archivos, fidelidad máxima.
-- `docs/planes/fase-4/spec.md` — solo el spec.
-- `docs/planes/fase-5/spec.md` — solo el spec.
+- `docs/spec/plan-0001-fase-3/` — cuatro archivos, histórico.
+- `docs/spec/plan-0002-fase-3-5/` — cuatro archivos, fidelidad máxima.
+- `docs/spec/plan-0003-fase-4/spec.md` — solo el spec.
+- `docs/spec/plan-0004-fase-5/spec.md` — solo el spec.
 - Borrado de `PLAN-FASE-3-5-PORCINO.md` y `PLAN-FASE-3-4.md`.
 - Reapuntado de las 238 citas.
 - Corrección de los cinco DER y tres diagramas de flujo nuevos.
@@ -296,11 +296,11 @@ con el dueño del proyecto lo indican.
   `DATA-MODEL.md`, `LEGAL-ECUADOR.md`, `BACKUPS.md` ni `ROADMAP.md`.** Se les actualizan
   las referencias que cambien y nada más. Su contenido es bueno; tocarlo aquí sería un
   segundo propósito en el mismo PR (regla 9).
-- **`docs/planes/sub_planes/` y `PLAN-ADMIN-WEB-ANIMAL-GROUPS.md` estaban fuera de alcance por
+- **`docs/spec/sub_planes/` y `PLAN-ADMIN-WEB-ANIMAL-GROUPS.md` estaban fuera de alcance por
   este motivo**, y el dueño del proyecto pidió meter los dos el 2026-08-17, ya con las
   plantillas disponibles. Hoy `PLAN-ADMIN-WEB-ANIMAL-GROUPS.md` es
-  `docs/planes/admin-web-animal-groups/`, con los cuatro documentos y marcado como archivado;
-  y los ocho sub-planes son `docs/planes/fase-3-5/sub-planes/3.5a.2-A.md` …
+  `docs/spec/feature-0001-admin-web-animal-groups/`, con los cuatro documentos y marcado como archivado;
+  y los ocho sub-planes son `docs/spec/plan-0002-fase-3-5/sub-planes/3.5a.2-A.md` …
   `3.5b.5-C.md`, bajo el dueño que les corresponde y sin el prefijo
   `PLAN-FASE-3-5-PORCINO-` heredado del plan borrado. Ninguno de los archivos sueltos
   existe ya. Ver sec. 13.
@@ -332,10 +332,10 @@ documentos responden la misma, uno sobra (D1).
 | `BACKUPS.md` | ¿Cómo se respalda y se restaura? | Cambia la estrategia. |
 | `BACKLOG.md` | ¿Qué sabemos que falta y decidimos no hacer ahora? | Continuamente. |
 | `adr/NNNN-*.md` | ¿Por qué se decidió esto y qué se descartó? | Nunca: un ADR se reemplaza, no se edita. |
-| `planes/<x>/spec.md` | ¿Qué se construye y qué queda fijado? | Antes de implementar. |
-| `planes/<x>/plan.md` | ¿En qué orden y en qué commits? | Al replanificar. |
-| `planes/<x>/tasks.md` | ¿Qué falta exactamente? | Continuamente, durante la ejecución. |
-| `planes/<x>/test-e2e.md` | ¿Cómo compruebo a mano que funciona? | Cambia el flujo de usuario. |
+| `spec/<x>/spec.md` | ¿Qué se construye y qué queda fijado? | Antes de implementar. |
+| `spec/<x>/plan.md` | ¿En qué orden y en qué commits? | Al replanificar. |
+| `spec/<x>/tasks.md` | ¿Qué falta exactamente? | Continuamente, durante la ejecución. |
+| `spec/<x>/test-e2e.md` | ¿Cómo compruebo a mano que funciona? | Cambia el flujo de usuario. |
 | `diagramas/*.mermaid` | ¿Cómo se ve esto? | Entra una migración o cambia un flujo. |
 
 ### 5.1 Ciclo de vida — la regla que faltaba
@@ -502,7 +502,7 @@ referencias en `AGENTS.md` y en los `tasks.md` que lo nombran.
 
 ## 12. El agente auditor de la Fase 3.5
 
-Se lanza **después** de que exista `docs/planes/fase-3-5/tasks.md`, no antes.
+Se lanza **después** de que exista `docs/spec/plan-0002-fase-3-5/tasks.md`, no antes.
 
 - **Contexto limpio**, sin la conversación que produjo este spec. Su trabajo es mirar el
   repositorio con ojos nuevos, no confirmar lo que ya creemos.
@@ -529,7 +529,7 @@ y la conversión de `PLAN-ADMIN-WEB-ANIMAL-GROUPS.md` se anotaron primero como d
 `docs/BACKLOG.md`, por la regla de un PR = un propósito. El dueño del proyecto pidió meter
 ambas dentro de la rama el 2026-08-17: las plantillas y la convención de carpeta ya existían
 para entonces, así que el trabajo era aplicar una regla recién escrita, no abrir un segundo
-propósito. Los sub-planes son hoy `docs/planes/fase-3-5/sub-planes/` (ver sec. 4).
+propósito. Los sub-planes son hoy `docs/spec/plan-0002-fase-3-5/sub-planes/` (ver sec. 4).
 
 Meter los sub-planes tuvo un efecto sobre las verificaciones que conviene dejar explícito:
 el criterio 7 llevaba una **exclusión** `sub_planes/` porque esos ocho archivos cargaban el
@@ -552,13 +552,13 @@ No se editan retroactivamente; quedan declarados en `docs/BACKLOG.md` con su dis
    total—, producto de partir el spec en dos para no recrear el archivo de 833 líneas
    (sec. 7.3, sec. 13 fila "hereda 833 líneas"), más su subcarpeta `sub-planes/` con los
    ocho sub-planes de las tres secciones partidas; y `fase-4/` y `fase-5/` con su `spec.md`.
-   `docs/planes/` no contiene ningún `.md` suelto: todo plan es una carpeta.
+   `docs/spec/` no contiene ningún `.md` suelto: todo plan es una carpeta.
 6. `PLAN-FASE-3-5-PORCINO.md` y `PLAN-FASE-3-4.md` **no existen**.
 7. `grep -rn "PLAN-FASE-3-5-PORCINO\|PLAN-FASE-3-4"` **en código** (`.cs`, `.ts`, `.tsx`),
    excluyendo `node_modules` y `.claude/`, devuelve **cero resultados, sin excepciones**.
    Este criterio llevaba una exclusión `sub_planes/` mientras esos ocho sub-planes
    conservaron el nombre del plan borrado en el suyo propio; al moverlos a
-   `docs/planes/fase-3-5/sub-planes/` y renombrarlos a `3.5a.2-A.md` … `3.5b.5-C.md`, las
+   `docs/spec/plan-0002-fase-3-5/sub-planes/` y renombrarlos a `3.5a.2-A.md` … `3.5b.5-C.md`, las
    24 citas del código quedaron repuntadas y la exclusión sobra (sec. 13).
    En `.md`, `grep -rln "PLAN-FASE-3-5-PORCINO\|PLAN-FASE-3-4" --include=*.md .` (mismas
    exclusiones) devuelve **16 archivos**, todos dentro de cinco categorías deliberadas

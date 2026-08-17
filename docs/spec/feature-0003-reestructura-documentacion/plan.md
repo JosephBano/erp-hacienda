@@ -183,7 +183,7 @@ Se agrega una sección nueva: **los disparadores de actualización documental** 
 
 `docs(planes): convert phase 3 into its own folder`
 
-**Archivos:** crear `docs/planes/fase-3/{spec,plan,tasks,test-e2e}.md`.
+**Archivos:** crear `docs/spec/plan-0001-fase-3/{spec,plan,tasks,test-e2e}.md`.
 
 **Origen:** `PLAN-FASE-3-4.md` secs. 2.2 (los 10 escenarios obligatorios de
 sincronización) y 3 (bloques 3.A–3.C, ~11 ramas), más el estado de la fase que vive en
@@ -198,20 +198,20 @@ de qué documento provienen.
 nota de `ROADMAP.md:121-125` — *"sólo falta una cosa y es deliberadamente ajena al código:
 el piloto real"*.
 
-**Verificación:** `grep -c 'sec\.2\.2\|sec\.3\.' docs/planes/fase-3/spec.md` > 0 y las
+**Verificación:** `grep -c 'sec\.2\.2\|sec\.3\.' docs/spec/plan-0001-fase-3/spec.md` > 0 y las
 secciones existen con esos números.
 
 ## Commit 6 — `fase-3-5/`
 
 `docs(planes): convert phase 3.5 into its own folder`
 
-El commit más grande. **Archivos:** crear `docs/planes/fase-3-5/{spec,plan,tasks,test-e2e}.md`.
+El commit más grande. **Archivos:** crear `docs/spec/plan-0002-fase-3-5/{spec,plan,tasks,test-e2e}.md`.
 
 **Origen:** las 833 líneas de `PLAN-FASE-3-5-PORCINO.md`, repartidas según qué es cada
 cosa: decisiones y hallazgos a `spec.md`, secuencia a `plan.md`, checklist a `tasks.md`,
 verificación manual a `test-e2e.md`. Más el estado de `ROADMAP.md:146-217` y los ocho
 sub-planes, que **se enlazan, no se absorben** — en este commit todavía desde
-`docs/planes/sub_planes/`; el commit 14 los mueve a `fase-3-5/sub-planes/`.
+`docs/spec/sub_planes/`; el commit 14 los mueve a `fase-3-5/sub-planes/`.
 
 **Numeración (D6):** `3.5a.0` … `3.5a.9` y `3.5b.1` … conservan su número. 85 citas del
 código dependen de esto.
@@ -224,7 +224,7 @@ El comando exacto está en [`test-e2e.md`](./test-e2e.md) V-4.
 
 ## Compuerta A — auditoría de la Fase 3.5
 
-**Se lanza solo cuando `docs/planes/fase-3-5/tasks.md` existe** (commit 6 hecho).
+**Se lanza solo cuando `docs/spec/plan-0002-fase-3-5/tasks.md` existe** (commit 6 hecho).
 
 Un agente de **contexto limpio**, **solo lectura**, con la regla dura D13: marca `[x]`
 únicamente contra evidencia de código —archivo y línea—, nunca contra lo que un documento
@@ -241,7 +241,7 @@ aceptarlo.
 
 `docs(planes): mark phase 3.5 tasks verified against the codebase`
 
-**Archivos:** modificar `docs/planes/fase-3-5/tasks.md` con las marcas del agente. Anotar
+**Archivos:** modificar `docs/spec/plan-0002-fase-3-5/tasks.md` con las marcas del agente. Anotar
 las discrepancias en `docs/BACKLOG.md` si no se resuelven en esta rama.
 
 Este commit va **separado** del 6 a propósito: el diff muestra exactamente qué se dio por
@@ -252,7 +252,7 @@ líneas.
 
 `docs(planes): spec phases 4 and 5 without planning them`
 
-**Archivos:** crear `docs/planes/fase-4/spec.md` y `docs/planes/fase-5/spec.md`. **Solo el
+**Archivos:** crear `docs/spec/plan-0003-fase-4/spec.md` y `docs/spec/plan-0004-fase-5/spec.md`. **Solo el
 spec** en ambos casos (D5).
 
 **`fase-4/spec.md`** — cuatro partes, en este orden:
@@ -321,10 +321,10 @@ las carpetas nuevas y el diff es auditable (spec sec. 13).
 
 | Origen | Veces en código | Destino |
 |---|---|---|
-| `PLAN-FASE-3-5-PORCINO(.md) sec.3.5a.*` | 40 | `docs/planes/fase-3-5/spec-3.5a.md` |
-| `PLAN-FASE-3-5-PORCINO(.md)` — resto (`sec.2.3`, `sec.7`) | 45 | `docs/planes/fase-3-5/spec.md` |
-| `PLAN-FASE-3-4 sec.2.2` | 12 | `docs/planes/fase-3/spec.md` |
-| `PLAN-FASE-3-4 sec.3.x` | 8 | `docs/planes/fase-3/spec.md` |
+| `PLAN-FASE-3-5-PORCINO(.md) sec.3.5a.*` | 40 | `docs/spec/plan-0002-fase-3-5/spec-3.5a.md` |
+| `PLAN-FASE-3-5-PORCINO(.md)` — resto (`sec.2.3`, `sec.7`) | 45 | `docs/spec/plan-0002-fase-3-5/spec.md` |
+| `PLAN-FASE-3-4 sec.2.2` | 12 | `docs/spec/plan-0001-fase-3/spec.md` |
+| `PLAN-FASE-3-4 sec.3.x` | 8 | `docs/spec/plan-0001-fase-3/spec.md` |
 | `PLAN-FASE-3-4 sec.2.1` | **2** | `docs/PROTOCOLO-DE-TRABAJO.md` |
 | `PLAN-FASE-3-4 sec.4` | **0** | — |
 
@@ -348,18 +348,18 @@ importa — las citas a `3.5a` primero, porque el patrón general las capturarí
 # Paso 1: las 40 citas a secciones 3.5a.* -> spec-3.5a.md
 grep -rl "PLAN-FASE-3-5-PORCINO" --include=*.cs --include=*.ts --include=*.tsx . \
   | grep -v node_modules \
-  | xargs sed -i -E 's#PLAN-FASE-3-5-PORCINO(\.md)? (sec\.? ?3\.5a)#docs/planes/fase-3-5/spec-3.5a.md \2#g'
+  | xargs sed -i -E 's#PLAN-FASE-3-5-PORCINO(\.md)? (sec\.? ?3\.5a)#docs/spec/plan-0002-fase-3-5/spec-3.5a.md \2#g'
 
 # Paso 2: el resto (sec.2.3, sec.7 y menciones sin sección) -> spec.md
 grep -rl "PLAN-FASE-3-5-PORCINO" --include=*.cs --include=*.ts --include=*.tsx . \
   | grep -v node_modules \
-  | xargs sed -i 's#PLAN-FASE-3-5-PORCINO\.md#docs/planes/fase-3-5/spec.md#g;
-                  s#PLAN-FASE-3-5-PORCINO#docs/planes/fase-3-5/spec.md#g'
+  | xargs sed -i 's#PLAN-FASE-3-5-PORCINO\.md#docs/spec/plan-0002-fase-3-5/spec.md#g;
+                  s#PLAN-FASE-3-5-PORCINO#docs/spec/plan-0002-fase-3-5/spec.md#g'
 
 grep -rl "PLAN-FASE-3-4" --include=*.cs --include=*.ts --include=*.tsx . \
   | grep -v node_modules \
-  | xargs sed -i 's#PLAN-FASE-3-4\.md#docs/planes/fase-3/spec.md#g;
-                  s#PLAN-FASE-3-4#docs/planes/fase-3/spec.md#g'
+  | xargs sed -i 's#PLAN-FASE-3-4\.md#docs/spec/plan-0001-fase-3/spec.md#g;
+                  s#PLAN-FASE-3-4#docs/spec/plan-0001-fase-3/spec.md#g'
 ```
 
 Después las 130 citas en `.md`, con el mismo enrutamiento y respetando las excepciones del
@@ -368,7 +368,7 @@ criterio 7 del spec (esta carpeta y los encabezados de procedencia).
 **Y recién entonces:**
 
 ```bash
-git rm docs/planes/PLAN-FASE-3-5-PORCINO.md docs/planes/PLAN-FASE-3-4.md
+git rm docs/spec/PLAN-FASE-3-5-PORCINO.md docs/spec/PLAN-FASE-3-4.md
 ```
 
 **Verificación completa:** [`test-e2e.md`](./test-e2e.md), los ocho escenarios.
@@ -383,8 +383,8 @@ el plan original y se documenta acá para que la secuencia real sea auditable:
 | 12 | `987d325` | Corrección del propio commit 11: 24 citas del código habían quedado apuntando a `spec.md-3.5a.2-A`, una ruta inexistente producto del `sed` masivo. Se repuntaron a `sub_planes/`. |
 | 13 | `8cc7a2c` | Rescate de secciones huérfanas de `PLAN-FASE-3-4.md` (ADR, riesgos, resumen de ramas) que el borrado se llevó por delante. |
 | 14 | `53bc71b`, `215105c` | Se trae el plan de rediseño de parto de `field-app` y se alinea con las plantillas. |
-| 15 | `875c65f` | **Alcance añadido a pedido del dueño:** `PLAN-ADMIN-WEB-ANIMAL-GROUPS.md` → `docs/planes/admin-web-animal-groups/`, y la convención de carpeta escrita en `AGENTS.md`. |
-| 16 | `d9699a4` | **Alcance añadido a pedido del dueño:** `docs/planes/sub_planes/` → `docs/planes/fase-3-5/sub-planes/`, con los ocho archivos renombrados a `3.5a.2-A.md` … `3.5b.5-C.md` y las 24 citas del código repuntadas otra vez, ahora a la ruta definitiva. |
+| 15 | `875c65f` | **Alcance añadido a pedido del dueño:** `PLAN-ADMIN-WEB-ANIMAL-GROUPS.md` → `docs/spec/feature-0001-admin-web-animal-groups/`, y la convención de carpeta escrita en `AGENTS.md`. |
+| 16 | `d9699a4` | **Alcance añadido a pedido del dueño:** `docs/spec/sub_planes/` → `docs/spec/plan-0002-fase-3-5/sub-planes/`, con los ocho archivos renombrados a `3.5a.2-A.md` … `3.5b.5-C.md` y las 24 citas del código repuntadas otra vez, ahora a la ruta definitiva. |
 | 17 | este | Alcance y verificaciones alineados con 15 y 16: el criterio 7 pierde la exclusión `sub_planes/` y baja de 26 a 16 archivos `.md`; V-3 de `fase-3-5` y V-5 de esta carpeta se reescriben. |
 
 Los commits 12 y 13 son la evidencia de por qué el 11 se declaró punto de no retorno: un
@@ -432,8 +432,8 @@ tiempo, son los candidatos a salir a rama aparte — pero no pueden quedarse a m
 - **Qué NO incluye:** ningún cambio de código ejecutable —salvo comentarios reapuntados— y
   los `plan.md`/`tasks.md`/`test-e2e.md` de las Fases 4 y 5 (D5).
   `PLAN-ADMIN-WEB-ANIMAL-GROUPS.md` y los ocho `sub_planes/` **sí entraron**, a pedido del
-  dueño: hoy son `docs/planes/admin-web-animal-groups/` y
-  `docs/planes/fase-3-5/sub-planes/`. Con eso `docs/planes/` no tiene ningún `.md` suelto.
+  dueño: hoy son `docs/spec/feature-0001-admin-web-animal-groups/` y
+  `docs/spec/plan-0002-fase-3-5/sub-planes/`. Con eso `docs/spec/` no tiene ningún `.md` suelto.
 - **Cómo probarlo:** ejecutar [`test-e2e.md`](./test-e2e.md), los ocho escenarios.
 - **Riesgo declarado:** el commit 11 es punto de no retorno; hasta el 10 todo es
   `git revert`.

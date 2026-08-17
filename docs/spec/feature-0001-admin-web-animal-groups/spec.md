@@ -13,11 +13,11 @@
 > [`test-e2e.md`](./test-e2e.md).
 >
 > **Por qué esta subcarpeta.** Los cuatro documentos son un solo entregable de una sola serie
-> de PRs; separarlos en `docs/planes/` los dejaría huérfanos entre sí. Es el mismo motivo y el
+> de PRs; separarlos en `docs/spec/` los dejaría huérfanos entre sí. Es el mismo motivo y el
 > mismo precedente que `reestructura-documentacion/`.
 >
 > **Procedencia exacta del contenido.** Este documento y los otros tres de la carpeta son la
-> conversión de `docs/planes/PLAN-ADMIN-WEB-ANIMAL-GROUPS.md` (556 líneas, un solo archivo que
+> conversión de `docs/spec/PLAN-ADMIN-WEB-ANIMAL-GROUPS.md` (556 líneas, un solo archivo que
 > mezclaba decisión, secuencia, checklist y verificación) a la convención de cuatro documentos
 > de `docs/plantillas/`. **No se perdió contenido:** lo que era decisión quedó acá, la
 > secuencia de PRs en `plan.md`, el desglose en `tasks.md` y los guiones manuales en

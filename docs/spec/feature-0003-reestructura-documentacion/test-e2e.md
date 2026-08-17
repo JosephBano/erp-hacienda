@@ -63,7 +63,7 @@ archivos originales. Si es menor, se perdió contenido: comparar contra
 ```bash
 grep -rn "BACKLOG\.md" --include=*.md . | grep -v node_modules | grep -v '\.claude/' \
   | grep -v 'docs/BACKLOG\.md' | grep -v 'docs/adr/' \
-  | grep -v 'docs/planes/reestructura-documentacion/' \
+  | grep -v 'docs/spec/feature-0003-reestructura-documentacion/' \
   | grep -v 'docs/PROTOCOLO-DE-TRABAJO\.md'
 ```
 
@@ -77,7 +77,7 @@ del commit 1):
   **no se edita jamás**: se reemplaza. Es la regla de la taxonomía del `spec.md` sec. 5 y
   la convención del repositorio. Un ADR que menciona `BACKLOG.md` está describiendo el
   mundo tal como era el día que se aceptó, y así debe quedar.
-- **`docs/planes/reestructura-documentacion/`** — esta carpeta documenta la fusión; sus
+- **`docs/spec/feature-0003-reestructura-documentacion/`** — esta carpeta documenta la fusión; sus
   menciones son deliberadas, igual que la excepción del criterio 7 del spec.
 - **`docs/PROTOCOLO-DE-TRABAJO.md`** — su única mención (línea 136) es la fila "Deuda
   técnica arrastrada" de una tabla de riesgos, que escribe `` A `BACKLOG.md` `` sin ruta
@@ -121,7 +121,7 @@ descuido.
 ```bash
 ls docs/adr/TEMPLATE.md 2>/dev/null
 grep -rn "docs/adr/TEMPLATE\.md" --include=*.md . | grep -v node_modules | grep -v '\.claude/' \
-  | grep -v 'docs/planes/reestructura-documentacion/'
+  | grep -v 'docs/spec/feature-0003-reestructura-documentacion/'
 ```
 
 **Esperado:** el archivo ya no existe y ninguna referencia lo menciona.
@@ -147,7 +147,7 @@ parece correcta y no lo es. Nada de esto falla en compilación — es prosa en c
 **Paso 1.** Extraer todas las secciones que el código cita en los destinos nuevos:
 
 ```bash
-grep -rhoE '(docs/planes/fase-3-5/spec-3\.5a\.md|docs/planes/fase-3-5/spec\.md|docs/planes/fase-3/spec\.md|docs/PROTOCOLO-DE-TRABAJO\.md) sec\.? ?[0-9a-zA-Z.]+' \
+grep -rhoE '(docs/spec/plan-0002-fase-3-5/spec-3\.5a\.md|docs/spec/plan-0002-fase-3-5/spec\.md|docs/spec/plan-0001-fase-3/spec\.md|docs/PROTOCOLO-DE-TRABAJO\.md) sec\.? ?[0-9a-zA-Z.]+' \
   --include=*.cs --include=*.ts --include=*.tsx . \
   | grep -v node_modules | sort -u
 ```
@@ -156,7 +156,7 @@ grep -rhoE '(docs/planes/fase-3-5/spec-3\.5a\.md|docs/planes/fase-3-5/spec\.md|d
 documento indicado. Ejemplo con una:
 
 ```bash
-grep -nE '^#+ .*3\.5a\.5' docs/planes/fase-3-5/spec.md
+grep -nE '^#+ .*3\.5a\.5' docs/spec/plan-0002-fase-3-5/spec.md
 ```
 
 **Esperado:** cada sección citada produce al menos una coincidencia en su documento
@@ -185,10 +185,10 @@ grep -rn "PLAN-FASE-3-5-PORCINO\|PLAN-FASE-3-4" \
 
 **Este escenario llevó una exclusión `sub_planes/` y ya no la lleva.** La versión original
 exigía cero sin excepciones y era imposible de cumplir: devolvía 24, todas citas a
-`docs/planes/sub_planes/PLAN-FASE-3-5-PORCINO-3.5a.2-{A,B,C}.md`. No eran citas olvidadas
+`docs/spec/sub_planes/PLAN-FASE-3-5-PORCINO-3.5a.2-{A,B,C}.md`. No eran citas olvidadas
 —era el nombre de archivos que existían—, así que se excluyeron. La causa real era la
-ubicación: esos ocho sub-planes colgaban huérfanos de `docs/planes/` cargando el nombre de
-un plan ya borrado. El commit `d9699a4` los movió a `docs/planes/fase-3-5/sub-planes/` y
+ubicación: esos ocho sub-planes colgaban huérfanos de `docs/spec/` cargando el nombre de
+un plan ya borrado. El commit `d9699a4` los movió a `docs/spec/plan-0002-fase-3-5/sub-planes/` y
 los renombró a `3.5a.2-A.md` … `3.5b.5-C.md`; las 24 citas quedaron repuntadas y la
 exclusión sobra. **Si esta exclusión vuelve a hacer falta, algo se movió mal.**
 
@@ -202,14 +202,14 @@ grep -rln "PLAN-FASE-3-5-PORCINO\|PLAN-FASE-3-4" --include=*.md . \
 **Esperado:** 16 archivos, todos dentro de cinco categorías. Cualquier archivo fuera de
 estas cinco es un reapuntado olvidado:
 
-- **`docs/planes/reestructura-documentacion/`** (4: `plan.md`, `spec.md`, `tasks.md`,
+- **`docs/spec/feature-0003-reestructura-documentacion/`** (4: `plan.md`, `spec.md`, `tasks.md`,
   `test-e2e.md`) — esta carpeta documenta la migración; sus menciones son deliberadas.
 - **Encabezados de procedencia de `fase-3/` y `fase-3-5/`** (4: `fase-3/plan.md`,
   `fase-3/spec.md`, `fase-3-5/spec.md`, `fase-3-5/test-e2e.md`) — citan el plan viejo como
   su origen histórico, igual que la excepción del criterio 7 del spec.
 - **Los 6 ADR que mencionan el plan viejo** (0019, 0021, 0022, 0023, 0024, 0026) — un ADR
   no se edita, se reemplaza (misma regla que la exclusión `docs/adr/` de V-2). `0022` tiene
-  el único enlace markdown real y roto (`](../planes/PLAN-FASE-3-5-PORCINO.md)`); los otros
+  el único enlace markdown real y roto (`](../spec/PLAN-FASE-3-5-PORCINO.md)`); los otros
   cinco solo citan el nombre como texto.
 - **`docs/BACKLOG.md`** — declara estas deudas explícitamente: la entrada de
   `docs/adr/0022-rangos-plausibilidad.md:11` y la de `0020`/`0021`, que citan la ruta
@@ -222,10 +222,10 @@ estas cinco es un reapuntado olvidado:
 **Tres categorías desaparecieron respecto de la versión anterior de este escenario**, que
 esperaba 26 archivos en seis categorías:
 
-- Los **8 de `docs/planes/sub_planes/`** ya no existen con ese nombre (commit `d9699a4`).
+- Los **8 de `docs/spec/sub_planes/`** ya no existen con ese nombre (commit `d9699a4`).
 - `fase-3-5/plan.md` y `fase-3-5/spec-3.5a.md` salieron de la categoría de procedencia: sus
   únicas menciones eran los nombres de archivo de los sub-planes, hoy renombrados.
-- `docs/planes/field-app-parto-redesign/spec.md` **nunca estuvo en las seis categorías** y
+- `docs/spec/feature-0002-field-app-parto-redesign/spec.md` **nunca estuvo en las seis categorías** y
   sin embargo aparecía en el `grep`: entró con el commit `53bc71b`, después de que se
   escribiera esta lista, citando `PLAN-FASE-3-5-PORCINO sec. 7-C`. Es decir, el conteo real
   era 27, no 26, y el escenario fallaba. Se repuntó a `fase-3-5/spec.md` sec. 7.
@@ -233,7 +233,7 @@ esperaba 26 archivos en seis categorías:
 **Y los archivos ya no existen:**
 
 ```bash
-ls docs/planes/PLAN-FASE-3-5-PORCINO.md docs/planes/PLAN-FASE-3-4.md 2>&1
+ls docs/spec/PLAN-FASE-3-5-PORCINO.md docs/spec/PLAN-FASE-3-4.md 2>&1
 ```
 
 **Esperado:** "No such file or directory" para ambos.
@@ -255,14 +255,14 @@ done
 **Esperado:** ninguna línea `HUÉRFANO`.
 
 ```bash
-ls docs/planes/fase-4/ docs/planes/fase-5/
+ls docs/spec/plan-0003-fase-4/ docs/spec/plan-0004-fase-5/
 ```
 
 **Esperado:** solo `spec.md` en cada una (D5). Si aparece `plan.md`, `tasks.md` o
 `test-e2e.md`, se violó una decisión fijada.
 
 ```bash
-ls docs/planes/fase-3/ docs/planes/fase-3-5/
+ls docs/spec/plan-0001-fase-3/ docs/spec/plan-0002-fase-3-5/
 ```
 
 **Esperado:** `fase-3/` con sus cuatro archivos (`spec.md`, `plan.md`, `tasks.md`,

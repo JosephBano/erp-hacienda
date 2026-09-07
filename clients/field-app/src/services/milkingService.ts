@@ -1,6 +1,6 @@
 import { Database, Q } from '@nozbe/watermelondb';
 
-import { MilkYield, OutboxEntryModel, Species, WithdrawalPeriod } from '../database/models';
+import { Animal, MilkYield, OutboxEntryModel, Species, WithdrawalPeriod } from '../database/models';
 import { Outbox } from './outbox';
 
 /**
@@ -83,10 +83,15 @@ export class MilkingService {
   ): Promise<RecordedYield> {
     assertVolume(liters);
 
-    // Defense-in-depth: the UI disables non-milkable species, but if the picker is
-    // bypassed (older cached UI, automated test, a script) the service still rejects.
-    // Art. 8: capability is configured per-species, not per-animal.
-    await this.assertSpeciesIsMilkable(animalId);
+    // Defense-in-depth: the UI disables non-milkable species and filters males/disposed,
+    // but if the picker is bypassed (older cached UI, automated test, a script) the service
+    // still rejects with a clear business error.
+    // Preconditions:
+    // - Animal exists and not deleted
+    // - Sex is female
+    // - Not disposed at or before record date
+    // - Species is milkable
+    await this.assertAnimalMilkable(animalId, date);
 
     const status = await this.withdrawalStatus(animalId, date);
     if (status.isWithheld) {
@@ -239,21 +244,38 @@ export class MilkingService {
   }
 
   /**
-   * Service-level guard: refuses a milking registration for an animal whose species
-   * is flagged `is_milkable = false` (Art. 8: per-species capability, not per-animal).
-   * The MilkingScreen already disables non-milkable rows, but if the UI is bypassed
-   * (an old cached session, an automated test, a direct service call) this check
-   * still rejects the operation with the same wording the UI would have used.
+   * Service-level guard: verifies animal preconditions before registering milking.
+   *
+   * 1. Animal exists and is not deleted.
+   * 2. Sex is female.
+   * 3. Not marked with disposed_at <= date.
+   * 4. Species is milkable (Art. 8).
    */
-  private async assertSpeciesIsMilkable(animalId: string): Promise<void> {
-    let speciesId: string | undefined;
+  private async assertAnimalMilkable(animalId: string, date: string): Promise<void> {
+    let animal: Animal;
     try {
-      const animal = await this.database.get('animals').find(animalId);
-      speciesId = (animal as { speciesId?: string }).speciesId;
+      animal = await this.database.get<Animal>('animals').find(animalId);
     } catch {
       throw new Error('No se encontró el animal en este dispositivo.');
     }
 
+    if (animal.isDeleted) {
+      throw new Error('No se encontró el animal en este dispositivo.');
+    }
+
+    if (animal.sex?.toLowerCase() !== 'female') {
+      throw new Error('Solo se pueden ordeñar animales de sexo hembra.');
+    }
+
+    if (animal.disposedAt) {
+      const disposedDate = animal.disposedAt.slice(0, 10);
+      const milkingDate = date.slice(0, 10);
+      if (disposedDate <= milkingDate) {
+        throw new Error('El animal fue dado de baja y no puede ser ordeñado.');
+      }
+    }
+
+    const speciesId = animal.speciesId;
     if (!speciesId) {
       throw new Error('El animal no tiene especie asociada. Sincronice para descargar el catálogo.');
     }
@@ -272,6 +294,10 @@ export class MilkingService {
         `La especie "${species.name}" no está habilitada para ordeño. Pida al administrador que active esta opción en el panel web.`,
       );
     }
+  }
+
+  private async assertSpeciesIsMilkable(animalId: string): Promise<void> {
+    return this.assertAnimalMilkable(animalId, todayIso());
   }
 }
 

@@ -18,6 +18,7 @@ import {
   loadGroups,
   loadHerd,
   loadMedications,
+  loadMilkingCandidates,
   loadMortalityCauses,
   loadPregnantDams,
   loadTreatmentProducts,
@@ -93,6 +94,7 @@ export default function App() {
   const [tab, setTab] = useState<Tab>('home');
   const [pending, setPending] = useState(0);
   const [herd, setHerd] = useState<Awaited<ReturnType<typeof loadHerd>>>([]);
+  const [milkingCandidates, setMilkingCandidates] = useState<Awaited<ReturnType<typeof loadMilkingCandidates>>>([]);
   const [groups, setGroups] = useState<Awaited<ReturnType<typeof loadGroups>>>([]);
   const [treatmentProducts, setTreatmentProducts] = useState<Awaited<ReturnType<typeof loadTreatmentProducts>>>([]);
   const [medications, setMedications] = useState<Awaited<ReturnType<typeof loadMedications>>>([]);
@@ -128,8 +130,9 @@ export default function App() {
   const visibility = useMemo(() => new ModuleVisibility(database, api), [database, api]);
 
   const refresh = useCallback(async () => {
-    const [nextHerd, nextGroups, nextTreatmentProducts, nextMedications, nextMortalityCauses, nextFeedItems, nextPregnantDams, stats, productionVisible, today] = await Promise.all([
+    const [nextHerd, nextMilkingCandidates, nextGroups, nextTreatmentProducts, nextMedications, nextMortalityCauses, nextFeedItems, nextPregnantDams, stats, productionVisible, today] = await Promise.all([
       loadHerd(database),
+      loadMilkingCandidates(database),
       loadGroups(database),
       loadTreatmentProducts(database),
       loadMedications(database),
@@ -142,6 +145,7 @@ export default function App() {
     ]);
 
     setHerd(nextHerd);
+    setMilkingCandidates(nextMilkingCandidates);
     setGroups(nextGroups);
     setTreatmentProducts(nextTreatmentProducts);
     setMedications(nextMedications);
@@ -342,7 +346,7 @@ export default function App() {
           <MilkingScreen
             service={milking}
             database={database}
-            candidates={herd}
+            candidates={milkingCandidates}
             recordedBy={auth.currentSession()?.email ?? 'field-app'}
             onRecorded={refresh}
           />

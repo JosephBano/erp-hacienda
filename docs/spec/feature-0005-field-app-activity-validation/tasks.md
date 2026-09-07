@@ -55,22 +55,22 @@
 
 ## Commit 3 — Ordeño: aptitud en el cliente
 
-- [ ] **T3.1** `milkingService.ts:248` valida sexo hembra además de especie.
+- [x] **T3.1** `milkingService.ts:248` valida sexo hembra además de especie.
       **Terminado:** la capacidad de ordeño sigue viniendo de configuración, no de un `if` por
       especie (regla dura 3).
-- [ ] **T3.2** `milkingService` valida ausencia de baja efectiva anterior al hecho.
-- [ ] **T3.3** Las validaciones existentes de volumen (`:84`) y retiro (`:92`) siguen intactas.
+- [x] **T3.2** `milkingService` valida ausencia de baja efectiva anterior al hecho.
+- [x] **T3.3** Las validaciones existentes de volumen (`:84`) y retiro (`:92`) siguen intactas.
       **Terminado:** cubiertas por prueba, no solo conservadas en el archivo.
-- [ ] **T3.4** `MilkingScreen.tsx:225` ofrece candidatos aptos en vez de mostrar a todos
+- [x] **T3.4** `MilkingScreen.tsx:225` ofrece candidatos aptos en vez de mostrar a todos
       deshabilitando por `speciesIsMilkable`.
-- [ ] **T3.5** `App.tsx:335` deja de pasar `candidates={herd}` y usa el selector del commit 2.
-- [ ] **T3.6** **Prueba: llamada directa a `milkingService` con un macho → rechazo con motivo
+- [x] **T3.5** `App.tsx:335` deja de pasar `candidates={herd}` y usa el selector del commit 2.
+- [x] **T3.6** **Prueba: llamada directa a `milkingService` con un macho → rechazo con motivo
       legible.** **Terminado:** es la defensa que sobrevive a una UI vieja en caché (D2); pesa
       más que el filtro de pantalla.
-- [ ] **T3.7** Prueba: hembra válida de especie ordeñable registra offline sin obstáculo.
-- [ ] **T3.8** Prueba: una especie no habilitada no permite ordeño, y habilitar una especie
+- [x] **T3.7** Prueba: hembra válida de especie ordeñable registra offline sin obstáculo.
+- [x] **T3.8** Prueba: una especie no habilitada no permite ordeño, y habilitar una especie
       nueva funciona **sin recompilar** (art. 8).
-- [ ] **T3.9** `npm test` completo en verde.
+- [x] **T3.9** `npm test` completo en verde.
 
 ---
 

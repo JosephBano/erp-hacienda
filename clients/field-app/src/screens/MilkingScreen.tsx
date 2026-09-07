@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Database } from '@nozbe/watermelondb';
 
@@ -31,6 +31,8 @@ export interface MilkingCandidate {
    */
   speciesId?: string;
   categoryId?: string | null;
+  sex?: string;
+  disposedAt?: string;
 }
 
 /**
@@ -73,6 +75,17 @@ export function MilkingScreen({
    * without depending on `liters` still holding the same text (ADR-0022 sec.2).
    */
   const [pendingConfirmation, setPendingConfirmation] = useState<number | null>(null);
+
+  const validCandidates = useMemo(
+    () =>
+      candidates.filter(
+        (candidate) =>
+          candidate.speciesIsMilkable &&
+          (candidate.sex === undefined || candidate.sex.toLowerCase() === 'female') &&
+          !candidate.disposedAt,
+      ),
+    [candidates],
+  );
 
   const refreshSummary = useCallback(async () => {
     setSummary(await service.dailySummary());
@@ -215,27 +228,24 @@ export function MilkingScreen({
               }}
             />
           </Card>
-        ) : candidates.length === 0 ? (
+        ) : validCandidates.length === 0 ? (
           <EmptyState
             testID="cow-list-empty"
             title="No hay animales ordeñables"
-            hint="El hato del dispositivo no tiene especies marcadas como ordeñables. Vaya a Inicio → Sincronización para traer las especies actualizadas, o pida al administrador que active la opción 'ordeñable' en la especie desde el panel web."
+            hint="No hay hembras activas de especies ordeñables en el hato."
           />
         ) : (
           <ScrollView testID="cow-list" contentContainerStyle={styles.list}>
-            {candidates.map((candidate) => (
+            {validCandidates.map((candidate) => (
               <BigButton
                 key={candidate.animalId}
                 testID={`cow-${candidate.animalId}`}
                 label={candidate.isWithheld ? `${candidate.label}  ⚠ RETIRO` : candidate.label}
                 tone={candidate.isWithheld ? 'danger' : 'neutral'}
-                disabled={!candidate.speciesIsMilkable}
                 hint={
                   candidate.isWithheld
                     ? `Retiro activo hasta ${candidate.withheldUntil}. La leche no es vendible.`
-                    : !candidate.speciesIsMilkable
-                      ? 'Esta especie no está habilitada para ordeño.'
-                      : undefined
+                    : undefined
                 }
                 onPress={() => {
                   setSelected(candidate);

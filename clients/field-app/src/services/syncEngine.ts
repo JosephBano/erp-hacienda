@@ -168,8 +168,16 @@ export class SyncEngine {
           continue;
         }
 
-        // Accepted and Duplicate are the same outcome from the phone's side: the record
-        // is on the server exactly once.
+        if (result.status === 'Duplicate' && result.errorDetails) {
+          // If a duplicate returns errorDetails, the operation was previously rejected
+          // on the server. Replaying it must preserve the rejection rather than whitewashing it.
+          rejected += 1;
+          await this.outbox.markRejected(result.clientOperationId, result.errorDetails);
+          continue;
+        }
+
+        // Accepted (and Duplicate without errorDetails, meaning previously accepted)
+        // are successful outcomes: the record was applied on the server.
         pushed += 1;
         await this.outbox.markSynced(result.clientOperationId, result.resultRef ?? undefined);
       }

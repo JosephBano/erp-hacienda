@@ -91,17 +91,17 @@
 
 ## Commit 4 — `Duplicate` deja de blanquear rechazos
 
-- [ ] **T4.1** `PushSyncCommands.cs:116`: la respuesta `Duplicate` distingue una operación
+- [x] **T4.1** `PushSyncCommands.cs:116`: la respuesta `Duplicate` distingue una operación
       previamente **aceptada** de una previamente **rechazada**.
       **Terminado:** el cliente puede decidir sin adivinar; hoy ambas llegan iguales.
-- [ ] **T4.2** `syncEngine.ts:171`: `Duplicate` con `errorDetails` conserva el estado de
+- [x] **T4.2** `syncEngine.ts:171`: `Duplicate` con `errorDetails` conserva el estado de
       rechazo y su motivo, en vez de `markSynced`.
       **Terminado:** el comentario «Accepted and Duplicate are the same outcome» se corrige o
       se elimina; hoy afirma algo que deja de ser cierto.
-- [ ] **T4.3** Prueba de integración: operación rechazada, respuesta perdida, reintento con la
+- [x] **T4.3** Prueba de integración: operación rechazada, respuesta perdida, reintento con la
       misma `clientOperationId`. **Terminado:** sigue rechazada, con el motivo original.
-- [ ] **T4.4** Prueba del motor equivalente en el cliente.
-- [ ] **T4.5** `dotnet test` y `npm test` completos en verde.
+- [x] **T4.4** Prueba del motor equivalente en el cliente.
+- [x] **T4.5** `dotnet test` y `npm test` completos en verde.
 
 ---
 

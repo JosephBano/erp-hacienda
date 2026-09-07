@@ -103,6 +103,36 @@ public class SyncPushProtocolTests(SyncApiFactory factory)
     }
 
     /// <summary>
+    /// Commit 4 (T4.3): If an operation was rejected by the server and retried (e.g. response lost),
+    /// the server returns Duplicate while preserving the rejection reason in errorDetails so the client
+    /// does not whitewash the rejection into an accepted record.
+    /// </summary>
+    [Fact]
+    public async Task Push_RetryRejectedOperation_ReturnsDuplicateWithOriginalRejectionReason()
+    {
+        var context = await SyncTestContext.CreateAsync(factory, "push-retry-rejected");
+        var orphanAnimalId = Guid.NewGuid();
+        var operationId = Guid.NewGuid();
+        var payload = new
+        {
+            animalId = orphanAnimalId,
+            eventType = "Weighing",
+            occurredAt = DateTimeOffset.UtcNow,
+            recordedBy = "empleado-campo",
+            payloadJson = "{\"weightKg\":180}",
+        };
+
+        var first = await context.PushAsync("recordAnimalEvent", payload, operationId);
+        Assert.Equal("Rejected", first.GetProperty("status").GetString());
+        var originalError = first.GetProperty("errorDetails").GetString();
+        Assert.False(string.IsNullOrWhiteSpace(originalError));
+
+        var retry = await context.PushAsync("recordAnimalEvent", payload, operationId);
+        Assert.Equal("Duplicate", retry.GetProperty("status").GetString());
+        Assert.Equal(originalError, retry.GetProperty("errorDetails").GetString());
+    }
+
+    /// <summary>
     /// ADR-0015 + docs/spec/plan-0001-fase-3/spec.md sec.2.2: a group disposal replayed by a retry or a double
     /// tap must decrement <c>LiveHeadCount</c> exactly once, the same "never duplicate"
     /// guarantee every other push operation gets from the generic claim step.

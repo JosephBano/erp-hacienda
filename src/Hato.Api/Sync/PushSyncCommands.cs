@@ -115,11 +115,18 @@ public class PushSyncBatchCommandHandler(
 
         if (claim.Existing is not null)
         {
+            var errorDetails = claim.Existing.Status switch
+            {
+                SyncOperationStatus.Rejected => claim.Existing.ErrorDetails ?? "La operación fue rechazada previamente en el servidor.",
+                SyncOperationStatus.Processing => "La operación anterior sigue en procesamiento en el servidor.",
+                _ => claim.Existing.ErrorDetails
+            };
+
             return new SyncOperationResultDto(
                 operation.ClientOperationId,
                 nameof(SyncOperationStatus.Duplicate),
                 claim.Existing.ResultRef,
-                claim.Existing.ErrorDetails);
+                errorDetails);
         }
 
         var record = claim.Claimed!;

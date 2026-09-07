@@ -106,6 +106,28 @@ describe('SyncEngine', () => {
       expect(synced.status).toBe('synced');
     });
 
+    it('keeps a duplicate operation rejected when the server returns errorDetails', async () => {
+      const entry = await outbox.enqueue('recordMilking', { totalLiters: 4 });
+      api.pushHandler = async (ops) => ({
+        processedCount: ops.length,
+        results: ops.map((o) => ({
+          clientOperationId: o.clientOperationId,
+          status: 'Duplicate' as const,
+          resultRef: null,
+          errorDetails: 'La operación fue rechazada previamente en el servidor.',
+        })),
+      });
+
+      await engine.syncNow();
+
+      expect(await outbox.pending()).toHaveLength(0);
+      const rejected = await outbox.rejected();
+      expect(rejected).toHaveLength(1);
+      expect(rejected[0].clientOperationId).toBe(entry.clientOperationId);
+      expect(rejected[0].status).toBe('rejected');
+      expect(rejected[0].errorDetails).toBe('La operación fue rechazada previamente en el servidor.');
+    });
+
     /** A refused record is a problem to show a human, never a record to drop. */
     it('keeps a refused operation with the server reason and stops retrying it', async () => {
       await outbox.enqueue('recordAnimalEvent', { animalId: 'ghost' });

@@ -158,10 +158,16 @@ describe('Push Payload Contracts Generator and Validator', () => {
     const entries = await outbox.pending();
     expect(entries.length).toBe(10);
 
-    const operations = entries.map((entry) => ({
-      operationType: entry.operationType,
-      payload: entry.payload,
-    }));
+    const operations = entries.map((entry) => {
+      const payload = { ...entry.payload };
+      if (entry.operationType === 'createAnimal' && payload.id) {
+        payload.id = '631b5eb4-dc6d-4166-b96f-0b98ac182e8b';
+      }
+      return {
+        operationType: entry.operationType,
+        payload,
+      };
+    });
 
     const fixtureContent = {
       _comment:

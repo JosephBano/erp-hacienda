@@ -17,7 +17,8 @@ public record RecordMilkingSessionCommand(
     decimal TotalLiters,
     Guid? GroupId = null,
     string? Notes = null,
-    List<IndividualYieldItem>? IndividualYields = null) : IRequest<Guid>;
+    List<IndividualYieldItem>? IndividualYields = null,
+    bool IsPlausibilityConfirmed = false) : IRequest<Guid>;
 
 public class RecordMilkingSessionValidator : AbstractValidator<RecordMilkingSessionCommand>
 {
@@ -53,7 +54,8 @@ public class RecordMilkingSessionHandler(IProductionDbContext dbContext, IWithdr
             request.RecordedBy,
             request.TotalLiters,
             request.GroupId,
-            request.Notes);
+            request.Notes,
+            isPlausibilityConfirmed: request.IsPlausibilityConfirmed);
 
         if (request.IndividualYields is not null && request.IndividualYields.Count > 0)
         {

@@ -16,6 +16,7 @@ public class MilkingSessionConfiguration : IEntityTypeConfiguration<MilkingSessi
         builder.Property(s => s.RecordedById).IsRequired(false);
         builder.Ignore(s => s.RecordedBy);
         builder.Property(s => s.Notes).HasMaxLength(500);
+        builder.Property(s => s.IsPlausibilityConfirmed).IsRequired().HasDefaultValue(false);
 
         builder.Metadata.FindNavigation(nameof(MilkingSession.Yields))!
             .SetPropertyAccessMode(PropertyAccessMode.Field);

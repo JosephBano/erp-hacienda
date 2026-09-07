@@ -15,7 +15,8 @@ public record MilkingSessionDto(
     decimal TotalLiters,
     string RecordedBy,
     string? Notes,
-    List<MilkYieldDto> Yields);
+    List<MilkYieldDto> Yields,
+    bool IsPlausibilityConfirmed = false);
 
 public record GetDailyMilkingSessionsQuery(DateOnly Date) : IRequest<List<MilkingSessionDto>>;
 
@@ -38,7 +39,8 @@ public class GetDailyMilkingSessionsHandler(IProductionDbContext dbContext)
             s.TotalLiters,
             s.RecordedBy,
             s.Notes,
-            s.Yields.Select(y => new MilkYieldDto(y.Id, y.AnimalId, y.Liters)).ToList()
+            s.Yields.Select(y => new MilkYieldDto(y.Id, y.AnimalId, y.Liters)).ToList(),
+            s.IsPlausibilityConfirmed
         )).ToList();
     }
 }

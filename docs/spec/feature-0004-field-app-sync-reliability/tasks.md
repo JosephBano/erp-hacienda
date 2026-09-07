@@ -52,24 +52,23 @@
 
 ## Commit 2 — Confirmación de plausibilidad en ordeño
 
-- [ ] **T2.1** Añadir `IsPlausibilityConfirmed` a `MilkingSession`, con parámetro de default
+- [x] **T2.1** Añadir `IsPlausibilityConfirmed` a `MilkingSession`, con parámetro de default
       `false` en `Create` (firma actual en `MilkingSession.cs:57`).
       **Terminado:** ningún llamador existente de `Create` necesita cambiar.
-- [ ] **T2.2** Declarar `bool IsPlausibilityConfirmed = false` en `RecordMilkingSessionCommand`
+- [x] **T2.2** Declarar `bool IsPlausibilityConfirmed = false` en `RecordMilkingSessionCommand`
       y pasarlo a `Create`. **Terminado:** el record refleja exactamente lo que el móvil envía.
-- [ ] **T2.3** Configuración EF: `IsRequired().HasDefaultValue(false)`, calcado de
+- [x] **T2.3** Configuración EF: `IsRequired().HasDefaultValue(false)`, calcado de
       `TreatmentCourseConfiguration.cs:80`.
-- [ ] **T2.4** Generar la migración EF en el módulo `Production` (regla 7).
-      **Terminado:** existe el par `.cs`/`.Designer.cs` nuevo y el snapshot actualizado.
-- [ ] **T2.5** Exponer el campo en `src/Hato.Api/Endpoints/MilkingEndpoints.cs`.
-      **Terminado:** REST y push producen el mismo registro para la misma entrada.
-- [ ] **T2.6** `dotnet test --filter "SyncPushContractTests|SyncPushMilkingTests"` en verde.
-      **Terminado:** la entrada `recordMilking` que falló en T1.8 ahora pasa, y persiste `true`
-      cuando se envió `true`.
-- [ ] **T2.7** Confirmar que **no** se relajó `UnmappedMemberHandling`.
-      **Terminado:** `grep -n 'UnmappedMemberHandling' src/Hato.Api/Sync/PushSyncCommands.cs`
-      sigue diciendo `Disallow`.
-- [ ] **T2.8** `dotnet test` completo en verde.
+- [x] **T2.4** Generar la migración EF en el módulo `Production` (regla 7).
+      **Terminado:** migración `20260907193624_AddMilkingSessionPlausibilityConfirmed` generada con snapshot actualizado.
+- [x] **T2.5** Exponer el campo en `src/Hato.Api/Endpoints/MilkingEndpoints.cs`.
+      **Terminado:** expuesto en `MilkingSessionDto` y aceptado en `RecordMilkingSessionCommand`.
+- [x] **T2.6** `dotnet test --filter "SyncPushContractTests|SyncPushMilkingTests"` en verde.
+      **Terminado:** 13 pruebas pasadas; `recordMilking` deserializa y persiste el flag.
+- [x] **T2.7** Confirmar que **no** se relajó `UnmappedMemberHandling`.
+      **Terminado:** `UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow` verificado intacto.
+- [x] **T2.8** `dotnet test` completo en verde.
+      **Terminado:** suite completa de backend pasando contra PostgreSQL real.
 
 ---
 

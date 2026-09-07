@@ -1,6 +1,8 @@
 import React from 'react';
 import {
   ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -63,6 +65,29 @@ export function BigButton({
   );
 }
 
+/**
+ * The container every screen sits in.
+ *
+ * `scrollable` is opt-in on purpose: a screen that owns a bounded inner list
+ * (MilkingScreen's picker) must not nest a second vertical scroller inside this
+ * one, or the two compete for the same drag and the inner one traps it
+ * (feature-0006 D1). One vertical gesture per screen, always.
+ *
+ * The scrollable branch carries three settings that are not cosmetic:
+ *
+ * - `keyboardShouldPersistTaps="handled"`. React Native's default is `'never'`,
+ *   which makes the FIRST tap on a button with the keyboard open do nothing but
+ *   dismiss the keyboard. The employee taps "Registrar", nothing happens, they
+ *   tap again. That is the "no responde" report, and `'handled'` is the fix:
+ *   the tap reaches the button and the keyboard closes in the same gesture.
+ * - `keyboardDismissMode="on-drag"`. Scrolling away from a field puts the
+ *   keyboard down without registering anything (D2).
+ * - `KeyboardAvoidingView`. On iOS the keyboard overlays the window, so the
+ *   final action would sit under it with no way to reach it; `padding` lifts the
+ *   content. On Android the window itself resizes (`softwareKeyboardLayoutMode`
+ *   defaults to `resize`), so adding a behaviour there would double-count the
+ *   inset and leave a gap.
+ */
 export function Screen({
   children,
   testID,
@@ -87,13 +112,20 @@ export function Screen({
   }
 
   return (
-    <ScrollView
-      testID={testID}
+    <KeyboardAvoidingView
       style={styles.screenScroll}
-      contentContainerStyle={styles.screenScrollContent}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      {children}
-    </ScrollView>
+      <ScrollView
+        testID={testID}
+        style={styles.screenScroll}
+        contentContainerStyle={styles.screenScrollContent}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+      >
+        {children}
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -264,6 +296,12 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: theme.color.background,
   },
+  /**
+   * `flexGrow`, never `flex`. `flex: 1` clamps the content box to the viewport
+   * height, which is exactly how a screen ends up with its last button below the
+   * fold and no way to scroll to it; `flexGrow: 1` still fills a short screen but
+   * lets a long one grow past the window.
+   */
   screenScrollContent: {
     flexGrow: 1,
     padding: theme.space.md,

@@ -151,5 +151,92 @@ describe('BirthService', () => {
       pregnancyId: 'preg-123',
     });
   });
+
+  it('refuses a birth when dam is a male animal', async () => {
+    await database.write(async () => {
+      await database.get('animals').create((row: any) => {
+        row._raw.id = 'bull-dam';
+        row.sex = 'Male';
+        row.isDeleted = false;
+        row.serverCreatedAt = Date.now();
+      });
+    });
+
+    await expect(
+      service.recordBirth({ damId: 'bull-dam', offspring: [{ sex: 'F' }] }),
+    ).rejects.toThrow(/hembra/i);
+  });
+
+  it('refuses a birth when dam was disposed before or on birth date', async () => {
+    await database.write(async () => {
+      await database.get('animals').create((row: any) => {
+        row._raw.id = 'dead-dam';
+        row.sex = 'Female';
+        row.disposedAt = '2026-05-10T12:00:00.000Z';
+        row.isDeleted = false;
+        row.serverCreatedAt = Date.now();
+      });
+    });
+
+    await expect(
+      service.recordBirth({
+        damId: 'dead-dam',
+        birthDate: '2026-05-10',
+        offspring: [{ sex: 'F' }],
+      }),
+    ).rejects.toThrow(/dada de baja/i);
+  });
+
+  it('refuses a birth when pregnancy is not active', async () => {
+    await database.write(async () => {
+      await database.get('animals').create((row: any) => {
+        row._raw.id = 'dam-completed';
+        row.sex = 'Female';
+        row.isDeleted = false;
+        row.serverCreatedAt = Date.now();
+      });
+      await database.get('pregnancies').create((row: any) => {
+        row._raw.id = 'preg-done';
+        row.damId = 'dam-completed';
+        row.status = 'Completed';
+        row.isDeleted = false;
+        row.serverCreatedAt = Date.now();
+      });
+    });
+
+    await expect(
+      service.recordBirth({
+        damId: 'dam-completed',
+        pregnancyId: 'preg-done',
+        offspring: [{ sex: 'F' }],
+      }),
+    ).rejects.toThrow(/activa/i);
+  });
+
+  it('refuses a birth when pregnancy belongs to a different dam', async () => {
+    await database.write(async () => {
+      await database.get('animals').create((row: any) => {
+        row._raw.id = 'dam-actual';
+        row.sex = 'Female';
+        row.isDeleted = false;
+        row.serverCreatedAt = Date.now();
+      });
+      await database.get('pregnancies').create((row: any) => {
+        row._raw.id = 'preg-other';
+        row.damId = 'other-dam';
+        row.status = 'Active';
+        row.isDeleted = false;
+        row.serverCreatedAt = Date.now();
+      });
+    });
+
+    await expect(
+      service.recordBirth({
+        damId: 'dam-actual',
+        pregnancyId: 'preg-other',
+        offspring: [{ sex: 'F' }],
+      }),
+    ).rejects.toThrow(/corresponde/i);
+  });
 });
 

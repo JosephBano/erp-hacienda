@@ -337,4 +337,84 @@ public class SyncPushProtocolTests(SyncApiFactory factory)
         var receivedAt = record.GetProperty("receivedAt").GetDateTimeOffset();
         Assert.InRange(receivedAt, before, DateTimeOffset.UtcNow.AddMinutes(1));
     }
+
+    [Fact]
+    public async Task Push_MoveAnimal_WhenFromEqualsTo_ReturnsRejected()
+    {
+        var context = await SyncTestContext.CreateAsync(factory, "push-move-same");
+        var speciesId = await context.CreateSpeciesAsync("Bovino");
+        var animalId = await context.CreateAnimalAsync(speciesId, "Female");
+        var groupId = Guid.NewGuid();
+
+        var result = await context.PushAsync("moveAnimal", new
+        {
+            animalId,
+            fromGroupId = groupId,
+            toGroupId = groupId,
+            movedOn = DateOnly.FromDateTime(DateTime.UtcNow)
+        });
+
+        Assert.Equal("Rejected", result.GetProperty("status").GetString());
+        var error = result.GetProperty("errorDetails").GetString();
+        Assert.NotNull(error);
+        Assert.Contains("diferente", error, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task Push_Birthing_WithMaleDam_ReturnsRejected()
+    {
+        var context = await SyncTestContext.CreateAsync(factory, "push-birth-male-dam");
+        var speciesId = await context.CreateSpeciesAsync("Bovino");
+        var maleDamId = await context.CreateAnimalAsync(speciesId, "Male");
+
+        var result = await context.PushAsync("recordBirth", new
+        {
+            damId = maleDamId,
+            birthDate = DateOnly.FromDateTime(DateTime.UtcNow),
+            difficulty = "Normal",
+            bornAlive = 1,
+            offspring = new[]
+            {
+                new { sex = "F" }
+            }
+        });
+
+        Assert.Equal("Rejected", result.GetProperty("status").GetString());
+        var error = result.GetProperty("errorDetails").GetString();
+        Assert.NotNull(error);
+        Assert.Contains("hembra", error, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task Push_RecordAnimalEvent_OnDisposedAnimal_ReturnsRejected()
+    {
+        var context = await SyncTestContext.CreateAsync(factory, "push-event-disposed");
+        var speciesId = await context.CreateSpeciesAsync("Bovino");
+        var cowId = await context.CreateAnimalAsync(speciesId, "Female");
+
+        var disposalTime = DateTimeOffset.UtcNow.AddHours(-2);
+        var disposeResult = await context.PushAsync("recordAnimalEvent", new
+        {
+            animalId = cowId,
+            eventType = "Disposal",
+            occurredAt = disposalTime,
+            recordedBy = "mayordomo",
+            payloadJson = "{}"
+        });
+        Assert.Equal("Accepted", disposeResult.GetProperty("status").GetString());
+
+        var eventResult = await context.PushAsync("recordAnimalEvent", new
+        {
+            animalId = cowId,
+            eventType = "Weighing",
+            occurredAt = disposalTime.AddHours(1),
+            recordedBy = "mayordomo",
+            payloadJson = "{\"weightKg\":410}"
+        });
+
+        Assert.Equal("Rejected", eventResult.GetProperty("status").GetString());
+        var error = eventResult.GetProperty("errorDetails").GetString();
+        Assert.NotNull(error);
+        Assert.Contains("baja", error, StringComparison.OrdinalIgnoreCase);
+    }
 }

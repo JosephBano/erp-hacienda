@@ -293,6 +293,11 @@ public class PushSyncBatchCommandHandler(
             case "moveanimal":
                 {
                     var move = Deserialize<MoveAnimalPayload>(payloadJson, "movimiento");
+                    if (move.FromGroupId.HasValue && move.FromGroupId.Value == move.ToGroupId)
+                    {
+                        throw new DomainException("El lote de destino debe ser diferente del lote de origen.");
+                    }
+
                     var movedOn = move.MovedOn ?? DateOnly.FromDateTime(DateTime.UtcNow);
 
                     if (move.FromGroupId is { } from)

@@ -91,27 +91,27 @@
 
 ## Commit 5 — Las demás actividades
 
-- [ ] **T5.1** **Parto:** madre hembra coherente con la preñez elegida; no ofrecer machos como
+- [x] **T5.1** **Parto:** madre hembra coherente con la preñez elegida; no ofrecer machos como
       madres. **Terminado:** el flujo actual de preñez activa se conserva.
-- [ ] **T5.2** **Parto:** padre animal **o** material genético, nunca ambos.
-- [ ] **T5.3** **Parto:** una preñez completada no vuelve a ofrecerse.
-- [ ] **T5.4** **Pesaje, vacunación, tratamiento:** sujeto existente, actividad atribuible en
+- [x] **T5.2** **Parto:** padre animal **o** material genético, nunca ambos.
+- [x] **T5.3** **Parto:** una preñez completada no vuelve a ofrecerse.
+- [x] **T5.4** **Pesaje, vacunación, tratamiento:** sujeto existente, actividad atribuible en
       la fecha, unidades válidas. **Terminado:** casos válidos de **ambos sexos** cubiertos;
       no se aplican reglas de ordeño aquí.
-- [ ] **T5.5** **Movimiento individual:** destino válido, distinto del origen, sin membresías
+- [x] **T5.5** **Movimiento individual:** destino válido, distinto del origen, sin membresías
       activas contradictorias en el mismo tipo de agrupación.
-- [ ] **T5.6** **Baja individual:** no duplicar una baja ya efectiva; causa y fecha coherentes;
+- [x] **T5.6** **Baja individual:** no duplicar una baja ya efectiva; causa y fecha coherentes;
       el registro histórico se conserva (regla dura 1).
-- [ ] **T5.7** **Actividad grupal:** grupo activo en la fecha, modo de seguimiento respetado,
+- [x] **T5.7** **Actividad grupal:** grupo activo en la fecha, modo de seguimiento respetado,
       cantidades positivas. **Terminado:** una cantidad no identifica individuos concretos.
-- [ ] **T5.8** Rangos de plausibilidad y política de ADR-0022 conservados: falta de rango
+- [x] **T5.8** Rangos de plausibilidad y política de ADR-0022 conservados: falta de rango
       consultivo **no** se convierte en bloqueo (D4).
-- [ ] **T5.9** Casos negativos por actividad: duplicados de baja, movimientos incoherentes,
+- [x] **T5.9** Casos negativos por actividad: duplicados de baja, movimientos incoherentes,
       números imposibles y unidades inválidas.
-- [ ] **T5.10** Verificar que no se introdujo ningún `if`/`switch` por especie, producto o raza.
+- [x] **T5.10** Verificar que no se introdujo ningún `if`/`switch` por especie, producto o raza.
       **Terminado:** `git diff` revisado contra la regla dura 3; si pareció inevitable, se
       detiene y se explica en el PR.
-- [ ] **T5.11** `dotnet test` y `npm test` completos en verde.
+- [x] **T5.11** `dotnet test` y `npm test` completos en verde.
 
 ---
 

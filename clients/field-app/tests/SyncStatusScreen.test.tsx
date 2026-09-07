@@ -232,4 +232,48 @@ describe('SyncStatusScreen', () => {
 
     expect(await outbox.pending()).toHaveLength(1);
   });
+
+  it('does not invoke recovery when offline, preserving local catalog and displaying notice (T7.2)', async () => {
+    // Populate an animal in mirror table
+    await database.write(async () => {
+      await database.get('animals').create((record: any) => {
+        record._raw.id = 'cow-preserved';
+        record.sex = 'Female';
+        record.speciesId = 'sp-1';
+        record.isDeleted = false;
+        record.serverCreatedAt = Date.now();
+      });
+    });
+
+    let resetCalled = false;
+    const engine = new SyncEngine(database, api);
+    engine.resetMirror = async () => {
+      resetCalled = true;
+    };
+
+    // Simulate offline
+    (global as any).__setNetworkConnected(false);
+
+    await render(<SyncStatusScreen engine={engine} outbox={outbox} visibility={visibility} />);
+
+    // Request redownload
+    fireEvent.press(screen.getByTestId('redownload'));
+    await waitFor(() => {
+      expect(screen.getByTestId('confirm-redownload')).toBeTruthy();
+    });
+
+    // Confirm redownload while offline
+    fireEvent.press(screen.getByTestId('confirm-redownload'));
+
+    await waitFor(() => {
+      // Offline notice is displayed
+      expect(screen.getByText(/sin señal.*lo registrado está guardado/i)).toBeTruthy();
+    });
+
+    // Recovery was NOT invoked
+    expect(resetCalled).toBe(false);
+
+    // Local catalog was NOT wiped
+    expect(await database.get('animals').query().fetchCount()).toBe(1);
+  });
 });

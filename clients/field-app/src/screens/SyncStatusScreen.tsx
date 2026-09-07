@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import NetInfo from '@react-native-community/netinfo';
 
 import { theme } from '../ui/theme';
 import { BigButton, Body, Card, Notice, Screen, Title } from '../ui/components';
@@ -80,6 +81,18 @@ export function SyncStatusScreen({
 
   const confirmRedownload = async () => {
     setShowRedownloadConfirm(false);
+    const netState = await NetInfo.fetch();
+    if (!netState.isConnected) {
+      setResult({
+        ok: false,
+        reason: 'offline',
+        pushed: 0,
+        rejected: 0,
+        pulled: 0,
+      });
+      return;
+    }
+
     setBusy(true);
     try {
       await engine.resetMirror();

@@ -625,6 +625,95 @@ describe('SyncEngine', () => {
       await engine.syncNow();
       expect(api.pullCalls[0]).toBeUndefined();
     });
+
+    it('coordinates resetMirror and syncNow mutually exclusively (T7.1)', async () => {
+      let resolvePush!: () => void;
+      const pushBarrier = new Promise<void>((r) => {
+        resolvePush = r;
+      });
+      api.pushHandler = async () => {
+        await pushBarrier;
+        return { processedCount: 0, results: [] };
+      };
+
+      await outbox.enqueue('recordMilking', { totalLiters: 10 });
+
+      // Start sync
+      const syncPromise = engine.syncNow();
+      expect(engine.isRunning).toBe(true);
+
+      // Call resetMirror concurrently while sync is in flight
+      let resetFinished = false;
+      const resetPromise = engine.resetMirror().then(() => {
+        resetFinished = true;
+      });
+
+      // resetMirror should NOT have finished yet because sync is in flight
+      expect(resetFinished).toBe(false);
+      expect(engine.isRunning).toBe(true);
+
+      // Complete sync push
+      resolvePush();
+      await syncPromise;
+
+      // Now resetMirror completes
+      await resetPromise;
+      expect(resetFinished).toBe(true);
+      expect(engine.isRunning).toBe(false);
+    });
+
+    it('recovery interrupted halfway does not lose pending outbox entries or local-only records (T7.4)', async () => {
+      // 1. Mirror tables populated
+      await database.write(async () => {
+        await database.get('animals').create((record: any) => {
+          record._raw.id = 'an-interrupted-1';
+          record.sex = 'Female';
+          record.speciesId = 'sp-1';
+          record.isDeleted = false;
+          record.serverCreatedAt = Date.now();
+        });
+      });
+
+      // 2. Local-only records (milk_yields) populated
+      await database.write(async () => {
+        await database.get('milk_yields').create((record: any) => {
+          record._raw.id = 'yield-local-1';
+          record.clientOperationId = 'op-yield-1';
+          record.shift = 'Morning';
+          record.liters = 18;
+          record.date = '2026-09-07';
+        });
+      });
+
+      // 3. Outbox pending forms populated
+      const outboxEntry = await outbox.enqueue('recordGroupEvent', {
+        groupId: 'g-1',
+        eventType: 'Weighing',
+        payloadJson: JSON.stringify({ averageWeightKg: 400 }),
+      });
+
+      // 4. Reset mirror executes
+      await engine.resetMirror();
+
+      // 5. Subsequent sync fails with network error (interrupted recovery)
+      api.pushHandler = async () => {
+        throw new Error('Network timeout during push');
+      };
+      api.pullHandler = async () => {
+        throw new Error('Network timeout during pull');
+      };
+      const result = await engine.syncNow();
+      expect(result.ok).toBe(false);
+
+      // 6. Assert pending forms and local records are completely intact
+      const pendingOutbox = await outbox.pending();
+      expect(pendingOutbox).toHaveLength(1);
+      expect(pendingOutbox[0].clientOperationId).toBe(outboxEntry.clientOperationId);
+
+      const localYields = await database.get('milk_yields').query().fetch();
+      expect(localYields).toHaveLength(1);
+      expect(localYields[0].id).toBe('yield-local-1');
+    });
   });
 
   /**

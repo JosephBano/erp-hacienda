@@ -151,15 +151,15 @@
 
 ## Commit 7 — Recuperación manual segura
 
-- [ ] **T7.1** `resetMirror` (`syncEngine.ts:188`) se coordina con `running`: exclusión mutua
+- [x] **T7.1** `resetMirror` (`syncEngine.ts:188`) se coordina con `running`: exclusión mutua
       con la sincronización.
-- [ ] **T7.2** `SyncStatusScreen.tsx:77` no invoca la recuperación antes de comprobar
+- [x] **T7.2** `SyncStatusScreen.tsx:77` no invoca la recuperación antes de comprobar
       conectividad ni deja el dispositivo sin el único catálogo utilizable sin conexión.
-- [ ] **T7.3** La prueba existente de que `sync_outbox` sobrevive intacto sigue en verde.
+- [x] **T7.3** La prueba existente de que `sync_outbox` sobrevive intacto sigue en verde.
       **Terminado:** regla dura 10; sin esta prueba el commit no entra.
-- [ ] **T7.4** Prueba nueva: recuperación interrumpida a mitad no pierde formularios
+- [x] **T7.4** Prueba nueva: recuperación interrumpida a mitad no pierde formularios
       pendientes ni registros exclusivamente locales.
-- [ ] **T7.5** `npm test` completo en verde.
+- [x] **T7.5** `npm test` completo en verde.
 
 ---
 

@@ -60,6 +60,11 @@ export class SyncEngine {
   private consecutiveFailures = 0;
   private running = false;
   private inFlightSync?: Promise<SyncResult>;
+  private inFlightReset?: Promise<void>;
+
+  get isRunning(): boolean {
+    return this.running;
+  }
   private retryTimer?: ReturnType<typeof setTimeout>;
   private isStarted = false;
   private unsubscribeNetInfo?: () => void;
@@ -155,6 +160,14 @@ export class SyncEngine {
   }
 
   async syncNow(): Promise<SyncResult> {
+    if (this.inFlightReset) {
+      try {
+        await this.inFlightReset;
+      } catch {
+        // Handled by resetMirror caller
+      }
+    }
+
     if (this.inFlightSync) {
       return this.inFlightSync;
     }
@@ -274,9 +287,38 @@ export class SyncEngine {
    * Resets all mirror tables (those populated from the server via TABLE_BY_COLLECTION)
    * and clears the stored pull cursor so the next sync performs a clean full download.
    *
+   * Coordinates mutually exclusively with syncNow (running / inFlightSync).
+   *
    * CRITICAL (Rule 10 & D8): NEVER touches sync_outbox, milk_yields, or any local-only tables.
    */
   async resetMirror(): Promise<void> {
+    if (this.inFlightReset) {
+      return this.inFlightReset;
+    }
+
+    const resetPromise = (async () => {
+      if (this.inFlightSync) {
+        try {
+          await this.inFlightSync;
+        } catch {
+          // Handled by syncNow caller
+        }
+      }
+
+      this.running = true;
+      try {
+        await this.performResetMirror();
+      } finally {
+        this.running = false;
+        this.inFlightReset = undefined;
+      }
+    })();
+
+    this.inFlightReset = resetPromise;
+    return resetPromise;
+  }
+
+  private async performResetMirror(): Promise<void> {
     const mirrorTables = Array.from(new Set(Object.values(TABLE_BY_COLLECTION)));
 
     await this.database.write(async () => {

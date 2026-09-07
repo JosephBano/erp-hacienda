@@ -118,6 +118,7 @@ describe('local schema', () => {
         'server_created_at',
         'server_updated_at',
         'last_edited_at',
+        'disposed_at',
       ]),
     );
   });
@@ -208,6 +209,62 @@ describe('local schema', () => {
       'server_created_at',
       'server_updated_at',
     ]);
+  });
+
+  it('defines a migration from version 11 to 12 adding disposed_at to animals (T1.4)', () => {
+    const allMigrations = (migrations as any).sortedMigrations ?? (migrations as any).migrations ?? [];
+    const v12Migration = allMigrations.find((m: any) => m.toVersion === 12);
+    expect(v12Migration).toBeDefined();
+
+    expect(v12Migration?.steps).toHaveLength(1);
+    const step = v12Migration?.steps[0];
+    expect(step.type).toBe('add_columns');
+    expect(step.table).toBe('animals');
+    expect(step.columns).toEqual([
+      { name: 'disposed_at', type: 'string', isOptional: true },
+    ]);
+  });
+
+  it('preserves sync_outbox and existing animal data across migration to version 12 (T1.5, T1.6)', async () => {
+    const adapter = new LokiJSAdapter({
+      schema,
+      migrations,
+      useWebWorker: false,
+      useIncrementalIndexedDB: false,
+      dbName: `hato-schema-migration-v12-${Math.random()}`,
+    });
+    const database = new Database({ adapter: adapter as never, modelClasses });
+
+    await database.write(async () => {
+      await database.get('sync_outbox').create((row: any) => {
+        row._raw.id = 'op-1';
+        row.clientOperationId = 'client-op-1';
+        row.operationType = 'recordMilking';
+        row.occurredAt = '2026-08-01T05:00:00Z';
+        row.payloadJson = '{"liters": 15}';
+        row.status = 'pending';
+        row.attempts = 0;
+        row.queuedAt = Date.now();
+      });
+
+      await database.get('animals').create((row: any) => {
+        row._raw.id = 'animal-1';
+        row.sex = 'Female';
+        row.speciesId = 'species-cow';
+        row.isDeleted = false;
+        row.serverCreatedAt = Date.now();
+        row.disposedAt = '2026-08-05T10:00:00Z';
+      });
+    });
+
+    const outboxItem = (await database.get('sync_outbox').find('op-1')) as any;
+    expect(outboxItem.clientOperationId).toBe('client-op-1');
+    expect(outboxItem.operationType).toBe('recordMilking');
+    expect(outboxItem.status).toBe('pending');
+
+    const animal = (await database.get('animals').find('animal-1')) as any;
+    expect(animal.sex).toBe('Female');
+    expect(animal.disposedAt).toBe('2026-08-05T10:00:00Z');
   });
 });
 

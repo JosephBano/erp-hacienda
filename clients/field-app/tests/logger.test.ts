@@ -1,4 +1,5 @@
 import { LoggerService } from '../src/services/loggerService';
+import { SCHEMA_VERSION } from '../src/database/schema';
 
 describe('LoggerService LOPDP Local Log Tests', () => {
   let loggerService: LoggerService;
@@ -43,7 +44,7 @@ describe('LoggerService LOPDP Local Log Tests', () => {
     const [entry] = logs;
     expect(entry.timestamp).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/);
     expect(entry.appVersion).toBe('1.0.0');
-    expect(entry.schemaVersion).toBe(11);
+    expect(entry.schemaVersion).toBe(SCHEMA_VERSION);
     expect(entry.attemptId).toBe('att-123');
     expect(entry.failedStage).toBe('apply');
     expect(entry.collection).toBe('animals');

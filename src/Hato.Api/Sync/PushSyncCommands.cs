@@ -71,7 +71,7 @@ public class PushSyncBatchCommandHandler(
     // earlier phase (a dropped `motherId`, no error, no signal). Disallow turns an
     // unknown field into a loud `JsonException` → 400 the device's problems tray can
     // show, instead of a record silently missing data on the server.
-    private static readonly JsonSerializerOptions JsonOptions = new()
+    public static readonly JsonSerializerOptions JsonOptions = new()
     {
         PropertyNameCaseInsensitive = true,
         Converters = { new JsonStringEnumConverter() },

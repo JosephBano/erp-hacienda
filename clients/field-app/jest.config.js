@@ -12,7 +12,7 @@ module.exports = {
     {
       displayName: 'logic',
       testEnvironment: 'jsdom',
-      testMatch: ['<rootDir>/tests/**/*.test.ts'],
+      testMatch: ['<rootDir>/tests/**/*.test.ts', '<rootDir>/src/**/__tests__/**/*.test.ts'],
       setupFiles: ['<rootDir>/tests/setup/logic-setup.js'],
       transformIgnorePatterns: [
         'node_modules/(?!(jest-)?react-native|@react-native|expo(nent)?|@expo|@nozbe)',

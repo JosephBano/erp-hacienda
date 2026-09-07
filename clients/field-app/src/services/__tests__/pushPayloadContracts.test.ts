@@ -133,7 +133,7 @@ describe('Push Payload Contracts Generator and Validator', () => {
       bornDead: 0,
       mummified: 0,
       notes: 'Parto normal',
-      offspring: [{ sex: 'Female', farmTag: 'H-101', birthWeightKg: 38 }],
+      offspring: [{ sex: 'F', farmTag: 'H-101', birthWeightKg: 38 }],
     });
 
     // 9. updateAnimal
@@ -206,8 +206,8 @@ describe('Push Payload Contracts Generator and Validator', () => {
     for (const type of enqueuedTypes) {
       expect(fixtureTypes.has(type)).toBe(true);
     }
-    for (const type of fixtureTypes) {
-      expect(enqueuedTypes.has(type)).toBe(true);
+    for (const type of Array.from(fixtureTypes)) {
+      expect(enqueuedTypes.has(type as string)).toBe(true);
     }
   });
 });

@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, Share, StyleSheet, Text, View } from 'react-native';
 import NetInfo from '@react-native-community/netinfo';
 
 import { theme } from '../ui/theme';
@@ -89,6 +89,7 @@ export function SyncStatusScreen({
         pushed: 0,
         rejected: 0,
         pulled: 0,
+        stats: stats ?? { pending: 0, synced: 0, rejected: 0, cancelled: 0 },
       });
       return;
     }
@@ -152,6 +153,18 @@ export function SyncStatusScreen({
         tone="neutral"
         busy={busy}
         onPress={() => setShowRedownloadConfirm(true)}
+      />
+      <BigButton
+        testID="share-diagnostic"
+        label="Compartir diagnóstico"
+        tone="neutral"
+        onPress={async () => {
+          const logsJson = engine.logger.exportLogsJson();
+          await Share.share({
+            title: 'Diagnóstico de sincronización',
+            message: logsJson,
+          });
+        }}
       />
 
       {showRedownloadConfirm ? (

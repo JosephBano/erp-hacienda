@@ -5,7 +5,7 @@ import { schema } from '../src/database/schema';
 import { migrations } from '../src/database/migrations';
 import { modelClasses } from '../src/database/models';
 import { Outbox } from '../src/services/outbox';
-import { SyncEngine, backoffDelayMs, applyRow } from '../src/services/syncEngine';
+import { SyncEngine, backoffDelayMs, applyRow, type SyncResult } from '../src/services/syncEngine';
 import { LoggerService } from '../src/services/loggerService';
 import type { PullResponse, PushResponse, SyncApi } from '../src/services/syncApi';
 

@@ -6,6 +6,7 @@ import { AppState, type NativeEventSubscription } from 'react-native';
 import { SyncMeta } from '../database/models';
 import { Outbox, OutboxStats } from './outbox';
 import { LoggerService } from './loggerService';
+import { newUuid } from './identifiers';
 import type { PushOperation, PushResult, SyncApi } from './syncApi';
 
 const CURSOR_KEY = 'pull_cursor';
@@ -55,7 +56,7 @@ export function backoffDelayMs(consecutiveFailures: number): number {
 export class SyncEngine {
   private readonly outbox: Outbox;
   private readonly batchSize: number;
-  private readonly logger: LoggerService;
+  private readonly _logger: LoggerService;
   private readonly changeListeners = new Set<SyncChangeListener>();
   private consecutiveFailures = 0;
   private running = false;
@@ -64,6 +65,10 @@ export class SyncEngine {
 
   get isRunning(): boolean {
     return this.running;
+  }
+
+  get logger(): LoggerService {
+    return this._logger;
   }
   private retryTimer?: ReturnType<typeof setTimeout>;
   private isStarted = false;
@@ -77,7 +82,7 @@ export class SyncEngine {
   ) {
     this.outbox = new Outbox(database);
     this.batchSize = options.batchSize ?? 100;
-    this.logger = options.logger ?? new LoggerService();
+    this._logger = options.logger ?? new LoggerService();
   }
 
   /**
@@ -201,13 +206,15 @@ export class SyncEngine {
       return this.result(false, 'offline', 0, 0, 0);
     }
 
-    const push = await this.pushOutbox();
+    const attemptId = newUuid();
+
+    const push = await this.pushOutbox(attemptId);
     if (!push.ok) {
       this.consecutiveFailures += 1;
       return this.result(false, push.reason, push.pushed, push.rejected, 0);
     }
 
-    const pull = await this.pullChanges();
+    const pull = await this.pullChanges(attemptId);
     if (!pull.ok) {
       if (pull.reason !== 'pending') {
         this.consecutiveFailures += 1;
@@ -219,7 +226,7 @@ export class SyncEngine {
     return this.result(true, undefined, push.pushed, push.rejected, pull.pulled);
   }
 
-  private async pushOutbox(): Promise<{
+  private async pushOutbox(attemptId?: string): Promise<{
     ok: boolean;
     reason?: SyncFailureReason;
     pushed: number;
@@ -249,12 +256,25 @@ export class SyncEngine {
       } catch (error) {
         // The batch stays pending, untouched. Anything else would risk discarding work
         // that never reached the server.
+        this._logger.logError(`Push sync falló: ${String(error)}`, {
+          failedStage: 'push',
+          attemptId,
+          counts: { total: batch.length, pushed, rejected },
+        });
         return { ok: false, reason: classify(error), pushed, rejected };
       }
 
       for (const result of results) {
         if (result.status === 'Rejected') {
           rejected += 1;
+          const matching = batch.find((b) => b.clientOperationId === result.clientOperationId);
+          this._logger.logWarn(`Operación rechazada por el servidor: ${result.clientOperationId}`, {
+            failedStage: 'push',
+            attemptId,
+            clientOperationId: result.clientOperationId,
+            operationType: matching?.operationType,
+            errorDetails: result.errorDetails,
+          });
           await this.outbox.markRejected(
             result.clientOperationId,
             result.errorDetails ?? 'El servidor rechazó la operación sin indicar el motivo.',
@@ -266,6 +286,14 @@ export class SyncEngine {
           // If a duplicate returns errorDetails, the operation was previously rejected
           // on the server. Replaying it must preserve the rejection rather than whitewashing it.
           rejected += 1;
+          const matching = batch.find((b) => b.clientOperationId === result.clientOperationId);
+          this._logger.logWarn(`Operación duplicada rechazada por el servidor: ${result.clientOperationId}`, {
+            failedStage: 'push',
+            attemptId,
+            clientOperationId: result.clientOperationId,
+            operationType: matching?.operationType,
+            errorDetails: result.errorDetails,
+          });
           await this.outbox.markRejected(result.clientOperationId, result.errorDetails);
           continue;
         }
@@ -340,7 +368,7 @@ export class SyncEngine {
     });
   }
 
-  private async pullChanges(): Promise<{
+  private async pullChanges(attemptId?: string): Promise<{
     ok: boolean;
     reason?: SyncFailureReason;
     pulled: number;
@@ -353,12 +381,22 @@ export class SyncEngine {
       try {
         response = await this.api.pull(cursor, this.batchSize);
       } catch (error) {
+        this._logger.logError(`Pull sync falló: ${String(error)}`, {
+          failedStage: 'pull',
+          attemptId,
+          counts: { pulled },
+        });
         return { ok: false, reason: classify(error), pulled };
       }
 
       try {
-        pulled += await this.applyCollections(response.collections);
+        pulled += await this.applyCollections(response.collections, attemptId);
       } catch (error) {
+        this._logger.logError(`Aplicación de colecciones falló: ${String(error)}`, {
+          failedStage: 'apply',
+          attemptId,
+          counts: { pulled },
+        });
         return { ok: false, reason: classify(error), pulled };
       }
 
@@ -382,6 +420,7 @@ export class SyncEngine {
    */
   private async applyCollections(
     collections: Record<string, Array<Record<string, unknown>>>,
+    attemptId?: string,
   ): Promise<number> {
     let applied = 0;
     let hasUnknown = false;
@@ -389,9 +428,11 @@ export class SyncEngine {
     for (const [collectionName, rows] of Object.entries(collections)) {
       const table = TABLE_BY_COLLECTION[collectionName];
       if (!table) {
-        this.logger.logError(`Colección no reconocida en sincronización: ${collectionName}`, {
+        this._logger.logError(`Colección no reconocida en sincronización: ${collectionName}`, {
+          failedStage: 'apply',
+          attemptId,
           collection: collectionName,
-          count: Array.isArray(rows) ? rows.length : 0,
+          counts: { total: Array.isArray(rows) ? rows.length : 0 },
         });
         hasUnknown = true;
         continue;

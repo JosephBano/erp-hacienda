@@ -1,4 +1,5 @@
 import React from 'react';
+import { Share } from 'react-native';
 import { Database } from '@nozbe/watermelondb';
 import LokiJSAdapter from '@nozbe/watermelondb/adapters/lokijs';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
@@ -275,5 +276,31 @@ describe('SyncStatusScreen', () => {
 
     // Local catalog was NOT wiped
     expect(await database.get('animals').query().fetchCount()).toBe(1);
+  });
+
+  it('shares diagnostic log on explicit user action without automatic third-party transmission (T8.4)', async () => {
+    const engine = new SyncEngine(database, api);
+    engine.logger.logError('Fallo en sync', { failedStage: 'push', clientOperationId: 'op-test' });
+
+    const shareSpy = jest.spyOn(Share, 'share').mockResolvedValue({ action: 'sharedAction' } as any);
+
+    await render(<SyncStatusScreen engine={engine} outbox={outbox} visibility={visibility} />);
+
+    // No automatic sharing occurs on mount or render
+    expect(shareSpy).not.toHaveBeenCalled();
+
+    // User explicitly taps share diagnostic button
+    fireEvent.press(screen.getByTestId('share-diagnostic'));
+
+    await waitFor(() => {
+      expect(shareSpy).toHaveBeenCalledTimes(1);
+    });
+
+    const callArg = shareSpy.mock.calls[0][0];
+    expect(callArg.message).toContain('Fallo en sync');
+    expect(callArg.message).toContain('push');
+    expect(callArg.message).toContain('op-test');
+
+    shareSpy.mockRestore();
   });
 });

@@ -165,20 +165,20 @@
 
 ## Commit 8 — Diagnóstico persistente
 
-- [ ] **T8.1** `loggerService.ts:59,65` persiste en almacenamiento nativo disponible, sin
+- [x] **T8.1** `loggerService.ts:59,65` persiste en almacenamiento nativo disponible, sin
       depender de `localStorage`. **Terminado:** **sin dependencias nuevas** (D5); si hiciera
       falta una, detenerse y proponer ADR (regla 2).
-- [ ] **T8.2** Cada registro lleva fecha UTC, versión de app y esquema, identificador de
+- [x] **T8.2** Cada registro lleva fecha UTC, versión de app y esquema, identificador de
       intento, etapa fallida, colección, conteos y operación correlacionable.
-- [ ] **T8.3** Retención acotada, definida y probada.
-- [ ] **T8.4** Acción explícita del usuario para compartir el diagnóstico.
+- [x] **T8.3** Retención acotada, definida y probada.
+- [x] **T8.4** Acción explícita del usuario para compartir el diagnóstico.
       **Terminado:** no se envía nada a terceros automáticamente.
-- [ ] **T8.5** Revisión de que no se registran JWT, contraseñas ni payloads completos.
+- [x] **T8.5** Revisión de que no se registran JWT, contraseñas ni payloads completos.
       **Terminado:** revisión manual documentada en el PR, más prueba de que un payload con
       un campo sensible no aparece íntegro en el registro.
-- [ ] **T8.6** Prueba (b) de `spec.md` sec. 2.1 invertida: sin `localStorage`, un logger
+- [x] **T8.6** Prueba (b) de `spec.md` sec. 2.1 invertida: sin `localStorage`, un logger
       nuevo **recupera** el error registrado por el anterior.
-- [ ] **T8.7** `npm test` completo en verde.
+- [x] **T8.7** `npm test` completo en verde.
 
 ---
 

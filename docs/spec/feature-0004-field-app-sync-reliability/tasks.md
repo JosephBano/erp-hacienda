@@ -184,15 +184,15 @@
 
 ## Cierre
 
-- [ ] **TC.1** `dotnet test` completo en verde, contra PostgreSQL real (regla 5).
-- [ ] **TC.2** `npm test` completo en `clients/field-app`. Las seis omisiones existentes
+- [x] **TC.1** `dotnet test` completo en verde, contra PostgreSQL real (regla 5).
+- [x] **TC.2** `npm test` completo en `clients/field-app`. Las seis omisiones existentes
       siguen siendo seis; esta rama no las aumenta.
-- [ ] **TC.3** Ejecutar [`test-e2e.md`](./test-e2e.md) completo sobre **SQLite nativo** en
+- [x] **TC.3** Ejecutar [`test-e2e.md`](./test-e2e.md) completo sobre **SQLite nativo** en
       dispositivo real. Las pruebas del motor corren sobre LokiJS y no bastan para aceptar
       en campo (spec sec. 2.1).
-- [ ] **TC.4** Actualizar `ROADMAP.md`, que conserva un estado anterior al reporte
+- [x] **TC.4** Actualizar `ROADMAP.md`, que conserva un estado anterior al reporte
       (spec sec. 1). **Terminado:** refleja lo que esta rama cierra y lo que sigue abierto.
-- [ ] **TC.5** Anotar en `docs/BACKLOG.md` la deuda que esta rama detectó y no arregló
+- [x] **TC.5** Anotar en `docs/BACKLOG.md` la deuda que esta rama detectó y no arregló
       (regla 9), incluida la reserva de la Compuerta 1 si quedó fuera.
-- [ ] **TC.6** Abrir el PR con la descripción de [`plan.md`](./plan.md), incluido el
+- [x] **TC.6** Abrir el PR con la descripción de [`plan.md`](./plan.md), incluido el
       resultado de la Compuerta 0 y la salida del fallo de T1.8.

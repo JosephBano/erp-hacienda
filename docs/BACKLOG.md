@@ -8,6 +8,42 @@
 
 ## Deuda abierta por sub-rama
 
+## Pendiente feature-0004 — Sincronización móvil fiable (2026-09-07)
+
+> Estabilización de contratos de push y pull, motor de sincronización de `field-app`
+> y persistencia diagnóstica en `feature/sync-field-app-reliability`. Los siguientes
+> ítems recogen deuda técnica identificada que deliberadamente queda fuera de esta rama
+> (regla 9):
+
+### [sync] Compensación de reservas de inventario inter-módulos interrumpidas (Compuerta 1 / D4)
+
+En la Compuerta 1 se evaluó si registrar el resultado de una reserva pendiente requería
+modificar ADR-0008. Se determinó que no lo altera en el protocolo de sincronización
+móvil porque el cliente ya preserva la operación en `sync_outbox`. Sin embargo, a nivel de
+backend, los módulos `Livestock`/`Production` y `Inventory` operan sobre `DbContext`
+independientes (arquitectura de monolito modular). Si una transacción en el servidor se
+interrumpe tras haber creado la reserva en `Inventory` pero antes de confirmar el evento
+de campo o si ocurre un fallo no recuperable, no existe un mecanismo formal de compensación
+automática distribuida (Saga / outbox transaccional intermodular) para cancelar la reserva
+sin intervención manual. Evaluar en Fase 4 al abordar contabilidad y compras.
+
+### [testing] Ejecución de suite de campo `test-e2e.md` en SQLite nativo
+
+Las pruebas automáticas de `clients/field-app` corren con Jest utilizando `LokiJSAdapter`
+para emular la base de datos de WatermelonDB en Node.js. Aunque validan la concurrencia y
+la lógica del motor de sincronización, las peculiaridades del driver SQLite nativo
+(bloqueos de concurrencia en disco en Android/iOS, migraciones en SQLite real, comportamiento
+de threads en background de React Native) requieren completar la verificación manual en
+hardware real siguiendo `docs/spec/feature-0004-field-app-sync-reliability/test-e2e.md`.
+
+### [mobile] Estandarización de confirmación de plausibilidad en formularios móviles
+
+El flag `isPlausibilityConfirmed` fue incorporado a `MilkingSession` resolviendo el defecto
+determinista S8. En otras actividades (pesajes, tratamientos, partos), las cotas de
+plausibilidad actualmente viajan en cadenas JSON anidadas o no se persisten explícitamente
+como columna confirmada. Conviene diseñar un patrón consistente de diálogo de advertencia
+no bloqueante que persista la decisión del operario en todos los módulos de campo.
+
 ## Pendiente 3.5a.2-C — sub-rama cerrada, ítems abiertos
 
 > La sub-rama 3.5a.2-C mergeó a `integration/fase-3-5-wave-1` el 2026-08-09

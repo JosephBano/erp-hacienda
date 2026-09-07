@@ -22,6 +22,8 @@ export interface SyncResult {
   stats: OutboxStats;
 }
 
+export type SyncChangeListener = (result: SyncResult) => void;
+
 export interface SyncEngineOptions {
   /** Must stay at or below the server's own batch ceiling (500). */
   batchSize?: number;
@@ -54,6 +56,7 @@ export class SyncEngine {
   private readonly outbox: Outbox;
   private readonly batchSize: number;
   private readonly logger: LoggerService;
+  private readonly changeListeners = new Set<SyncChangeListener>();
   private consecutiveFailures = 0;
   private running = false;
   private inFlightSync?: Promise<SyncResult>;
@@ -70,6 +73,27 @@ export class SyncEngine {
     this.outbox = new Outbox(database);
     this.batchSize = options.batchSize ?? 100;
     this.logger = options.logger ?? new LoggerService();
+  }
+
+  /**
+   * Subscribes to changes applied by synchronization (e.g. pushes acknowledged, pulls applied).
+   * Notifies container and screens so open views reflect confirmed database state.
+   */
+  subscribe(listener: SyncChangeListener): () => void {
+    this.changeListeners.add(listener);
+    return () => {
+      this.changeListeners.delete(listener);
+    };
+  }
+
+  private notifyChanges(result: SyncResult): void {
+    for (const listener of this.changeListeners) {
+      try {
+        listener(result);
+      } catch (error) {
+        this.logger.error('Error in sync change listener', { error: String(error) });
+      }
+    }
   }
 
   /**
@@ -140,6 +164,9 @@ export class SyncEngine {
     this.inFlightSync = this.performSync();
     try {
       const result = await this.inFlightSync;
+      if (result.pulled > 0 || result.pushed > 0 || result.rejected > 0) {
+        this.notifyChanges(result);
+      }
       if (!result.ok) {
         // Transient network failures or pending pull pages are scheduled for retry
         // while the app is active. Business rejections, offline states (handled by

@@ -136,16 +136,16 @@
 
 ## Commit 6 — Las vistas reflejan la base
 
-- [ ] **T6.1** El motor notifica al contenedor cuando una sincronización aplica cambios, no
+- [x] **T6.1** El motor notifica al contenedor cuando una sincronización aplica cambios, no
       solo al cambiar módulos. **Terminado:** existe la señal y hay prueba de que se emite.
-- [ ] **T6.2** `App.tsx:130,178` refresca el hato y demás estado con esa notificación.
-- [ ] **T6.3** `SyncStatusScreen.tsx:63,72` coherente con lo anterior.
-- [ ] **T6.4** Si desaparece el animal seleccionado: se informa, se impide enviar contra la
+- [x] **T6.2** `App.tsx:130,178` refresca el hato y demás estado con esa notificación.
+- [x] **T6.3** `SyncStatusScreen.tsx:63,72` coherente con lo anterior.
+- [x] **T6.4** Si desaparece el animal seleccionado: se informa, se impide enviar contra la
       selección obsoleta y **el formulario ya escrito no se descarta**.
       **Terminado:** cubierto por prueba de contenedor; regla dura 10.
-- [ ] **T6.5** Prueba de que la pantalla abierta refleja el cambio sin reiniciar, sin cambiar
+- [x] **T6.5** Prueba de que la pantalla abierta refleja el cambio sin reiniciar, sin cambiar
       pestaña y sin un segundo botón.
-- [ ] **T6.6** `npm test` completo en verde.
+- [x] **T6.6** `npm test` completo en verde.
 
 ---
 

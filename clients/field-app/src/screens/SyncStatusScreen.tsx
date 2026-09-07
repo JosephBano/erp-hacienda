@@ -58,7 +58,15 @@ export function SyncStatusScreen({
 
   useEffect(() => {
     void refresh();
-  }, [refresh]);
+    const unsubscribe = engine.subscribe?.((res) => {
+      if (res.pulled > 0 || res.pushed > 0 || res.rejected > 0) {
+        void refresh();
+      }
+    });
+    return () => {
+      unsubscribe?.();
+    };
+  }, [engine, refresh]);
 
   const sync = async () => {
     setBusy(true);

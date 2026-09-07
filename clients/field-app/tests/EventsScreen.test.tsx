@@ -1,7 +1,7 @@
 import React from 'react';
 import { Database } from '@nozbe/watermelondb';
 import LokiJSAdapter from '@nozbe/watermelondb/adapters/lokijs';
-import { render, screen } from '@testing-library/react-native';
+import { act, fireEvent, render, screen } from '@testing-library/react-native';
 
 import { schema } from '../src/database/schema';
 import { migrations } from '../src/database/migrations';
@@ -171,5 +171,60 @@ describe('EventsScreen', () => {
     );
 
     expect(await screen.findByText(/No hay causas de mortalidad configuradas/)).toBeTruthy();
+  });
+
+  it('informs when selected animal disappears, prevents submission, and preserves entered form data (T6.4 & T6.5)', async () => {
+    const animals = [
+      { animalId: 'a-1', label: 'Pinta' },
+      { animalId: 'a-2', label: 'Mora' },
+    ];
+    const { rerender } = await render(
+      <EventsScreen
+        service={service}
+        database={database}
+        animals={animals}
+        groups={[]}
+        initialAnimalId="a-1"
+        initialActivity="weight"
+      />,
+    );
+
+    // Type a weight
+    const input = screen.getByTestId('weight-input');
+    await fireEvent.changeText(input, '350');
+
+    // Simulate sync deleting a-1 from herd (e.g. disposed or deleted on server)
+    const updatedAnimals = [{ animalId: 'a-2', label: 'Mora' }];
+    await rerender(
+      <EventsScreen
+        service={service}
+        database={database}
+        animals={updatedAnimals}
+        groups={[]}
+        initialAnimalId="a-1"
+        initialActivity="weight"
+      />,
+    );
+
+    // Notice appears warning that animal is obsolete
+    expect(await screen.findByText(/ya no existe en el sistema/i)).toBeTruthy();
+
+    // Confirm button is disabled / pressing does not submit
+    const confirmButton = screen.getByTestId('confirm-weight');
+    expect(confirmButton.props.accessibilityState?.disabled).toBe(true);
+
+    // Form data is NOT discarded: weight is still 350
+    expect(screen.getByTestId('weight-input').props.value).toBe('350');
+
+    // Operator can pick another animal without losing data
+    await fireEvent.press(screen.getByTestId('change-animal'));
+    expect(await screen.findByTestId('animal-a-2')).toBeTruthy();
+
+    await fireEvent.press(screen.getByTestId('animal-a-2'));
+
+    // Mora is selected, warning gone, and weight 350 is preserved
+    expect(await screen.findByText('Mora')).toBeTruthy();
+    expect(screen.queryByText(/ya no existe en el sistema/i)).toBeNull();
+    expect(screen.getByTestId('weight-input').props.value).toBe('350');
   });
 });

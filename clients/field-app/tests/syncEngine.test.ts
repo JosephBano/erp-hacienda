@@ -794,5 +794,23 @@ describe('SyncEngine', () => {
         jest.useRealTimers();
       }
     });
+
+    it('notifies subscribers when changes are applied (T6.1)', async () => {
+      const notifications: SyncResult[] = [];
+      const unsubscribe = engine.subscribe((result) => {
+        notifications.push(result);
+      });
+
+      await outbox.enqueue('createAnimal', { sex: 'Female' });
+      await engine.syncNow();
+
+      expect(notifications).toHaveLength(1);
+      expect(notifications[0].pushed).toBe(1);
+
+      unsubscribe();
+      await outbox.enqueue('createAnimal', { sex: 'Male' });
+      await engine.syncNow();
+      expect(notifications).toHaveLength(1);
+    });
   });
 });

@@ -175,9 +175,19 @@ export default function App() {
 
     // Opportunistic sync: fires as soon as the phone finds signal again.
     engine.start();
+
+    const unsubscribe = engine.subscribe((result) => {
+      if (result.pulled > 0 || result.pushed > 0 || result.rejected > 0) {
+        void refresh();
+      }
+    });
+
     void engine.syncNow().then(refresh);
 
-    return () => engine.stop();
+    return () => {
+      unsubscribe();
+      engine.stop();
+    };
   }, [authenticated, engine, refresh]);
 
   if (!ready) {

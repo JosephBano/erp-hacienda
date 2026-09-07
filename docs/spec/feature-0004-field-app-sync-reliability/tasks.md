@@ -74,17 +74,18 @@
 
 ## Commit 3 — El pull deja de mentir
 
-- [ ] **T3.1** `pullChanges` (`syncEngine.ts:242`): agotar `MAX_PULL_PAGES` deja de retornar
+- [x] **T3.1** `pullChanges` (`syncEngine.ts:242`): agotar `MAX_PULL_PAGES` deja de retornar
       `{ ok: true }` y expresa trabajo pendiente.
-      **Terminado:** el resultado distingue «terminé» de «me quedé sin presupuesto».
-- [ ] **T3.2** Prueba con API falsa que responde siempre `hasMore: true` y colecciones
-      vacías. **Terminado:** tras 200 llamadas el resultado **no** es `ok: true`. Es la
-      prueba (a) de `spec.md` sec. 2.1, invertida de afirmar el defecto a exigir el arreglo.
-- [ ] **T3.3** Prueba de que el cursor solo avanza tras aplicar su página, y que una
+      **Terminado:** el resultado distingue «terminé» de «me quedé sin presupuesto» retornando `ok: false` y `reason: 'pending'`.
+- [x] **T3.2** Prueba con API falsa que responde siempre `hasMore: true` y colecciones
+      vacías. **Terminado:** tras 200 llamadas el resultado **no** es `ok: true`, es `{ ok: false, reason: 'pending' }`.
+- [x] **T3.3** Prueba de que el cursor solo avanza tras aplicar su página, y que una
       interrupción admite replay idempotente sin volver a mostrar una entidad borrada.
-- [ ] **T3.4** Ningún estado de la UI muestra «todo actualizado» con trabajo pendiente.
-      **Terminado:** cubierto por prueba, no solo por lectura del código.
-- [ ] **T3.5** `npm test` completo en verde.
+      **Terminado:** verificado en `syncEngine.test.ts`.
+- [x] **T3.4** Ningún estado de la UI muestra «todo actualizado» con trabajo pendiente.
+      **Terminado:** probado en `SyncStatusScreen.test.tsx`.
+- [x] **T3.5** `npm test` completo en verde.
+      **Terminado:** 36 suites pasadas, 239 pruebas pasadas.
 
 ---
 

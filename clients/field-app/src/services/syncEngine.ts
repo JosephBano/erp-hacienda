@@ -9,7 +9,7 @@ import type { PushOperation, PushResult, SyncApi } from './syncApi';
 const CURSOR_KEY = 'pull_cursor';
 const MAX_PULL_PAGES = 200;
 
-export type SyncFailureReason = 'offline' | 'network' | 'auth' | 'unknown';
+export type SyncFailureReason = 'offline' | 'network' | 'auth' | 'unknown' | 'pending';
 
 export interface SyncResult {
   ok: boolean;
@@ -112,7 +112,9 @@ export class SyncEngine {
 
       const pull = await this.pullChanges();
       if (!pull.ok) {
-        this.consecutiveFailures += 1;
+        if (pull.reason !== 'pending') {
+          this.consecutiveFailures += 1;
+        }
         return this.result(false, pull.reason, push.pushed, push.rejected, pull.pulled);
       }
 
@@ -239,7 +241,7 @@ export class SyncEngine {
       }
     }
 
-    return { ok: true, pulled };
+    return { ok: false, reason: 'pending', pulled };
   }
 
   /**

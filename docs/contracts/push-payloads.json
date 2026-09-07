@@ -80,7 +80,7 @@
     {
       "operationType": "createAnimal",
       "payload": {
-        "id": "b2a5c306-4ca0-4a95-9aaf-c0d322f6e252",
+        "id": "631b5eb4-dc6d-4166-b96f-0b98ac182e8b",
         "speciesId": "00000000-0000-0000-0000-000000000099",
         "sex": "Female",
         "birthDate": "2025-01-15"

@@ -162,7 +162,9 @@ export function SyncStatusScreen({
               ? 'Sin señal. Lo registrado está guardado en el teléfono y se enviará solo cuando haya señal.'
               : result.reason === 'auth'
                 ? 'La sesión caducó. Inicie sesión con contraseña cuando tenga señal.'
-                : 'No se pudo enviar. Nada se perdió: se reintentará automáticamente.'
+                : result.reason === 'pending'
+                  ? 'Quedan datos por descargar. Sincronice de nuevo para continuar.'
+                  : 'No se pudo enviar. Nada se perdió: se reintentará automáticamente.'
           }
         />
       ) : null}

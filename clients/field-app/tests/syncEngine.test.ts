@@ -498,6 +498,60 @@ describe('SyncEngine', () => {
 
       expect(api.pullCalls).toHaveLength(3);
     });
+
+    it('stops reporting success when the pull page budget is exhausted (T3.1 & T3.2)', async () => {
+      let call = 0;
+      api.pullHandler = async () => {
+        call += 1;
+        return { cursor: `cursor-${call}`, hasMore: true, collections: {} };
+      };
+
+      const result = await engine.syncNow();
+
+      expect(result.ok).toBe(false);
+      expect(result.reason).toBe('pending');
+      expect(api.pullCalls).toHaveLength(200);
+    });
+
+    it('advances the cursor only after applying the page and supports idempotent replay on interruption (T3.3)', async () => {
+      const row = {
+        id: 'an-replay-test',
+        sex: 'Female',
+        speciesId: 'sp-1',
+        isDeleted: false,
+        createdAt: '2026-08-01T00:00:00Z',
+        updatedAt: null,
+      };
+
+      let step = 0;
+      api.pullHandler = async () => {
+        step += 1;
+        if (step === 1) {
+          return { cursor: 'c1', hasMore: true, collections: { animals: [row] } };
+        }
+        if (step === 2) {
+          return { cursor: 'c2', hasMore: true, collections: { animals: [{ ...row, isDeleted: true }] } };
+        }
+        throw new Error('Network interruption before c3');
+      };
+
+      const firstSync = await engine.syncNow();
+      expect(firstSync.ok).toBe(false);
+      expect(firstSync.reason).toBe('network');
+
+      // Animal was deleted when page 2 applied
+      expect(await database.get('animals').query().fetchCount()).toBe(0);
+
+      // Replay from cursor c2: next sync starts with since: 'c2'
+      api.pullHandler = async (cursor) => {
+        expect(cursor).toBe('c2');
+        return { cursor: 'c3', hasMore: false, collections: {} };
+      };
+
+      const secondSync = await engine.syncNow();
+      expect(secondSync.ok).toBe(true);
+      expect(await database.get('animals').query().fetchCount()).toBe(0);
+    });
   });
 
   describe('resetMirror', () => {

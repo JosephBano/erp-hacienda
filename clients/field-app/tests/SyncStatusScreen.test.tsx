@@ -180,4 +180,29 @@ describe('SyncStatusScreen', () => {
       expect(screen.getByText(/no se pudo enviar/i)).toBeTruthy();
     });
   });
+
+  it('displays a warning notice when pull has pending work and never claims everything updated (T3.4)', async () => {
+    const pendingApi: SyncApi = {
+      async push(): Promise<PushResponse> {
+        return { processedCount: 0, results: [] };
+      },
+      async pull(): Promise<PullResponse> {
+        return {
+          cursor: 'c-next',
+          hasMore: true,
+          collections: {},
+        };
+      },
+    };
+
+    const engine = new SyncEngine(database, pendingApi);
+    await render(<SyncStatusScreen engine={engine} outbox={outbox} visibility={visibility} />);
+
+    fireEvent.press(screen.getByTestId('sync-now'));
+
+    await waitFor(() => {
+      expect(screen.getByText(/quedan datos por descargar/i)).toBeTruthy();
+      expect(screen.queryByText(/enviados.*recibidos/i)).toBeNull();
+    });
+  });
 });

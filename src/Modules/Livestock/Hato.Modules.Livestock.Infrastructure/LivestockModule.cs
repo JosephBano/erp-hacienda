@@ -50,6 +50,7 @@ public static class LivestockModule
         services.AddScoped<IAnimalGroupWriter, AnimalGroupWriter>();
         services.AddScoped<IBirthingOffspringReader, BirthingOffspringReader>();
         services.AddScoped<IAnimalGroupSummaryReader, AnimalGroupSummaryReader>();
+        services.AddScoped<IMilkingEligibilityReader, MilkingEligibilityReader>();
 
         services.AddMediatR(cfg =>
         {

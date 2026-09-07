@@ -76,16 +76,16 @@
 
 ## Commit 4 — Ordeño: invariante en el servidor
 
-- [ ] **T4.1** `RecordMilkingSessionCommand` verifica sexo y capacidad de ordeño de la especie.
+- [x] **T4.1** `RecordMilkingSessionCommand` verifica sexo y capacidad de ordeño de la especie.
       **Terminado:** consulta Livestock **por contratos**, como ya hace con
       `IWithdrawalPeriodsReader`; no accede a su `DbContext`.
-- [ ] **T4.2** Ampliar el contrato de Livestock si hace falta exponer sexo y capacidad.
-- [ ] **T4.3** Prueba de integración: `POST` REST con un macho → rechazo con Problem Details y
+- [x] **T4.2** Ampliar el contrato de Livestock si hace falta exponer sexo y capacidad.
+- [x] **T4.3** Prueba de integración: `POST` REST con un macho → rechazo con Problem Details y
       motivo legible. Contra PostgreSQL real.
-- [ ] **T4.4** Prueba de integración: push equivalente → `Rejected` con el mismo motivo.
+- [x] **T4.4** Prueba de integración: push equivalente → `Rejected` con el mismo motivo.
       **Terminado:** REST y push dan la misma decisión de negocio (D2).
-- [ ] **T4.5** Prueba: los retiros que ya valida `:60` siguen funcionando.
-- [ ] **T4.6** `dotnet test` completo en verde.
+- [x] **T4.5** Prueba: los retiros que ya valida `:60` siguen funcionando.
+- [x] **T4.6** `dotnet test` completo en verde.
 
 ---
 

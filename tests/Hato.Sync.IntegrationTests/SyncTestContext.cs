@@ -152,12 +152,13 @@ public class SyncTestContext
         return login!;
     }
 
-    public async Task<Guid> CreateSpeciesAsync(string name, int? gestationDays = 283)
+    public async Task<Guid> CreateSpeciesAsync(string name, int? gestationDays = 283, bool isMilkable = true)
     {
         var response = await Client.PostAsJsonAsync("/api/v1/species", new
         {
             name = $"{name}-{Guid.NewGuid():N}",
             gestationDays = gestationDays ?? 283,
+            isMilkable,
         });
         response.EnsureSuccessStatusCode();
 

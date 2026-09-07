@@ -30,7 +30,10 @@ public class RecordMilkingSessionValidator : AbstractValidator<RecordMilkingSess
     }
 }
 
-public class RecordMilkingSessionHandler(IProductionDbContext dbContext, IWithdrawalPeriodsReader withdrawals)
+public class RecordMilkingSessionHandler(
+    IProductionDbContext dbContext,
+    IWithdrawalPeriodsReader withdrawals,
+    IMilkingEligibilityReader milkingEligibility)
     : IRequestHandler<RecordMilkingSessionCommand, Guid>
 {
     public async Task<Guid> Handle(RecordMilkingSessionCommand request, CancellationToken cancellationToken)
@@ -48,6 +51,51 @@ public class RecordMilkingSessionHandler(IProductionDbContext dbContext, IWithdr
                     $"El grupo tiene animal(es) con período de retiro de leche activo y no puede registrarse el ordeño grupal: {string.Join(", ", withheldInGroup)}.");
         }
 
+        if (request.IndividualYields is not null && request.IndividualYields.Count > 0)
+        {
+            var distinctAnimalIds = request.IndividualYields.Select(y => y.AnimalId).Distinct().ToList();
+            var eligibilityMap = await milkingEligibility.GetEligibilityBatchAsync(distinctAnimalIds, cancellationToken);
+
+            foreach (var item in request.IndividualYields)
+            {
+                if (!eligibilityMap.TryGetValue(item.AnimalId, out var eligibility) || !eligibility.Exists)
+                {
+                    throw new DomainException($"El animal con ID '{item.AnimalId}' no existe.");
+                }
+
+                if (!eligibility.IsFemale)
+                {
+                    throw new DomainException("Solo se pueden ordeñar animales de sexo hembra.");
+                }
+
+                if (eligibility.DisposedAt is { } disposedAt)
+                {
+                    var disposedDate = DateOnly.FromDateTime(disposedAt.UtcDateTime);
+                    if (disposedDate <= request.Date)
+                    {
+                        throw new DomainException("El animal fue dado de baja y no puede ser ordeñado.");
+                    }
+                }
+
+                if (!eligibility.IsSpeciesMilkable)
+                {
+                    throw new DomainException(
+                        string.IsNullOrWhiteSpace(eligibility.SpeciesName)
+                            ? "La especie no es ordeñable."
+                            : $"La especie '{eligibility.SpeciesName}' no está habilitada para ordeño.");
+                }
+
+                // Art. 19: milk from an animal under an active withdrawal cannot be sold —
+                // enforced here at the point of entry, not left to a report someone reads later.
+                var isWithheld = await withdrawals.HasActiveWithdrawalAsync(
+                    item.AnimalId, request.Date, WithdrawalTargetKind.Milk, cancellationToken);
+
+                if (isWithheld)
+                    throw new DomainException(
+                        $"El animal '{item.AnimalId}' tiene un período de retiro de leche activo y no puede registrarse su producción.");
+            }
+        }
+
         var session = MilkingSession.Create(
             request.Date,
             request.Shift,
@@ -61,15 +109,6 @@ public class RecordMilkingSessionHandler(IProductionDbContext dbContext, IWithdr
         {
             foreach (var item in request.IndividualYields)
             {
-                // Art. 19: milk from an animal under an active withdrawal cannot be sold —
-                // enforced here at the point of entry, not left to a report someone reads later.
-                var isWithheld = await withdrawals.HasActiveWithdrawalAsync(
-                    item.AnimalId, request.Date, WithdrawalTargetKind.Milk, cancellationToken);
-
-                if (isWithheld)
-                    throw new DomainException(
-                        $"El animal '{item.AnimalId}' tiene un período de retiro de leche activo y no puede registrarse su producción.");
-
                 var y = session.RecordAnimalYield(item.AnimalId, item.Liters);
                 dbContext.MilkYields.Add(y);
             }

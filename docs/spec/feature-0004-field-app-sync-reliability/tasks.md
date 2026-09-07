@@ -107,12 +107,12 @@
 
 ## Compuerta 1 — Reservas interrumpidas
 
-- [ ] **TG1.1** Determinar si conservar el resultado real de una reserva pendiente (D4) exige
+- [x] **TG1.1** Determinar si conservar el resultado real de una reserva pendiente (D4) exige
       modificar ADR-0008. **Terminado:** respuesta razonada por escrito en el PR.
-- [ ] **TG1.2** Si lo modifica: **detenerse**, redactar el ADR y sacar el tema de esta rama.
+- [x] **TG1.2** Si lo modifica: **detenerse**, redactar el ADR y sacar el tema de esta rama.
       **Terminado:** el spec registra la reserva como pendiente y el commit 5 se limita a
       reintento y coordinación.
-- [ ] **TG1.3** Comprobar que una reserva persistida antes de una escritura en otro módulo no
+- [x] **TG1.3** Comprobar que una reserva persistida antes de una escritura en otro módulo no
       se reejecuta sin verificar sus efectos. **Terminado:** no se asume atomicidad entre los
       `DbContext` existentes (spec sec. 5).
 
@@ -120,17 +120,17 @@
 
 ## Commit 5 — Ejecución única y reintento programado
 
-- [ ] **T5.1** Una sola ejecución coordinada compartida por todos los disparadores.
+- [x] **T5.1** Una sola ejecución coordinada compartida por todos los disparadores.
       **Terminado:** dos disparadores simultáneos producen una ejecución; cubierto por prueba.
-- [ ] **T5.2** `retryDelayMs` (`syncEngine.ts:87`) obtiene consumidor real: planificación de
+- [x] **T5.2** `retryDelayMs` (`syncEngine.ts:87`) obtiene consumidor real: planificación de
       reintento mientras la app está activa. **Terminado:**
       `rg -n 'retryDelayMs' clients/field-app/src` encuentra un consumidor, no solo la definición.
-- [ ] **T5.3** Disparador por vuelta a primer plano (`AppState`), además del de conectividad
+- [x] **T5.3** Disparador por vuelta a primer plano (`AppState`), además del de conectividad
       ya existente en `start()`.
-- [ ] **T5.4** Un rechazo de negocio **no** entra en bucle de reintentos.
+- [x] **T5.4** Un rechazo de negocio **no** entra en bucle de reintentos.
       **Terminado:** cubierto por prueba con una operación rechazada.
-- [ ] **T5.5** Caducidad de sesión informa cómo recuperarla y conserva los registros locales.
-- [ ] **T5.6** `npm test` completo en verde.
+- [x] **T5.5** Caducidad de sesión informa cómo recuperarla y conserva los registros locales.
+- [x] **T5.6** `npm test` completo en verde.
 
 ---
 

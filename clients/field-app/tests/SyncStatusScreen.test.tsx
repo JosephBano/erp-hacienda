@@ -205,4 +205,31 @@ describe('SyncStatusScreen', () => {
       expect(screen.queryByText(/enviados.*recibidos/i)).toBeNull();
     });
   });
+
+  it('informs how to recover from expired session and preserves local records intact (T5.5)', async () => {
+    await outbox.enqueue('recordMilking', { totalLiters: 8 });
+
+    const authApi: SyncApi = {
+      async push(): Promise<PushResponse> {
+        const err = new Error('Unauthorized');
+        err.name = 'AuthenticationExpiredError';
+        throw err;
+      },
+      async pull(): Promise<PullResponse> {
+        return { cursor: 'c', hasMore: false, collections: {} };
+      },
+    };
+
+    const engine = new SyncEngine(database, authApi);
+    await render(<SyncStatusScreen engine={engine} outbox={outbox} visibility={visibility} />);
+
+    fireEvent.press(screen.getByTestId('sync-now'));
+
+    await waitFor(() => {
+      expect(screen.getByText(/la sesión caducó.*sus registros locales están a salvo/i)).toBeTruthy();
+      expect(screen.getByTestId('pending-count')).toHaveTextContent('1');
+    });
+
+    expect(await outbox.pending()).toHaveLength(1);
+  });
 });

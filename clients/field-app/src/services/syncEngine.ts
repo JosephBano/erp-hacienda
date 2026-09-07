@@ -1,6 +1,8 @@
 import { Database, Q } from '@nozbe/watermelondb';
 import NetInfo from '@react-native-community/netinfo';
 
+import { AppState, type NativeEventSubscription } from 'react-native';
+
 import { SyncMeta } from '../database/models';
 import { Outbox, OutboxStats } from './outbox';
 import { LoggerService } from './loggerService';
@@ -54,7 +56,11 @@ export class SyncEngine {
   private readonly logger: LoggerService;
   private consecutiveFailures = 0;
   private running = false;
-  private unsubscribe?: () => void;
+  private inFlightSync?: Promise<SyncResult>;
+  private retryTimer?: ReturnType<typeof setTimeout>;
+  private isStarted = false;
+  private unsubscribeNetInfo?: () => void;
+  private appStateSubscription?: NativeEventSubscription | { remove: () => void };
 
   constructor(
     private readonly database: Database,
@@ -67,20 +73,52 @@ export class SyncEngine {
   }
 
   /**
-   * Opportunistic syncing: run when the signal returns. The employee never has to think
-   * about it, which is the point — they are wearing gloves and it is 5 AM.
+   * Opportunistic syncing: run when the signal returns or when returning to foreground (AppState).
+   * Also schedules retries on transient failures while active.
    */
   start(): void {
-    this.unsubscribe = NetInfo.addEventListener((state) => {
+    this.isStarted = true;
+    this.unsubscribeNetInfo = NetInfo.addEventListener((state) => {
       if (state.isConnected) {
+        void this.syncNow();
+      }
+    });
+
+    this.appStateSubscription = AppState.addEventListener('change', (state) => {
+      if (state === 'active') {
         void this.syncNow();
       }
     });
   }
 
   stop(): void {
-    this.unsubscribe?.();
-    this.unsubscribe = undefined;
+    this.isStarted = false;
+    this.clearRetryTimer();
+    this.unsubscribeNetInfo?.();
+    this.unsubscribeNetInfo = undefined;
+    this.appStateSubscription?.remove();
+    this.appStateSubscription = undefined;
+  }
+
+  private clearRetryTimer(): void {
+    if (this.retryTimer) {
+      clearTimeout(this.retryTimer);
+      this.retryTimer = undefined;
+    }
+  }
+
+  private scheduleRetry(): void {
+    this.clearRetryTimer();
+    if (!this.isStarted) return;
+
+    const delay = this.retryDelayMs;
+    this.retryTimer = setTimeout(() => {
+      this.retryTimer = undefined;
+      void this.syncNow();
+    }, delay);
+    if (typeof (this.retryTimer as any)?.unref === 'function') {
+      (this.retryTimer as any).unref();
+    }
   }
 
   /** Milliseconds the caller should wait before trying again, given the failures so far. */
@@ -93,36 +131,52 @@ export class SyncEngine {
   }
 
   async syncNow(): Promise<SyncResult> {
-    if (this.running) {
-      return this.result(false, 'unknown', 0, 0, 0);
+    if (this.inFlightSync) {
+      return this.inFlightSync;
     }
 
+    this.clearRetryTimer();
     this.running = true;
+    this.inFlightSync = this.performSync();
     try {
-      const netState = await NetInfo.fetch();
-      if (!netState.isConnected) {
-        return this.result(false, 'offline', 0, 0, 0);
-      }
-
-      const push = await this.pushOutbox();
-      if (!push.ok) {
-        this.consecutiveFailures += 1;
-        return this.result(false, push.reason, push.pushed, push.rejected, 0);
-      }
-
-      const pull = await this.pullChanges();
-      if (!pull.ok) {
-        if (pull.reason !== 'pending') {
-          this.consecutiveFailures += 1;
+      const result = await this.inFlightSync;
+      if (!result.ok) {
+        // Transient network failures or pending pull pages are scheduled for retry
+        // while the app is active. Business rejections, offline states (handled by
+        // NetInfo listener), and expired sessions are not auto-retried.
+        if (result.reason !== 'offline' && result.reason !== 'auth') {
+          this.scheduleRetry();
         }
-        return this.result(false, pull.reason, push.pushed, push.rejected, pull.pulled);
       }
-
-      this.consecutiveFailures = 0;
-      return this.result(true, undefined, push.pushed, push.rejected, pull.pulled);
+      return result;
     } finally {
       this.running = false;
+      this.inFlightSync = undefined;
     }
+  }
+
+  private async performSync(): Promise<SyncResult> {
+    const netState = await NetInfo.fetch();
+    if (!netState.isConnected) {
+      return this.result(false, 'offline', 0, 0, 0);
+    }
+
+    const push = await this.pushOutbox();
+    if (!push.ok) {
+      this.consecutiveFailures += 1;
+      return this.result(false, push.reason, push.pushed, push.rejected, 0);
+    }
+
+    const pull = await this.pullChanges();
+    if (!pull.ok) {
+      if (pull.reason !== 'pending') {
+        this.consecutiveFailures += 1;
+      }
+      return this.result(false, pull.reason, push.pushed, push.rejected, pull.pulled);
+    }
+
+    this.consecutiveFailures = 0;
+    return this.result(true, undefined, push.pushed, push.rejected, pull.pulled);
   }
 
   private async pushOutbox(): Promise<{

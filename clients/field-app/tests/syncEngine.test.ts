@@ -646,4 +646,153 @@ describe('SyncEngine', () => {
       expect(backoffDelayMs(0)).toBeLessThanOrEqual(2000);
     });
   });
+
+  describe('scheduling and coordination (Commit 5)', () => {
+    it('serialises concurrent sync triggers into a single coordinated execution (T5.1)', async () => {
+      let pushCount = 0;
+      api.pushHandler = async (ops) => {
+        pushCount++;
+        await new Promise((resolve) => setTimeout(resolve, 50));
+        return {
+          processedCount: ops.length,
+          results: ops.map((o) => ({
+            clientOperationId: o.clientOperationId,
+            status: 'Accepted' as const,
+            resultRef: 'ok',
+            errorDetails: null,
+          })),
+        };
+      };
+
+      await outbox.enqueue('createAnimal', { sex: 'Female' });
+
+      const [res1, res2] = await Promise.all([engine.syncNow(), engine.syncNow()]);
+
+      expect(pushCount).toBe(1);
+      expect(res1.ok).toBe(true);
+      expect(res2.ok).toBe(true);
+      expect(res1).toEqual(res2);
+    });
+
+    it('schedules a bounded retry via retryDelayMs on transient failure while active (T5.2)', async () => {
+      jest.useFakeTimers();
+      try {
+        let attempts = 0;
+        api.pushHandler = async (ops) => {
+          attempts++;
+          if (attempts === 1) {
+            throw new Error('Network request failed');
+          }
+          return {
+            processedCount: ops.length,
+            results: ops.map((o) => ({
+              clientOperationId: o.clientOperationId,
+              status: 'Accepted' as const,
+              resultRef: 'ok',
+              errorDetails: null,
+            })),
+          };
+        };
+
+        await outbox.enqueue('recordMilking', { totalLiters: 5 });
+        engine.start();
+
+        const firstResult = await engine.syncNow();
+        expect(firstResult.ok).toBe(false);
+        expect(firstResult.reason).toBe('network');
+        expect(attempts).toBe(1);
+
+        // Advance timers by retry delay
+        await jest.advanceTimersByTimeAsync(engine.retryDelayMs + 500);
+
+        expect(attempts).toBe(2);
+        expect(await outbox.pending()).toHaveLength(0);
+      } finally {
+        engine.stop();
+        jest.useRealTimers();
+      }
+    });
+
+    it('triggers sync when returning to active foreground state via AppState (T5.3)', async () => {
+      let runs = 0;
+      api.pullHandler = async () => {
+        runs++;
+        return { cursor: 'c', hasMore: false, collections: {} };
+      };
+
+      engine.start();
+      expect(runs).toBe(0);
+
+      (global as any).__setAppState('active');
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
+      expect(runs).toBe(1);
+      engine.stop();
+    });
+
+    it('does not schedule retries for business rejections (T5.4)', async () => {
+      jest.useFakeTimers();
+      try {
+        let pushCalls = 0;
+        api.pushHandler = async (ops) => {
+          pushCalls++;
+          return {
+            processedCount: ops.length,
+            results: ops.map((o) => ({
+              clientOperationId: o.clientOperationId,
+              status: 'Rejected' as const,
+              resultRef: null,
+              errorDetails: 'El animal no existe.',
+            })),
+          };
+        };
+
+        await outbox.enqueue('recordAnimalEvent', { animalId: 'ghost' });
+        engine.start();
+
+        const result = await engine.syncNow();
+        expect(result.ok).toBe(true);
+        expect(result.rejected).toBe(1);
+        expect(pushCalls).toBe(1);
+
+        // Advance timers - no auto-retry should occur
+        await jest.advanceTimersByTimeAsync(10 * 60 * 1000);
+        expect(pushCalls).toBe(1);
+      } finally {
+        engine.stop();
+        jest.useRealTimers();
+      }
+    });
+
+    it('does not auto-retry on session expiration and preserves local records intact (T5.5)', async () => {
+      jest.useFakeTimers();
+      try {
+        let attempts = 0;
+        api.pushHandler = async () => {
+          attempts++;
+          const err = new Error('Unauthorized');
+          err.name = 'AuthenticationExpiredError';
+          throw err;
+        };
+
+        await outbox.enqueue('recordMilking', { totalLiters: 10 });
+        engine.start();
+
+        const result = await engine.syncNow();
+        expect(result.ok).toBe(false);
+        expect(result.reason).toBe('auth');
+        expect(attempts).toBe(1);
+
+        // Advance timers - auth error never auto-retries
+        await jest.advanceTimersByTimeAsync(10 * 60 * 1000);
+        expect(attempts).toBe(1);
+
+        // Outbox entry is preserved intact
+        expect(await outbox.pending()).toHaveLength(1);
+      } finally {
+        engine.stop();
+        jest.useRealTimers();
+      }
+    });
+  });
 });

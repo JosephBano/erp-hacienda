@@ -161,7 +161,7 @@ export function SyncStatusScreen({
             result.reason === 'offline'
               ? 'Sin señal. Lo registrado está guardado en el teléfono y se enviará solo cuando haya señal.'
               : result.reason === 'auth'
-                ? 'La sesión caducó. Inicie sesión con contraseña cuando tenga señal.'
+                ? 'La sesión caducó. Sus registros locales están a salvo. Inicie sesión con contraseña cuando tenga señal para enviarlos.'
                 : result.reason === 'pending'
                   ? 'Quedan datos por descargar. Sincronice de nuevo para continuar.'
                   : 'No se pudo enviar. Nada se perdió: se reintentará automáticamente.'

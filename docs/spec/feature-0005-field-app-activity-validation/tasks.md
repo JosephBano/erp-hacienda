@@ -40,16 +40,16 @@
 
 ## Commit 2 — Selectores por actividad
 
-- [ ] **T2.1** Separar en `herdQueries.ts` la consulta del hato histórico de los selectores de
+- [x] **T2.1** Separar en `herdQueries.ts` la consulta del hato histórico de los selectores de
       actividad. **Terminado:** son funciones distintas, no un parámetro booleano de la misma.
-- [ ] **T2.2** `herdQueries.ts:93` deja de ser el único filtro: excluye borrados **y**, en los
+- [x] **T2.2** `herdQueries.ts:93` deja de ser el único filtro: excluye borrados **y**, en los
       selectores de captura, bajas efectivas.
-- [ ] **T2.3** Prueba: el hato histórico sigue devolviendo machos y animales dados de baja.
+- [x] **T2.3** Prueba: el hato histórico sigue devolviendo machos y animales dados de baja.
       **Terminado:** D1 verificado; el expediente no se reduce.
-- [ ] **T2.4** Prueba: el selector de ordeño no los devuelve.
-- [ ] **T2.5** Confirmar que `herdQueries.ts:127` y el flujo de preñeces activas de
+- [x] **T2.4** Prueba: el selector de ordeño no los devuelve.
+- [x] **T2.5** Confirmar que `herdQueries.ts:127` y el flujo de preñeces activas de
       `BirthScreen` siguen intactos. **Terminado:** `git diff` no toca el asistente de parto.
-- [ ] **T2.6** `npm test` completo en verde.
+- [x] **T2.6** `npm test` completo en verde.
 
 ---
 

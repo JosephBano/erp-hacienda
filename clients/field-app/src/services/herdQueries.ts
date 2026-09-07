@@ -27,6 +27,7 @@ export interface HerdMember {
   categoryId?: string;
   birthDate?: string;
   motherId?: string;
+  disposedAt?: string;
 }
 
 export interface PregnantDam {
@@ -115,9 +116,44 @@ export async function loadHerd(database: Database, date = todayIso()): Promise<H
         categoryId: animal.categoryId,
         birthDate: animal.birthDate,
         motherId: animal.motherId,
+        disposedAt: animal.disposedAt,
       };
     })
     .sort((a, b) => a.label.localeCompare(b.label));
+}
+
+/**
+ * Activity selector for milking (D1, D2, spec sec. 4):
+ * Returns only candidates eligible for milking on the given date:
+ * - Not deleted
+ * - Female sex
+ * - Species is flagged is_milkable
+ * - Not disposed on or before date
+ */
+export async function loadMilkingCandidates(database: Database, date = todayIso()): Promise<HerdMember[]> {
+  const herd = await loadHerd(database, date);
+  return herd.filter((member) => {
+    if (member.sex?.toLowerCase() !== 'female') return false;
+    if (!member.speciesIsMilkable) return false;
+    if (member.disposedAt && member.disposedAt.slice(0, 10) <= date) return false;
+    return true;
+  });
+}
+
+/**
+ * Activity selector for active individual capture (weighing, treatment, movement, disposal)
+ * on a given date (D1, D5):
+ * Returns animals that are alive/active on that date:
+ * - Not deleted
+ * - Not disposed on or before date
+ * - Both sexes included
+ */
+export async function loadActiveHerd(database: Database, date = todayIso()): Promise<HerdMember[]> {
+  const herd = await loadHerd(database, date);
+  return herd.filter((member) => {
+    if (member.disposedAt && member.disposedAt.slice(0, 10) <= date) return false;
+    return true;
+  });
 }
 
 /**
@@ -152,6 +188,14 @@ export async function loadPregnantDams(database: Database): Promise<PregnantDam[
 
     const dam = herdByAnimalId.get(pregnancy.damId);
     if (!dam) {
+      continue;
+    }
+
+    // A dam must be female and not effectively disposed
+    if (dam.sex?.toLowerCase() !== 'female') {
+      continue;
+    }
+    if (dam.disposedAt && dam.disposedAt.slice(0, 10) <= todayIso()) {
       continue;
     }
 

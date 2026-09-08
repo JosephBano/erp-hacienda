@@ -1,3 +1,5 @@
+using Hato.Modules.People.Domain;
+using Hato.Modules.People.Infrastructure.Authorization;
 using Hato.Modules.Production.Application.Milking;
 using MediatR;
 
@@ -13,13 +15,13 @@ public static class MilkingEndpoints
         {
             var id = await sender.Send(command);
             return Results.Created($"/api/v1/milking-sessions/{id}", new { id });
-        });
+        }).RequireAuthorization(policy => policy.RequirePermission(SystemPermissions.ProductionMilkingRecord));
 
         group.MapGet("/", async (DateOnly? date, ISender sender) =>
         {
             var targetDate = date ?? DateOnly.FromDateTime(DateTime.UtcNow);
             var sessions = await sender.Send(new GetDailyMilkingSessionsQuery(targetDate));
             return Results.Ok(sessions);
-        });
+        }).RequireAuthorization(policy => policy.RequirePermission(SystemPermissions.ProductionMilkingRead));
     }
 }

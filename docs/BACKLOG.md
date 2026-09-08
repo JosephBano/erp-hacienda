@@ -8,6 +8,31 @@
 
 ## Deuda abierta por sub-rama
 
+## Pendiente feature-0008 — Aplicar permisos de forma consistente en API y sincronización (2026-09-08)
+
+> Aplicación de permisos granulares en rutas REST y sincronización offline en `feature/people-permission-enforcement`.
+> Los siguientes ítems recogen deuda técnica identificada y límites explícitos de alcance (spec sec. 5, tasks TC.7, regla 9):
+
+### [auth] Migración de JWT en almacenamiento local / Bearer header a cookies HttpOnly
+
+Actualmente la API recibe el token JWT en el encabezado `Authorization: Bearer <token>` y los clientes web/móvil lo conservan en almacenamiento local. La migración a cookies seguras `HttpOnly` con flag `SameSite` para mitigar riesgos de exfiltración vía XSS en web fue expresamente excluida del spec 0008 (spec sec. 5). Debe abordarse mediante un ADR propio cuando se estandarice el gateway web.
+
+### [security] Limitación de tasa de intentos de autenticación (Rate Limiting en `/auth/login`)
+
+El endpoint de login no restringe el número de intentos fallidos consecutivos por IP o por cuenta (SEGURIDAD.md sec. 6). Aunque el mensaje de error es uniforme y el hash utiliza PBKDF2 con 100.000 iteraciones, se requiere incorporar middleware de rate limiting o protección perimetral contra fuerza bruta antes de exponer la API a internet público sin VPN.
+
+### [auth] Invalidación inmediata de refresh tokens y revocación en cascada al desactivar cuenta
+
+`DeactivateUserCommand` marca al usuario como `IsActive = false` (lo cual es validado en cada request por `OnTokenValidated`), pero no revoca explícitamente en la base de datos todos los refresh tokens asociados emitidos previamente. Se debe diseñar un comando de revocación en lote para invalidar la cadena completa de sesiones activas.
+
+### [multitenancy] Aislamiento multi-finca y particionamiento por tenant
+
+El modelo actual opera bajo el supuesto de una sola hacienda física. El aislamiento estricto por finca (filtrado obligatorio por `farm_id` en todas las consultas de dominio) permanece diferido para fases avanzadas del roadmap (Fase 4+).
+
+### [auth] Ámbito de permisos por grupo o lote (`group_id` en `user_roles` y `role_permissions`)
+
+ADR-0007 diseñó las columnas opcionales `group_id` en las tablas de asignación de roles y permisos para permitir acotar privilegios por lote de animales en el futuro. Esta capacidad se mantiene en reserva de esquema y no está conectada en las políticas de autorización vigentes.
+
 ## Pendiente feature-0004 — Sincronización móvil fiable (2026-09-07)
 
 > Estabilización de contratos de push y pull, motor de sincronización de `field-app`

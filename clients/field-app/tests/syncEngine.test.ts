@@ -1055,4 +1055,251 @@ describe('SyncEngine', () => {
       expect(calfAfterSync?.tag).toBe('TAG-E2E-1');
     });
   });
+
+  describe('denied operations and permission enforcement (Commit 4)', () => {
+    it('preserves payload, content, and author metadata intact in outbox when denied by server, exposing readable errorDetails (T4.1, T4.2)', async () => {
+      const occurredAt = '2026-09-08T10:30:00.000Z';
+      const payload = {
+        animalId: 'an-target-42',
+        eventType: 'Vaccination',
+        routeId: 'route-im',
+        batchId: 'batch-999',
+        cost: 15.5,
+        recordedBy: 'Carlos Mendoza',
+        recordedById: 'usr-carlos-1',
+        notes: 'Dosis aplicada en potrero norte',
+      };
+      const entry = await outbox.enqueue('recordAnimalEvent', payload, occurredAt);
+
+      api.pushHandler = async (ops) => ({
+        processedCount: ops.length,
+        results: ops.map((o) => ({
+          clientOperationId: o.clientOperationId,
+          status: 'Rejected' as const,
+          resultRef: null,
+          errorDetails: 'El usuario no cuenta con el permiso requerido (livestock.animals.write).',
+        })),
+      });
+
+      const syncResult = await engine.syncNow();
+
+      expect(syncResult.ok).toBe(true);
+      expect(syncResult.pushed).toBe(0);
+      expect(syncResult.rejected).toBe(1);
+
+      // Pending queue is empty (will not be resent)
+      expect(await outbox.pending()).toHaveLength(0);
+
+      // Rejected queue holds the refused record
+      const rejectedEntries = await outbox.rejected();
+      expect(rejectedEntries).toHaveLength(1);
+
+      const rejected = rejectedEntries[0];
+      expect(rejected.clientOperationId).toBe(entry.clientOperationId);
+      expect(rejected.operationType).toBe('recordAnimalEvent');
+      expect(rejected.occurredAt).toBe(occurredAt);
+      expect(rejected.status).toBe('rejected');
+      expect(rejected.errorDetails).toBe(
+        'El usuario no cuenta con el permiso requerido (livestock.animals.write).',
+      );
+
+      // Art. 9, Art. 10, D2: payload, author metadata, and event details preserved intact
+      expect(rejected.payload).toEqual(payload);
+      expect(rejected.payload.recordedBy).toBe('Carlos Mendoza');
+      expect(rejected.payload.recordedById).toBe('usr-carlos-1');
+      expect(rejected.payload.eventType).toBe('Vaccination');
+      expect(rejected.payload.routeId).toBe('route-im');
+
+      // Check the raw row in WatermelonDB directly
+      const [rawRow] = await database.get('sync_outbox').query().fetch();
+      expect((rawRow as any).clientOperationId).toBe(entry.clientOperationId);
+      expect((rawRow as any).status).toBe('rejected');
+      expect((rawRow as any).errorDetails).toBe(
+        'El usuario no cuenta con el permiso requerido (livestock.animals.write).',
+      );
+      expect(JSON.parse((rawRow as any).payloadJson)).toEqual(payload);
+    });
+
+    it('denied operation does NOT become accepted when reattempting syncNow (T4.3)', async () => {
+      const entry = await outbox.enqueue('recordMilking', {
+        liters: 14.5,
+        shift: 'Morning',
+        recordedBy: 'Pedro Gomez',
+        recordedById: 'usr-pedro-2',
+      });
+
+      api.pushHandler = async (ops) => ({
+        processedCount: ops.length,
+        results: ops.map((o) => ({
+          clientOperationId: o.clientOperationId,
+          status: 'Rejected' as const,
+          resultRef: null,
+          errorDetails: 'No autorizado para registrar ordeño (production.milking.record).',
+        })),
+      });
+
+      // First sync: denied by server
+      const firstSync = await engine.syncNow();
+      expect(firstSync.rejected).toBe(1);
+      expect(api.pushCalls).toHaveLength(1);
+
+      const [initiallyRejected] = await outbox.rejected();
+      expect(initiallyRejected.status).toBe('rejected');
+      expect(initiallyRejected.errorDetails).toBe(
+        'No autorizado para registrar ordeño (production.milking.record).',
+      );
+
+      // Server is now configured to accept everything (e.g., if re-sent)
+      api.pushHandler = async (ops) => ({
+        processedCount: ops.length,
+        results: ops.map((o) => ({
+          clientOperationId: o.clientOperationId,
+          status: 'Accepted' as const,
+          resultRef: 'ok',
+          errorDetails: null,
+        })),
+      });
+
+      // Second sync: reattempting syncNow
+      const secondSync = await engine.syncNow();
+      expect(secondSync.ok).toBe(true);
+      expect(secondSync.pushed).toBe(0);
+      expect(secondSync.rejected).toBe(0);
+
+      // Push API was NOT called because rejected operation is excluded from pending queue
+      expect(api.pushCalls).toHaveLength(1);
+
+      // Queue state still has the entry as rejected, never accepted/synced
+      const rejectedAfter = await outbox.rejected();
+      expect(rejectedAfter).toHaveLength(1);
+      expect(rejectedAfter[0].clientOperationId).toBe(entry.clientOperationId);
+      expect(rejectedAfter[0].status).toBe('rejected');
+      expect(rejectedAfter[0].errorDetails).toBe(
+        'No autorizado para registrar ordeño (production.milking.record).',
+      );
+
+      // Even with new pending work arriving, the denied operation stays rejected
+      await outbox.enqueue('createAnimal', { sex: 'Female' });
+      const thirdSync = await engine.syncNow();
+      expect(thirdSync.ok).toBe(true);
+      expect(thirdSync.pushed).toBe(1);
+      expect(api.pushCalls).toHaveLength(2);
+
+      const stats = await outbox.stats();
+      expect(stats.synced).toBe(1);
+      expect(stats.rejected).toBe(1);
+      expect(stats.pending).toBe(0);
+
+      const all = await outbox.all();
+      const deniedEntry = all.find((e) => e.clientOperationId === entry.clientOperationId);
+      expect(deniedEntry?.status).toBe('rejected');
+      expect(deniedEntry?.payload.recordedBy).toBe('Pedro Gomez');
+    });
+
+    it('denied operation does NOT become accepted when refreshing permissions or re-authenticating (T4.4)', async () => {
+      // Operator without permission submits recordFeedConsumption
+      const consumptionPayload = {
+        itemId: 'item-feed-1',
+        quantityKg: 50,
+        groupId: 'grp-dry-cows',
+        recordedBy: 'Luis Suarez',
+        recordedById: 'usr-luis-3',
+      };
+      const entry = await outbox.enqueue('recordFeedConsumption', consumptionPayload);
+
+      // Server rejects due to lack of feed consumption permission
+      api.pushHandler = async (ops) => ({
+        processedCount: ops.length,
+        results: ops.map((o) => ({
+          clientOperationId: o.clientOperationId,
+          status: 'Rejected' as const,
+          resultRef: null,
+          errorDetails: 'Permiso denegado: se requiere permiso para registrar consumo.',
+        })),
+      });
+
+      await engine.syncNow();
+
+      expect(await outbox.pending()).toHaveLength(0);
+      expect(await outbox.rejected()).toHaveLength(1);
+
+      // Simulate refreshing permissions or re-authenticating with higher privileges
+      // e.g. supervisor logs in or token is refreshed with updated claims
+      const freshApi = new FakeSyncApi();
+      freshApi.pushHandler = async (ops) => ({
+        processedCount: ops.length,
+        results: ops.map((o) => ({
+          clientOperationId: o.clientOperationId,
+          status: 'Accepted' as const,
+          resultRef: 'ref-supervisor',
+          errorDetails: null,
+        })),
+      });
+
+      const newEngineInstance = new SyncEngine(database, freshApi);
+
+      // Sync with newly authenticated / refreshed session
+      const syncResult = await newEngineInstance.syncNow();
+
+      expect(syncResult.ok).toBe(true);
+      expect(syncResult.pushed).toBe(0);
+      expect(freshApi.pushCalls).toHaveLength(0);
+
+      // The denied operation is NOT automatically converted to accepted or cleared
+      const rejectedAfterAuth = await outbox.rejected();
+      expect(rejectedAfterAuth).toHaveLength(1);
+      expect(rejectedAfterAuth[0].clientOperationId).toBe(entry.clientOperationId);
+      expect(rejectedAfterAuth[0].status).toBe('rejected');
+      expect(rejectedAfterAuth[0].errorDetails).toBe(
+        'Permiso denegado: se requiere permiso para registrar consumo.',
+      );
+      expect(rejectedAfterAuth[0].payload).toEqual(consumptionPayload);
+
+      const stats = await outbox.stats();
+      expect(stats.rejected).toBe(1);
+      expect(stats.synced).toBe(0);
+    });
+
+    it('replays and duplicate rejections respect real rejection state without whitewashing (T4.5)', async () => {
+      // Coherence with feature-0004:
+      // When a replayed operation was rejected previously on server, the server returns Duplicate with errorDetails.
+      const entry = await outbox.enqueue('assignAnimalIdentifier', {
+        animalId: 'cow-tag-test',
+        identifierType: 'EarTag',
+        identifierValue: 'TAG-DENIED-99',
+        recordedBy: 'Maria Lopez',
+      });
+
+      // Simulate a server returning Duplicate with errorDetails (previously denied on server)
+      api.pushHandler = async (ops) => ({
+        processedCount: ops.length,
+        results: ops.map((o) => ({
+          clientOperationId: o.clientOperationId,
+          status: 'Duplicate' as const,
+          resultRef: null,
+          errorDetails: 'Operación denegada previamente por falta de permisos (livestock.animals.write).',
+        })),
+      });
+
+      const result = await engine.syncNow();
+
+      // Counts towards rejected, NOT pushed
+      expect(result.ok).toBe(true);
+      expect(result.rejected).toBe(1);
+      expect(result.pushed).toBe(0);
+
+      // Outbox reflects rejected state, payload and author preserved
+      expect(await outbox.pending()).toHaveLength(0);
+      const rejected = await outbox.rejected();
+      expect(rejected).toHaveLength(1);
+      expect(rejected[0].clientOperationId).toBe(entry.clientOperationId);
+      expect(rejected[0].status).toBe('rejected');
+      expect(rejected[0].errorDetails).toBe(
+        'Operación denegada previamente por falta de permisos (livestock.animals.write).',
+      );
+      expect(rejected[0].payload.recordedBy).toBe('Maria Lopez');
+      expect(rejected[0].payload.identifierValue).toBe('TAG-DENIED-99');
+    });
+  });
 });
+

@@ -1,4 +1,6 @@
 using Hato.Modules.Livestock.Application.PlausibilityRanges;
+using Hato.Modules.People.Domain;
+using Hato.Modules.People.Infrastructure.Authorization;
 using MediatR;
 
 namespace Hato.Api.Endpoints;
@@ -43,7 +45,7 @@ public static class PlausibilityRangesEndpoints
                 request.AbsoluteMin,
                 request.AbsoluteMax), cancellationToken);
             return Results.Created($"/api/v1/plausibility-ranges/{id}", new { id });
-        });
+        }).RequireAuthorization(policy => policy.RequirePermission(SystemPermissions.LivestockAnimalsWrite));
 
         group.MapPatch("/{id:guid}/bounds", async (
             Guid id,
@@ -58,19 +60,19 @@ public static class PlausibilityRangesEndpoints
                 request.AbsoluteMin,
                 request.AbsoluteMax), cancellationToken);
             return Results.NoContent();
-        });
+        }).RequireAuthorization(policy => policy.RequirePermission(SystemPermissions.LivestockAnimalsWrite));
 
         group.MapDelete("/{id:guid}", async (Guid id, ISender sender, CancellationToken cancellationToken) =>
         {
             await sender.Send(new DeactivatePlausibilityRangeCommand(id), cancellationToken);
             return Results.NoContent();
-        });
+        }).RequireAuthorization(policy => policy.RequirePermission(SystemPermissions.LivestockAnimalsWrite));
 
         group.MapPost("/{id:guid}/activate", async (Guid id, ISender sender, CancellationToken cancellationToken) =>
         {
             await sender.Send(new ActivatePlausibilityRangeCommand(id), cancellationToken);
             return Results.NoContent();
-        });
+        }).RequireAuthorization(policy => policy.RequirePermission(SystemPermissions.LivestockAnimalsWrite));
 
         // Verdict endpoint: the field-app calls this to classify a value
         // before enqueuing it. The decision is the same one the validator

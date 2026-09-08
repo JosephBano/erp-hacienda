@@ -8,6 +8,7 @@ using Hato.Modules.Livestock.Application.Events;
 using Hato.Modules.Livestock.Application.TreatmentCourses;
 using Hato.Modules.Livestock.Domain;
 using Hato.Modules.People.Application.Abstractions;
+using Hato.Modules.People.Contracts;
 using Hato.Modules.People.Domain;
 using Hato.Modules.Production.Application.Milking;
 using Hato.SharedKernel;
@@ -53,7 +54,8 @@ public record PushSyncBatchResponseDto(
 public class PushSyncBatchCommandHandler(
     IPeopleDbContext peopleDb,
     ICurrentUser currentUser,
-    ISender sender)
+    ISender sender,
+    IUserPermissionsReader permissionsReader)
     : IRequestHandler<PushSyncBatchCommand, PushSyncBatchResponseDto>
 {
     /// <summary>
@@ -62,6 +64,26 @@ public class PushSyncBatchCommandHandler(
     /// transaction that times out halfway.
     /// </summary>
     public const int MaxBatchSize = 500;
+
+    /// <summary>
+    /// Permissions required to execute each push operation type.
+    /// Every push operation must have an explicit mapping. Operations not listed here are rejected.
+    /// </summary>
+    public static readonly Dictionary<string, string> RequiredPermissionByOperation =
+        new(StringComparer.OrdinalIgnoreCase)
+        {
+            ["recordMilking"] = SystemPermissions.ProductionMilkingRecord,
+            ["recordAnimalEvent"] = SystemPermissions.LivestockAnimalsWrite,
+            ["createTreatmentCourse"] = SystemPermissions.LivestockAnimalsWrite,
+            ["recordGroupEvent"] = SystemPermissions.LivestockAnimalsWrite,
+            ["recordFeedConsumption"] = SystemPermissions.InventoryFeedConsumptionsRecord,
+            ["createAnimal"] = SystemPermissions.LivestockAnimalsWrite,
+            ["recordBirth"] = SystemPermissions.BreedingEventsRecord,
+            ["moveAnimal"] = SystemPermissions.LivestockAnimalsWrite,
+            ["updateAnimal"] = SystemPermissions.LivestockAnimalsWrite,
+            ["recordCorrection"] = SystemPermissions.LivestockAnimalsWrite,
+            ["assignAnimalIdentifier"] = SystemPermissions.LivestockAnimalsWrite,
+        };
 
     // UnmappedMemberHandling.Disallow closes the exact hole 3.5a.2-C was written to
     // fix (see docs/spec/plan-0002-fase-3-5/sub-planes/3.5a.2-C.md): before this, an operation with a
@@ -92,11 +114,17 @@ public class PushSyncBatchCommandHandler(
         var userId = currentUser.UserId
             ?? throw new UnauthorizedAccessException("La sincronización requiere un usuario autenticado.");
 
+        var userPermissions = await permissionsReader.GetPermissionCodesAsync(userId, cancellationToken);
+        var isAdmin = await peopleDb.UserRoles
+            .AsNoTracking()
+            .Where(ur => ur.UserId == userId && ur.User.IsActive && ur.Role != null)
+            .AnyAsync(ur => ur.Role.Code == SystemRoles.Admin, cancellationToken);
+
         var results = new List<SyncOperationResultDto>(request.Operations.Count);
 
         foreach (var operation in request.Operations)
         {
-            results.Add(await ProcessAsync(operation, request.DeviceId, userId, cancellationToken));
+            results.Add(await ProcessAsync(operation, request.DeviceId, userId, userPermissions, isAdmin, cancellationToken));
         }
 
         return new PushSyncBatchResponseDto(results.Count, results);
@@ -106,6 +134,8 @@ public class PushSyncBatchCommandHandler(
         SyncPushOperationDto operation,
         string? deviceId,
         Guid userId,
+        HashSet<string> userPermissions,
+        bool isAdmin,
         CancellationToken cancellationToken)
     {
         var payloadJson = operation.Payload.ValueKind == JsonValueKind.Undefined
@@ -131,6 +161,26 @@ public class PushSyncBatchCommandHandler(
         }
 
         var record = claim.Claimed!;
+
+        if (!RequiredPermissionByOperation.TryGetValue(operation.OperationType, out var requiredPermission))
+        {
+            var reason = $"Tipo de operación no soportado: '{operation.OperationType}'.";
+            record.MarkRejected(reason);
+            await peopleDb.SaveChangesAsync(cancellationToken);
+
+            return new SyncOperationResultDto(
+                operation.ClientOperationId, nameof(SyncOperationStatus.Rejected), null, reason);
+        }
+
+        if (!isAdmin && !userPermissions.Contains(requiredPermission))
+        {
+            var reason = $"No tiene el permiso requerido '{requiredPermission}' para ejecutar '{operation.OperationType}'.";
+            record.MarkRejected(reason);
+            await peopleDb.SaveChangesAsync(cancellationToken);
+
+            return new SyncOperationResultDto(
+                operation.ClientOperationId, nameof(SyncOperationStatus.Rejected), null, reason);
+        }
 
         try
         {

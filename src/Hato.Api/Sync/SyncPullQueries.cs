@@ -626,12 +626,30 @@ public record SyncOperationDto(
     DateTimeOffset OccurredAt,
     DateTimeOffset ReceivedAt);
 
-public class GetSyncOperationsQueryHandler(IPeopleDbContext context)
+/// <summary>
+/// Scopes sync operations to the caller's own user unless they hold people.users.manage,
+/// which grants global supervision across all users (D3).
+/// </summary>
+public class GetSyncOperationsQueryHandler(
+    IPeopleDbContext context,
+    ICurrentUser currentUser,
+    IUserPermissionsReader permissionsReader)
     : IRequestHandler<GetSyncOperationsQuery, List<SyncOperationDto>>
 {
     public async Task<List<SyncOperationDto>> Handle(GetSyncOperationsQuery request, CancellationToken cancellationToken)
     {
+        var userId = currentUser.UserId
+            ?? throw new UnauthorizedAccessException("La consulta de operaciones requiere un usuario autenticado.");
+
+        var permissions = await permissionsReader.GetPermissionCodesAsync(userId, cancellationToken);
+        var canManageUsers = permissions.Contains(SystemPermissions.PeopleUsersManage);
+
         var query = context.SyncOperations.AsNoTracking();
+
+        if (!canManageUsers)
+        {
+            query = query.Where(o => o.UserId == userId);
+        }
 
         if (!string.IsNullOrWhiteSpace(request.Status)
             && Enum.TryParse<Modules.People.Domain.SyncOperationStatus>(request.Status, true, out var parsedStatus))

@@ -73,6 +73,9 @@ public static class SystemPermissions
     // future "registrador de compras" role can create receptions without gaining
     // inventory-items.manage (which would let them mutate the catalogue too).
     public const string InventoryReceptionsManage = "inventory.receptions.manage";
+    // Feature 0008 Commit 5 (D4): dedicated permission for feed consumption recording, so a
+    // registrar can record consumption for animal lots without gaining inventory-items.manage.
+    public const string InventoryFeedConsumptionsRecord = "inventory.feed-consumptions.record";
 
     // Breeding
     public const string BreedingEventsRecord = "breeding.events.record";

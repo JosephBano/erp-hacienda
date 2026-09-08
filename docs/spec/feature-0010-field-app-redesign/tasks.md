@@ -95,19 +95,26 @@
 
 ## Commit 3 — Estados y mensajes compartidos
 
-- [ ] **T3.1** Los siete estados de la tabla de `spec.md` sec. 3.6 tienen presentación única.
-- [ ] **T3.2** **«Sin señal» no se presenta como fracaso** de un registro guardado localmente (D5).
-- [ ] **T3.3** **Un error de almacenamiento local no afirma «guardado»** y no sugiere borrar la app.
-- [ ] **T3.4** Catálogo vacío distingue ausencia real, filtro sin coincidencias y datos aún no
-      descargados. **Terminado:** son tres mensajes distintos, no uno.
-- [ ] **T3.5** Operación rechazada: qué registro, motivo legible, acción disponible, contenido
+- [x] **T3.1** Los siete estados de la tabla de `spec.md` sec. 3.6 tienen presentación única.
+      **Terminado:** componentes unificados en `recordStates.tsx` (`RecordStatusBadge`, `SyncStateNotice`, `CatalogueEmptyNotice`, `RejectedOperationCard`, `LocalStorageErrorNotice`, `SessionExpiredNotice`) con presentación clara para cada estado.
+- [x] **T3.2** **«Sin señal» no se presenta como fracaso** de un registro guardado localmente (D5).
+      **Terminado:** `offline_pending` comunica «Guardado en este teléfono. Pendiente de enviar. Puede seguir trabajando» sin tono de peligro ni mensajes de error.
+- [x] **T3.3** **Un error de almacenamiento local no afirma «guardado»** y no sugiere borrar la app.
+      **Terminado:** `LocalStorageErrorNotice` declara explícitamente «No se pudo guardar el registro en este teléfono», instruye conservar los datos en pantalla para reintentar y prohíbe cerrar o desinstalar la app.
+- [x] **T3.4** Catálogo vacío distingue ausencia real, filtro sin coincidencias y datos aún no
+      descargados. **Terminado:** son tres mensajes distintos, no uno (`CatalogueEmptyNotice` con variantes `empty`, `no_matches`, `pending_sync`).
+- [x] **T3.5** Operación rechazada: qué registro, motivo legible, acción disponible, contenido
       conservado.
-- [ ] **T3.6** Sesión expirada: cómo recuperar el envío sin perder lo registrado.
-- [ ] **T3.7** El diagnóstico persistente de 0004 es alcanzable, pero el empleado **no necesita
+      **Terminado:** `RejectedOperationCard` y `formatOperationError` sanitizan jerga técnica (cursores, tablas, UUIDs) y muestran el título de la operación, motivo en español claro, datos conservados intactos y botones táctiles de corrección y descarte.
+- [x] **T3.6** Sesión expirada: cómo recuperar el envío sin perder lo registrado.
+      **Terminado:** `SessionExpiredNotice` aclara que el trabajo está guardado localmente y ofrece botón directo para iniciar sesión y reanudar el envío.
+- [x] **T3.7** El diagnóstico persistente de 0004 es alcanzable, pero el empleado **no necesita
       entender cursors, UUID ni nombres de tablas**.
-- [ ] **T3.8** **Ningún estado de éxito oculta los defectos de 0004** (criterio 4).
-      **Terminado:** revisado estado por estado.
-- [ ] **T3.9** `npm test` completo en verde.
+      **Terminado:** botón de diagnóstico técnico disponible en avisos de sincronización y rechazo; mensajes operativos purgados de cursores, UUIDs crudos y nombres de tablas mediante `formatOperationError`.
+- [x] **T3.8** **Ningún estado de éxito oculta los defectos de 0004** (criterio 4).
+      **Terminado:** `accepted_pull_pending` separa explícitamente que el registro llegó al servidor pero faltan cambios por recibir en el teléfono, sin enmascarar deltas pendientes.
+- [x] **T3.9** `npm test` completo en verde.
+      **Terminado:** 66 suites y 468 pruebas pasando en verde, incluyendo suite completa dedicada `tests/RecordStates.test.tsx` (35 pruebas).
 
 ---
 

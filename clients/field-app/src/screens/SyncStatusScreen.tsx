@@ -3,7 +3,7 @@ import { Share, StyleSheet, Text, View } from 'react-native';
 import NetInfo from '@react-native-community/netinfo';
 
 import { theme } from '../ui/theme';
-import { BigButton, Body, Card, Notice, Screen, Title } from '../ui/components';
+import { BigButton, Body, Card, Notice, Screen, Title, formatOperationError } from '../ui/components';
 import type { Outbox, OutboxEntry, OutboxStats } from '../services/outbox';
 import type { SyncEngine, SyncResult } from '../services/syncEngine';
 import type { ModuleKey, ModuleVisibility } from '../services/moduleVisibility';
@@ -226,7 +226,7 @@ export function SyncStatusScreen({
               <Body muted>{new Date(entry.occurredAt).toLocaleString()}</Body>
               <View style={styles.reason}>
                 <Text style={styles.reasonText}>
-                  {entry.errorDetails || 'El servidor rechazó la operación sin indicar el motivo.'}
+                  {formatOperationError(entry.errorDetails)}
                 </Text>
               </View>
             </Card>

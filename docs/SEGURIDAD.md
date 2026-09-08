@@ -102,50 +102,39 @@ queda `null` en el flujo de login).
 `roles`, `permissions`, `role_permissions`, `user_roles` — RBAC granular, sin jerarquía
 implícita entre roles. `SystemRoles`
 (`src/Modules/People/Hato.Modules.People.Domain/UserRole.cs:39-44`) declara tres roles semilla:
-`admin`, `registrar`, `veterinarian`. `SystemPermissions` (mismo archivo, líneas 49-90)
-declara **21 códigos de permiso** en 7 módulos (People, Livestock, Production, Inventory,
-Breeding, Tasks, Settings).
+`admin`, `registrar`, `veterinarian`. `SystemPermissions` (mismo archivo, líneas 49-95)
+declara **22 códigos de permiso** en 7 módulos (People, Livestock, Production, Inventory,
+Breeding, Tasks, Settings). Se agregó `inventory.feed-consumptions.record` en `feature-0008`
+para permitir a los operarios registrar alimentación de lotes sin otorgarles administración
+del catálogo de inventario (`inventory.items.manage`).
 
 **El rol `admin` tiene bypass total**: `PermissionAuthorizationHandler`
-(`src/Modules/People/Hato.Modules.People.Infrastructure/Authorization/PermissionAuthorization.cs:27-32`)
+(`src/Modules/People/Hato.Modules.People.Infrastructure/Authorization/PermissionAuthorization.cs`)
 concede cualquier permiso a quien tenga el rol `admin` (por claim de rol en el JWT o por rol
 en BD), sin mirar `role_permissions`. La comparación es case-insensitive.
 
-**Resolución de permisos, dos vías:**
-1. Claim `permission` embebido en el JWT (emitido en login/refresh) — si el permiso pedido
-   está ahí, pasa sin tocar la base de datos.
-2. Si no está en el JWT, consulta `UserRoles` en BD con `AsNoTracking()`, filtrando
-   `User.IsActive` (esta consulta sí respeta desactivación en el momento en que se ejecuta).
+**Resolución de permisos y semántica de revocación:**
+Conforme a ADR-0007 Decisión 4, la resolución de permisos para usuarios no-admin se delega a
+`IUserPermissionsReader`, consultando la base de datos con caché Scoped por ciclo de vida de
+la petición HTTP. Esto garantiza que la revocación de un rol o permiso en la base de datos sea
+efectiva de manera **inmediata** en la siguiente petición online (tanto en endpoints REST como
+en el despachador de sincronización push), sin depender pasivamente de la expiración del JWT.
+Adicionalmente, `OnTokenValidated` (`PeopleModule.cs`) verifica en cada request que el usuario
+esté activo (`User.IsActive`), rechazando inmediatamente con 401 si la cuenta fue desactivada.
 
-**Consecuencia directa de la vía 1 sobre revocación (ligado a sec. 1):** como los permisos
-viajan en el JWT y la vía 1 nunca toca la base de datos, revocar un rol o desactivar un
-usuario **no tiene efecto sobre un JWT ya emitido** mientras ese JWT siga vigente (hasta 8
-horas) — el permiso seguía en el claim y la vía 1 nunca cae a la vía 2 para ese código de
-permiso. La vía 2 (que sí respeta `IsActive`) solo se ejecuta para permisos que **no**
-estaban en el JWT al emitirlo — p. ej. un rol asignado *después* del login.
+### Cierre de deuda en feature-0008 (2026-09-08)
 
-### Hallazgo central: 7 de 21 permisos declarados nunca se usan en ningún endpoint
-
-Se buscó `SystemPermissions.<Código>` en todo `src/` para cada uno de los 21 permisos
-declarados. **Siete no aparecen en ningún archivo de `Endpoints/`:**
-
-| Permiso declarado | Módulo que debería exigirlo | Estado |
-|---|---|---|
-| `BreedingEventsRecord` | Breeding (`BreedingEndpoints.cs`) | Nunca referenciado |
-| `BreedingEventsRead` | Breeding (`BreedingEndpoints.cs`) | Nunca referenciado |
-| `ProductionMilkingRecord` | Production (`MilkingEndpoints.cs`) | Nunca referenciado |
-| `ProductionMilkingRead` | Production (`MilkingEndpoints.cs`) | Nunca referenciado |
-| `TasksManage` | Tasks (`TasksEndpoints.cs`) | Nunca referenciado |
-| `TasksRead` | Tasks (`TasksEndpoints.cs`) | Nunca referenciado |
-| `PeopleUsersRead` | People (lectura de usuarios) | Nunca referenciado (`PeopleUsersManage` cubre lectura y escritura) |
-
-El efecto práctico: **todo el módulo Breeding, todo Milking y todo Tasks/Alerts están
-abiertos a cualquier usuario autenticado**, sin distinción de rol — `RequireAuthorization()`
-de grupo es la única puerta. ADR-0007 diseñó el control fino ("un operador de ordeño debe
-poder registrar leche sin acceso a reportes financieros... un veterinario requiere permisos
-sobre salud pero no sobre facturación") pero para estos tres módulos ese control **no se
-conectó**. Ver sec. 3 de la tabla endpoint→permiso para el detalle fila por fila, y sec. 7
-para el hueco documentado en `docs/BACKLOG.md`.
+La rama `feature/people-permission-enforcement` (spec 0008) cerró los huecos históricos de
+autorización:
+1. Se aplicaron los permisos correspondientes en los endpoints REST de `Animals`, `Milking`,
+   `Breeding`, `Tasks`, `AnimalEvents`, `PlausibilityRanges` e `Inventory` (`/feed-consumptions`).
+2. Se implementó un mapa exhaustivo de permisos en el despachador de push
+   (`PushSyncCommands.cs`), garantizando que la sincronización offline exija exactamente las
+   mismas políticas que la API REST (D1).
+3. Se acotó `/api/v1/sync/operations` al propio usuario (`userId`), reservando la supervisión
+   global para quienes ostenten `people.users.manage` (D3).
+4. El cliente móvil conserva las operaciones denegadas en el outbox con motivo legible, sin
+   blanquearlas al reintentar ni al refrescar permisos (D2, criterio 5).
 
 ### Tabla endpoint → permiso exigido
 
@@ -175,14 +164,9 @@ autenticación.
 
 | Método y ruta | Permiso exigido |
 |---|---|
-| `POST /api/v1/animals/{animalId}/events` | **Solo auth** — sin `livestock.animals.write` |
-| `GET /api/v1/animals/{animalId}/events` | Solo auth |
-| `GET /api/v1/animals/{animalId}/withdrawal-periods` | Solo auth |
-
-Registrar un evento sanitario/productivo sobre un animal individual (tratamiento, vacuna,
-muerte, pesaje) no exige ningún permiso más allá de estar autenticado. Comparar con
-`AnimalGroupsEndpoints.cs` abajo: el mismo tipo de evento a nivel de grupo **sí** exige
-`livestock.animals.write`. La asimetría es del código, no de una decisión documentada.
+| `POST /api/v1/animals/{animalId}/events` | `livestock.animals.write` |
+| `GET /api/v1/animals/{animalId}/events` | `livestock.animals.read` |
+| `GET /api/v1/animals/{animalId}/withdrawal-periods` | `livestock.animals.read` |
 
 #### `AnimalGroupsEndpoints.cs`
 
@@ -206,37 +190,30 @@ muerte, pesaje) no exige ningún permiso más allá de estar autenticado. Compar
 
 | Método y ruta | Permiso exigido |
 |---|---|
-| `POST /api/v1/animals` (registrar) | **Solo auth** — sin `livestock.animals.write` |
-| `GET /api/v1/animals` | Solo auth |
-| `GET /api/v1/animals/{id}` | Solo auth |
-| `POST /api/v1/animals/{id}/identifiers` | **Solo auth** — sin `livestock.animals.write` |
+| `POST /api/v1/animals` (registrar) | `livestock.animals.write` |
+| `GET /api/v1/animals` | `livestock.animals.read` |
+| `GET /api/v1/animals/{id}` | `livestock.animals.read` |
+| `POST /api/v1/animals/{id}/identifiers` | `livestock.animals.write` |
 | `DELETE /api/v1/animals/{id}` | `livestock.animals.write` |
-| `GET /api/v1/animals/{id}/individual-state` | Solo auth |
+| `GET /api/v1/animals/{id}/individual-state` | `livestock.animals.read` |
 | `PUT /api/v1/animals/{id}` | `livestock.animals.write` |
-
-Registrar un animal nuevo y asignarle un identificador no exigen `livestock.animals.write`,
-pero editarlo (`PUT`) o eliminarlo (`DELETE`) sí. Mismo patrón de asimetría que en
-`AnimalEventsEndpoints.cs`.
 
 #### `BreedingEndpoints.cs`
 
 | Método y ruta | Permiso exigido |
 |---|---|
-| `POST /api/v1/breeding/semen-straws` | Solo auth |
-| `GET /api/v1/breeding/semen-straws` | Solo auth |
-| `POST /api/v1/breeding/services` | Solo auth |
-| `POST /api/v1/breeding/pregnancy-checks` | Solo auth |
-| `GET /api/v1/breeding/pregnancies/active` | Solo auth |
-| `POST /api/v1/breeding/birthings` | Solo auth |
-| `GET /api/v1/breeding/birthings` | Solo auth |
-| `POST /api/v1/breeding/weanings` | Solo auth |
-| `POST /api/v1/breeding/cohorts/{cohortId}/wean` | Solo auth |
-| `POST /api/v1/breeding/cohorts/{cohortId}/classify-by-weight` | Solo auth |
-| `GET /api/v1/breeding/pedigree/{animalId}` | Solo auth |
-| `GET /api/v1/breeding/kpis/dams/{damId}` | Solo auth |
-
-Ningún endpoint de este archivo usa `RequirePermission`, pese a que `breeding.events.record`
-y `breeding.events.read` existen en el catálogo (sec. 2, hallazgo central).
+| `POST /api/v1/breeding/semen-straws` | `breeding.events.record` |
+| `GET /api/v1/breeding/semen-straws` | `breeding.events.read` |
+| `POST /api/v1/breeding/services` | `breeding.events.record` |
+| `POST /api/v1/breeding/pregnancy-checks` | `breeding.events.record` |
+| `GET /api/v1/breeding/pregnancies/active` | `breeding.events.read` |
+| `POST /api/v1/breeding/birthings` | `breeding.events.record` |
+| `GET /api/v1/breeding/birthings` | `breeding.events.read` |
+| `POST /api/v1/breeding/weanings` | `breeding.events.record` |
+| `POST /api/v1/breeding/cohorts/{cohortId}/wean` | `breeding.events.record` |
+| `POST /api/v1/breeding/cohorts/{cohortId}/classify-by-weight` | `breeding.events.record` |
+| `GET /api/v1/breeding/pedigree/{animalId}` | `breeding.events.read` |
+| `GET /api/v1/breeding/kpis/dams/{damId}` | `breeding.events.read` |
 
 #### `BreedsEndpoints.cs`
 
@@ -268,7 +245,7 @@ ningún permiso específico — solo estar autenticado.
 
 | Método y ruta | Permiso exigido |
 |---|---|
-| `POST /api/v1/inventory/items` (crear ítem) | **Solo auth** |
+| `POST /api/v1/inventory/items` (crear ítem) | `inventory.items.manage` |
 | `GET /api/v1/inventory/items` | Solo auth |
 | `GET /api/v1/inventory/items/{itemId}` | Solo auth |
 | `GET /api/v1/inventory/items/{itemId}/batches` | Solo auth |
@@ -276,8 +253,8 @@ ningún permiso específico — solo estar autenticado.
 | `POST /api/v1/inventory/items/{itemId}/feed-stage` | `inventory.items.manage` |
 | `POST /api/v1/inventory/items/{itemId}/batches` (legacy) | `inventory.items.manage` |
 | `POST /api/v1/inventory/items/{itemId}/receptions` | `inventory.receptions.manage` |
-| `POST /api/v1/inventory/items/{itemId}/unit-conversions` | **Solo auth** |
-| `POST /api/v1/inventory/feed-consumptions` | **Solo auth** (deuda conocida BJ-04, ver `docs/BACKLOG.md`) |
+| `POST /api/v1/inventory/items/{itemId}/unit-conversions` | Solo auth |
+| `POST /api/v1/inventory/feed-consumptions` | `inventory.feed-consumptions.record` |
 | `GET /api/v1/inventory/items/{itemId}/consumptions` | Solo auth |
 | `POST /api/v1/inventory/feed-stages` | `inventory.feed-stages.manage` |
 | `POST /api/v1/inventory/feed-stages/{id}/deactivate` | `inventory.feed-stages.manage` |
@@ -288,11 +265,8 @@ ningún permiso específico — solo estar autenticado.
 
 | Método y ruta | Permiso exigido |
 |---|---|
-| `POST /api/v1/milking-sessions` (registrar ordeño) | **Solo auth** |
-| `GET /api/v1/milking-sessions` | **Solo auth** |
-
-`production.milking.record` y `production.milking.read` existen en el catálogo y no se usan
-aquí (sec. 2, hallazgo central).
+| `POST /api/v1/milking-sessions` (registrar ordeño) | `production.milking.record` |
+| `GET /api/v1/milking-sessions` | `production.milking.read` |
 
 #### `MortalityCausesEndpoints.cs`
 
@@ -332,17 +306,15 @@ contra doble-creación concurrente del primer admin.
 | Método y ruta | Permiso exigido |
 |---|---|
 | `GET /api/v1/plausibility-ranges` | Solo auth |
-| `POST /api/v1/plausibility-ranges` | **Solo auth** |
-| `PATCH /api/v1/plausibility-ranges/{id}/bounds` | **Solo auth** |
-| `DELETE /api/v1/plausibility-ranges/{id}` | **Solo auth** |
-| `POST /api/v1/plausibility-ranges/{id}/activate` | **Solo auth** |
+| `POST /api/v1/plausibility-ranges` | `livestock.animals.write` |
+| `PATCH /api/v1/plausibility-ranges/{id}/bounds` | `livestock.animals.write` |
+| `DELETE /api/v1/plausibility-ranges/{id}` | `livestock.animals.write` |
+| `POST /api/v1/plausibility-ranges/{id}/activate` | `livestock.animals.write` |
 | `POST /api/v1/plausibility-ranges/evaluate` | Solo auth |
 
-**El comentario XML del archivo (líneas 6-13) afirma**: "Mutating endpoints require the
-standard `LivestockAnimalsWrite` permission so the panel can manage them". **El código no lo
-hace** — ningún `POST`/`PATCH`/`DELETE` de este archivo llama `.RequireAuthorization(policy
-=> policy.RequirePermission(...))`. Es un desface entre lo documentado en el propio código y
-lo implementado, no solo un permiso faltante.
+El comentario XML del archivo (líneas 6-13) documenta que las mutaciones exigen
+`livestock.animals.write` para que el panel administrativo las gestione, lo cual fue
+conectado en `feature-0008`.
 
 #### `SpeciesEndpoints.cs`
 
@@ -358,17 +330,17 @@ lo implementado, no solo un permiso faltante.
 | Método y ruta | Permiso exigido |
 |---|---|
 | `GET /api/v1/sync/pull` | Solo auth de grupo; el filtrado por colección ocurre **dentro** del handler (sec. 3) |
-| `POST /api/v1/sync/push` | Solo auth |
-| `GET /api/v1/sync/operations` | **Solo auth** — y sin filtrar por usuario (ver hueco 5, sec. 7) |
+| `POST /api/v1/sync/push` | Requiere autenticación; el despachador exige el mismo permiso granular por tipo de operación que REST |
+| `GET /api/v1/sync/operations` | Alcance propio por defecto (`userId`); supervisión global para usuarios con `people.users.manage` |
 | `GET /api/v1/sync/conflicts` | `people.users.manage` |
 
 #### `TasksEndpoints.cs`
 
 | Método y ruta | Permiso exigido |
 |---|---|
-| `GET /api/v1/alerts` | **Solo auth** |
-| `POST /api/v1/alerts/generate` | **Solo auth** |
-| `POST /api/v1/alerts/{id}/dismiss` | **Solo auth** |
+| `GET /api/v1/alerts` | `tasks.read` |
+| `POST /api/v1/alerts/generate` | `tasks.manage` |
+| `POST /api/v1/alerts/{id}/dismiss` | `tasks.manage` |
 
 `tasks.manage` y `tasks.read` existen en el catálogo y no se usan aquí (sec. 2, hallazgo
 central). Cualquier usuario autenticado puede disparar la generación de alertas o
@@ -498,28 +470,24 @@ controla.
 
 ## 6. Huecos conocidos
 
-Auditoría de código realizada el **2026-08-16**. Cada hueco tiene su entrada correspondiente
-en `docs/BACKLOG.md` sec. "Seguridad — hallazgos de la auditoría de `SEGURIDAD.md`
-(2026-08-16)".
+Auditoría de código realizada el **2026-08-16**, actualizada el **2026-09-08** tras la
+implementación de `feature-0008`. Cada hueco tiene su entrada correspondiente en
+`docs/BACKLOG.md` sec. "Seguridad — hallazgos de la auditoría de `SEGURIDAD.md` (2026-08-16)"
+y en el historial de specs (`docs/spec/feature-0008-people-permission-enforcement/`).
 
-1. **Siete permisos declarados en `SystemPermissions` nunca se exigen en ningún endpoint**
-   (`breeding.events.record`, `breeding.events.read`, `production.milking.record`,
-   `production.milking.read`, `tasks.manage`, `tasks.read`, `people.users.read`). Los
-   módulos Breeding, Milking y Tasks/Alerts están abiertos a cualquier usuario autenticado
-   sin distinción de rol. Detalle en sec. 2.
+1. **[CERRADO en feature-0008] Permisos declarados en `SystemPermissions` sin exigir en endpoints.**
+   Se aplicaron los permisos en sus respectivos endpoints REST (`BreedingEndpoints`, `MilkingEndpoints`,
+   `TasksEndpoints`, `AnimalsEndpoints`, etc.) y en el despachador de sincronización push (`PushSyncCommands`).
 
-2. **Asimetría entre escritura individual y grupal.** `POST
-   /api/v1/animals/{id}/events`, `POST /api/v1/animals` (registrar) y `POST
-   /api/v1/animals/{id}/identifiers` no exigen `livestock.animals.write`, mientras que sus
-   equivalentes de edición/borrado (`PUT`, `DELETE`) y el análogo grupal (`POST
-   /api/v1/animal-groups/{id}/events`) sí lo exigen. Ningún ADR documenta esta asimetría
-   como decisión — es un patrón de código, no una decisión de dominio.
+2. **[CERRADO en feature-0008] Asimetría entre escritura individual y grupal.**
+   `POST /api/v1/animals/{id}/events`, `POST /api/v1/animals` (registrar) y `POST
+   /api/v1/animals/{id}/identifiers` ahora exigen de forma consistente `livestock.animals.write`,
+   igualando sus análogos de edición/borrado y grupales.
 
-3. **`PlausibilityRangesEndpoints.cs` documenta en comentario un permiso que el código no
-   implementa.** El comentario XML (líneas 6-13) afirma que las mutaciones exigen
-   `livestock.animals.write`; ningún endpoint del archivo llama `RequirePermission`. Riesgo
-   adicional: quien lea solo el comentario (no el código) concluye que el catálogo de
-   rangos de plausibilidad está protegido cuando no lo está.
+3. **[CERRADO en feature-0008] `PlausibilityRangesEndpoints.cs` y su protección de mutaciones.**
+   Se aplicó `.RequirePermission(SystemPermissions.LivestockAnimalsWrite)` a las mutaciones
+   (`POST /`, `PATCH /{id}/bounds`, `DELETE /{id}`, `POST /{id}/activate`), alineando el código
+   con la documentación XML del archivo.
 
 4. **`docker-compose.yml` fuerza `ASPNETCORE_ENVIRONMENT: Development` para el contenedor
    `api`** (línea 39), sobreescribiendo el `ENV ASPNETCORE_ENVIRONMENT=Production` del
@@ -532,17 +500,16 @@ en `docs/BACKLOG.md` sec. "Seguridad — hallazgos de la auditoría de `SEGURIDA
    caracteres en producción (`PeopleModule.cs:66-70`) nunca se ejercita en este camino de
    despliegue.
 
-5. **`GET /api/v1/sync/operations` no filtra por usuario ni exige permiso propio.**
-   `GetSyncOperationsQueryHandler` (`src/Hato.Api/Sync/SyncPullQueries.cs:661-689`) consulta
-   `context.SyncOperations` sin `Where(o => o.UserId == ...)` — cualquier usuario
-   autenticado ve las últimas 100 operaciones de sincronización de **todos** los empleados y
-   dispositivos, incluidos `DeviceId` y `ErrorDetails`. Compárese con `GET
-   /api/v1/sync/conflicts`, en el mismo archivo, que sí exige `people.users.manage`.
+5. **[CERRADO en feature-0008] `GET /api/v1/sync/operations` sin filtrado por usuario.**
+   Se actualizó `GetSyncOperationsQueryHandler` para acotar la consulta al propio `userId`
+   autenticado por defecto. Los usuarios con el permiso `people.users.manage` mantienen la
+   facultad de supervisión global de todas las operaciones de sincronización.
 
-6. **`POST /api/v1/inventory/feed-consumptions` sigue sin permiso propio.** Confirmado
-   vigente en esta auditoría — coincide con el hallazgo `BJ-04` ya registrado en
-   `docs/BACKLOG.md` desde la auditoría del PR #94/ADR-0026. Se referencia aquí, no se
-   duplica.
+6. **[CERRADO en feature-0008] `POST /api/v1/inventory/feed-consumptions` sin permiso propio (BJ-04).**
+   Se creó y sembró el permiso específico `inventory.feed-consumptions.record` (asignado a roles
+   `admin` y `registrar`), protegiendo tanto el endpoint REST como la operación push
+   `recordFeedConsumption` sin obligar a conceder administración del catálogo de inventario
+   (`inventory.items.manage`).
 
 7. **Sin límite de intentos de login.** `LoginCommandHandler` no aplica rate limiting ni
    bloqueo temporal tras intentos fallidos repetidos — un atacante con acceso de red al

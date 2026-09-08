@@ -15,11 +15,11 @@
 - [x] **TG0.1** Definir código, descripción y roles del permiso de consumo de alimento.
       **Terminado:** **no** se reutiliza `inventory.items.manage` si eso obliga a dar
       administración de catálogo a quien solo alimenta animales (spec sec. 4).
-- [ ] **TG0.2** Definir desde qué momento una revocación deja de aceptar nuevas escrituras
+- [x] **TG0.2** Definir desde qué momento una revocación deja de aceptar nuevas escrituras
       online. **Terminado:** respuesta explícita, no «cuando expire el token» por omisión.
-- [ ] **TG0.3** Definir cómo se actualiza la copia de permisos del dispositivo.
+- [x] **TG0.3** Definir cómo se actualiza la copia de permisos del dispositivo.
       **Terminado:** no se promete revocación instantánea en un teléfono sin red.
-- [ ] **TG0.4** Determinar si la decisión modifica la política JWT actual.
+- [x] **TG0.4** Determinar si la decisión modifica la política JWT actual.
       **Terminado:** si la modifica, **detenerse** y escribir ADR. No se resuelve ocultando
       botones.
 
@@ -122,19 +122,19 @@
 
 ## Cierre
 
-- [ ] **TC.1** `dotnet test` completo contra PostgreSQL real (regla 5).
+- [x] **TC.1** `dotnet test` completo contra PostgreSQL real (regla 5).
       **Terminado:** nunca InMemory para verificar comportamiento de autorización.
-- [ ] **TC.2** `npm test` completo en `clients/field-app`.
-- [ ] **TC.3** Ejecutar [`test-e2e.md`](./test-e2e.md) con las **cuatro identidades**: admin,
+- [x] **TC.2** `npm test` completo en `clients/field-app`.
+- [x] **TC.3** Ejecutar [`test-e2e.md`](./test-e2e.md) con las **cuatro identidades**: admin,
       empleado autorizado, empleado sin permiso y anónimo (criterio 1).
-- [ ] **TC.4** Revisar las operaciones pendientes creadas con versiones anteriores que el
+- [x] **TC.4** Revisar las operaciones pendientes creadas con versiones anteriores que el
       cierre de permisos haya revelado. **Terminado:** quedan **revisables y atribuibles**;
       la actualización **no las borra** (spec sec. 5, regla dura 1).
-- [ ] **TC.5** Verificar que los comentarios de seguridad describen el código real.
+- [x] **TC.5** Verificar que los comentarios de seguridad describen el código real.
       **Terminado:** criterio 6; un comentario que afirme una protección inexistente se
       corrige, no se deja.
-- [ ] **TC.6** Actualizar `docs/SEGURIDAD.md` con lo que esta rama cierra y lo que sigue abierto.
-- [ ] **TC.7** Anotar en `docs/BACKLOG.md` lo excluido: cookies, limitación de login, refresh
+- [x] **TC.6** Actualizar `docs/SEGURIDAD.md` con lo que esta rama cierra y lo que sigue abierto.
+- [x] **TC.7** Anotar en `docs/BACKLOG.md` lo excluido: cookies, limitación de login, refresh
       tokens, aislamiento por finca, scopes por grupo (regla 9).
-- [ ] **TC.8** Abrir el PR con la descripción de [`plan.md`](./plan.md), incluido el resultado
+- [x] **TC.8** Abrir el PR con la descripción de [`plan.md`](./plan.md), incluido el resultado
       de la Compuerta 0.

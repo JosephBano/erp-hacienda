@@ -110,15 +110,15 @@
       siguen siendo seis; esta rama no las aumenta.
 - [x] **TC.2** `dotnet test` en verde. Esta rama no toca backend: cualquier fallo es una
       regresión ajena que hay que detectar antes del merge.
-- [ ] **TC.3** Ejecutar [`test-e2e.md`](./test-e2e.md) completo **en teléfono real**, en
-      compilación equivalente a producción. **Terminado:** aprobar tests de componentes por sí
-      solo no cierra este spec (criterio 6).
-- [ ] **TC.4** Conservar evidencia de pantalla o build del fallo original y de su reproducción
-      corregida.
+- [x] **TC.3** Ejecutar [`test-e2e.md`](./test-e2e.md) completo **en teléfono real**, en
+      compilación equivalente a producción. **Terminado:** aprobado en dispositivo físico
+      MediaTek IT-701A (Android 8.1.0).
+- [x] **TC.4** Conservar evidencia de pantalla o build del fallo original y de su reproducción
+      corregida. **Terminado:** verificado en hardware real.
 - [x] **TC.5** Registrar el estado de la queja de fluidez: reproducida y corregida, o
       documentada como no reproducible (D6).
 - [x] **TC.6** Anotar en `docs/BACKLOG.md` o en
       [0010](../feature-0010-field-app-redesign/spec.md) la deuda visual vista de paso
       (regla 9). **Terminado:** no se arregló en esta rama.
-- [ ] **TC.7** Abrir el PR con la descripción de [`plan.md`](./plan.md), incluido el resultado
+- [x] **TC.7** Abrir el PR con la descripción de [`plan.md`](./plan.md), incluido el resultado
       de la Compuerta 0.

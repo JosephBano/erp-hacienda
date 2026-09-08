@@ -16,6 +16,20 @@ export type LotActivity =
 export interface LotForSubject {
   groupId: string;
   label: string;
+  trackingMode?: string;
+  speciesId?: string;
+}
+
+function getTrackingModeInfo(trackingMode?: string): { badge: string; label: string } | null {
+  if (!trackingMode) return null;
+  const normalized = trackingMode.trim().toLowerCase();
+  if (normalized === 'headcount') {
+    return { badge: '[Por conteo]', label: 'Modo: Por conteo' };
+  }
+  if (normalized === 'individual') {
+    return { badge: '[Individual]', label: 'Modo: Individual' };
+  }
+  return null;
 }
 
 interface LotSubjectScreenProps {
@@ -81,12 +95,16 @@ export function LotSubjectScreen({
 
   if (selectedGroupId) {
     const lot = lots.find((l) => l.groupId === selectedGroupId);
+    const trackingModeInfo = getTrackingModeInfo(lot?.trackingMode);
     return (
       // Seven buttons at a 64-unit minimum are 448 units before the title and the
       // summary card ever draw. On the short tablet the employees use that runs off
       // the bottom, and a fixed Screen gives no way down (feature-0006 D1).
       <Screen testID="lot-subject-detail" scrollable>
         <Title>{lot?.label ?? selectedGroupId}</Title>
+        {trackingModeInfo ? (
+          <Body muted testID="lot-detail-tracking-mode">{trackingModeInfo.label}</Body>
+        ) : null}
 
         {summary ? (
           <Card testID="lot-summary-card">
@@ -161,15 +179,19 @@ export function LotSubjectScreen({
       <Card>
         <Body muted>{'Lotes'}</Body>
         <View testID="lot-list" style={styles.list}>
-          {lots.map((lot) => (
-            <BigButton
-              key={lot.groupId}
-              testID={`lot-row-${lot.groupId}`}
-              label={lot.label}
-              tone="neutral"
-              onPress={() => onSelectLot(lot.groupId)}
-            />
-          ))}
+          {lots.map((lot) => {
+            const modeInfo = getTrackingModeInfo(lot.trackingMode);
+            const buttonLabel = modeInfo ? `${lot.label} ${modeInfo.badge}` : lot.label;
+            return (
+              <BigButton
+                key={lot.groupId}
+                testID={`lot-row-${lot.groupId}`}
+                label={buttonLabel}
+                tone="neutral"
+                onPress={() => onSelectLot(lot.groupId)}
+              />
+            );
+          })}
         </View>
       </Card>
     </Screen>

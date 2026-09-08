@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { theme } from '../ui/theme';
 import {
@@ -12,13 +12,11 @@ import {
   TextField,
   Title,
 } from '../ui/components';
+import { searchAnimals, type AnimalForSubject } from '../services/herdQueries';
 
 export type AnimalActivity = 'treatment' | 'weight' | 'move' | 'disposal';
 
-export interface AnimalForSubject {
-  animalId: string;
-  label: string;
-}
+export type { AnimalForSubject };
 
 interface AnimalSubjectScreenProps {
   animals: AnimalForSubject[];
@@ -32,6 +30,96 @@ interface AnimalSubjectScreenProps {
   onSelectAnimal: (animalId: string) => void;
   onClearSelection: () => void;
   onActivity: (animalId: string, activity: AnimalActivity) => void;
+}
+
+function AnimalCardRow({
+  animal,
+  onPress,
+  matchType,
+  testID,
+}: {
+  animal: AnimalForSubject;
+  onPress: () => void;
+  matchType?: 'exact' | 'partial';
+  testID?: string;
+}) {
+  const isUntagged = Boolean(
+    animal.hasPendingTag ||
+      (!animal.tag && (!animal.activeIdentifiers || animal.activeIdentifiers.length === 0) && (!animal.label || animal.label.includes('Sin arete') || !animal.tag))
+  );
+
+  const readableSnippet =
+    animal.animalId && animal.animalId.length >= 6 ? animal.animalId.slice(-6) : undefined;
+
+  const sexText = animal.sex
+    ? animal.sex.toLowerCase() === 'female' || animal.sex.toLowerCase() === 'hembra'
+      ? 'Hembra'
+      : animal.sex.toLowerCase() === 'male' || animal.sex.toLowerCase() === 'macho'
+        ? 'Macho'
+        : animal.sex
+    : null;
+
+  const groupText = animal.groupName
+    ? `Grupo: ${animal.groupName}`
+    : animal.sex
+      ? 'Sin grupo'
+      : null;
+
+  return (
+    <Pressable
+      testID={testID ?? `animal-row-${animal.animalId}`}
+      accessibilityRole="button"
+      accessibilityLabel={animal.label}
+      onPress={onPress}
+      style={({ pressed }) => [styles.animalCard, pressed && { opacity: 0.8 }]}
+    >
+      <View style={styles.cardHeaderRow}>
+        {animal.tag ? (
+          <View style={styles.tagBadge}>
+            <Text style={styles.tagText}>Arete: {animal.tag}</Text>
+          </View>
+        ) : isUntagged ? (
+          <View style={styles.pendingTagBadge} testID={`pending-tag-badge-${animal.animalId}`}>
+            <Text style={styles.pendingTagText}>Sin arete</Text>
+          </View>
+        ) : null}
+
+        {animal.matchedHistoricalTag ? (
+          <View
+            style={styles.historicalTagBadge}
+            testID={`historical-tag-badge-${animal.animalId}`}
+          >
+            <Text style={styles.historicalTagText}>
+              Arete anterior: {animal.matchedHistoricalTag}
+            </Text>
+          </View>
+        ) : null}
+
+        {matchType ? (
+          <View style={matchType === 'exact' ? styles.exactBadge : styles.partialBadge}>
+            <Text style={matchType === 'exact' ? styles.exactBadgeText : styles.partialBadgeText}>
+              {matchType === 'exact' ? 'Coincidencia exacta' : 'Coincidencia parcial'}
+            </Text>
+          </View>
+        ) : null}
+      </View>
+
+      <Text style={styles.animalTitle}>
+        {animal.name && animal.name !== animal.tag ? `${animal.name} (${animal.label})` : animal.label}
+        {animal.matchedHistoricalTag ? ` (Arete anterior: ${animal.matchedHistoricalTag})` : ''}
+      </Text>
+
+      {sexText || groupText || (isUntagged && readableSnippet) ? (
+        <View style={styles.metaRow}>
+          {sexText ? <Text style={styles.metaBadge}>{sexText}</Text> : null}
+          {groupText ? <Text style={styles.metaBadge}>{groupText}</Text> : null}
+          {isUntagged && readableSnippet ? (
+            <Text style={styles.metaMuted}>ID: {readableSnippet}</Text>
+          ) : null}
+        </View>
+      ) : null}
+    </Pressable>
+  );
 }
 
 /**
@@ -56,18 +144,23 @@ export function AnimalSubjectScreen({
   const [query, setQuery] = useState('');
 
   const recent = useMemo(() => {
-    if (!query) return recentIds.map((id) => animals.find((a) => a.animalId === id)).filter(Boolean) as AnimalForSubject[];
+    if (!query) {
+      return recentIds
+        .map((id) => animals.find((a) => a.animalId === id))
+        .filter(Boolean) as AnimalForSubject[];
+    }
     return [];
   }, [animals, query, recentIds]);
 
-  const matches = useMemo(() => {
-    const needle = query.trim().toLowerCase();
-    const seen = new Set(recent.map((a) => a.animalId));
-    const filtered = needle
-      ? animals.filter((a) => a.label.toLowerCase().includes(needle))
-      : animals;
-    return filtered.filter((a) => !seen.has(a.animalId));
-  }, [animals, query, recent]);
+  const searchResult = useMemo(() => {
+    return searchAnimals(animals, query);
+  }, [animals, query]);
+
+  const seen = useMemo(() => new Set(recent.map((a) => a.animalId)), [recent]);
+
+  const matchesWhenEmpty = useMemo(() => {
+    return animals.filter((a) => !seen.has(a.animalId));
+  }, [animals, seen]);
 
   if (selectedAnimalId) {
     const animal = animals.find((a) => a.animalId === selectedAnimalId);
@@ -85,9 +178,6 @@ export function AnimalSubjectScreen({
     }
 
     return (
-      // Title plus five 64-unit buttons overflows a short window as soon as the label
-      // is long or the system font is scaled up, and a fixed Screen offers no way to
-      // reach "Elegir otro animal" (feature-0006 D1).
       <Screen testID="animal-subject-detail" scrollable>
         <Title>{animal.label}</Title>
         <BigButton
@@ -131,12 +221,13 @@ export function AnimalSubjectScreen({
     );
   }
 
+  const isSearching = Boolean(query.trim());
+  const exactMatches = searchResult.exactMatches;
+  const partialMatches = searchResult.partialMatches;
+  const hasMatches = exactMatches.length > 0 || partialMatches.length > 0;
+  const isAmbiguous = exactMatches.length > 1;
+
   return (
-    // Two defects in one branch: the inner ScrollView never scrolled (no bounded
-    // height inside a Card that does not flex) and, with the search keyboard open,
-    // its default keyboardShouldPersistTaps="never" ate the first tap on a result.
-    // Scrolling the whole screen fixes both and leaves "Recientes" reachable too — it
-    // had no scroller at all. One vertical gesture per screen (D1).
     <Screen testID="animal-subject-screen" scrollable>
       <Title>Un animal</Title>
       <TextField
@@ -150,11 +241,10 @@ export function AnimalSubjectScreen({
         <Card>
           <Body muted>{'Recientes'}</Body>
           {recent.map((animal) => (
-            <BigButton
+            <AnimalCardRow
               key={`recent-${animal.animalId}`}
               testID={`animal-row-${animal.animalId}`}
-              label={animal.label}
-              tone="neutral"
+              animal={animal}
               onPress={() => onSelectAnimal(animal.animalId)}
             />
           ))}
@@ -163,19 +253,59 @@ export function AnimalSubjectScreen({
 
       <Card>
         <Body muted>{query ? `Coincidencias con "${query}"` : 'Todos los animales'}</Body>
-        {matches.length === 0 ? (
+
+        {!isSearching ? (
+          matchesWhenEmpty.length === 0 ? (
+            <Body muted>Nada coincide.</Body>
+          ) : (
+            <View testID="animal-list" style={styles.list}>
+              {matchesWhenEmpty.map((animal) => (
+                <AnimalCardRow
+                  key={animal.animalId}
+                  animal={animal}
+                  onPress={() => onSelectAnimal(animal.animalId)}
+                />
+              ))}
+            </View>
+          )
+        ) : !hasMatches ? (
           <Body muted>Nada coincide.</Body>
         ) : (
           <View testID="animal-list" style={styles.list}>
-            {matches.map((animal) => (
-              <BigButton
-                key={animal.animalId}
-                testID={`animal-row-${animal.animalId}`}
-                label={animal.label}
-                tone="neutral"
-                onPress={() => onSelectAnimal(animal.animalId)}
+            {isAmbiguous ? (
+              <Notice
+                tone="warning"
+                text={`Múltiples animales coinciden exactamente ("${query.trim()}"). Seleccione conscientemente el animal correspondiente.`}
               />
-            ))}
+            ) : null}
+
+            {exactMatches.length > 0 ? (
+              <>
+                <Body muted>{`Coincidencias exactas (${exactMatches.length})`}</Body>
+                {exactMatches.map((animal) => (
+                  <AnimalCardRow
+                    key={animal.animalId}
+                    animal={animal}
+                    matchType="exact"
+                    onPress={() => onSelectAnimal(animal.animalId)}
+                  />
+                ))}
+              </>
+            ) : null}
+
+            {partialMatches.length > 0 ? (
+              <>
+                <Body muted>{`Coincidencias parciales (${partialMatches.length})`}</Body>
+                {partialMatches.map((animal) => (
+                  <AnimalCardRow
+                    key={animal.animalId}
+                    animal={animal}
+                    matchType="partial"
+                    onPress={() => onSelectAnimal(animal.animalId)}
+                  />
+                ))}
+              </>
+            ) : null}
           </View>
         )}
       </Card>
@@ -188,4 +318,104 @@ const styles = StyleSheet.create({
     gap: theme.space.sm,
     paddingBottom: theme.space.md,
   },
+  animalCard: {
+    minHeight: theme.touchTarget,
+    backgroundColor: theme.color.surfaceRaised,
+    borderRadius: theme.radius.md,
+    borderWidth: 1,
+    borderColor: theme.color.border,
+    padding: theme.space.md,
+    gap: theme.space.xs,
+    justifyContent: 'center',
+  },
+  cardHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: theme.space.xs,
+  },
+  tagBadge: {
+    backgroundColor: theme.color.surface,
+    paddingHorizontal: theme.space.sm,
+    paddingVertical: 2,
+    borderRadius: theme.radius.md,
+    borderWidth: 1,
+    borderColor: theme.color.primary,
+  },
+  tagText: {
+    color: theme.color.primary,
+    fontSize: theme.font.body,
+    fontWeight: '800',
+  },
+  pendingTagBadge: {
+    backgroundColor: theme.color.warning,
+    paddingHorizontal: theme.space.sm,
+    paddingVertical: 2,
+    borderRadius: theme.radius.md,
+  },
+  pendingTagText: {
+    color: theme.color.warningText,
+    fontSize: theme.font.label,
+    fontWeight: '800',
+  },
+  historicalTagBadge: {
+    backgroundColor: theme.color.surface,
+    paddingHorizontal: theme.space.sm,
+    paddingVertical: 2,
+    borderRadius: theme.radius.md,
+    borderWidth: 1,
+    borderColor: theme.color.warning,
+  },
+  historicalTagText: {
+    color: theme.color.warning,
+    fontSize: theme.font.label - 2,
+    fontWeight: '800',
+  },
+  exactBadge: {
+    backgroundColor: theme.color.primary,
+    paddingHorizontal: theme.space.sm,
+    paddingVertical: 2,
+    borderRadius: theme.radius.md,
+  },
+  exactBadgeText: {
+    color: theme.color.primaryText,
+    fontSize: theme.font.label - 2,
+    fontWeight: '700',
+  },
+  partialBadge: {
+    backgroundColor: theme.color.surface,
+    paddingHorizontal: theme.space.sm,
+    paddingVertical: 2,
+    borderRadius: theme.radius.md,
+    borderWidth: 1,
+    borderColor: theme.color.border,
+  },
+  partialBadgeText: {
+    color: theme.color.textMuted,
+    fontSize: theme.font.label - 2,
+    fontWeight: '600',
+  },
+  animalTitle: {
+    color: theme.color.text,
+    fontSize: theme.font.body,
+    fontWeight: '700',
+  },
+  metaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: theme.space.sm,
+    marginTop: 2,
+  },
+  metaBadge: {
+    color: theme.color.textMuted,
+    fontSize: theme.font.label,
+    fontWeight: '600',
+  },
+  metaMuted: {
+    color: theme.color.textMuted,
+    fontSize: theme.font.label - 2,
+  },
 });
+

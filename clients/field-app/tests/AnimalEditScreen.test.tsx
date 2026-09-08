@@ -46,7 +46,17 @@ describe('AnimalEditScreen', () => {
       });
     });
 
-    animals = [{ animalId: 'animal-1', label: 'La Pinta', sex: 'Female', isWithheld: false, speciesId: 'species-1', speciesIsMilkable: true }];
+    animals = [{
+      animalId: 'animal-1',
+      label: 'La Pinta',
+      sex: 'Female',
+      isWithheld: false,
+      speciesId: 'species-1',
+      speciesIsMilkable: true,
+      activeIdentifiers: [],
+      historicalIdentifiers: [],
+      hasPendingTag: false,
+    }];
   });
 
   // Smoke test that survives the SDK 51 -> 56 upgrade. The three interaction-heavy tests

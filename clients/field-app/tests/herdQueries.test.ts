@@ -489,3 +489,145 @@ describe('herdQueries — activity candidates vs historical herd (feature-0005, 
   });
 });
 
+describe('herdQueries — groupName and active identifiers (feature-0007 Commit 1)', () => {
+  let database: Database;
+
+  beforeEach(async () => {
+    const adapter = new LokiJSAdapter({
+      schema,
+      migrations,
+      useWebWorker: false,
+      useIncrementalIndexedDB: false,
+      dbName: `hato-herdqueries-feature-0007-${Math.random()}`,
+    });
+    database = new Database({ adapter: adapter as never, modelClasses });
+
+    await database.write(async () => {
+      // Species
+      await database.get('species').create((row: any) => {
+        row._raw.id = 'sp-cow';
+        row.name = 'Bovino';
+        row.isMilkable = true;
+        row.isDeleted = false;
+      });
+
+      // Animal 1: tagged cow in a group
+      await database.get('animals').create((row: any) => {
+        row._raw.id = 'cow-tagged';
+        row.sex = 'Female';
+        row.speciesId = 'sp-cow';
+        row.isDeleted = false;
+        row.serverCreatedAt = Date.now();
+      });
+
+      // Animal 2: untagged cow without group
+      await database.get('animals').create((row: any) => {
+        row._raw.id = 'cow-untagged';
+        row.sex = 'Female';
+        row.speciesId = 'sp-cow';
+        row.isDeleted = false;
+        row.serverCreatedAt = Date.now();
+      });
+
+      // Identifiers for Animal 1: Name, FarmTag, and Official SIFAE tag
+      await database.get('animal_identifiers').create((row: any) => {
+        row._raw.id = 'id-name-1';
+        row.animalId = 'cow-tagged';
+        row.type = 'Name';
+        row.value = 'Margarita';
+        row.isActive = true;
+        row.isDeleted = false;
+      });
+      await database.get('animal_identifiers').create((row: any) => {
+        row._raw.id = 'id-tag-1';
+        row.animalId = 'cow-tagged';
+        row.type = 'FarmTag';
+        row.value = 'CRIA-01';
+        row.isActive = true;
+        row.isDeleted = false;
+      });
+      await database.get('animal_identifiers').create((row: any) => {
+        row._raw.id = 'id-tag-official';
+        row.animalId = 'cow-tagged';
+        row.type = 'Official';
+        row.value = 'SIFAE-12345';
+        row.isActive = true;
+        row.isDeleted = false;
+      });
+
+      // Inactive identifier should be excluded
+      await database.get('animal_identifiers').create((row: any) => {
+        row._raw.id = 'id-tag-old';
+        row.animalId = 'cow-tagged';
+        row.type = 'FarmTag';
+        row.value = 'OLD-TAG';
+        row.isActive = false;
+        row.isDeleted = false;
+      });
+
+      // Groups
+      await database.get('animal_groups').create((row: any) => {
+        row._raw.id = 'group-1';
+        row.name = 'Lote Producción';
+        row.trackingMode = 'Individual';
+        row.isActive = true;
+        row.isDeleted = false;
+      });
+
+      // Group membership for Animal 1
+      await database.get('group_memberships').create((row: any) => {
+        row._raw.id = 'mem-1';
+        row.animalId = 'cow-tagged';
+        row.groupId = 'group-1';
+        row.joinedAt = '2026-01-01';
+        row.isActive = true;
+        row.isDeleted = false;
+      });
+    });
+  });
+
+  it('associates animal with its active groupName and loads all active identifiers (T1.1, T1.3)', async () => {
+    const herd = await loadHerd(database);
+
+    const tagged = herd.find((h) => h.animalId === 'cow-tagged');
+    expect(tagged).toBeDefined();
+    expect(tagged?.groupName).toBe('Lote Producción');
+    expect(tagged?.name).toBe('Margarita');
+    expect(tagged?.tag).toBe('CRIA-01');
+    expect(tagged?.hasPendingTag).toBe(false);
+    expect(tagged?.activeIdentifiers).toHaveLength(3);
+    expect(tagged?.activeIdentifiers).toEqual(
+      expect.arrayContaining([
+        { type: 'Name', value: 'Margarita' },
+        { type: 'FarmTag', value: 'CRIA-01' },
+        { type: 'Official', value: 'SIFAE-12345' },
+      ]),
+    );
+    // Inactive identifier was excluded
+    expect(tagged?.activeIdentifiers.some((id) => id.value === 'OLD-TAG')).toBe(false);
+
+    const untagged = herd.find((h) => h.animalId === 'cow-untagged');
+    expect(untagged).toBeDefined();
+    expect(untagged?.groupName).toBeUndefined();
+    expect(untagged?.tag).toBeUndefined();
+    expect(untagged?.name).toBeUndefined();
+    expect(untagged?.hasPendingTag).toBe(true);
+    expect(untagged?.activeIdentifiers).toEqual([]);
+  });
+
+  it('preserves groupName, tag, activeIdentifiers, and hasPendingTag on loadActiveHerd and loadMilkingCandidates', async () => {
+    const activeHerd = await loadActiveHerd(database);
+    const taggedActive = activeHerd.find((h) => h.animalId === 'cow-tagged');
+    expect(taggedActive?.groupName).toBe('Lote Producción');
+    expect(taggedActive?.tag).toBe('CRIA-01');
+    expect(taggedActive?.hasPendingTag).toBe(false);
+    expect(taggedActive?.activeIdentifiers).toHaveLength(3);
+
+    const candidates = await loadMilkingCandidates(database);
+    const taggedCandidate = candidates.find((h) => h.animalId === 'cow-tagged');
+    expect(taggedCandidate?.groupName).toBe('Lote Producción');
+    expect(taggedCandidate?.tag).toBe('CRIA-01');
+    expect(taggedCandidate?.hasPendingTag).toBe(false);
+    expect(taggedCandidate?.activeIdentifiers).toHaveLength(3);
+  });
+});

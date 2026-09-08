@@ -12,6 +12,7 @@ import { EventService } from '../eventService';
 import { BirthService } from '../birthService';
 import { AnimalEditService } from '../animalEditService';
 import { FeedConsumptionService } from '../feedConsumptionService';
+import { IdentifierService } from '../identifierService';
 
 describe('Push Payload Contracts Generator and Validator', () => {
   const fixturePath = path.resolve(__dirname, '../../../../../docs/contracts/push-payloads.json');
@@ -155,13 +156,28 @@ describe('Push Payload Contracts Generator and Validator', () => {
       notes: 'Alimento concentrado',
     });
 
+    // 11. assignAnimalIdentifier
+    const identifierService = new IdentifierService(database);
+    await identifierService.assignIdentifier({
+      animalId: cowId,
+      type: 'FarmTag',
+      value: 'H-102',
+      validFrom: '2026-09-07',
+    });
+
     const entries = await outbox.pending();
-    expect(entries.length).toBe(10);
+    expect(entries.length).toBe(11);
 
     const operations = entries.map((entry) => {
       const payload = { ...entry.payload };
       if (entry.operationType === 'createAnimal' && payload.id) {
         payload.id = '631b5eb4-dc6d-4166-b96f-0b98ac182e8b';
+      }
+      if (entry.operationType === 'recordBirth' && Array.isArray((payload as any).offspring)) {
+        (payload as any).offspring = (payload as any).offspring.map((o: any, idx: number) => ({
+          ...o,
+          childId: `00000000-0000-0000-0000-00000000000${idx + 2}`,
+        }));
       }
       return {
         operationType: entry.operationType,

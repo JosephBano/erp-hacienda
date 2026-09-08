@@ -312,3 +312,190 @@ describe('AnimalSubjectScreen reachability', () => {
     expect(onSelectAnimal).toHaveBeenCalledWith('a-29');
   });
 });
+
+describe('AnimalSubjectScreen feature-0007 Commit 1 and 2', () => {
+  const noop = () => undefined;
+
+  it('displays prominent tag, sex, and group on animal search results (D3, T1.3)', async () => {
+    const animals = [
+      {
+        animalId: 'cow-1',
+        label: 'Margarita (CRIA-01)',
+        name: 'Margarita',
+        tag: 'CRIA-01',
+        sex: 'Female',
+        groupName: 'Lote Lechero',
+        hasPendingTag: false,
+      },
+    ];
+
+    await render(
+      <AnimalSubjectScreen
+        animals={animals}
+        recentIds={[]}
+        onSelectAnimal={noop}
+        onActivity={noop}
+        onClearSelection={noop}
+      />,
+    );
+
+    expect(await screen.findByText('Arete: CRIA-01')).toBeTruthy();
+    expect(screen.getByText('Hembra')).toBeTruthy();
+    expect(screen.getByText('Grupo: Lote Lechero')).toBeTruthy();
+  });
+
+  it('displays "Sin arete" badge clearly for untagged animals and allows finding by ID snippet (D5, T1.7)', async () => {
+    const animals = [
+      {
+        animalId: '00000000-0000-0000-0000-000000654321',
+        label: 'Sin arete · 654321',
+        sex: 'Male',
+        hasPendingTag: true,
+      },
+    ];
+
+    await render(
+      <AnimalSubjectScreen
+        animals={animals}
+        recentIds={[]}
+        onSelectAnimal={noop}
+        onActivity={noop}
+        onClearSelection={noop}
+      />,
+    );
+
+    expect(await screen.findByTestId('pending-tag-badge-00000000-0000-0000-0000-000000654321')).toBeTruthy();
+    expect(screen.getByText('Sin arete')).toBeTruthy();
+    expect(screen.getByText('Macho')).toBeTruthy();
+
+    // Search by 6-character snippet
+    await act(async () => {
+      fireEvent.changeText(await screen.findByTestId('animal-subject-search'), '654321');
+    });
+
+    expect(screen.getByTestId('animal-row-00000000-0000-0000-0000-000000654321')).toBeTruthy();
+  });
+
+  it('distinguishes exact and partial matches in UI (T1.6)', async () => {
+    const animals = [
+      { animalId: 'a-10', label: 'COW-10', tag: 'COW-10', hasPendingTag: false },
+      { animalId: 'a-100', label: 'COW-100', tag: 'COW-100', hasPendingTag: false },
+    ];
+
+    await render(
+      <AnimalSubjectScreen
+        animals={animals}
+        recentIds={[]}
+        onSelectAnimal={noop}
+        onActivity={noop}
+        onClearSelection={noop}
+      />,
+    );
+
+    await act(async () => {
+      fireEvent.changeText(await screen.findByTestId('animal-subject-search'), 'COW-10');
+    });
+
+    expect(await screen.findByText(/Coincidencias exactas \(1\)/i)).toBeTruthy();
+    expect(screen.getByText(/Coincidencias parciales \(1\)/i)).toBeTruthy();
+    expect(screen.getByText('Coincidencia exacta')).toBeTruthy();
+    expect(screen.getByText('Coincidencia parcial')).toBeTruthy();
+  });
+
+  it('surfaces ambiguous matches when multiple animals share the same tag without auto-selecting or merging (T2.1, T2.2, T2.3, T2.4)', async () => {
+    const onSelectAnimal = jest.fn();
+    const animals = [
+      {
+        animalId: 'dup-1',
+        label: 'TAG-DUPLICATE (Norte)',
+        tag: 'TAG-DUPLICATE',
+        sex: 'Female',
+        groupName: 'Lote Norte',
+        hasPendingTag: false,
+      },
+      {
+        animalId: 'dup-2',
+        label: 'TAG-DUPLICATE (Sur)',
+        tag: 'TAG-DUPLICATE',
+        sex: 'Male',
+        groupName: 'Lote Sur',
+        hasPendingTag: false,
+      },
+    ];
+
+    await render(
+      <AnimalSubjectScreen
+        animals={animals}
+        recentIds={[]}
+        onSelectAnimal={onSelectAnimal}
+        onActivity={noop}
+        onClearSelection={noop}
+      />,
+    );
+
+    await act(async () => {
+      fireEvent.changeText(await screen.findByTestId('animal-subject-search'), 'TAG-DUPLICATE');
+    });
+
+    // 1. Both animals rendered separately (never merged)
+    expect(await screen.findByTestId('animal-row-dup-1')).toBeTruthy();
+    expect(screen.getByTestId('animal-row-dup-2')).toBeTruthy();
+
+    // 2. Ambiguity warning presented
+    expect(screen.getByText(/Múltiples animales coinciden exactamente/i)).toBeTruthy();
+
+    // 3. Data presented is sufficient to distinguish: sex and group
+    expect(screen.getByText('Hembra')).toBeTruthy();
+    expect(screen.getByText('Grupo: Lote Norte')).toBeTruthy();
+    expect(screen.getByText('Macho')).toBeTruthy();
+    expect(screen.getByText('Grupo: Lote Sur')).toBeTruthy();
+
+    // 4. Never auto-selects silently
+    expect(onSelectAnimal).not.toHaveBeenCalled();
+
+    // 5. Conscious user selection required
+    fireEvent.press(screen.getByTestId('animal-row-dup-1'));
+    expect(onSelectAnimal).toHaveBeenCalledWith('dup-1');
+    expect(onSelectAnimal).not.toHaveBeenCalledWith('dup-2');
+  });
+
+  it('displays historical tag badge and notice prominently when matched via previous tag (T3.5, D3)', async () => {
+    const onSelectAnimal = jest.fn();
+    const animals = [
+      {
+        animalId: 'hist-animal-1',
+        label: 'TAG-CURR',
+        tag: 'TAG-CURR',
+        sex: 'Female',
+        activeIdentifiers: [{ type: 'FarmTag', value: 'TAG-CURR' }],
+        historicalIdentifiers: [{ type: 'FarmTag', value: 'TAG-PREV-88' }],
+        hasPendingTag: false,
+      },
+    ];
+
+    await render(
+      <AnimalSubjectScreen
+        animals={animals}
+        recentIds={[]}
+        onSelectAnimal={onSelectAnimal}
+        onActivity={noop}
+        onClearSelection={noop}
+      />,
+    );
+
+    await act(async () => {
+      fireEvent.changeText(await screen.findByTestId('animal-subject-search'), 'TAG-PREV-88');
+    });
+
+    // 1. Animal row is found
+    expect(await screen.findByTestId('animal-row-hist-animal-1')).toBeTruthy();
+
+    // 2. Historical tag badge is displayed prominently
+    expect(screen.getByTestId('historical-tag-badge-hist-animal-1')).toBeTruthy();
+    expect(screen.getByText('Arete anterior: TAG-PREV-88')).toBeTruthy();
+
+    // 3. Current active tag is still displayed as current, never presented as TAG-PREV-88 being active
+    expect(screen.getByText('Arete: TAG-CURR')).toBeTruthy();
+  });
+});
+

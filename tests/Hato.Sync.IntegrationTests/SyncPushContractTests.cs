@@ -70,6 +70,7 @@ public class SyncPushContractTests
     [InlineData("updateAnimal")]
     [InlineData("recordCorrection")]
     [InlineData("recordMilking")]
+    [InlineData("assignAnimalIdentifier")]
     public void PushContracts_PayloadDeserializesWithoutUnmappedMembers(string operationType)
     {
         var payloadElement = GetFixturePayload(operationType);
@@ -125,6 +126,11 @@ public class SyncPushContractTests
             case "recordcorrection":
                 var correction = JsonSerializer.Deserialize<RecordCorrectionPushPayload>(rawText, PushSyncBatchCommandHandler.JsonOptions);
                 Assert.NotNull(correction);
+                break;
+
+            case "assignanimalidentifier":
+                var assign = JsonSerializer.Deserialize<AssignAnimalIdentifierPushPayload>(rawText, PushSyncBatchCommandHandler.JsonOptions);
+                Assert.NotNull(assign);
                 break;
 
             default:

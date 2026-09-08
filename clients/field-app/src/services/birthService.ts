@@ -1,11 +1,14 @@
 import { Database } from '@nozbe/watermelondb';
 
-import { Animal, Pregnancy } from '../database/models';
+import { Animal, AnimalIdentifier, Pregnancy } from '../database/models';
+import { newUuid } from './identifiers';
 import { Outbox } from './outbox';
 
 export type Sex = 'M' | 'F';
 
 export interface OffspringInput {
+  childId?: string;
+  id?: string;
   sex: Sex;
   farmTag?: string;
   birthWeightKg?: number;
@@ -31,6 +34,7 @@ export interface QueuedBirth {
   damId: string;
   birthDate: string;
   offspringCount: number;
+  offspringIds: string[];
 }
 
 /**
@@ -64,8 +68,9 @@ export class BirthService {
 
     const birthDate = input.birthDate ?? new Date().toISOString().slice(0, 10);
 
+    let dam: Animal | undefined;
     try {
-      const dam = await this.database.get<Animal>('animals').find(input.damId);
+      dam = await this.database.get<Animal>('animals').find(input.damId);
       if (dam && !dam.isDeleted) {
         if (dam.sex?.toLowerCase() !== 'female' && dam.sex?.toUpperCase() !== 'F') {
           throw new Error('Solo se pueden registrar partos en animales de sexo hembra.');
@@ -102,6 +107,42 @@ export class BirthService {
       }
     }
 
+    const assignedChildIds = input.offspring.map((calf) => calf.childId ?? calf.id ?? newUuid());
+
+    await this.database.write(async () => {
+      const animalsCollection = this.database.get<Animal>('animals');
+      const identifiersCollection = this.database.get<AnimalIdentifier>('animal_identifiers');
+
+      for (let i = 0; i < input.offspring.length; i++) {
+        const calf = input.offspring[i];
+        const childId = assignedChildIds[i];
+
+        await animalsCollection.create((animal) => {
+          (animal as any)._raw.id = childId;
+          animal.sex = calf.sex === 'M' ? 'Male' : 'Female';
+          animal.speciesId = dam?.speciesId ?? '';
+          animal.breedId = dam?.breedId;
+          animal.categoryId = calf.categoryId;
+          animal.motherId = input.damId;
+          animal.fatherAnimalId = input.sireAnimalId;
+          animal.fatherStrawId = input.sireStrawId;
+          animal.birthDate = birthDate;
+          animal.isDeleted = false;
+          animal.serverCreatedAt = Date.now();
+        });
+
+        if (calf.farmTag?.trim()) {
+          await identifiersCollection.create((identifier) => {
+            identifier.animalId = childId;
+            identifier.type = 'FarmTag';
+            identifier.value = calf.farmTag!.trim();
+            identifier.isActive = true;
+            identifier.isDeleted = false;
+          });
+        }
+      }
+    });
+
     const entry = await this.outbox.enqueue(
       'recordBirth',
       {
@@ -115,7 +156,8 @@ export class BirthService {
         notes: input.notes,
         sireAnimalId: input.sireAnimalId,
         sireStrawId: input.sireStrawId,
-        offspring: input.offspring.map((calf) => ({
+        offspring: input.offspring.map((calf, index) => ({
+          childId: assignedChildIds[index],
           sex: calf.sex,
           farmTag: calf.farmTag,
           birthWeightKg: calf.birthWeightKg,
@@ -130,6 +172,7 @@ export class BirthService {
       damId: input.damId,
       birthDate,
       offspringCount: input.offspring.length,
+      offspringIds: assignedChildIds,
     };
   }
 }

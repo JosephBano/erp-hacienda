@@ -158,6 +158,62 @@ describe('LotSubjectScreen', () => {
     // The six activities are still reachable — a failed read never blocks a write.
     expect(screen.getByTestId('lot-activity-feed')).toBeTruthy();
   });
+
+  it('displays tracking mode badges in the list to clearly distinguish headcount and individual lots (T5.1, T5.6)', async () => {
+    const mixedLots = [
+      { groupId: 'lot-hc', label: 'Engorde lote A', trackingMode: 'Headcount' },
+      { groupId: 'lot-ind', label: 'Vacas Lecheras', trackingMode: 'Individual' },
+      { groupId: 'lot-none', label: 'Lote Sin Modo' },
+    ];
+
+    await render(
+      <LotSubjectScreen lots={mixedLots} onSelectLot={noop} onActivity={noop} onClearSelection={noop} />,
+    );
+
+    expect(await screen.findByText('Engorde lote A [Por conteo]')).toBeTruthy();
+    expect(screen.getByText('Vacas Lecheras [Individual]')).toBeTruthy();
+    expect(screen.getByText('Lote Sin Modo')).toBeTruthy();
+  });
+
+  it('displays "Modo: Por conteo" in detail view when a headcount lot is selected (D2, T5.1)', async () => {
+    const mixedLots = [
+      { groupId: 'lot-hc', label: 'Engorde lote A', trackingMode: 'Headcount' },
+      { groupId: 'lot-ind', label: 'Vacas Lecheras', trackingMode: 'Individual' },
+    ];
+
+    await render(
+      <LotSubjectScreen
+        lots={mixedLots}
+        selectedGroupId="lot-hc"
+        onSelectLot={noop}
+        onActivity={noop}
+        onClearSelection={noop}
+      />,
+    );
+
+    expect(await screen.findByText('Modo: Por conteo')).toBeTruthy();
+    expect(screen.getByTestId('lot-detail-tracking-mode')).toBeTruthy();
+  });
+
+  it('displays "Modo: Individual" in detail view when an individual lot is selected (D2, T5.1)', async () => {
+    const mixedLots = [
+      { groupId: 'lot-hc', label: 'Engorde lote A', trackingMode: 'Headcount' },
+      { groupId: 'lot-ind', label: 'Vacas Lecheras', trackingMode: 'Individual' },
+    ];
+
+    await render(
+      <LotSubjectScreen
+        lots={mixedLots}
+        selectedGroupId="lot-ind"
+        onSelectLot={noop}
+        onActivity={noop}
+        onClearSelection={noop}
+      />,
+    );
+
+    expect(await screen.findByText('Modo: Individual')).toBeTruthy();
+    expect(screen.getByTestId('lot-detail-tracking-mode')).toBeTruthy();
+  });
 });
 
 /**

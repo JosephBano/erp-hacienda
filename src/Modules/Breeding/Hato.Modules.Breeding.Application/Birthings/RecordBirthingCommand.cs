@@ -164,7 +164,8 @@ public class RecordBirthingCommandHandler(
                         FatherAnimalId: sireAnimalId,
                         FatherStrawId: fatherStrawId,
                         BirthingId: birthing.Id,
-                        BirthWeightKg: offspring.BirthWeightKg),
+                        BirthWeightKg: offspring.BirthWeightKg,
+                        ChildId: offspring.ChildId != Guid.Empty ? offspring.ChildId : (Guid?)null),
                     cancellationToken);
             }
         }

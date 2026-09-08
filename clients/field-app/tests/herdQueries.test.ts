@@ -4,7 +4,14 @@ import LokiJSAdapter from '@nozbe/watermelondb/adapters/lokijs';
 import { schema } from '../src/database/schema';
 import { migrations } from '../src/database/migrations';
 import { modelClasses } from '../src/database/models';
-import { loadBreeds, loadCategories, loadHerd, loadPregnantDams } from '../src/services/herdQueries';
+import {
+  loadBreeds,
+  loadCategories,
+  loadHerd,
+  loadMilkingCandidates,
+  loadActiveHerd,
+  loadPregnantDams,
+} from '../src/services/herdQueries';
 
 /**
  * Covers what the animal-edit screen needs and what loadHerd did not carry before: the
@@ -354,6 +361,131 @@ describe('herdQueries — loadPregnantDams', () => {
 
     const dams = await loadPregnantDams(database);
     expect(dams.map((d) => d.animalId)).toEqual(['dam-2', 'dam-3', 'dam-1', 'dam-4']);
+  });
+});
+
+describe('herdQueries — activity candidates vs historical herd (feature-0005, D1, D5)', () => {
+  let database: Database;
+
+  beforeEach(async () => {
+    const adapter = new LokiJSAdapter({
+      schema,
+      migrations,
+      useWebWorker: false,
+      useIncrementalIndexedDB: false,
+      dbName: `hato-herdqueries-candidates-${Math.random()}`,
+    });
+    database = new Database({ adapter: adapter as never, modelClasses });
+
+    // Seed species
+    await database.write(async () => {
+      await database.get('species').create((row: any) => {
+        row._raw.id = 'sp-cow';
+        row.name = 'Bovino';
+        row.isMilkable = true;
+        row.isDeleted = false;
+      });
+      await database.get('species').create((row: any) => {
+        row._raw.id = 'sp-pig';
+        row.name = 'Porcino';
+        row.isMilkable = false;
+        row.isDeleted = false;
+      });
+
+      // Female cow (active)
+      await database.get('animals').create((row: any) => {
+        row._raw.id = 'cow-1';
+        row.sex = 'Female';
+        row.speciesId = 'sp-cow';
+        row.isDeleted = false;
+        row.serverCreatedAt = Date.now();
+      });
+
+      // Male bull (active)
+      await database.get('animals').create((row: any) => {
+        row._raw.id = 'bull-1';
+        row.sex = 'Male';
+        row.speciesId = 'sp-cow';
+        row.isDeleted = false;
+        row.serverCreatedAt = Date.now();
+      });
+
+      // Disposed cow (disposed on 2026-08-01)
+      await database.get('animals').create((row: any) => {
+        row._raw.id = 'cow-disposed';
+        row.sex = 'Female';
+        row.speciesId = 'sp-cow';
+        row.isDeleted = false;
+        row.serverCreatedAt = Date.now();
+        row.disposedAt = '2026-08-01T10:00:00Z';
+      });
+
+      // Female sow (active, but species not milkable)
+      await database.get('animals').create((row: any) => {
+        row._raw.id = 'sow-1';
+        row.sex = 'Female';
+        row.speciesId = 'sp-pig';
+        row.isDeleted = false;
+        row.serverCreatedAt = Date.now();
+      });
+    });
+  });
+
+  it('loadHerd continues to return males and disposed animals for historical record (D1, T2.3)', async () => {
+    const herd = await loadHerd(database, '2026-08-10');
+    const ids = herd.map((h) => h.animalId).sort();
+    expect(ids).toEqual(['bull-1', 'cow-1', 'cow-disposed', 'sow-1']);
+
+    const disposed = herd.find((h) => h.animalId === 'cow-disposed');
+    expect(disposed?.disposedAt).toBe('2026-08-01T10:00:00Z');
+
+    const bull = herd.find((h) => h.animalId === 'bull-1');
+    expect(bull?.sex).toBe('Male');
+  });
+
+  it('loadMilkingCandidates excludes males, disposed animals and non-milkable species (T2.4)', async () => {
+    const candidates = await loadMilkingCandidates(database, '2026-08-10');
+    const ids = candidates.map((c) => c.animalId);
+    // Only cow-1 is a female of a milkable species and not disposed
+    expect(ids).toEqual(['cow-1']);
+  });
+
+  it('loadActiveHerd returns both sexes but excludes disposed animals (T5.4)', async () => {
+    const active = await loadActiveHerd(database, '2026-08-10');
+    const ids = active.map((a) => a.animalId).sort();
+    expect(ids).toEqual(['bull-1', 'cow-1', 'sow-1']);
+  });
+
+  it('loadPregnantDams excludes males and disposed dams (T5.1)', async () => {
+    await database.write(async () => {
+      // Pregnancy on male (corrupted data)
+      await database.get('pregnancies').create((row: any) => {
+        row._raw.id = 'preg-male';
+        row.damId = 'bull-1';
+        row.status = 'Active';
+        row.isDeleted = false;
+        row.serverCreatedAt = Date.now();
+      });
+      // Pregnancy on disposed dam
+      await database.get('pregnancies').create((row: any) => {
+        row._raw.id = 'preg-disp';
+        row.damId = 'cow-disposed';
+        row.status = 'Active';
+        row.isDeleted = false;
+        row.serverCreatedAt = Date.now();
+      });
+      // Pregnancy on valid active female
+      await database.get('pregnancies').create((row: any) => {
+        row._raw.id = 'preg-valid';
+        row.damId = 'cow-1';
+        row.status = 'Active';
+        row.isDeleted = false;
+        row.serverCreatedAt = Date.now();
+      });
+    });
+
+    const dams = await loadPregnantDams(database);
+    expect(dams.map((d) => d.animalId)).toEqual(['cow-1']);
   });
 });
 

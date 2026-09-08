@@ -52,6 +52,15 @@ public class AnimalRegistrationService(ILivestockDbContext dbContext) : IAnimalR
         return offspring.Id;
     }
 
+    public async Task<DamFitnessDto?> GetDamFitnessAsync(Guid damId, CancellationToken cancellationToken)
+    {
+        return await dbContext.Animals
+            .AsNoTracking()
+            .Where(a => a.Id == damId && a.DeletedAt == null)
+            .Select(a => new DamFitnessDto(a.Id, a.Sex == Sex.Female, a.DisposedAt, a.SpeciesId))
+            .FirstOrDefaultAsync(cancellationToken);
+    }
+
     public async Task<Guid?> GetSpeciesAsync(Guid animalId, CancellationToken cancellationToken)
     {
         return await dbContext.Animals

@@ -1,6 +1,6 @@
 import { Database } from '@nozbe/watermelondb';
 
-import { WithdrawalPeriod } from '../database/models';
+import { Animal, AnimalGroup, WithdrawalPeriod } from '../database/models';
 import { newUuid } from './identifiers';
 import { Outbox } from './outbox';
 
@@ -141,6 +141,7 @@ export class EventService {
     if (!input.medicationId) throw new Error('El medicamento es obligatorio.');
 
     const occurredAt = input.occurredAt ?? new Date().toISOString();
+    await this.assertAnimalActive(input.animalId, occurredAt, 'registrar tratamientos');
     const milkWithdrawalDays = input.milkWithdrawalDays ?? 0;
     const meatWithdrawalDays = input.meatWithdrawalDays ?? 0;
 
@@ -193,6 +194,7 @@ export class EventService {
     }
 
     const startsAt = input.startsAt ?? new Date().toISOString();
+    await this.assertAnimalActive(input.animalId, startsAt, 'registrar tratamientos');
 
     const entry = await this.outbox.enqueue(
       'createTreatmentCourse',
@@ -233,6 +235,7 @@ export class EventService {
     }
 
     const occurredAt = input.occurredAt ?? new Date().toISOString();
+    await this.assertAnimalActive(input.animalId, occurredAt, 'ser pesado');
 
     const entry = await this.outbox.enqueue(
       'recordAnimalEvent',
@@ -260,8 +263,20 @@ export class EventService {
    */
   async recordGroupEvent(input: GroupEventInput): Promise<QueuedEvent> {
     if (!input.groupId) throw new Error('El lote es obligatorio.');
+    if (input.affectedCount !== undefined && input.affectedCount <= 0) {
+      throw new Error('La cantidad de animales afectados debe ser mayor que cero.');
+    }
     if (input.eventType === 'Disposal' && !(input.affectedCount && input.affectedCount > 0)) {
       throw new Error('Una baja de lote debe declarar cuántas cabezas incluye.');
+    }
+
+    try {
+      const group = await this.database.get<AnimalGroup>('animal_groups').find(input.groupId);
+      if (group && !group.isDeleted && !group.isActive) {
+        throw new Error('No se pueden registrar eventos sobre un lote inactivo.');
+      }
+    } catch (err: any) {
+      if (err.message?.includes('inactivo')) throw err;
     }
 
     const occurredAt = input.occurredAt ?? new Date().toISOString();
@@ -294,6 +309,8 @@ export class EventService {
     if (!input.animalId) throw new Error('El animal es obligatorio.');
     if (!input.causeId) throw new Error('La causa de mortalidad es obligatoria.');
 
+    await this.assertAnimalCanBeDisposed(input.animalId);
+
     const occurredAt = input.occurredAt ?? new Date().toISOString();
 
     const entry = await this.outbox.enqueue(
@@ -315,8 +332,12 @@ export class EventService {
   async recordGroupMove(input: GroupMoveInput): Promise<QueuedEvent> {
     if (!input.animalId) throw new Error('El animal es obligatorio.');
     if (!input.toGroupId) throw new Error('El lote de destino es obligatorio.');
+    if (input.fromGroupId && input.fromGroupId === input.toGroupId) {
+      throw new Error('El lote de destino debe ser diferente del lote de origen.');
+    }
 
     const movedOn = input.movedOn ?? new Date().toISOString().slice(0, 10);
+    await this.assertAnimalActive(input.animalId, movedOn, 'ser movido de lote');
 
     const entry = await this.outbox.enqueue('moveAnimal', {
       animalId: input.animalId,
@@ -326,6 +347,41 @@ export class EventService {
     });
 
     return { clientOperationId: entry.clientOperationId };
+  }
+
+  private async findAnimal(animalId: string): Promise<Animal | null> {
+    try {
+      const animal = await this.database.get<Animal>('animals').find(animalId);
+      return animal.isDeleted ? null : animal;
+    } catch {
+      return null;
+    }
+  }
+
+  private async assertAnimalActive(
+    animalId: string,
+    occurredAt: string,
+    actionDescription: string,
+  ): Promise<void> {
+    const animal = await this.findAnimal(animalId);
+    if (!animal) return;
+
+    if (animal.disposedAt) {
+      const disposedDate = animal.disposedAt.slice(0, 10);
+      const actionDate = occurredAt.slice(0, 10);
+      if (disposedDate <= actionDate) {
+        throw new Error(`El animal fue dado de baja y no puede ${actionDescription}.`);
+      }
+    }
+  }
+
+  private async assertAnimalCanBeDisposed(animalId: string): Promise<void> {
+    const animal = await this.findAnimal(animalId);
+    if (!animal) return;
+
+    if (animal.disposedAt) {
+      throw new Error('El animal ya fue dado de baja anteriormente.');
+    }
   }
 
   /**

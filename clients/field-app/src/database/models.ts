@@ -25,6 +25,7 @@ export class Animal extends Model {
   @field('server_created_at') declare serverCreatedAt: number;
   @field('server_updated_at') serverUpdatedAt?: number;
   @field('last_edited_at') lastEditedAt?: number;
+  @text('disposed_at') disposedAt?: string;
 }
 
 export class AnimalIdentifier extends Model {

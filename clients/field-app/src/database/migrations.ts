@@ -269,6 +269,18 @@ export const migrations = schemaMigrations({
         }),
       ],
     },
+    {
+      toVersion: 12,
+      steps: [
+        // feature-0005: carry the animal disposal state to the field app (D1, D5)
+        // so candidate filters and retrospective validations can tell when an animal
+        // left the herd, without reducing the historical record.
+        addColumns({
+          table: 'animals',
+          columns: [{ name: 'disposed_at', type: 'string', isOptional: true }],
+        }),
+      ],
+    },
   ],
 });
 

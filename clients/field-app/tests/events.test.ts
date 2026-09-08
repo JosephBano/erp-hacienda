@@ -282,4 +282,158 @@ describe('EventService', () => {
       expect(details.photoUploaded).toBe(false);
     });
   });
+
+  describe('activity eligibility and invariants', () => {
+    it('allows weighing, treatment and moves on both male and female animals', async () => {
+      await database.write(async () => {
+        await database.get('animals').create((row: any) => {
+          row._raw.id = 'bull-active';
+          row.sex = 'Male';
+          row.isDeleted = false;
+          row.serverCreatedAt = Date.now();
+        });
+        await database.get('animals').create((row: any) => {
+          row._raw.id = 'cow-active';
+          row.sex = 'Female';
+          row.isDeleted = false;
+          row.serverCreatedAt = Date.now();
+        });
+      });
+
+      // Weigh male
+      await expect(service.recordWeight({ animalId: 'bull-active', weightKg: 650 })).resolves.toBeDefined();
+      // Weigh female
+      await expect(service.recordWeight({ animalId: 'cow-active', weightKg: 450 })).resolves.toBeDefined();
+
+      // Treat male
+      await expect(
+        service.recordTreatment({
+          animalId: 'bull-active',
+          medicationId: 'med-1',
+          medicationName: 'Antibiótico',
+          dose: '20 ml',
+        }),
+      ).resolves.toBeDefined();
+
+      // Move male
+      await expect(
+        service.recordGroupMove({
+          animalId: 'bull-active',
+          fromGroupId: 'group-a',
+          toGroupId: 'group-b',
+        }),
+      ).resolves.toBeDefined();
+    });
+
+    it('refuses treatment, weighing and move on an animal that was already disposed on or before the event date', async () => {
+      await database.write(async () => {
+        await database.get('animals').create((row: any) => {
+          row._raw.id = 'dead-animal';
+          row.sex = 'Female';
+          row.disposedAt = '2026-05-10T08:00:00.000Z';
+          row.isDeleted = false;
+          row.serverCreatedAt = Date.now();
+        });
+      });
+
+      // Treatment on or after disposal
+      await expect(
+        service.recordTreatment({
+          animalId: 'dead-animal',
+          medicationId: 'med-1',
+          medicationName: 'Antibiótico',
+          dose: '10 ml',
+          occurredAt: '2026-05-10T10:00:00.000Z',
+        }),
+      ).rejects.toThrow(/dado de baja/i);
+
+      // Weighing on or after disposal
+      await expect(
+        service.recordWeight({
+          animalId: 'dead-animal',
+          weightKg: 400,
+          occurredAt: '2026-05-11T08:00:00.000Z',
+        }),
+      ).rejects.toThrow(/dado de baja/i);
+
+      // Move on or after disposal
+      await expect(
+        service.recordGroupMove({
+          animalId: 'dead-animal',
+          toGroupId: 'group-b',
+          movedOn: '2026-05-10',
+        }),
+      ).rejects.toThrow(/dado de baja/i);
+    });
+
+    it('allows a retrospective event dated strictly before the disposal date (D5)', async () => {
+      await database.write(async () => {
+        await database.get('animals').create((row: any) => {
+          row._raw.id = 'animal-died-later';
+          row.sex = 'Female';
+          row.disposedAt = '2026-05-10T08:00:00.000Z';
+          row.isDeleted = false;
+          row.serverCreatedAt = Date.now();
+        });
+      });
+
+      // Weighing on 2026-05-01 (before disposal on 2026-05-10) is valid retrospective record
+      await expect(
+        service.recordWeight({
+          animalId: 'animal-died-later',
+          weightKg: 410,
+          occurredAt: '2026-05-01T08:00:00.000Z',
+        }),
+      ).resolves.toBeDefined();
+    });
+
+    it('refuses to duplicate a disposal on an animal already disposed', async () => {
+      await database.write(async () => {
+        await database.get('animals').create((row: any) => {
+          row._raw.id = 'already-dead';
+          row.sex = 'Male';
+          row.disposedAt = '2026-05-10T08:00:00.000Z';
+          row.isDeleted = false;
+          row.serverCreatedAt = Date.now();
+        });
+      });
+
+      await expect(
+        service.recordDisposal({
+          animalId: 'already-dead',
+          causeId: 'cause-1',
+        }),
+      ).rejects.toThrow(/dado de baja anteriormente/i);
+    });
+
+    it('refuses group move when destination group is equal to source group', async () => {
+      await expect(
+        service.recordGroupMove({
+          animalId: 'any-animal',
+          fromGroupId: 'group-x',
+          toGroupId: 'group-x',
+        }),
+      ).rejects.toThrow(/diferente del lote de origen/i);
+    });
+
+    it('refuses group events on an inactive lot', async () => {
+      await database.write(async () => {
+        await database.get('animal_groups').create((row: any) => {
+          row._raw.id = 'inactive-lot';
+          row.name = 'Lote Inactivo';
+          row.isActive = false;
+          row.trackingMode = 'Headcount';
+          row.isDeleted = false;
+        });
+      });
+
+      await expect(
+        service.recordGroupEvent({
+          groupId: 'inactive-lot',
+          eventType: 'Weighing',
+          payload: { count: 5 },
+        }),
+      ).rejects.toThrow(/inactivo/i);
+    });
+  });
 });

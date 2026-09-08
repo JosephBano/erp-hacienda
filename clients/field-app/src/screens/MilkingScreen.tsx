@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Database } from '@nozbe/watermelondb';
 
@@ -31,6 +31,8 @@ export interface MilkingCandidate {
    */
   speciesId?: string;
   categoryId?: string | null;
+  sex?: string;
+  disposedAt?: string;
 }
 
 /**
@@ -48,6 +50,7 @@ export function MilkingScreen({
   candidates,
   recordedBy,
   onRecorded,
+  initialAnimalId,
 }: {
   service: MilkingService;
   /**
@@ -60,8 +63,11 @@ export function MilkingScreen({
   /** Identity to stamp on the outbox payload; the server requires it non-empty. */
   recordedBy: string;
   onRecorded?: () => void;
+  initialAnimalId?: string;
 }) {
-  const [selected, setSelected] = useState<MilkingCandidate | null>(null);
+  const [selected, setSelected] = useState<MilkingCandidate | null>(() =>
+    initialAnimalId ? (candidates.find((c) => c.animalId === initialAnimalId) ?? null) : null,
+  );
   const [liters, setLiters] = useState('');
   const [shift, setShift] = useState<MilkingShift>(currentShift());
   const [summary, setSummary] = useState<DailySummary | null>(null);
@@ -74,6 +80,21 @@ export function MilkingScreen({
    */
   const [pendingConfirmation, setPendingConfirmation] = useState<number | null>(null);
 
+  const validCandidates = useMemo(
+    () =>
+      candidates.filter(
+        (candidate) =>
+          candidate.speciesIsMilkable &&
+          (candidate.sex === undefined || candidate.sex.toLowerCase() === 'female') &&
+          !candidate.disposedAt,
+      ),
+    [candidates],
+  );
+
+  const isSelectedObsolete = Boolean(
+    selected && !validCandidates.some((c) => c.animalId === selected.animalId),
+  );
+
   const refreshSummary = useCallback(async () => {
     setSummary(await service.dailySummary());
   }, [service]);
@@ -84,7 +105,7 @@ export function MilkingScreen({
 
   const submit = useCallback(
     async (value: number, isPlausibilityConfirmed: boolean) => {
-      if (!selected) return;
+      if (!selected || isSelectedObsolete) return;
 
       setBusy(true);
       setError(null);
@@ -108,11 +129,11 @@ export function MilkingScreen({
         setBusy(false);
       }
     },
-    [onRecorded, recordedBy, refreshSummary, selected, service, shift],
+    [isSelectedObsolete, onRecorded, recordedBy, refreshSummary, selected, service, shift],
   );
 
   const record = async () => {
-    if (!selected) return;
+    if (!selected || isSelectedObsolete) return;
 
     setError(null);
     const value = Number(liters.replace(',', '.'));
@@ -166,6 +187,25 @@ export function MilkingScreen({
         {selected ? (
           <Card>
             <Body>{selected.label}</Body>
+
+            {isSelectedObsolete ? (
+              <>
+                <Notice
+                  tone="warning"
+                  text="El animal seleccionado ya no existe en el sistema (fue eliminado o dado de baja en el servidor). No se puede registrar el ordeño contra este animal. Puede elegir otro animal sin perder los datos ingresados."
+                />
+                <BigButton
+                  testID="change-animal"
+                  label="Elegir otro animal"
+                  tone="neutral"
+                  onPress={() => {
+                    setSelected(null);
+                    setError(null);
+                  }}
+                />
+              </>
+            ) : null}
+
             {selected.isWithheld ? (
               <Notice
                 tone="warning"
@@ -191,6 +231,7 @@ export function MilkingScreen({
                   label="Sí, registrar"
                   onPress={() => void submit(pendingConfirmation, true)}
                   busy={busy}
+                  disabled={isSelectedObsolete}
                 />
                 <BigButton
                   testID="milking-cancel-plausibility"
@@ -200,7 +241,13 @@ export function MilkingScreen({
                 />
               </>
             ) : (
-              <BigButton testID="confirm-milking" label="Registrar" onPress={record} busy={busy} />
+              <BigButton
+                testID="confirm-milking"
+                label="Registrar"
+                onPress={record}
+                busy={busy}
+                disabled={isSelectedObsolete}
+              />
             )}
 
             <BigButton
@@ -215,27 +262,24 @@ export function MilkingScreen({
               }}
             />
           </Card>
-        ) : candidates.length === 0 ? (
+        ) : validCandidates.length === 0 ? (
           <EmptyState
             testID="cow-list-empty"
             title="No hay animales ordeñables"
-            hint="El hato del dispositivo no tiene especies marcadas como ordeñables. Vaya a Inicio → Sincronización para traer las especies actualizadas, o pida al administrador que active la opción 'ordeñable' en la especie desde el panel web."
+            hint="No hay hembras activas de especies ordeñables en el hato."
           />
         ) : (
           <ScrollView testID="cow-list" contentContainerStyle={styles.list}>
-            {candidates.map((candidate) => (
+            {validCandidates.map((candidate) => (
               <BigButton
                 key={candidate.animalId}
                 testID={`cow-${candidate.animalId}`}
                 label={candidate.isWithheld ? `${candidate.label}  ⚠ RETIRO` : candidate.label}
                 tone={candidate.isWithheld ? 'danger' : 'neutral'}
-                disabled={!candidate.speciesIsMilkable}
                 hint={
                   candidate.isWithheld
                     ? `Retiro activo hasta ${candidate.withheldUntil}. La leche no es vendible.`
-                    : !candidate.speciesIsMilkable
-                      ? 'Esta especie no está habilitada para ordeño.'
-                      : undefined
+                    : undefined
                 }
                 onPress={() => {
                   setSelected(candidate);

@@ -17,7 +17,9 @@ import {
   loadFeedItems,
   loadGroups,
   loadHerd,
+  loadActiveHerd,
   loadMedications,
+  loadMilkingCandidates,
   loadMortalityCauses,
   loadPregnantDams,
   loadTreatmentProducts,
@@ -93,6 +95,8 @@ export default function App() {
   const [tab, setTab] = useState<Tab>('home');
   const [pending, setPending] = useState(0);
   const [herd, setHerd] = useState<Awaited<ReturnType<typeof loadHerd>>>([]);
+  const [activeHerd, setActiveHerd] = useState<Awaited<ReturnType<typeof loadActiveHerd>>>([]);
+  const [milkingCandidates, setMilkingCandidates] = useState<Awaited<ReturnType<typeof loadMilkingCandidates>>>([]);
   const [groups, setGroups] = useState<Awaited<ReturnType<typeof loadGroups>>>([]);
   const [treatmentProducts, setTreatmentProducts] = useState<Awaited<ReturnType<typeof loadTreatmentProducts>>>([]);
   const [medications, setMedications] = useState<Awaited<ReturnType<typeof loadMedications>>>([]);
@@ -128,8 +132,23 @@ export default function App() {
   const visibility = useMemo(() => new ModuleVisibility(database, api), [database, api]);
 
   const refresh = useCallback(async () => {
-    const [nextHerd, nextGroups, nextTreatmentProducts, nextMedications, nextMortalityCauses, nextFeedItems, nextPregnantDams, stats, productionVisible, today] = await Promise.all([
+    const [
+      nextHerd,
+      nextActiveHerd,
+      nextMilkingCandidates,
+      nextGroups,
+      nextTreatmentProducts,
+      nextMedications,
+      nextMortalityCauses,
+      nextFeedItems,
+      nextPregnantDams,
+      stats,
+      productionVisible,
+      today,
+    ] = await Promise.all([
       loadHerd(database),
+      loadActiveHerd(database),
+      loadMilkingCandidates(database),
       loadGroups(database),
       loadTreatmentProducts(database),
       loadMedications(database),
@@ -142,6 +161,8 @@ export default function App() {
     ]);
 
     setHerd(nextHerd);
+    setActiveHerd(nextActiveHerd);
+    setMilkingCandidates(nextMilkingCandidates);
     setGroups(nextGroups);
     setTreatmentProducts(nextTreatmentProducts);
     setMedications(nextMedications);
@@ -175,9 +196,19 @@ export default function App() {
 
     // Opportunistic sync: fires as soon as the phone finds signal again.
     engine.start();
+
+    const unsubscribe = engine.subscribe((result) => {
+      if (result.pulled > 0 || result.pushed > 0 || result.rejected > 0) {
+        void refresh();
+      }
+    });
+
     void engine.syncNow().then(refresh);
 
-    return () => engine.stop();
+    return () => {
+      unsubscribe();
+      engine.stop();
+    };
   }, [authenticated, engine, refresh]);
 
   if (!ready) {
@@ -243,7 +274,7 @@ export default function App() {
 
         {tab === 'animal-subject' ? (
           <AnimalSubjectScreen
-            animals={herd.map((member) => ({ animalId: member.animalId, label: member.label }))}
+            animals={activeHerd.map((member) => ({ animalId: member.animalId, label: member.label }))}
             recentIds={[]}
             selectedAnimalId={selectedAnimalId ?? undefined}
             onSelectAnimal={(animalId) => setSelectedAnimalId(animalId)}
@@ -332,7 +363,7 @@ export default function App() {
           <MilkingScreen
             service={milking}
             database={database}
-            candidates={herd}
+            candidates={milkingCandidates}
             recordedBy={auth.currentSession()?.email ?? 'field-app'}
             onRecorded={refresh}
           />
@@ -342,7 +373,7 @@ export default function App() {
           <EventsScreen
             service={events}
             database={database}
-            animals={herd}
+            animals={activeHerd}
             groups={groups}
             mortalityCauses={mortalityCauses}
             onRecorded={refresh}
@@ -355,7 +386,7 @@ export default function App() {
           <VaccinateScreen
             service={events}
             database={database}
-            animals={herd}
+            animals={activeHerd}
             products={treatmentProducts}
             onRecorded={refresh}
             onCancel={() => setTab('home')}
@@ -366,7 +397,7 @@ export default function App() {
           <TreatScreen
             service={events}
             database={database}
-            animals={herd}
+            animals={activeHerd}
             products={treatmentProducts}
             onRecorded={refresh}
             onCancel={() => setTab('home')}

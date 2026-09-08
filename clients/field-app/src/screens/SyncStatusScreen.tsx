@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, Share, StyleSheet, Text, View } from 'react-native';
+import NetInfo from '@react-native-community/netinfo';
 
 import { theme } from '../ui/theme';
 import { BigButton, Body, Card, Notice, Screen, Title } from '../ui/components';
@@ -58,7 +59,15 @@ export function SyncStatusScreen({
 
   useEffect(() => {
     void refresh();
-  }, [refresh]);
+    const unsubscribe = engine.subscribe?.((res) => {
+      if (res.pulled > 0 || res.pushed > 0 || res.rejected > 0) {
+        void refresh();
+      }
+    });
+    return () => {
+      unsubscribe?.();
+    };
+  }, [engine, refresh]);
 
   const sync = async () => {
     setBusy(true);
@@ -72,6 +81,19 @@ export function SyncStatusScreen({
 
   const confirmRedownload = async () => {
     setShowRedownloadConfirm(false);
+    const netState = await NetInfo.fetch();
+    if (!netState.isConnected) {
+      setResult({
+        ok: false,
+        reason: 'offline',
+        pushed: 0,
+        rejected: 0,
+        pulled: 0,
+        stats: stats ?? { pending: 0, synced: 0, rejected: 0, cancelled: 0 },
+      });
+      return;
+    }
+
     setBusy(true);
     try {
       await engine.resetMirror();
@@ -132,6 +154,18 @@ export function SyncStatusScreen({
         busy={busy}
         onPress={() => setShowRedownloadConfirm(true)}
       />
+      <BigButton
+        testID="share-diagnostic"
+        label="Compartir diagnóstico"
+        tone="neutral"
+        onPress={async () => {
+          const logsJson = engine.logger.exportLogsJson();
+          await Share.share({
+            title: 'Diagnóstico de sincronización',
+            message: logsJson,
+          });
+        }}
+      />
 
       {showRedownloadConfirm ? (
         <Card>
@@ -161,8 +195,10 @@ export function SyncStatusScreen({
             result.reason === 'offline'
               ? 'Sin señal. Lo registrado está guardado en el teléfono y se enviará solo cuando haya señal.'
               : result.reason === 'auth'
-                ? 'La sesión caducó. Inicie sesión con contraseña cuando tenga señal.'
-                : 'No se pudo enviar. Nada se perdió: se reintentará automáticamente.'
+                ? 'La sesión caducó. Sus registros locales están a salvo. Inicie sesión con contraseña cuando tenga señal para enviarlos.'
+                : result.reason === 'pending'
+                  ? 'Quedan datos por descargar. Sincronice de nuevo para continuar.'
+                  : 'No se pudo enviar. Nada se perdió: se reintentará automáticamente.'
           }
         />
       ) : null}

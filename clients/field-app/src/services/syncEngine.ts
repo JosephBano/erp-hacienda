@@ -1,15 +1,18 @@
 import { Database, Q } from '@nozbe/watermelondb';
 import NetInfo from '@react-native-community/netinfo';
 
+import { AppState, type NativeEventSubscription } from 'react-native';
+
 import { SyncMeta } from '../database/models';
 import { Outbox, OutboxStats } from './outbox';
 import { LoggerService } from './loggerService';
+import { newUuid } from './identifiers';
 import type { PushOperation, PushResult, SyncApi } from './syncApi';
 
 const CURSOR_KEY = 'pull_cursor';
 const MAX_PULL_PAGES = 200;
 
-export type SyncFailureReason = 'offline' | 'network' | 'auth' | 'unknown';
+export type SyncFailureReason = 'offline' | 'network' | 'auth' | 'unknown' | 'pending';
 
 export interface SyncResult {
   ok: boolean;
@@ -19,6 +22,8 @@ export interface SyncResult {
   pulled: number;
   stats: OutboxStats;
 }
+
+export type SyncChangeListener = (result: SyncResult) => void;
 
 export interface SyncEngineOptions {
   /** Must stay at or below the server's own batch ceiling (500). */
@@ -51,10 +56,24 @@ export function backoffDelayMs(consecutiveFailures: number): number {
 export class SyncEngine {
   private readonly outbox: Outbox;
   private readonly batchSize: number;
-  private readonly logger: LoggerService;
+  private readonly _logger: LoggerService;
+  private readonly changeListeners = new Set<SyncChangeListener>();
   private consecutiveFailures = 0;
   private running = false;
-  private unsubscribe?: () => void;
+  private inFlightSync?: Promise<SyncResult>;
+  private inFlightReset?: Promise<void>;
+
+  get isRunning(): boolean {
+    return this.running;
+  }
+
+  get logger(): LoggerService {
+    return this._logger;
+  }
+  private retryTimer?: ReturnType<typeof setTimeout>;
+  private isStarted = false;
+  private unsubscribeNetInfo?: () => void;
+  private appStateSubscription?: NativeEventSubscription | { remove: () => void };
 
   constructor(
     private readonly database: Database,
@@ -63,24 +82,77 @@ export class SyncEngine {
   ) {
     this.outbox = new Outbox(database);
     this.batchSize = options.batchSize ?? 100;
-    this.logger = options.logger ?? new LoggerService();
+    this._logger = options.logger ?? new LoggerService();
   }
 
   /**
-   * Opportunistic syncing: run when the signal returns. The employee never has to think
-   * about it, which is the point — they are wearing gloves and it is 5 AM.
+   * Subscribes to changes applied by synchronization (e.g. pushes acknowledged, pulls applied).
+   * Notifies container and screens so open views reflect confirmed database state.
+   */
+  subscribe(listener: SyncChangeListener): () => void {
+    this.changeListeners.add(listener);
+    return () => {
+      this.changeListeners.delete(listener);
+    };
+  }
+
+  private notifyChanges(result: SyncResult): void {
+    for (const listener of this.changeListeners) {
+      try {
+        listener(result);
+      } catch (error) {
+        this.logger.error('Error in sync change listener', { error: String(error) });
+      }
+    }
+  }
+
+  /**
+   * Opportunistic syncing: run when the signal returns or when returning to foreground (AppState).
+   * Also schedules retries on transient failures while active.
    */
   start(): void {
-    this.unsubscribe = NetInfo.addEventListener((state) => {
+    this.isStarted = true;
+    this.unsubscribeNetInfo = NetInfo.addEventListener((state) => {
       if (state.isConnected) {
+        void this.syncNow();
+      }
+    });
+
+    this.appStateSubscription = AppState.addEventListener('change', (state) => {
+      if (state === 'active') {
         void this.syncNow();
       }
     });
   }
 
   stop(): void {
-    this.unsubscribe?.();
-    this.unsubscribe = undefined;
+    this.isStarted = false;
+    this.clearRetryTimer();
+    this.unsubscribeNetInfo?.();
+    this.unsubscribeNetInfo = undefined;
+    this.appStateSubscription?.remove();
+    this.appStateSubscription = undefined;
+  }
+
+  private clearRetryTimer(): void {
+    if (this.retryTimer) {
+      clearTimeout(this.retryTimer);
+      this.retryTimer = undefined;
+    }
+  }
+
+  private scheduleRetry(): void {
+    this.clearRetryTimer();
+    if (!this.isStarted) return;
+
+    const delay = this.retryDelayMs;
+    this.retryTimer = setTimeout(() => {
+      this.retryTimer = undefined;
+      void this.syncNow();
+    }, delay);
+    if (typeof (this.retryTimer as any)?.unref === 'function') {
+      (this.retryTimer as any).unref();
+    }
   }
 
   /** Milliseconds the caller should wait before trying again, given the failures so far. */
@@ -93,37 +165,68 @@ export class SyncEngine {
   }
 
   async syncNow(): Promise<SyncResult> {
-    if (this.running) {
-      return this.result(false, 'unknown', 0, 0, 0);
+    if (this.inFlightReset) {
+      try {
+        await this.inFlightReset;
+      } catch {
+        // Handled by resetMirror caller
+      }
     }
 
+    if (this.inFlightSync) {
+      return this.inFlightSync;
+    }
+
+    this.clearRetryTimer();
     this.running = true;
+    this.inFlightSync = this.performSync();
     try {
-      const netState = await NetInfo.fetch();
-      if (!netState.isConnected) {
-        return this.result(false, 'offline', 0, 0, 0);
+      const result = await this.inFlightSync;
+      if (result.pulled > 0 || result.pushed > 0 || result.rejected > 0) {
+        this.notifyChanges(result);
       }
-
-      const push = await this.pushOutbox();
-      if (!push.ok) {
-        this.consecutiveFailures += 1;
-        return this.result(false, push.reason, push.pushed, push.rejected, 0);
+      if (!result.ok) {
+        // Transient network failures or pending pull pages are scheduled for retry
+        // while the app is active. Business rejections, offline states (handled by
+        // NetInfo listener), and expired sessions are not auto-retried.
+        if (result.reason !== 'offline' && result.reason !== 'auth') {
+          this.scheduleRetry();
+        }
       }
-
-      const pull = await this.pullChanges();
-      if (!pull.ok) {
-        this.consecutiveFailures += 1;
-        return this.result(false, pull.reason, push.pushed, push.rejected, pull.pulled);
-      }
-
-      this.consecutiveFailures = 0;
-      return this.result(true, undefined, push.pushed, push.rejected, pull.pulled);
+      return result;
     } finally {
       this.running = false;
+      this.inFlightSync = undefined;
     }
   }
 
-  private async pushOutbox(): Promise<{
+  private async performSync(): Promise<SyncResult> {
+    const netState = await NetInfo.fetch();
+    if (!netState.isConnected) {
+      return this.result(false, 'offline', 0, 0, 0);
+    }
+
+    const attemptId = newUuid();
+
+    const push = await this.pushOutbox(attemptId);
+    if (!push.ok) {
+      this.consecutiveFailures += 1;
+      return this.result(false, push.reason, push.pushed, push.rejected, 0);
+    }
+
+    const pull = await this.pullChanges(attemptId);
+    if (!pull.ok) {
+      if (pull.reason !== 'pending') {
+        this.consecutiveFailures += 1;
+      }
+      return this.result(false, pull.reason, push.pushed, push.rejected, pull.pulled);
+    }
+
+    this.consecutiveFailures = 0;
+    return this.result(true, undefined, push.pushed, push.rejected, pull.pulled);
+  }
+
+  private async pushOutbox(attemptId?: string): Promise<{
     ok: boolean;
     reason?: SyncFailureReason;
     pushed: number;
@@ -153,12 +256,25 @@ export class SyncEngine {
       } catch (error) {
         // The batch stays pending, untouched. Anything else would risk discarding work
         // that never reached the server.
+        this._logger.logError(`Push sync falló: ${String(error)}`, {
+          failedStage: 'push',
+          attemptId,
+          counts: { total: batch.length, pushed, rejected },
+        });
         return { ok: false, reason: classify(error), pushed, rejected };
       }
 
       for (const result of results) {
         if (result.status === 'Rejected') {
           rejected += 1;
+          const matching = batch.find((b) => b.clientOperationId === result.clientOperationId);
+          this._logger.logWarn(`Operación rechazada por el servidor: ${result.clientOperationId}`, {
+            failedStage: 'push',
+            attemptId,
+            clientOperationId: result.clientOperationId,
+            operationType: matching?.operationType,
+            errorDetails: result.errorDetails,
+          });
           await this.outbox.markRejected(
             result.clientOperationId,
             result.errorDetails ?? 'El servidor rechazó la operación sin indicar el motivo.',
@@ -166,8 +282,24 @@ export class SyncEngine {
           continue;
         }
 
-        // Accepted and Duplicate are the same outcome from the phone's side: the record
-        // is on the server exactly once.
+        if (result.status === 'Duplicate' && result.errorDetails) {
+          // If a duplicate returns errorDetails, the operation was previously rejected
+          // on the server. Replaying it must preserve the rejection rather than whitewashing it.
+          rejected += 1;
+          const matching = batch.find((b) => b.clientOperationId === result.clientOperationId);
+          this._logger.logWarn(`Operación duplicada rechazada por el servidor: ${result.clientOperationId}`, {
+            failedStage: 'push',
+            attemptId,
+            clientOperationId: result.clientOperationId,
+            operationType: matching?.operationType,
+            errorDetails: result.errorDetails,
+          });
+          await this.outbox.markRejected(result.clientOperationId, result.errorDetails);
+          continue;
+        }
+
+        // Accepted (and Duplicate without errorDetails, meaning previously accepted)
+        // are successful outcomes: the record was applied on the server.
         pushed += 1;
         await this.outbox.markSynced(result.clientOperationId, result.resultRef ?? undefined);
       }
@@ -183,9 +315,38 @@ export class SyncEngine {
    * Resets all mirror tables (those populated from the server via TABLE_BY_COLLECTION)
    * and clears the stored pull cursor so the next sync performs a clean full download.
    *
+   * Coordinates mutually exclusively with syncNow (running / inFlightSync).
+   *
    * CRITICAL (Rule 10 & D8): NEVER touches sync_outbox, milk_yields, or any local-only tables.
    */
   async resetMirror(): Promise<void> {
+    if (this.inFlightReset) {
+      return this.inFlightReset;
+    }
+
+    const resetPromise = (async () => {
+      if (this.inFlightSync) {
+        try {
+          await this.inFlightSync;
+        } catch {
+          // Handled by syncNow caller
+        }
+      }
+
+      this.running = true;
+      try {
+        await this.performResetMirror();
+      } finally {
+        this.running = false;
+        this.inFlightReset = undefined;
+      }
+    })();
+
+    this.inFlightReset = resetPromise;
+    return resetPromise;
+  }
+
+  private async performResetMirror(): Promise<void> {
     const mirrorTables = Array.from(new Set(Object.values(TABLE_BY_COLLECTION)));
 
     await this.database.write(async () => {
@@ -207,7 +368,7 @@ export class SyncEngine {
     });
   }
 
-  private async pullChanges(): Promise<{
+  private async pullChanges(attemptId?: string): Promise<{
     ok: boolean;
     reason?: SyncFailureReason;
     pulled: number;
@@ -220,12 +381,22 @@ export class SyncEngine {
       try {
         response = await this.api.pull(cursor, this.batchSize);
       } catch (error) {
+        this._logger.logError(`Pull sync falló: ${String(error)}`, {
+          failedStage: 'pull',
+          attemptId,
+          counts: { pulled },
+        });
         return { ok: false, reason: classify(error), pulled };
       }
 
       try {
-        pulled += await this.applyCollections(response.collections);
+        pulled += await this.applyCollections(response.collections, attemptId);
       } catch (error) {
+        this._logger.logError(`Aplicación de colecciones falló: ${String(error)}`, {
+          failedStage: 'apply',
+          attemptId,
+          counts: { pulled },
+        });
         return { ok: false, reason: classify(error), pulled };
       }
 
@@ -239,7 +410,7 @@ export class SyncEngine {
       }
     }
 
-    return { ok: true, pulled };
+    return { ok: false, reason: 'pending', pulled };
   }
 
   /**
@@ -249,6 +420,7 @@ export class SyncEngine {
    */
   private async applyCollections(
     collections: Record<string, Array<Record<string, unknown>>>,
+    attemptId?: string,
   ): Promise<number> {
     let applied = 0;
     let hasUnknown = false;
@@ -256,9 +428,11 @@ export class SyncEngine {
     for (const [collectionName, rows] of Object.entries(collections)) {
       const table = TABLE_BY_COLLECTION[collectionName];
       if (!table) {
-        this.logger.logError(`Colección no reconocida en sincronización: ${collectionName}`, {
+        this._logger.logError(`Colección no reconocida en sincronización: ${collectionName}`, {
+          failedStage: 'apply',
+          attemptId,
           collection: collectionName,
-          count: Array.isArray(rows) ? rows.length : 0,
+          counts: { total: Array.isArray(rows) ? rows.length : 0 },
         });
         hasUnknown = true;
         continue;

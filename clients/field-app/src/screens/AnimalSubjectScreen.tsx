@@ -71,9 +71,22 @@ export function AnimalSubjectScreen({
 
   if (selectedAnimalId) {
     const animal = animals.find((a) => a.animalId === selectedAnimalId);
+    if (!animal) {
+      return (
+        <Screen testID="animal-subject-detail">
+          <Title>Animal no disponible</Title>
+          <Notice
+            tone="warning"
+            text="El animal seleccionado ya no existe en el sistema (fue eliminado o dado de baja en el servidor)."
+          />
+          <BigButton testID="back-to-animal-picker" label="Elegir otro animal" tone="neutral" onPress={onClearSelection} />
+        </Screen>
+      );
+    }
+
     return (
       <Screen testID="animal-subject-detail">
-        <Title>{animal?.label ?? selectedAnimalId}</Title>
+        <Title>{animal.label}</Title>
         <BigButton
           testID="activity-treatment"
           label="Tratamiento (animal enfermo)"

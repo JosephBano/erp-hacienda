@@ -1,5 +1,6 @@
 import { Database } from '@nozbe/watermelondb';
 
+import { Animal, Pregnancy } from '../database/models';
 import { Outbox } from './outbox';
 
 export type Sex = 'M' | 'F';
@@ -44,7 +45,7 @@ export interface QueuedBirth {
 export class BirthService {
   private readonly outbox: Outbox;
 
-  constructor(database: Database) {
+  constructor(private readonly database: Database) {
     this.outbox = new Outbox(database);
   }
 
@@ -62,6 +63,44 @@ export class BirthService {
     }
 
     const birthDate = input.birthDate ?? new Date().toISOString().slice(0, 10);
+
+    try {
+      const dam = await this.database.get<Animal>('animals').find(input.damId);
+      if (dam && !dam.isDeleted) {
+        if (dam.sex?.toLowerCase() !== 'female' && dam.sex?.toUpperCase() !== 'F') {
+          throw new Error('Solo se pueden registrar partos en animales de sexo hembra.');
+        }
+
+        if (dam.disposedAt) {
+          const disposedDate = dam.disposedAt.slice(0, 10);
+          if (disposedDate <= birthDate) {
+            throw new Error('La madre fue dada de baja antes o en la fecha del parto.');
+          }
+        }
+      }
+    } catch (err: any) {
+      if (err.message?.includes('hembra') || err.message?.includes('dada de baja')) {
+        throw err;
+      }
+    }
+
+    if (input.pregnancyId) {
+      try {
+        const pregnancy = await this.database.get<Pregnancy>('pregnancies').find(input.pregnancyId);
+        if (pregnancy && !pregnancy.isDeleted) {
+          if (pregnancy.damId !== input.damId) {
+            throw new Error('La preñez seleccionada no corresponde a la madre indicada.');
+          }
+          if (pregnancy.status !== 'Active') {
+            throw new Error('La preñez seleccionada ya fue completada o no está activa.');
+          }
+        }
+      } catch (err: any) {
+        if (err.message?.includes('corresponde') || err.message?.includes('activa')) {
+          throw err;
+        }
+      }
+    }
 
     const entry = await this.outbox.enqueue(
       'recordBirth',

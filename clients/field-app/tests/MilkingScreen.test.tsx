@@ -78,7 +78,32 @@ describe('MilkingScreen', () => {
     await render(<MilkingScreen service={service} database={database} candidates={[]} recordedBy="tester@hato" />);
 
     expect(await screen.findByTestId('cow-list-empty')).toBeTruthy();
+    expect(screen.getByText('No hay hembras activas de especies ordeñables en el hato.')).toBeTruthy();
     expect(screen.queryByTestId('cow-cow-1')).toBeNull();
+  });
+
+  it('does not render male animals or non-eligible candidates', async () => {
+    const mixedCandidates = [
+      { animalId: 'cow-1', label: 'La Pinta', isWithheld: false, speciesIsMilkable: true, sex: 'Female' },
+      { animalId: 'bull-1', label: 'El Toro', isWithheld: false, speciesIsMilkable: true, sex: 'Male' },
+      { animalId: 'pig-1', label: 'La Chancha', isWithheld: false, speciesIsMilkable: false, sex: 'Female' },
+      { animalId: 'cow-disposed', label: 'La Finada', isWithheld: false, speciesIsMilkable: true, sex: 'Female', disposedAt: '2026-09-01' },
+    ];
+
+    await render(
+      <MilkingScreen
+        service={service}
+        database={database}
+        candidates={mixedCandidates}
+        recordedBy="tester@hato"
+      />,
+    );
+
+    expect(await screen.findByTestId('cow-cow-1')).toBeTruthy();
+    expect(screen.queryByTestId('cow-bull-1')).toBeNull();
+    expect(screen.queryByTestId('cow-pig-1')).toBeNull();
+    expect(screen.queryByTestId('cow-cow-disposed')).toBeNull();
+    expect(screen.queryByText('El Toro')).toBeNull();
   });
 
   it('records a cow in three taps with no network', async () => {

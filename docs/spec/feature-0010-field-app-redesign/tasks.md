@@ -1,0 +1,236 @@
+# tasks.md — Desglose ejecutable
+
+> Checklist de la rama `feature/field-app-redesign`. Cada tarea es una unidad de trabajo con
+> criterio de terminado verificable. Agrupadas por el commit de [`plan.md`](./plan.md) al que
+> pertenecen.
+>
+> Convención: `[ ]` pendiente · `[x]` hecho · `[!]` bloqueada.
+
+---
+
+## Compuerta 0 — Revisión de las representaciones de diseño
+
+> Detiene el desarrollo de todas las pantallas. Es la compuerta más valiosa de la rama.
+
+- [x] **TG0.1** Producir una representación concreta de **Inicio**, en ambos temas.
+      **Terminado:** especificado en `design-preview.md` sec. 4.1.
+- [x] **TG0.2** Ídem de la **ficha de animal**.
+      **Terminado:** especificado en `design-preview.md` sec. 4.2.
+- [x] **TG0.3** Ídem de **tratamiento**.
+      **Terminado:** especificado en `design-preview.md` sec. 4.3.
+- [x] **TG0.4** Ídem de **parto**.
+      **Terminado:** especificado en `design-preview.md` sec. 4.4.
+- [x] **TG0.5** Ídem del **rechazo de sincronización**.
+      **Terminado:** especificado en `design-preview.md` sec. 4.5.
+- [x] **TG0.6** Revisarlas con el dueño y, si es posible, con los empleados.
+      **Terminado:** aprobación registrada en `design-preview.md` sec. 5. La dirección visual
+      queda validada y fijada formalmente para los commits 1 a 8.
+- [x] **TG0.7** Validar con los empleados la prioridad de accesos y el vocabulario.
+      **Terminado:** no se atribuyen frecuencias ni preferencias a conversaciones que no
+      ocurrieron. **No se presume que el ordeño sea central** para esta operación porcina;
+      accesos priorizan parto, tratamiento, pesaje y lote. Vocabulario de campo fijado en
+      `design-preview.md` sec. 5.
+- [x] **TG0.8** Si la revisión rechaza o cambia la dirección: ajustar **antes** de tocar más
+      pantallas.
+      **Terminado:** consensuado y documentado en `design-preview.md`; compuerta aprobada.
+
+---
+
+## Commit 1 — Sistema visual
+
+- [x] **T1.1** Evolucionar `clients/field-app/src/ui/theme.ts`, que ya tiene `color`, `font`,
+      `space` y `touchTarget`. **Terminado:** se evoluciona; **no** se sustituye por estilos
+      independientes por pantalla.
+- [x] **T1.2** Paleta: superficies claras cálidas (#FAF8F5, tarjetas #FFFFFF, raised/inputs #F2EFE9),
+      texto oscuro (#111827, muted #6B7280), verde profundo de acento (#1E6F3E, primaryText #FFFFFF);
+      ámbar para atención (#D97706), rojo para errores o acciones irreversibles (#DC2626).
+      **Terminado:** implementado en `lightPalette`.
+- [x] **T1.3** Tema oscuro coherente para uso con poca luz: fondo #0B1220, surface #16213A,
+      surfaceRaised #1E2C4A, border #33456B, text #FFFFFF, textMuted #B9C6E0, primary #2FA84F,
+      primaryText #04140A, warning #F5A524, danger #E5484D.
+      **Terminado:** implementado en `darkPalette`, manteniendo compatibilidad con `theme.color`.
+- [x] **T1.4** Preferencia de tema que sigue al sistema o se fija localmente.
+      **Terminado:** **ninguna variante requiere conexión**. Implementado con persistencia local
+      offline (`SecureStore` con fallback de memoria/storage local), `ThemeProvider` y hook `useTheme()`.
+- [x] **T1.5** Escala central de espaciado y tamaño; objetivos táctiles de **al menos 64
+      unidades lógicas** en controles de campo.
+      **Terminado:** `touchTarget: 64` preservado y aplicado en `BigButton`, `NumberField`, `TextField`.
+- [x] **T1.6** Tipografía con números y unidades nítidos y **etiquetas de arete prominentes**.
+      **Terminado:** componentes `TagBadge` (con soporte para "Sin arete" y tallas normal/grande)
+      y `QuantityText` (números prominentes y unidades legibles) en `components.tsx`.
+- [x] **T1.7** Si se incorpora una familia nueva: distribución offline y licencia resueltas.
+      **Terminado:** **sin descargas durante el uso**; sin dependencias externas nuevas.
+- [x] **T1.8** Componentes: listas para colecciones, tarjetas para resúmenes con significado.
+      **Terminado:** **no** cada campo y cada acción como tarjeta con igual peso. Componente
+      `ListSection` para colecciones sin sobrecarga de tarjetas, `StatusBadge`, `Card`, `BigButton`.
+- [x] **T1.9** Contraste verificado en ambos temas.
+      **Terminado:** comprobado mediante algoritmo WCAG 2.1 en `tests/theme.test.tsx`; todas las
+      combinaciones de fondo y texto superan el umbral WCAG AA (>= 4.5:1, y >= 3.0:1 para controles grandes).
+- [x] **T1.10** `npm test` completo en verde.
+      **Terminado:** 64 suites de pruebas y 429 pruebas pasando sin advertencias de tipo ni regresiones.
+
+---
+
+## Commit 2 — Los cuatro destinos
+
+- [ ] **T2.1** Inicio, Animales, Lotes y Actividad, reconocibles **por texto y símbolo**.
+- [ ] **T2.2** Estado de sincronización accesible desde cualquier destino principal.
+- [ ] **T2.3** Ajustes y sesión como secundarios.
+- [ ] **T2.4** Resolver la duplicación de `ActivitiesHub.tsx`: hoy coexisten recorridos por
+      animal con accesos separados, y la pantalla explica categorías internas.
+- [ ] **T2.5** Detalle de animal y pasos de registro conservan **regreso claro a su origen**.
+- [ ] **T2.6** Atrás de Android y de pantalla siguen coherentes (heredado de 0006).
+      **Terminado:** ninguna ruta queda inaccesible.
+- [ ] **T2.7** Si cambiar la infraestructura de navegación exige ADR, se escribe antes.
+      **Terminado:** **no se instalaron librerías** (regla dura 2).
+- [ ] **T2.8** `npm test` completo en verde.
+
+---
+
+## Commit 3 — Estados y mensajes compartidos
+
+- [ ] **T3.1** Los siete estados de la tabla de `spec.md` sec. 3.6 tienen presentación única.
+- [ ] **T3.2** **«Sin señal» no se presenta como fracaso** de un registro guardado localmente (D5).
+- [ ] **T3.3** **Un error de almacenamiento local no afirma «guardado»** y no sugiere borrar la app.
+- [ ] **T3.4** Catálogo vacío distingue ausencia real, filtro sin coincidencias y datos aún no
+      descargados. **Terminado:** son tres mensajes distintos, no uno.
+- [ ] **T3.5** Operación rechazada: qué registro, motivo legible, acción disponible, contenido
+      conservado.
+- [ ] **T3.6** Sesión expirada: cómo recuperar el envío sin perder lo registrado.
+- [ ] **T3.7** El diagnóstico persistente de 0004 es alcanzable, pero el empleado **no necesita
+      entender cursors, UUID ni nombres de tablas**.
+- [ ] **T3.8** **Ningún estado de éxito oculta los defectos de 0004** (criterio 4).
+      **Terminado:** revisado estado por estado.
+- [ ] **T3.9** `npm test` completo en verde.
+
+---
+
+## Commit 4 — Animales: búsqueda y ficha
+
+- [ ] **T4.1** Búsqueda por identificadores y nombre, con filtros por grupo y sexo.
+- [ ] **T4.2** Coincidencia por arete reconocible, **sin perder ceros iniciales**.
+- [ ] **T4.3** Ambigüedad **delegada a [0007](../feature-0007-field-app-individual-tagged-livestock/spec.md)**.
+      **Terminado:** no se duplica esa lógica aquí.
+- [ ] **T4.4** La ficha destaca arete vigente, nombre si existe, sexo, grupo y estados relevantes.
+- [ ] **T4.5** **Retiro, baja y preñez solo se muestran cuando hay datos que los respaldan.**
+      **Terminado:** ausencia de información **no** se traduce en «sano» o «disponible».
+- [ ] **T4.6** El historial separa hechos confirmados de registros locales pendientes.
+- [ ] **T4.7** **No se duplican** al llegar la confirmación del servidor.
+      **Terminado:** cubierto por prueba.
+- [ ] **T4.8** La búsqueda mantiene texto, filtros y posición al regresar de la ficha.
+- [ ] **T4.9** Un animal sin arete conserva identificación alternativa legible.
+- [ ] **T4.10** Las actividades ofrecidas respetan aptitud (0005) y permisos (0008).
+- [ ] **T4.11** `npm test` completo en verde.
+
+---
+
+## Commit 5 — Lotes: grupos y ficha
+
+- [ ] **T5.1** Lista de grupos de animales con su modo de seguimiento.
+- [ ] **T5.2** **Distinguir identificación individual de conteo** con claridad.
+- [ ] **T5.3** Solo resúmenes **calculables**, declarando fecha o limitación de actualización.
+- [ ] **T5.4** Si un resumen requiere conexión, su indisponibilidad **no bloquea la captura local**.
+- [ ] **T5.5** **No se fabrican** pesos promedio, existencias, dosis ni indicadores que el
+      backend no proporciona. **Terminado:** revisado campo por campo.
+- [ ] **T5.6** Un grupo `Headcount` no muestra datos que implicarían identidad individual.
+- [ ] **T5.7** `npm test` completo en verde.
+
+---
+
+## Commit 6 — Formularios canónicos
+
+- [ ] **T6.1** Encabezado de actividad y sujeto compartido.
+- [ ] **T6.2** Campos con **unidad visible**, ayuda breve, validación cerca del campo.
+- [ ] **T6.3** Acción principal inequívoca; campos opcionales distinguidos.
+- [ ] **T6.4** Catálogos largos con **búsqueda o selección progresiva**.
+      **Terminado:** no ocupan toda la pantalla con botones.
+- [ ] **T6.5** **Ningún valor esencial depende solo del color.**
+- [ ] **T6.6** Confirmación final que resume: animal o grupo, fecha, cantidad/unidad, producto
+      o causa cuando correspondan.
+- [ ] **T6.7** Las acciones frecuentes **no reciben pasos decorativos**.
+- [ ] **T6.8** El asistente de parto **conserva su secuencia funcional de cuatro pasos** (D1).
+      **Terminado:** recibe el lenguaje visual nuevo; su flujo no cambia.
+- [ ] **T6.9** Accesos rápidos y de ficha terminan en el **mismo flujo canónico**, con el
+      contexto correcto. **Terminado:** no duplican formularios ni reglas.
+- [ ] **T6.10** Tras el guardado local: se indica el hecho registrado y se puede consultar el
+      detalle o continuar con otro sujeto **sin duplicarlo**.
+- [ ] **T6.11** Los errores mantienen los valores editables y ofrecen una acción concreta.
+- [ ] **T6.12** **No se promete corregir** un tipo de registro que el dominio no permite corregir.
+- [ ] **T6.13** `npm test` completo en verde.
+
+---
+
+## Commit 7 — Inicio
+
+- [ ] **T7.1** Estado de trabajo local y de envío, con datos disponibles.
+- [ ] **T7.2** Acceso destacado a **buscar arete**.
+- [ ] **T7.3** Accesos de registro y registros recientes propios.
+- [ ] **T7.4** Una acción iniciada en Inicio **solicita un sujeto apto** para esa actividad.
+- [ ] **T7.5** El registro de parto ofrece madres elegibles **sin recorrer antes todo el hato**.
+- [ ] **T7.6** **Módulos desactivados y acciones no autorizadas no ocupan accesos operativos.**
+      **Terminado:** un módulo desactivado no domina Inicio (criterio 5).
+- [ ] **T7.7** **No** añade analítica productiva, métricas financieras ni funciones de fases
+      futuras.
+- [ ] **T7.8** `npm test` completo en verde.
+
+---
+
+## Commit 8 — Actividad
+
+- [ ] **T8.1** Lo registrado por el empleado, ordenado por fecha, con estado y detalle.
+- [ ] **T8.2** Se puede comprobar el guardado y entender un rechazo.
+- [ ] **T8.3** Corregir **cuando esté permitido**; no se ofrece si el dominio no lo admite.
+- [ ] **T8.4** La pantalla **tolera el alcance propio** de `/sync/operations` que define
+      [0008](../feature-0008-people-permission-enforcement/spec.md).
+- [ ] **T8.5** El usuario distingue guardado localmente, enviado, rechazado y descarga
+      incompleta (criterio 4).
+- [ ] **T8.6** `npm test` completo en verde.
+
+---
+
+## Compuerta 1 — ¿Hace falta migración local?
+
+- [ ] **TG1.1** Determinar si el comportamiento nuevo exige cambiar el esquema local.
+      **Terminado:** respuesta razonada por escrito en el PR.
+- [ ] **TG1.2** Si hace falta: definirla y **probarla antes de distribuirla** (spec sec. 3.7).
+      **Terminado:** preserva outbox, datos locales e identificadores; pasa a ser el punto de
+      no retorno de la rama.
+- [ ] **TG1.3** Confirmar que **no** se cambió el protocolo de sync ni el modelo de permisos
+      por motivos visuales.
+
+---
+
+## Commit 9 — Actualización desde la versión instalada
+
+- [ ] **T9.1** La actualización conserva sesión según la política vigente, outbox, datos
+      locales e identificadores.
+- [ ] **T9.2** **No exige reinstalar ni «empezar limpio».**
+- [ ] **T9.3** Un borrador persistido tiene recuperación explícita.
+- [ ] **T9.4** **Si el flujo viejo no guardaba borradores, no se promete recuperarlos.**
+      **Terminado:** no se afirma recuperar información que nunca se almacenó.
+- [ ] **T9.5** Un reinicio durante captura o envío **no presenta como guardado un dato no
+      persistido** (criterio 9).
+- [ ] **T9.6** `npm test` completo en verde.
+
+---
+
+## Cierre
+
+- [ ] **TC.1** `npm test` completo en `clients/field-app`.
+- [ ] **TC.2** `dotnet test` en verde. Esta rama no debería tocar backend: cualquier fallo es
+      una regresión ajena que hay que detectar antes del merge.
+- [ ] **TC.3** Ejecutar [`test-e2e.md`](./test-e2e.md) **sobre la aplicación completa, datos
+      persistidos y servidor real**. **Terminado:** los defectos de scroll y sincronización
+      **no se cierran solo con un prototipo** (criterio 11).
+- [ ] **TC.4** **Dos usuarios de campo completan sus flujos habituales sin ayuda** para
+      encontrar la acción final (criterio 1). **Terminado:** las dificultades restantes se
+      documentan **antes** de aceptar.
+- [ ] **TC.5** Verificar que los criterios de 0006 siguen cumpliéndose sobre las pantallas
+      rediseñadas (criterio 10). **Terminado:** ningún scroll atrapado, ningún control tapado
+      por el teclado.
+- [ ] **TC.6** Verificar que **ningún defecto de 0004, 0005, 0007, 0008 o 0009 se declara
+      resuelto** por este PR (D7).
+- [ ] **TC.7** Registrar build, teléfono y observaciones de campo.
+- [ ] **TC.8** Anotar en `docs/BACKLOG.md` la deuda detectada y no arreglada (regla 9).
+- [ ] **TC.9** Abrir el PR con la descripción de [`plan.md`](./plan.md), incluidos los
+      resultados de ambas compuertas.

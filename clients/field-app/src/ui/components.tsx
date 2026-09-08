@@ -12,9 +12,9 @@ import {
   ViewStyle,
 } from 'react-native';
 
-import { theme } from './theme';
+import { theme, useTheme } from './theme';
 
-type ButtonTone = 'primary' | 'neutral' | 'danger';
+type ButtonTone = 'primary' | 'neutral' | 'danger' | 'warning';
 
 export function BigButton({
   label,
@@ -37,14 +37,25 @@ export function BigButton({
   testID?: string;
   hint?: string;
 }) {
+  const { theme: activeTheme } = useTheme();
+
   const background =
     tone === 'primary'
-      ? theme.color.primary
+      ? activeTheme.color.primary
       : tone === 'danger'
-        ? theme.color.danger
-        : theme.color.surfaceRaised;
+        ? activeTheme.color.danger
+        : tone === 'warning'
+          ? activeTheme.color.warning
+          : activeTheme.color.surfaceRaised;
 
-  const color = tone === 'primary' ? theme.color.primaryText : theme.color.text;
+  const color =
+    tone === 'primary'
+      ? activeTheme.color.primaryText
+      : tone === 'warning'
+        ? activeTheme.color.warningText
+        : tone === 'danger'
+          ? activeTheme.color.dangerText
+          : activeTheme.color.text;
 
   return (
     <Pressable
@@ -57,10 +68,18 @@ export function BigButton({
       onPress={onPress}
       style={({ pressed }) => [
         styles.button,
-        { backgroundColor: background, opacity: disabled ? 0.45 : pressed ? 0.8 : 1 },
+        {
+          minHeight: activeTheme.touchTarget,
+          backgroundColor: background,
+          opacity: disabled ? 0.45 : pressed ? 0.8 : 1,
+        },
       ]}
     >
-      {busy ? <ActivityIndicator color={color} /> : <Text style={[styles.buttonLabel, { color }]}>{label}</Text>}
+      {busy ? (
+        <ActivityIndicator color={color} />
+      ) : (
+        <Text style={[styles.buttonLabel, { color, fontSize: activeTheme.font.body }]}>{label}</Text>
+      )}
     </Pressable>
   );
 }
@@ -103,9 +122,11 @@ export function Screen({
    */
   scrollable?: boolean;
 }) {
+  const { theme: activeTheme } = useTheme();
+
   if (!scrollable) {
     return (
-      <View testID={testID} style={styles.screen}>
+      <View testID={testID} style={[styles.screen, { backgroundColor: activeTheme.color.background }]}>
         {children}
       </View>
     );
@@ -113,12 +134,12 @@ export function Screen({
 
   return (
     <KeyboardAvoidingView
-      style={styles.screenScroll}
+      style={[styles.screenScroll, { backgroundColor: activeTheme.color.background }]}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <ScrollView
         testID={testID}
-        style={styles.screenScroll}
+        style={[styles.screenScroll, { backgroundColor: activeTheme.color.background }]}
         contentContainerStyle={styles.screenScrollContent}
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag"
@@ -146,26 +167,57 @@ export function EmptyState({
   action?: { label: string; onPress: () => void };
   testID?: string;
 }) {
+  const { theme: activeTheme } = useTheme();
+
   return (
-    <View testID={testID} style={styles.empty}>
-      <Text style={styles.emptyTitle}>{title}</Text>
-      {hint ? <Text style={styles.emptyHint}>{hint}</Text> : null}
+    <View
+      testID={testID}
+      style={[
+        styles.empty,
+        {
+          borderColor: activeTheme.color.border,
+          backgroundColor: activeTheme.color.surface,
+        },
+      ]}
+    >
+      <Text style={[styles.emptyTitle, { color: activeTheme.color.text, fontSize: activeTheme.font.body }]}>
+        {title}
+      </Text>
+      {hint ? (
+        <Text style={[styles.emptyHint, { color: activeTheme.color.textMuted, fontSize: activeTheme.font.label }]}>
+          {hint}
+        </Text>
+      ) : null}
       {action ? (
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={action.label}
           onPress={action.onPress}
-          style={({ pressed }) => [styles.emptyAction, { opacity: pressed ? 0.8 : 1 }]}
+          style={({ pressed }) => [
+            styles.emptyAction,
+            {
+              minHeight: activeTheme.touchTarget,
+              backgroundColor: activeTheme.color.surfaceRaised,
+              opacity: pressed ? 0.8 : 1,
+            },
+          ]}
         >
-          <Text style={styles.emptyActionLabel}>{action.label}</Text>
+          <Text style={[styles.emptyActionLabel, { color: activeTheme.color.text, fontSize: activeTheme.font.body }]}>
+            {action.label}
+          </Text>
         </Pressable>
       ) : null}
     </View>
   );
 }
 
-export function Title({ children }: { children: React.ReactNode }) {
-  return <Text style={styles.title}>{children}</Text>;
+export function Title({ children, testID }: { children: React.ReactNode; testID?: string }) {
+  const { theme: activeTheme } = useTheme();
+  return (
+    <Text testID={testID} style={[styles.title, { color: activeTheme.color.text, fontSize: activeTheme.font.title }]}>
+      {children}
+    </Text>
+  );
 }
 
 export function Body({
@@ -177,8 +229,18 @@ export function Body({
   muted?: boolean;
   testID?: string;
 }) {
+  const { theme: activeTheme } = useTheme();
   return (
-    <Text testID={testID} style={[styles.body, muted && { color: theme.color.textMuted }]}>
+    <Text
+      testID={testID}
+      style={[
+        styles.body,
+        {
+          fontSize: activeTheme.font.body,
+          color: muted ? activeTheme.color.textMuted : activeTheme.color.text,
+        },
+      ]}
+    >
       {children}
     </Text>
   );
@@ -199,14 +261,30 @@ export function Card({
    */
   onPress?: () => void;
 }) {
+  const { theme: activeTheme } = useTheme();
+
+  const cardStyle = [
+    styles.card,
+    {
+      backgroundColor: activeTheme.color.surface,
+      borderColor: activeTheme.color.border,
+    },
+    style,
+  ];
+
   if (onPress) {
     return (
-      <Pressable testID={testID} onPress={onPress} style={({ pressed }) => [styles.card, style, pressed && { opacity: 0.85 }]}>
+      <Pressable
+        testID={testID}
+        accessibilityRole="button"
+        onPress={onPress}
+        style={({ pressed }) => [...cardStyle, pressed && { opacity: 0.85 }]}
+      >
         {children}
       </Pressable>
     );
   }
-  return <View testID={testID} style={[styles.card, style]}>{children}</View>;
+  return <View testID={testID} style={cardStyle}>{children}</View>;
 }
 
 /**
@@ -214,12 +292,13 @@ export function Card({
  * console log: the person in the paddock is the only one who can fix most of them.
  */
 export function Notice({ text, tone = 'danger' }: { text: string; tone?: 'danger' | 'warning' }) {
-  const background = tone === 'danger' ? theme.color.danger : theme.color.warning;
-  const color = tone === 'danger' ? theme.color.text : theme.color.warningText;
+  const { theme: activeTheme } = useTheme();
+  const background = tone === 'danger' ? activeTheme.color.danger : activeTheme.color.warning;
+  const color = tone === 'danger' ? activeTheme.color.dangerText : activeTheme.color.warningText;
 
   return (
     <View accessibilityRole="alert" style={[styles.notice, { backgroundColor: background }]}>
-      <Text style={[styles.noticeText, { color }]}>{text}</Text>
+      <Text style={[styles.noticeText, { color, fontSize: activeTheme.font.label }]}>{text}</Text>
     </View>
   );
 }
@@ -237,9 +316,13 @@ export function NumberField({
   testID?: string;
   placeholder?: string;
 }) {
+  const { theme: activeTheme } = useTheme();
+
   return (
     <View style={styles.field}>
-      <Text style={styles.fieldLabel}>{label}</Text>
+      <Text style={[styles.fieldLabel, { color: activeTheme.color.textMuted, fontSize: activeTheme.font.label }]}>
+        {label}
+      </Text>
       <TextInput
         testID={testID}
         accessibilityLabel={label}
@@ -247,8 +330,17 @@ export function NumberField({
         onChangeText={onChangeText}
         keyboardType="decimal-pad"
         placeholder={placeholder}
-        placeholderTextColor={theme.color.textMuted}
-        style={styles.input}
+        placeholderTextColor={activeTheme.color.textMuted}
+        style={[
+          styles.input,
+          {
+            minHeight: activeTheme.touchTarget,
+            borderColor: activeTheme.color.border,
+            backgroundColor: activeTheme.color.surfaceRaised,
+            color: activeTheme.color.text,
+            fontSize: activeTheme.font.body,
+          },
+        ]}
       />
     </View>
   );
@@ -261,6 +353,7 @@ export function TextField({
   testID,
   secure,
   autoCapitalize = 'none',
+  placeholder,
 }: {
   label: string;
   value: string;
@@ -268,10 +361,15 @@ export function TextField({
   testID?: string;
   secure?: boolean;
   autoCapitalize?: 'none' | 'sentences';
+  placeholder?: string;
 }) {
+  const { theme: activeTheme } = useTheme();
+
   return (
     <View style={styles.field}>
-      <Text style={styles.fieldLabel}>{label}</Text>
+      <Text style={[styles.fieldLabel, { color: activeTheme.color.textMuted, fontSize: activeTheme.font.label }]}>
+        {label}
+      </Text>
       <TextInput
         testID={testID}
         accessibilityLabel={label}
@@ -279,8 +377,266 @@ export function TextField({
         onChangeText={onChangeText}
         secureTextEntry={secure}
         autoCapitalize={autoCapitalize}
-        style={styles.input}
+        placeholder={placeholder}
+        placeholderTextColor={activeTheme.color.textMuted}
+        style={[
+          styles.input,
+          {
+            minHeight: activeTheme.touchTarget,
+            borderColor: activeTheme.color.border,
+            backgroundColor: activeTheme.color.surfaceRaised,
+            color: activeTheme.color.text,
+            fontSize: activeTheme.font.body,
+          },
+        ]}
       />
+    </View>
+  );
+}
+
+/**
+ * Etiqueta de arete prominente para identificación inequívoca a distancia de brazo.
+ * Si el animal no tiene arete, muestra 'Sin arete' en estilo diferenciado y no falla.
+ */
+export function TagBadge({
+  tag,
+  label,
+  size = 'normal',
+  tone = 'default',
+  testID,
+}: {
+  tag?: string | null;
+  label?: string;
+  size?: 'normal' | 'large';
+  tone?: 'default' | 'accent' | 'muted';
+  testID?: string;
+}) {
+  const { theme: activeTheme } = useTheme();
+  const isLarge = size === 'large';
+  const displayTag = (tag ?? label ?? '').trim();
+  const isUntagged = !displayTag || displayTag.toLowerCase() === 'sin arete';
+  const textContent = isUntagged ? 'Sin arete' : displayTag;
+
+  const backgroundColor =
+    tone === 'accent'
+      ? activeTheme.color.primary
+      : isUntagged || tone === 'muted'
+        ? activeTheme.color.surfaceRaised
+        : activeTheme.color.surface;
+
+  const borderColor =
+    tone === 'accent'
+      ? activeTheme.color.primary
+      : activeTheme.color.border;
+
+  const textColor =
+    tone === 'accent'
+      ? activeTheme.color.primaryText
+      : isUntagged || tone === 'muted'
+        ? activeTheme.color.textMuted
+        : activeTheme.color.text;
+
+  return (
+    <View
+      testID={testID}
+      accessibilityRole="text"
+      accessibilityLabel={`Arete ${textContent}`}
+      style={[
+        styles.tagBadge,
+        {
+          backgroundColor,
+          borderColor,
+          paddingHorizontal: isLarge ? activeTheme.space.md : activeTheme.space.sm,
+          paddingVertical: isLarge ? activeTheme.space.xs + 2 : activeTheme.space.xs,
+          borderStyle: isUntagged ? 'dashed' : 'solid',
+        },
+      ]}
+    >
+      <Text
+        style={[
+          styles.tagBadgeText,
+          {
+            color: textColor,
+            fontSize: isLarge ? activeTheme.font.title : activeTheme.font.body,
+            fontWeight: '800',
+          },
+        ]}
+      >
+        {textContent}
+      </Text>
+    </View>
+  );
+}
+
+/**
+ * Tipografía nítida para magnitudes numéricas y unidades de campo (ej. '4.5 L', '280 kg').
+ * Enfatiza el valor con peso 800 y mantiene la unidad visible pero diferenciada.
+ */
+export function QuantityText({
+  value,
+  unit,
+  size = 'normal',
+  muted = false,
+  color,
+  testID,
+}: {
+  value: string | number;
+  unit?: string;
+  size?: 'normal' | 'large' | 'display';
+  muted?: boolean;
+  color?: string;
+  testID?: string;
+}) {
+  const { theme: activeTheme } = useTheme();
+  const resolvedColor = color ?? (muted ? activeTheme.color.textMuted : activeTheme.color.text);
+  const unitColor = activeTheme.color.textMuted;
+
+  const valueFontSize =
+    size === 'display'
+      ? activeTheme.font.display
+      : size === 'large'
+        ? activeTheme.font.title
+        : activeTheme.font.body;
+
+  const unitFontSize =
+    size === 'display'
+      ? activeTheme.font.subtitle
+      : size === 'large'
+        ? activeTheme.font.body
+        : activeTheme.font.label;
+
+  return (
+    <View testID={testID} style={styles.quantityContainer}>
+      <Text style={[styles.quantityValue, { color: resolvedColor, fontSize: valueFontSize }]}>
+        {value}
+      </Text>
+      {unit ? (
+        <Text style={[styles.quantityUnit, { color: unitColor, fontSize: unitFontSize }]}>
+          {` ${unit}`}
+        </Text>
+      ) : null}
+    </View>
+  );
+}
+
+export type StatusBadgeTone = 'neutral' | 'success' | 'warning' | 'danger' | 'info';
+
+/**
+ * Píldora de estado (ej. 'Retiro', 'Preñez', 'Local', 'Enviando', 'Aceptado').
+ */
+export function StatusBadge({
+  label,
+  tone = 'neutral',
+  testID,
+}: {
+  label: string;
+  tone?: StatusBadgeTone;
+  testID?: string;
+}) {
+  const { theme: activeTheme } = useTheme();
+
+  const background =
+    tone === 'success'
+      ? activeTheme.color.primary
+      : tone === 'warning'
+        ? activeTheme.color.warning
+        : tone === 'danger'
+          ? activeTheme.color.danger
+          : tone === 'info'
+            ? activeTheme.color.info
+            : activeTheme.color.surfaceRaised;
+
+  const textColor =
+    tone === 'success'
+      ? activeTheme.color.primaryText
+      : tone === 'warning'
+        ? activeTheme.color.warningText
+        : tone === 'danger'
+          ? activeTheme.color.dangerText
+          : tone === 'info'
+            ? '#FFFFFF'
+            : activeTheme.color.text;
+
+  return (
+    <View
+      testID={testID}
+      accessibilityRole="text"
+      style={[
+        styles.statusBadge,
+        {
+          backgroundColor: background,
+          borderColor: tone === 'neutral' ? activeTheme.color.border : 'transparent',
+        },
+      ]}
+    >
+      <Text style={[styles.statusBadgeText, { color: textColor, fontSize: activeTheme.font.micro }]}>
+        {label}
+      </Text>
+    </View>
+  );
+}
+
+/**
+ * Sección de lista para agrupar colecciones sin convertir cada elemento en una tarjeta pesada.
+ */
+export function ListSection({
+  title,
+  subtitle,
+  action,
+  children,
+  testID,
+  style,
+}: {
+  title?: string;
+  subtitle?: string;
+  action?: { label: string; onPress: () => void };
+  children: React.ReactNode;
+  testID?: string;
+  style?: ViewStyle;
+}) {
+  const { theme: activeTheme } = useTheme();
+
+  return (
+    <View testID={testID} style={[styles.listSection, style]}>
+      {title || subtitle || action ? (
+        <View style={styles.listSectionHeader}>
+          <View style={styles.listSectionTitleGroup}>
+            {title ? (
+              <Text style={[styles.listSectionTitle, { color: activeTheme.color.text, fontSize: activeTheme.font.subtitle }]}>
+                {title}
+              </Text>
+            ) : null}
+            {subtitle ? (
+              <Text style={[styles.listSectionSubtitle, { color: activeTheme.color.textMuted, fontSize: activeTheme.font.label }]}>
+                {subtitle}
+              </Text>
+            ) : null}
+          </View>
+          {action ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={action.label}
+              onPress={action.onPress}
+              style={({ pressed }) => [styles.listSectionAction, { opacity: pressed ? 0.7 : 1 }]}
+            >
+              <Text style={[styles.listSectionActionText, { color: activeTheme.color.primary, fontSize: activeTheme.font.label }]}>
+                {action.label}
+              </Text>
+            </Pressable>
+          ) : null}
+        </View>
+      ) : null}
+      <View
+        style={[
+          styles.listSectionContent,
+          {
+            backgroundColor: activeTheme.color.surface,
+            borderColor: activeTheme.color.border,
+          },
+        ]}
+      >
+        {children}
+      </View>
     </View>
   );
 }
@@ -399,5 +755,67 @@ const styles = StyleSheet.create({
     color: theme.color.text,
     fontSize: theme.font.body,
     fontWeight: '700',
+  },
+  tagBadge: {
+    borderRadius: theme.radius.md,
+    borderWidth: 1.5,
+    alignSelf: 'flex-start',
+    justifyContent: 'center',
+  },
+  tagBadgeText: {
+    letterSpacing: 0.5,
+  },
+  quantityContainer: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+  },
+  quantityValue: {
+    fontWeight: '800',
+  },
+  quantityUnit: {
+    fontWeight: '600',
+  },
+  statusBadge: {
+    borderRadius: theme.radius.md,
+    borderWidth: 1,
+    paddingHorizontal: theme.space.sm,
+    paddingVertical: theme.space.xs,
+    alignSelf: 'flex-start',
+    justifyContent: 'center',
+  },
+  statusBadgeText: {
+    fontWeight: '700',
+    letterSpacing: 0.2,
+  },
+  listSection: {
+    gap: theme.space.sm,
+  },
+  listSectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-end',
+    paddingHorizontal: theme.space.xs,
+  },
+  listSectionTitleGroup: {
+    flex: 1,
+    gap: 2,
+  },
+  listSectionTitle: {
+    fontWeight: '700',
+  },
+  listSectionSubtitle: {
+    fontWeight: '500',
+  },
+  listSectionAction: {
+    paddingVertical: theme.space.xs,
+    paddingHorizontal: theme.space.sm,
+  },
+  listSectionActionText: {
+    fontWeight: '700',
+  },
+  listSectionContent: {
+    borderRadius: theme.radius.md,
+    borderWidth: 1,
+    overflow: 'hidden',
   },
 });

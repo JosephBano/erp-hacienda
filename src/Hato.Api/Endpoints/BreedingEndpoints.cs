@@ -5,6 +5,8 @@ using Hato.Modules.Breeding.Application.PregnancyChecks;
 using Hato.Modules.Breeding.Application.Services;
 using Hato.Modules.Breeding.Application.SemenStraws;
 using Hato.Modules.Breeding.Application.Weanings;
+using Hato.Modules.People.Domain;
+using Hato.Modules.People.Infrastructure.Authorization;
 using MediatR;
 
 namespace Hato.Api.Endpoints;
@@ -19,37 +21,37 @@ public static class BreedingEndpoints
         {
             var straw = await sender.Send(command);
             return Results.Created($"/api/v1/breeding/semen-straws/{straw.Id}", straw);
-        });
+        }).RequireAuthorization(policy => policy.RequirePermission(SystemPermissions.BreedingEventsRecord));
 
         group.MapGet("/semen-straws", async (ISender sender) =>
         {
             var straws = await sender.Send(new GetSemenStrawsQuery());
             return Results.Ok(straws);
-        });
+        }).RequireAuthorization(policy => policy.RequirePermission(SystemPermissions.BreedingEventsRead));
 
         group.MapPost("/services", async (RegisterBreedingServiceCommand command, ISender sender) =>
         {
             var service = await sender.Send(command);
             return Results.Created($"/api/v1/breeding/services/{service.Id}", service);
-        });
+        }).RequireAuthorization(policy => policy.RequirePermission(SystemPermissions.BreedingEventsRecord));
 
         group.MapPost("/pregnancy-checks", async (RecordPregnancyCheckCommand command, ISender sender) =>
         {
             var check = await sender.Send(command);
             return Results.Created($"/api/v1/breeding/pregnancy-checks/{check.Id}", check);
-        });
+        }).RequireAuthorization(policy => policy.RequirePermission(SystemPermissions.BreedingEventsRecord));
 
         group.MapGet("/pregnancies/active", async (ISender sender) =>
         {
             var pregnancies = await sender.Send(new GetActivePregnanciesQuery());
             return Results.Ok(pregnancies);
-        });
+        }).RequireAuthorization(policy => policy.RequirePermission(SystemPermissions.BreedingEventsRead));
 
         group.MapPost("/birthings", async (RecordBirthingCommand command, ISender sender) =>
         {
             var birthing = await sender.Send(command);
             return Results.Created($"/api/v1/breeding/birthings/{birthing.Id}", birthing);
-        });
+        }).RequireAuthorization(policy => policy.RequirePermission(SystemPermissions.BreedingEventsRecord));
 
         // The read-side of the partos/camadas feature (docs/spec/plan-0002-fase-3-5/spec-3.5a.md sec.3.5a.4):
         // the field-app and the panel have always been able to register a birthing, but
@@ -61,13 +63,13 @@ public static class BreedingEndpoints
         {
             var items = await sender.Send(new GetBirthingsQuery());
             return Results.Ok(items);
-        });
+        }).RequireAuthorization(policy => policy.RequirePermission(SystemPermissions.BreedingEventsRead));
 
         group.MapPost("/weanings", async (RecordWeaningCommand command, ISender sender) =>
         {
             var birthing = await sender.Send(command);
             return Results.Ok(birthing);
-        });
+        }).RequireAuthorization(policy => policy.RequirePermission(SystemPermissions.BreedingEventsRecord));
 
         // ----- Nursing cohorts (docs/spec/plan-0002-fase-3-5/spec-3.5a.md sec.3.5a.4) -----
         // Weaning is recorded at the cohort level rather than litter by litter. The
@@ -83,7 +85,7 @@ public static class BreedingEndpoints
             var commandWithCohort = command with { NursingCohortId = cohortId };
             var cohort = await sender.Send(commandWithCohort);
             return Results.Ok(cohort);
-        });
+        }).RequireAuthorization(policy => policy.RequirePermission(SystemPermissions.BreedingEventsRecord));
 
         // 3.5a.4 task 4: classifies a weaned nursing cohort by weight into N
         // headcount engorde lots (ADR-0023). The clinic document is the source
@@ -106,19 +108,19 @@ public static class BreedingEndpoints
 
             var result = await sender.Send(command);
             return Results.Ok(result);
-        });
+        }).RequireAuthorization(policy => policy.RequirePermission(SystemPermissions.BreedingEventsRecord));
 
         group.MapGet("/pedigree/{animalId:guid}", async (Guid animalId, ISender sender) =>
         {
             var pedigree = await sender.Send(new Hato.Modules.Breeding.Application.Pedigree.GetPedigreeQuery(animalId));
             return pedigree is not null ? Results.Ok(pedigree) : Results.NotFound();
-        });
+        }).RequireAuthorization(policy => policy.RequirePermission(SystemPermissions.BreedingEventsRead));
 
         group.MapGet("/kpis/dams/{damId:guid}", async (Guid damId, ISender sender) =>
         {
             var kpis = await sender.Send(new Hato.Modules.Breeding.Application.Kpis.GetDamKpisQuery(damId));
             return Results.Ok(kpis);
-        });
+        }).RequireAuthorization(policy => policy.RequirePermission(SystemPermissions.BreedingEventsRead));
     }
 }
 

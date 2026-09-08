@@ -47,23 +47,23 @@
 
 ## Commit 2 — Huecos en las rutas REST
 
-- [ ] **T2.1** `AnimalsEndpoints.cs:14,32` — aplicar `livestock.animals.write` a alta e
+- [x] **T2.1** `AnimalsEndpoints.cs:14,32` — aplicar `livestock.animals.write` a alta e
       identificadores, como ya lo tienen borrado y edición en `:43` y `:61`.
-- [ ] **T2.2** `MilkingEndpoints.cs:10` — aplicar `production.milking.record` /
+- [x] **T2.2** `MilkingEndpoints.cs:10` — aplicar `production.milking.record` /
       `production.milking.read`.
-- [ ] **T2.3** `BreedingEndpoints.cs` — aplicar `breeding.events.record` / `breeding.events.read`.
-- [ ] **T2.4** `TasksEndpoints.cs` — aplicar `tasks.manage` / `tasks.read`.
-- [ ] **T2.5** `AnimalEventsEndpoints.cs` — aplicar el control fino de escritura.
-- [ ] **T2.6** `PlausibilityRangesEndpoints.cs` — `livestock.animals.write`, alineado con la
+- [x] **T2.3** `BreedingEndpoints.cs` — aplicar `breeding.events.record` / `breeding.events.read`.
+- [x] **T2.4** `TasksEndpoints.cs` — aplicar `tasks.manage` / `tasks.read`.
+- [x] **T2.5** `AnimalEventsEndpoints.cs` — aplicar el control fino de escritura.
+- [x] **T2.6** `PlausibilityRangesEndpoints.cs` — `livestock.animals.write`, alineado con la
       intención ya documentada del endpoint.
-- [ ] **T2.7** `InventoryEndpoints.cs` — conservar los permisos específicos existentes de
+- [x] **T2.7** `InventoryEndpoints.cs` — conservar los permisos específicos existentes de
       inventario, etapas de alimentación y recepciones. **Terminado:** la fila de consumo de
       alimento **espera al commit 5**.
-- [ ] **T2.8** Prueba de la matriz completa de `spec.md` sec. 4, fila por fila: sin
+- [x] **T2.8** Prueba de la matriz completa de `spec.md` sec. 4, fila por fila: sin
       autenticación 401, sin permiso 403. Contra PostgreSQL real.
-- [ ] **T2.9** Verificar que **no se introdujo ningún rol ni especie hardcodeada** (regla dura
+- [x] **T2.9** Verificar que **no se introdujo ningún rol ni especie hardcodeada** (regla dura
       3, D1). **Terminado:** revisado en `git diff`.
-- [ ] **T2.10** `dotnet test` completo en verde.
+- [x] **T2.10** `dotnet test` completo en verde.
 
 ---
 

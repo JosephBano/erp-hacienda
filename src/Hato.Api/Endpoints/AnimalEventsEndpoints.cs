@@ -1,4 +1,6 @@
 using Hato.Modules.Livestock.Application.Events;
+using Hato.Modules.People.Domain;
+using Hato.Modules.People.Infrastructure.Authorization;
 using MediatR;
 
 namespace Hato.Api.Endpoints;
@@ -31,20 +33,20 @@ public static class AnimalEventsEndpoints
 
             var eventId = await sender.Send(command);
             return Results.Created($"/api/v1/animals/{animalId}/events/{eventId}", new { id = eventId });
-        });
+        }).RequireAuthorization(policy => policy.RequirePermission(SystemPermissions.LivestockAnimalsWrite));
 
         group.MapGet("/", async (Guid animalId, ISender sender) =>
         {
             var events = await sender.Send(new GetAnimalEventsQuery(animalId));
             return Results.Ok(events);
-        });
+        }).RequireAuthorization(policy => policy.RequirePermission(SystemPermissions.LivestockAnimalsRead));
 
         app.MapGet("/api/v1/animals/{animalId:guid}/withdrawal-periods", async (Guid animalId, DateOnly? targetDate, ISender sender) =>
         {
             var date = targetDate ?? DateOnly.FromDateTime(DateTime.UtcNow);
             var withdrawals = await sender.Send(new GetActiveWithdrawalsQuery(animalId, date));
             return Results.Ok(withdrawals);
-        }).WithTags("AnimalEvents").RequireAuthorization();
+        }).WithTags("AnimalEvents").RequireAuthorization(policy => policy.RequirePermission(SystemPermissions.LivestockAnimalsRead));
     }
 }
 

@@ -12,5 +12,5 @@ public interface IUserPermissionsReader
     /// Admin's role already carries every code in the RBAC seed, so no special-case
     /// bypass is needed here — the set itself already contains everything.
     /// </summary>
-    Task<HashSet<string>> GetPermissionCodesAsync(Guid userId, CancellationToken cancellationToken);
+    Task<HashSet<string>> GetPermissionCodesAsync(Guid userId, CancellationToken cancellationToken = default);
 }

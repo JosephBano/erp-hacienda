@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 
 import { Notice, Screen, Title } from '../../ui/components';
+import { useDraftFlag } from '../../ui/draftGuard';
 import { useSingleFlight } from '../../ui/useSingleFlight';
 import type { BirthService, OffspringInput, Sex } from '../../services/birthService';
 import type { PregnantDam } from '../../services/herdQueries';
@@ -25,6 +26,13 @@ export function BirthScreen({ service, dams, onRecorded, onCancel }: BirthScreen
   const [offspring, setOffspring] = useState<OffspringInput[]>([]);
   const [error, setError] = useState<string | null>(null);
   const { busy, runOnce } = useSingleFlight();
+
+  /**
+   * D3 / T5.2 — a chosen dam means the wizard has started and the employee is
+   * in the pen recording the birth. Leaving silently throws away the calves
+   * they just counted off the ground.
+   */
+  useDraftFlag(dam !== null);
 
   const reset = () => {
     setStep(1);

@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Platform, SafeAreaView, StatusBar, StyleSheet, View } from 'react-native';
+import { BackHandler, Platform, SafeAreaView, StatusBar, StyleSheet, View } from 'react-native';
 
 import { createDatabase } from './database';
 import { AnimalEditService } from './services/animalEditService';
@@ -37,7 +37,8 @@ import { TodayScreen } from './screens/TodayScreen';
 import { TreatScreen } from './screens/TreatScreen';
 import { VaccinateScreen } from './screens/VaccinateScreen';
 import type { TabKey } from './screens/navigation';
-import { BigButton, Body, Screen, Title } from './ui/components';
+import { BigButton, Body, Card, Notice, Screen, Title } from './ui/components';
+import { DraftGuardProvider, useDraftGate } from './ui/draftGuard';
 import { theme } from './ui/theme';
 
 // Reads the API URL from the EAS build profile's env (see eas.json), falling back to the
@@ -127,6 +128,27 @@ export default function App() {
 
   const visibility = useMemo(() => new ModuleVisibility(database, api), [database, api]);
 
+  // D3 — leaving a screen with unsaved input asks first. The shell cannot see
+  // inside a screen's form state, so screens report the answer through
+  // `useDraftFlag` and this gate parks the navigation until the employee says.
+  const gate = useDraftGate();
+
+  /**
+   * The one way back to the hub. Both the on-screen "Inicio" button and Android's
+   * hardware back run exactly this, which is what makes their results coherent
+   * (tasks T5.3) — two buttons that land in different places is how a route ends
+   * up unreachable.
+   */
+  const goHome = useCallback(() => {
+    setTab('home');
+    setSelectedAnimalId(null);
+    setEventsInitialAnimalId(undefined);
+    setEventsInitialActivity(undefined);
+    setSelectedGroupId(null);
+    setLotEventsGroupId(undefined);
+    setLotEventsActivity(undefined);
+  }, []);
+
   const refresh = useCallback(async () => {
     const [nextHerd, nextGroups, nextTreatmentProducts, nextMedications, nextMortalityCauses, nextFeedItems, nextPregnantDams, stats, productionVisible, today] = await Promise.all([
       loadHerd(database),
@@ -180,6 +202,29 @@ export default function App() {
     return () => engine.stop();
   }, [authenticated, engine, refresh]);
 
+  /**
+   * Android's hardware back had no handler at all, so it closed the app from
+   * wherever the employee was — a half-typed treatment gone, in one thumb press
+   * they did not mean as "quit". Now it does what the visible button does, and
+   * only the hub lets the OS take it and actually leave.
+   */
+  useEffect(() => {
+    const onBack = () => {
+      if (gate.isAsking) {
+        // Back dismisses the question rather than answering it: the safe reading
+        // of "no" is "stay", never "discard".
+        gate.keep();
+        return true;
+      }
+      if (tab === 'home') return false;
+      gate.request(goHome);
+      return true;
+    };
+
+    const subscription = BackHandler.addEventListener('hardwareBackPress', onBack);
+    return () => subscription.remove();
+  }, [gate, goHome, tab]);
+
   if (!ready) {
     return (
       <SafeAreaView testID="app-root" style={styles.root}>
@@ -209,6 +254,7 @@ export default function App() {
     <SafeAreaView testID="app-root" style={styles.root}>
       <StatusBar barStyle="light-content" backgroundColor={theme.color.background} translucent={false} />
 
+      <DraftGuardProvider onDirtyChange={gate.markDirty}>
       <View style={styles.content}>
         {tab === 'home' ? (
           <ActivitiesHub
@@ -398,22 +444,32 @@ export default function App() {
           />
         ) : null}
       </View>
+      </DraftGuardProvider>
 
-      {tab !== 'home' ? (
+      {gate.isAsking ? (
+        <View testID="app-discard-prompt" style={styles.footer}>
+          <Card>
+            <Notice tone="warning" text="Hay datos escritos sin registrar en esta pantalla." />
+            <BigButton
+              testID="keep-editing"
+              label="Seguir aquí"
+              onPress={gate.keep}
+            />
+            <BigButton
+              testID="discard-draft"
+              label="Salir y descartar"
+              tone="danger"
+              onPress={gate.discard}
+            />
+          </Card>
+        </View>
+      ) : tab !== 'home' ? (
         <View testID="app-footer" style={styles.footer}>
           <BigButton
             testID="go-home"
             label="Inicio"
             tone="neutral"
-            onPress={() => {
-              setTab('home');
-              setSelectedAnimalId(null);
-              setEventsInitialAnimalId(undefined);
-              setEventsInitialActivity(undefined);
-              setSelectedGroupId(null);
-              setLotEventsGroupId(undefined);
-              setLotEventsActivity(undefined);
-            }}
+            onPress={() => gate.request(goHome)}
           />
         </View>
       ) : null}

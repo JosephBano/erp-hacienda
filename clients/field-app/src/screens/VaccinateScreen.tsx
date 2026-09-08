@@ -65,6 +65,22 @@ export function VaccinateScreen({
    */
   const { busy, runOnce } = useSingleFlight();
 
+  /*
+   * No `useDraftFlag` here, on purpose (D3, T5.2).
+   *
+   * This screen has no field the employee types into: everything it holds is
+   * two picks off a list, and the vía, the motivo and the dose are fixed
+   * defaults it never asks for. Leaving at the confirm card costs two taps to
+   * redo and loses no information the employee had to remember — unlike a dose
+   * read off a syringe in the rain, which is what the shell's question is for.
+   *
+   * Declaring a draft here would spend that question on the cheapest screen in
+   * the app, and a question that fires on a screen with nothing written on it is
+   * how employees learn to tap "Salir y descartar" without reading it. The way
+   * to protect the two picks is to make going back keep them, which is what
+   * "Elegir otro producto" below does.
+   */
+
   useEffect(() => {
     void (async () => {
       const [routes, doseKinds] = await Promise.all([
@@ -207,6 +223,19 @@ export function VaccinateScreen({
               busy={busy}
               disabled={!routeId || !doseKindId}
               onPress={() => void runOnce(confirm)}
+            />
+            {/*
+              T5.1 / D3 — the way back from the review card. "Cancelar" was the
+              only control that left it and it runs `reset()`, so an employee who
+              had picked the wrong vaccine lost the animal too and started the
+              three taps over. This moves the step and nothing else: the animal
+              stays chosen.
+            */}
+            <BigButton
+              testID="vaccinate-back-to-product"
+              label="Elegir otro producto"
+              tone="neutral"
+              onPress={() => setStep('product')}
             />
           </Card>
         ) : null}

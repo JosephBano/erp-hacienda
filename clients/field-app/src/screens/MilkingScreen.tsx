@@ -15,6 +15,7 @@ import {
 } from '../ui/components';
 import type { DailySummary, MilkingShift, MilkingService } from '../services/milkingService';
 import { evaluatePlausibility } from '../services/plausibilityService';
+import { useDraftFlag } from '../ui/draftGuard';
 import { useSingleFlight } from '../ui/useSingleFlight';
 
 export interface MilkingCandidate {
@@ -86,6 +87,17 @@ export function MilkingScreen({
    * without depending on `liters` still holding the same text (ADR-0022 sec.2).
    */
   const [pendingConfirmation, setPendingConfirmation] = useState<number | null>(null);
+
+  /**
+   * D3 — a selected cow is not just a pick, it is the form being open: the
+   * litres field and the keyboard are up and the employee is mid-entry, with the
+   * bucket in the other hand. Losing that to a mistaken "Inicio" means milking
+   * her again or guessing the number, so the shell asks first.
+   *
+   * The picker itself is not a draft: a screen that asks on every exit teaches
+   * the employee to tap through the question, and then it protects nothing.
+   */
+  useDraftFlag(selected !== null || liters.trim().length > 0);
 
   const refreshSummary = useCallback(async () => {
     setSummary(await service.dailySummary());

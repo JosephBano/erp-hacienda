@@ -17,6 +17,7 @@ import {
 import type { EventService } from '../services/eventService';
 import { evaluatePlausibility } from '../services/plausibilityService';
 import { loadAdministrationRoutes, loadDoseKinds, loadTreatmentReasons } from '../services/herdQueries';
+import { useDraftFlag } from '../ui/draftGuard';
 import { useSingleFlight } from '../ui/useSingleFlight';
 
 export interface TreatAnimalOption {
@@ -83,6 +84,19 @@ export function TreatScreen({
    */
   const { busy, runOnce } = useSingleFlight();
 
+  /**
+   * D3 — everything past the empty first step is work the employee already did:
+   * the animal they walked out to find, the dose they read off the syringe, the
+   * note about what the cow looked like. Losing that to a mistaken "Inicio" is
+   * exactly what the shell's question exists to prevent.
+   *
+   * The untouched animal picker is deliberately *not* a draft. A screen that
+   * asks on every exit, including the one the employee only opened by mistake,
+   * teaches them to tap "Salir y descartar" without reading it — and then the
+   * question stops protecting the treatment it was written for.
+   */
+  useDraftFlag(animal !== null || dose.trim().length > 0 || notes.trim().length > 0);
+
   useEffect(() => {
     void (async () => {
       const [loadedRoutes, loadedReasons, doseKinds] = await Promise.all([
@@ -139,6 +153,18 @@ export function TreatScreen({
     }
 
     setStep('confirm');
+  };
+
+  /**
+   * T5.1 / D3 — the way back from the review card. Until now the only control
+   * that left it was "Cancelar", which runs `reset()`: an employee who reached
+   * the confirmation and noticed the dose said 5 instead of 50 had to throw away
+   * the animal, the product, the vía, the motivo and the notes to fix one field.
+   * This only moves the step; no form state is touched, which is the whole point.
+   */
+  const backToForm = () => {
+    setStep('form');
+    setFormError(null);
   };
 
   // 4 — confirm (or, on an improbable dose, the plausibility dialog stands in
@@ -339,12 +365,20 @@ export function TreatScreen({
                 />
               </>
             ) : (
-              <BigButton
-                testID="treat-confirm"
-                label="Confirmar"
-                busy={busy}
-                onPress={() => void runOnce(() => confirm(false))}
-              />
+              <>
+                <BigButton
+                  testID="treat-confirm"
+                  label="Confirmar"
+                  busy={busy}
+                  onPress={() => void runOnce(() => confirm(false))}
+                />
+                <BigButton
+                  testID="treat-back-to-form"
+                  label="Corregir datos"
+                  tone="neutral"
+                  onPress={backToForm}
+                />
+              </>
             )}
           </Card>
         ) : null}

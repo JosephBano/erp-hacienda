@@ -15,6 +15,7 @@ import {
 import type { AnimalEditService } from '../services/animalEditService';
 import type { Database } from '@nozbe/watermelondb';
 import { loadBreeds, loadCategories, type HerdMember } from '../services/herdQueries';
+import { useDraftFlag } from '../ui/draftGuard';
 import { useSingleFlight } from '../ui/useSingleFlight';
 
 /**
@@ -45,6 +46,13 @@ export function AnimalEditScreen({
   const [breedId, setBreedId] = useState<string>('');
   const [categoryId, setCategoryId] = useState<string>('');
   const [birthDate, setBirthDate] = useState('');
+  /**
+   * Which animal the three fields above were filled from. Needed because they
+   * are filled by an effect: in the commit between the tap that selects an
+   * animal and that effect, the fields still hold the previous values and any
+   * comparison against `selected` reads as "changed" for one render.
+   */
+  const [formLoadedFor, setFormLoadedFor] = useState<string | null>(null);
   const { busy, runOnce } = useSingleFlight();
   const [error, setError] = useState<string | null>(null);
   const [confirmation, setConfirmation] = useState<string | null>(null);
@@ -55,15 +63,34 @@ export function AnimalEditScreen({
     setBreedId(selected.breedId ?? '');
     setCategoryId(selected.categoryId ?? '');
     setBirthDate(selected.birthDate ?? '');
+    setFormLoadedFor(selected.animalId);
 
     loadBreeds(database, selected.speciesId).then(setBreeds);
     loadCategories(database, selected.speciesId).then(setCategories);
   }, [selected, database]);
 
+  /**
+   * D3 — an edit here is not typing that can be redone from memory: it is the
+   * employee's answer to "what breed is this animal really", decided in front of
+   * the animal. Opening the form and looking is not a draft; changing a value
+   * and walking away is, so the shell asks before it discards the change.
+   *
+   * The comparison is against the row the form was loaded from, so re-picking
+   * the same values the animal already had counts as no change at all.
+   */
+  useDraftFlag(
+    selected !== null &&
+      formLoadedFor === selected.animalId &&
+      (breedId !== (selected.breedId ?? '') ||
+        categoryId !== (selected.categoryId ?? '') ||
+        birthDate !== (selected.birthDate ?? '')),
+  );
+
   const reset = () => {
     setSelected(null);
     setBreeds([]);
     setCategories([]);
+    setFormLoadedFor(null);
     setError(null);
   };
 

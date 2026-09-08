@@ -24,7 +24,10 @@ export type ActivityRoute =
   | 'treat'
   | 'editAnimal'
   | 'sync'
-  | 'milking';
+  | 'milking'
+  | 'animals'
+  | 'lots'
+  | 'activity';
 
 interface ActivitiesHubProps {
   /** Pending count, surfaced so the operator sees how much is unsent before choosing. */
@@ -33,17 +36,10 @@ interface ActivitiesHubProps {
 }
 
 /**
- * The hub the operator lands on every morning.
+ * Operations hub: direct access to the canonical subjects and quick registrations.
  *
- * Subjects — "un animal", "lo que registré hoy", "un parto", "un lote" — are the four
- * things the macro plan 2.3 names as the first navigation level. Each subject maps to a
- * flow that already exists. "Un lote" landed in 3.5a.7: its `TapBudget` is validated by
- * `LotEventsScreen.tapBudget.test.tsx` (ADR-0021 condition 2), so the compuerta ADR-0021
- * left open for the second level of this branch closes with this rama.
- *
- * The order of the subjects is the responsible default. docs/spec/plan-0002-fase-3-5/spec.md sec. 7-C
- * marks the final order as a question only the client can answer; the test pins the
- * current default so a reorder is a deliberate change, not a regression.
+ * Preserves the canonical subject ordering (animal < today < birth < lot) and all testIDs,
+ * while removing superfluous parenthetical explanations and connecting cleanly to the 4 sections.
  */
 export function ActivitiesHub({ pending, onSelect }: ActivitiesHubProps) {
   return (
@@ -52,7 +48,7 @@ export function ActivitiesHub({ pending, onSelect }: ActivitiesHubProps) {
       <Body testID="home-pending">{`${pending} registro(s) sin enviar`}</Body>
 
       <Card>
-        <Body muted>{'Sujetos'}</Body>
+        <Body muted>{'Destinos principales'}</Body>
         <BigButton
           testID="subject-animal"
           label="Un animal"
@@ -72,14 +68,14 @@ export function ActivitiesHub({ pending, onSelect }: ActivitiesHubProps) {
         />
         <BigButton
           testID="subject-lot"
-          label="Un lote (alimento, pesaje, vacuna, dx, baja)"
+          label="Un lote"
           tone="neutral"
           onPress={() => onSelect('lot-subject')}
         />
       </Card>
 
       <Card>
-        <Body muted>{'Más opciones'}</Body>
+        <Body muted>{'Acciones directas'}</Body>
         <BigButton
           testID="subject-vaccinate"
           label="Vacunar"
@@ -88,13 +84,13 @@ export function ActivitiesHub({ pending, onSelect }: ActivitiesHubProps) {
         />
         <BigButton
           testID="subject-treat"
-          label="Tratar animal enfermo"
+          label="Tratar animal"
           tone="neutral"
           onPress={() => onSelect('treat')}
         />
         <BigButton
           testID="subject-events"
-          label="Eventos (pesaje, movimiento, baja)"
+          label="Eventos"
           tone="neutral"
           onPress={() => onSelect('events')}
         />

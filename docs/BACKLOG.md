@@ -858,6 +858,48 @@ camino principal (ActivitiesHub → Tratar/Vacunar) que 3.5a.2-C mide. Agregar
   `PROTOCOLO-DE-TRABAJO.md` que toque esas secciones debería resolver la cita — por número si
   se vuelve a numerar, o por nombre de encabezado si no.
 
+## App de campo — visto de paso en `feature/field-app-interaction-reliability` (2026-09-07)
+
+Deuda observada durante el barrido T2.5 de
+[feature-0006](spec/feature-0006-field-app-interaction-reliability/spec.md). Ninguna hacía
+falta para alcanzar un control, así que ninguna se tocó en esa rama (regla 9, D5).
+
+- **[app de campo] `LoginScreen` no ofrece "ver contraseña".** Pedido explícito de los
+  empleados junto con el reporte de scroll del 2026-09-07: el campo es `secure` y no hay
+  forma de revisar lo escrito, lo que en un teclado de tablet con guantes es una fuente
+  segura de intentos fallidos. No se resolvió en `feature-0006` porque es un control nuevo,
+  no una corrección de alcance: ese spec fija que "los cambios visuales que no hagan falta
+  para alcanzar un control" pertenecen a otra rama (D5), y AGENTS.md regla 9 pide un PR, un
+  propósito. **Disparador:** es un cambio chico y aislado (`TextField` ya recibe `secure`;
+  haría falta un `secureTextEntry` conmutable y un botón de alternar dentro del campo);
+  puede entregarse como rama propia apenas 0006 esté mergeada, sin esperar al rediseño.
+
+- **[app de campo] Campos de texto que no pasan por `TextField`/`NumberField` y quedan por
+  debajo del objetivo táctil de 64.** `src/screens/TodayScreen.tsx` (el campo "¿Qué se
+  corrigió?") y `src/screens/birth/Step3Offspring.tsx` (arete y peso de cada cría) declaran
+  su propio `TextInput` con estilos locales cuya altura sale del `padding`, mientras
+  `src/ui/components.tsx` ya expone campos con `minHeight: theme.touchTarget`.
+  `Step2ConfirmDetails.tsx` hace lo mismo pero sí fija `minHeight`. **Disparador:** el
+  rediseño integral (`feature-0010-field-app-redesign`, todavía sin carpeta), o cualquier
+  rama que ya esté tocando esos formularios por otro motivo.
+
+- **[app de campo] El asistente de parto no tiene `KeyboardAvoidingView`.** `BirthScreen`
+  mantiene su `Screen` fijo a propósito (cada paso trae su propio scroll, D1), así que no
+  hereda el `KeyboardAvoidingView` del modo `scrollable`. En Android la ventana se
+  redimensiona sola y el último control queda visible — que es el caso reportado —, pero en
+  iOS el teclado se superpone y el pie del paso 3 ("Continuar a Resumen") puede quedar
+  debajo. **Disparador:** la primera vez que la app se pruebe en iOS, o el commit 3 de
+  0006 si decide cubrir el asistente.
+
+- **[app de campo] Los selectores de animal renderizan el hato entero sin virtualizar.**
+  `EventsScreen` (`animal-list`), `AnimalEditScreen` (`edit-animal-list`) y
+  `birth/Step1PickDam` (`dam-list`) mapean la lista completa a `BigButton` dentro de un
+  `ScrollView`: con las 200 cabezas del fixture de estrés son 200 `Pressable` montados de
+  una vez. No es un defecto de alcance —se llega al final desplazando— pero es el candidato
+  más concreto para la queja de fluidez que 0006 D6 deja explícitamente sin reproducir.
+  **Disparador:** cuando se identifique teléfono, build y gesto de esa queja; medir esto
+  antes de proponer cualquier corrección de animación.
+
 ## Ideas sin fase asignada
 
 - **Fotos de eventos**: la app de campo ya guarda la referencia local (`photoUri`) y la

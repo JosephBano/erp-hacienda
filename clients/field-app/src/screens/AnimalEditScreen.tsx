@@ -15,6 +15,8 @@ import {
 import type { AnimalEditService } from '../services/animalEditService';
 import type { Database } from '@nozbe/watermelondb';
 import { loadBreeds, loadCategories, type HerdMember } from '../services/herdQueries';
+import { useDraftFlag } from '../ui/draftGuard';
+import { useSingleFlight } from '../ui/useSingleFlight';
 
 /**
  * The one screen that can produce an LWW conflict (ADR-0008): two employees editing the
@@ -44,7 +46,14 @@ export function AnimalEditScreen({
   const [breedId, setBreedId] = useState<string>('');
   const [categoryId, setCategoryId] = useState<string>('');
   const [birthDate, setBirthDate] = useState('');
-  const [busy, setBusy] = useState(false);
+  /**
+   * Which animal the three fields above were filled from. Needed because they
+   * are filled by an effect: in the commit between the tap that selects an
+   * animal and that effect, the fields still hold the previous values and any
+   * comparison against `selected` reads as "changed" for one render.
+   */
+  const [formLoadedFor, setFormLoadedFor] = useState<string | null>(null);
+  const { busy, runOnce } = useSingleFlight();
   const [error, setError] = useState<string | null>(null);
   const [confirmation, setConfirmation] = useState<string | null>(null);
 
@@ -54,43 +63,67 @@ export function AnimalEditScreen({
     setBreedId(selected.breedId ?? '');
     setCategoryId(selected.categoryId ?? '');
     setBirthDate(selected.birthDate ?? '');
+    setFormLoadedFor(selected.animalId);
 
     loadBreeds(database, selected.speciesId).then(setBreeds);
     loadCategories(database, selected.speciesId).then(setCategories);
   }, [selected, database]);
 
+  /**
+   * D3 — an edit here is not typing that can be redone from memory: it is the
+   * employee's answer to "what breed is this animal really", decided in front of
+   * the animal. Opening the form and looking is not a draft; changing a value
+   * and walking away is, so the shell asks before it discards the change.
+   *
+   * The comparison is against the row the form was loaded from, so re-picking
+   * the same values the animal already had counts as no change at all.
+   */
+  useDraftFlag(
+    selected !== null &&
+      formLoadedFor === selected.animalId &&
+      (breedId !== (selected.breedId ?? '') ||
+        categoryId !== (selected.categoryId ?? '') ||
+        birthDate !== (selected.birthDate ?? '')),
+  );
+
   const reset = () => {
     setSelected(null);
     setBreeds([]);
     setCategories([]);
+    setFormLoadedFor(null);
     setError(null);
   };
 
-  const submit = async () => {
-    if (!selected) return;
+  /*
+   * Two taps on "Guardar cambios" used to queue two edit operations. Here that
+   * costs more than a duplicate: each edit is an LWW write (ADR-0008), so the
+   * second one races the first through the same resolution and the employee
+   * gets two answers about one change. `runOnce` refuses the second tap in the
+   * tap's own tick, before `editAnimal` has yielded (D2).
+   */
+  const submit = () =>
+    runOnce(async () => {
+      if (!selected) return;
 
-    setBusy(true);
-    setError(null);
+      setError(null);
 
-    try {
-      await service.editAnimal({
-        animalId: selected.animalId,
-        breedId: breedId || null,
-        categoryId: categoryId || null,
-        birthDate: birthDate || null,
-      });
+      try {
+        await service.editAnimal({
+          animalId: selected.animalId,
+          breedId: breedId || null,
+          categoryId: categoryId || null,
+          birthDate: birthDate || null,
+        });
 
-      setConfirmation(
-        `Cambio de "${selected.label}" en cola. Se verá reflejado al sincronizar — otro dispositivo pudo haber editado lo mismo mientras tanto.`,
-      );
-      reset();
-      onQueued?.();
-    } catch (caught) {
-      setError((caught as Error).message);
-    } finally {
-      setBusy(false);
-    }
-  };
+        setConfirmation(
+          `Cambio de "${selected.label}" en cola. Se verá reflejado al sincronizar — otro dispositivo pudo haber editado lo mismo mientras tanto.`,
+        );
+        reset();
+        onQueued?.();
+      } catch (caught) {
+        setError((caught as Error).message);
+      }
+    });
 
   if (!selected) {
     return (
@@ -132,7 +165,21 @@ export function AnimalEditScreen({
       {error ? <Notice text={error} /> : null}
 
       <View style={styles.body}>
-        <ScrollView contentContainerStyle={styles.bodyScroll}>
+        {/*
+          The card scrolls, the screen does not: `Screen scrollable` around this scroller
+          would put two owners on the same vertical drag (D1), and the title is meant to
+          stay put. The keyboard settings are the part that was missing. React Native
+          defaults `keyboardShouldPersistTaps` to 'never', so once the birth-date field
+          has focus the first tap on "Guardar cambios" only dismisses the keyboard —
+          the employee taps, nothing happens, they tap again. 'on-drag' lets a drag put
+          the keyboard down without registering anything (D2).
+        */}
+        <ScrollView
+          testID="animal-edit-form"
+          contentContainerStyle={styles.bodyScroll}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+        >
           <Card>
             <Body>{selected.label}</Body>
 
@@ -181,7 +228,12 @@ export function AnimalEditScreen({
               onChangeText={setBirthDate}
             />
 
-            <BigButton testID="confirm-edit-animal" label="Guardar cambios" busy={busy} onPress={submit} />
+            <BigButton
+              testID="confirm-edit-animal"
+              label="Guardar cambios"
+              busy={busy}
+              onPress={() => void submit()}
+            />
             <BigButton testID="cancel-edit-animal" label="Cancelar" tone="neutral" onPress={reset} />
           </Card>
         </ScrollView>

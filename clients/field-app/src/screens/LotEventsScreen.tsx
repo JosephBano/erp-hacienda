@@ -6,6 +6,7 @@ import { BigButton, Body, Card, EmptyState, Notice, NumberField, Screen, TextFie
 import type { EventService } from '../services/eventService';
 import type { FeedConsumptionService } from '../services/feedConsumptionService';
 import { evaluatePlausibility } from '../services/plausibilityService';
+import { useSingleFlight } from '../ui/useSingleFlight';
 import type { LotActivity } from './LotSubjectScreen';
 
 export interface LotOption {
@@ -75,7 +76,7 @@ export function LotEventsScreen({
 
   const [error, setError] = useState<string | null>(null);
   const [confirmation, setConfirmation] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
+  const { busy, runOnce } = useSingleFlight();
 
   // Weighing
   const [weightsText, setWeightsText] = useState('');
@@ -114,8 +115,16 @@ export function LotEventsScreen({
     }
   }, [activity, feedItems]);
 
+  /**
+   * The shared body of every write on this screen: enqueue, confirm, go back.
+   *
+   * The single-flight latch is *not* taken here but at each press handler, one
+   * level up. `recordWeighing` awaits the plausibility check before it ever
+   * reaches this function, and that await is the window a double tap lands in
+   * (D2). Latching in both places would be worse than in neither: the outer
+   * `runOnce` would refuse its own inner one and the write would vanish.
+   */
   const run = async (action: () => Promise<unknown>, done: string) => {
-    setBusy(true);
     setError(null);
     try {
       await action();
@@ -124,8 +133,6 @@ export function LotEventsScreen({
       onBack();
     } catch (caught) {
       setError((caught as Error).message);
-    } finally {
-      setBusy(false);
     }
   };
 
@@ -188,7 +195,7 @@ export function LotEventsScreen({
     await submitWeighing(weights, false);
   };
 
-  const recordDisposal = () => {
+  const recordDisposal = async () => {
     if (!cause) return;
     const count = Number(disposalCount);
     if (!Number.isFinite(count) || count <= 0) {
@@ -196,7 +203,7 @@ export function LotEventsScreen({
       return;
     }
 
-    return run(
+    await run(
       () =>
         service.recordGroupEvent({
           groupId,
@@ -209,7 +216,7 @@ export function LotEventsScreen({
     );
   };
 
-  const recordTreatmentOrVaccination = (eventType: 'Treatment' | 'Vaccination') => {
+  const recordTreatmentOrVaccination = async (eventType: 'Treatment' | 'Vaccination') => {
     if (!medication) return;
     const count = Number(headCount);
     if (!Number.isFinite(count) || count <= 0) {
@@ -217,7 +224,7 @@ export function LotEventsScreen({
       return;
     }
 
-    return run(
+    await run(
       () =>
         service.recordGroupEvent({
           groupId,
@@ -229,7 +236,7 @@ export function LotEventsScreen({
     );
   };
 
-  const recordDiagnosis = () => {
+  const recordDiagnosis = async () => {
     const count = Number(affectedCount);
     if (!Number.isFinite(count) || count <= 0) {
       setError('La cantidad de cabezas afectadas debe ser mayor que cero.');
@@ -240,7 +247,7 @@ export function LotEventsScreen({
       return;
     }
 
-    return run(
+    await run(
       () =>
         service.recordGroupEvent({
           groupId,
@@ -254,7 +261,7 @@ export function LotEventsScreen({
     );
   };
 
-  const recordFeed = () => {
+  const recordFeed = async () => {
     if (!feedItem) return;
     const quantity = Number(feedQuantity.replace(',', '.'));
     if (!Number.isFinite(quantity) || quantity <= 0) {
@@ -262,7 +269,7 @@ export function LotEventsScreen({
       return;
     }
 
-    return run(
+    await run(
       () =>
         feedService.recordFeedConsumption({
           groupId,
@@ -314,7 +321,7 @@ export function LotEventsScreen({
                 label="Sí, registrar"
                 busy={busy}
                 onPress={() =>
-                  void submitWeighing(weighingPendingConfirmation.weights, true)
+                  void runOnce(() => submitWeighing(weighingPendingConfirmation.weights, true))
                 }
               />
               <BigButton
@@ -336,7 +343,7 @@ export function LotEventsScreen({
                 testID="confirm-weighing"
                 label="Registrar pesaje muestral"
                 busy={busy}
-                onPress={() => void recordWeighing()}
+                onPress={() => void runOnce(recordWeighing)}
               />
             </>
           )
@@ -373,7 +380,7 @@ export function LotEventsScreen({
                 testID="confirm-disposal-lot"
                 label="Registrar baja"
                 busy={busy}
-                onPress={recordDisposal}
+                onPress={() => void runOnce(recordDisposal)}
               />
             </>
           )
@@ -411,7 +418,11 @@ export function LotEventsScreen({
                 testID="confirm-lot-treatment"
                 label={activity === 'vaccination' ? 'Registrar vacunación' : 'Registrar tratamiento'}
                 busy={busy}
-                onPress={() => void recordTreatmentOrVaccination(activity === 'vaccination' ? 'Vaccination' : 'Treatment')}
+                onPress={() =>
+                  void runOnce(() =>
+                    recordTreatmentOrVaccination(activity === 'vaccination' ? 'Vaccination' : 'Treatment'),
+                  )
+                }
               />
             </>
           )
@@ -436,7 +447,7 @@ export function LotEventsScreen({
               testID="confirm-diagnosis"
               label="Registrar diagnóstico"
               busy={busy}
-              onPress={recordDiagnosis}
+              onPress={() => void runOnce(recordDiagnosis)}
             />
           </>
         ) : null}
@@ -478,7 +489,7 @@ export function LotEventsScreen({
                 testID="confirm-feed"
                 label="Registrar consumo"
                 busy={busy}
-                onPress={recordFeed}
+                onPress={() => void runOnce(recordFeed)}
               />
             </>
           )

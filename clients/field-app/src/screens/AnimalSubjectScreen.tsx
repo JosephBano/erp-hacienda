@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
 import { theme } from '../ui/theme';
 import {
@@ -85,7 +85,10 @@ export function AnimalSubjectScreen({
     }
 
     return (
-      <Screen testID="animal-subject-detail">
+      // Title plus five 64-unit buttons overflows a short window as soon as the label
+      // is long or the system font is scaled up, and a fixed Screen offers no way to
+      // reach "Elegir otro animal" (feature-0006 D1).
+      <Screen testID="animal-subject-detail" scrollable>
         <Title>{animal.label}</Title>
         <BigButton
           testID="activity-treatment"
@@ -129,7 +132,12 @@ export function AnimalSubjectScreen({
   }
 
   return (
-    <Screen testID="animal-subject-screen">
+    // Two defects in one branch: the inner ScrollView never scrolled (no bounded
+    // height inside a Card that does not flex) and, with the search keyboard open,
+    // its default keyboardShouldPersistTaps="never" ate the first tap on a result.
+    // Scrolling the whole screen fixes both and leaves "Recientes" reachable too — it
+    // had no scroller at all. One vertical gesture per screen (D1).
+    <Screen testID="animal-subject-screen" scrollable>
       <Title>Un animal</Title>
       <TextField
         testID="animal-subject-search"
@@ -158,7 +166,7 @@ export function AnimalSubjectScreen({
         {matches.length === 0 ? (
           <Body muted>Nada coincide.</Body>
         ) : (
-          <ScrollView testID="animal-list" contentContainerStyle={styles.list}>
+          <View testID="animal-list" style={styles.list}>
             {matches.map((animal) => (
               <BigButton
                 key={animal.animalId}
@@ -168,7 +176,7 @@ export function AnimalSubjectScreen({
                 onPress={() => onSelectAnimal(animal.animalId)}
               />
             ))}
-          </ScrollView>
+          </View>
         )}
       </Card>
     </Screen>

@@ -32,7 +32,20 @@ export function Step2ConfirmDetails({
   onBack: () => void;
 }) {
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    /*
+     * This step owns the wizard's only vertical scroller — BirthScreen keeps its
+     * `Screen` fixed so the four steps do not nest one inside another (D1). The date
+     * field and "Continuar a Crías" share it, so `keyboardShouldPersistTaps` must be
+     * 'handled': React Native's default ('never') spends the first tap on the button
+     * dismissing the keyboard, and the operator reads that as the app ignoring them.
+     */
+    <ScrollView
+      testID="birth-step-2"
+      style={styles.container}
+      contentContainerStyle={styles.content}
+      keyboardShouldPersistTaps="handled"
+      keyboardDismissMode="on-drag"
+    >
       <Card>
         <Body>{`Madre: ${dam.label}`}</Body>
         <Body muted>{dam.sireLabel}</Body>

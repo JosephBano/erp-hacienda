@@ -15,6 +15,61 @@ import { VaccinateScreen } from '../src/screens/VaccinateScreen';
  * exactly three taps. Route, reason and dose form are all resolved from the
  * local catalog mirrors — none of them cost a tap.
  */
+/**
+ * feature-0006 commit 2 — structural helpers, copied from `Screen.test.tsx` on
+ * purpose. RNTL measures no layout, so these prove nothing about pixels; what
+ * they pin is the structure that makes content unreachable — a second vertical
+ * scroller stealing the drag, and a clamped content box capping the screen at
+ * one window. The on-device check is `test-e2e.md` (criterion 6).
+ */
+const countScrollers = (node: unknown): number => {
+  if (!node || typeof node !== 'object') return 0;
+  const element = node as { type?: string; children?: unknown[] };
+  const self = element.type === 'RCTScrollView' || element.type === 'ScrollView' ? 1 : 0;
+  return (element.children ?? []).reduce<number>((acc, child) => acc + countScrollers(child), self);
+};
+
+const flatten = (style: unknown): Record<string, unknown> =>
+  Array.isArray(style)
+    ? style.reduce<Record<string, unknown>>((acc, part) => ({ ...acc, ...flatten(part) }), {})
+    : ((style ?? {}) as Record<string, unknown>);
+
+type RenderedNode = { props?: { style?: unknown; testID?: string }; children?: unknown[] };
+
+const findNode = (node: unknown, testID: string): RenderedNode | null => {
+  if (!node || typeof node !== 'object') return null;
+  const element = node as RenderedNode;
+  if (element.props?.testID === testID) return element;
+  for (const child of element.children ?? []) {
+    const found = findNode(child, testID);
+    if (found) return found;
+  }
+  return null;
+};
+
+const flexValues = (node: unknown): unknown[] => {
+  if (!node || typeof node !== 'object') return [];
+  const element = node as RenderedNode;
+  const own = flatten(element.props?.style).flex;
+  return (element.children ?? []).reduce<unknown[]>(
+    (acc, child) => acc.concat(flexValues(child)),
+    own === undefined ? [] : [own],
+  );
+};
+
+/**
+ * Every `flex` declared *inside* the screen container. A `1` in there is the defect
+ * this commit removes: a clamped box inside scrollable content re-bounds the form to
+ * one window, so the tail sits below the fold with nothing left to scroll. The walk
+ * starts below the container because the scroller and its KeyboardAvoidingView
+ * legitimately carry `flex: 1` — they *are* the window.
+ */
+const clampsInsideScreen = (testID: string, tree: unknown): unknown[] =>
+  (findNode(tree, testID)?.children ?? []).reduce<unknown[]>(
+    (acc, child) => acc.concat(flexValues(child)),
+    [],
+  );
+
 describe('VaccinateScreen', () => {
   let database: Database;
   let outbox: Outbox;
@@ -150,5 +205,94 @@ describe('VaccinateScreen', () => {
 
     fireEvent.press(await screen.findByTestId('vaccinate-animal-pig-1'));
     expect(await screen.findByTestId('vaccinate-product-empty')).toBeTruthy();
+  });
+  /**
+   * feature-0006 commit 2. Vaccination is short by design (three taps), but the
+   * confirm card is still the step with no inner scroller: a long animal label,
+   * the missing-catalog warning and an error notice all stack in the same fixed
+   * box, and "Confirmar" is what goes under the fold on a short screen. The
+   * picker steps keep the bounded scroller they already had.
+   */
+  describe('reachability of the confirm step (feature-0006)', () => {
+    it('scrolls the confirm step and keeps "Confirmar" pressable', async () => {
+      await render(
+        <VaccinateScreen
+          service={service}
+          database={database}
+          animals={animals}
+          products={products}
+          onCancel={() => undefined}
+        />,
+      );
+
+      fireEvent.press(await screen.findByTestId('vaccinate-animal-pig-1'));
+      fireEvent.press(await screen.findByTestId('vaccinate-product-item-1'));
+      const confirmButton = await screen.findByTestId('vaccinate-confirm');
+
+      // One vertical gesture, owned by the Screen (D1).
+      expect(countScrollers(screen.toJSON())).toBe(1);
+
+      const content = flatten(screen.getByTestId('vaccinate-screen').props.contentContainerStyle);
+      expect(content.flexGrow).toBe(1);
+      // `flex: 1` clamps the content box back to the viewport — the defect itself.
+      expect(content.flex).toBeUndefined();
+      // And the `styles.body` wrapper must not re-clamp it from the inside.
+      expect(clampsInsideScreen('vaccinate-screen', screen.toJSON())).not.toContain(1);
+
+      // The footer action travels with the content instead of being pinned below it.
+      expect(screen.getByTestId('vaccinate-cancel')).toBeTruthy();
+
+      await act(async () => {
+        fireEvent.press(confirmButton);
+        await Promise.resolve();
+        await Promise.resolve();
+        await Promise.resolve();
+      });
+
+      expect(await outbox.pending()).toHaveLength(1);
+    });
+
+    it('leaves the picker steps with their bounded inner scroller and no second one', async () => {
+      await render(
+        <VaccinateScreen
+          service={service}
+          database={database}
+          animals={animals}
+          products={products}
+          onCancel={() => undefined}
+        />,
+      );
+
+      expect(await screen.findByTestId('vaccinate-animal-list')).toBeTruthy();
+      expect(countScrollers(screen.toJSON())).toBe(1);
+      // A plain View, not a scroller: nothing competes with the list for the drag.
+      expect(screen.getByTestId('vaccinate-screen').props.contentContainerStyle).toBeUndefined();
+
+      fireEvent.press(screen.getByTestId('vaccinate-animal-pig-1'));
+      expect(await screen.findByTestId('vaccinate-product-list')).toBeTruthy();
+      expect(countScrollers(screen.toJSON())).toBe(1);
+      expect(screen.getByTestId('vaccinate-screen').props.contentContainerStyle).toBeUndefined();
+    });
+
+    it('scrolls a step whose picker collapsed into an empty state', async () => {
+      await render(
+        <VaccinateScreen
+          service={service}
+          database={database}
+          animals={animals}
+          products={[]}
+          onCancel={() => undefined}
+        />,
+      );
+
+      fireEvent.press(await screen.findByTestId('vaccinate-animal-pig-1'));
+      expect(await screen.findByTestId('vaccinate-product-empty')).toBeTruthy();
+
+      // No inner list here, so the Screen takes the gesture — otherwise the
+      // empty-state card plus "Cancelar" have nowhere to go on a short phone.
+      expect(countScrollers(screen.toJSON())).toBe(1);
+      expect(flatten(screen.getByTestId('vaccinate-screen').props.contentContainerStyle).flexGrow).toBe(1);
+      expect(screen.getByTestId('vaccinate-cancel')).toBeTruthy();
+    });
   });
 });

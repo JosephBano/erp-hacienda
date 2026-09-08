@@ -6,6 +6,7 @@ import { theme } from '../ui/theme';
 import { BigButton, Body, Card, EmptyState, Notice, Screen, Title } from '../ui/components';
 import type { EventService } from '../services/eventService';
 import { loadAdministrationRoutes, loadDoseKinds } from '../services/herdQueries';
+import { useSingleFlight } from '../ui/useSingleFlight';
 
 export interface VaccinateAnimalOption {
   animalId: string;
@@ -62,7 +63,29 @@ export function VaccinateScreen({
   const [doseKindId, setDoseKindId] = useState<string | null>(null);
   const [catalogError, setCatalogError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
+  /**
+   * One writing path, one latch: `confirm` is the only thing on this screen that
+   * touches the outbox. `busy` alone never guarded it — React schedules the flag
+   * rather than applying it, so both halves of a double tap read it as false and
+   * both enqueue a vaccination for an animal that got one dose.
+   */
+  const { busy, runOnce } = useSingleFlight();
+
+  /*
+   * No `useDraftFlag` here, on purpose (D3, T5.2).
+   *
+   * This screen has no field the employee types into: everything it holds is
+   * two picks off a list, and the vía, the motivo and the dose are fixed
+   * defaults it never asks for. Leaving at the confirm card costs two taps to
+   * redo and loses no information the employee had to remember — unlike a dose
+   * read off a syringe in the rain, which is what the shell's question is for.
+   *
+   * Declaring a draft here would spend that question on the cheapest screen in
+   * the app, and a question that fires on a screen with nothing written on it is
+   * how employees learn to tap "Salir y descartar" without reading it. The way
+   * to protect the two picks is to make going back keep them, which is what
+   * "Elegir otro producto" below does.
+   */
 
   useEffect(() => {
     void (async () => {
@@ -108,7 +131,6 @@ export function VaccinateScreen({
   const confirm = async () => {
     if (!animal || !product || !routeId || !doseKindId || isAnimalObsolete) return;
 
-    setBusy(true);
     setError(null);
     try {
       await service.recordTreatmentCourse({
@@ -125,19 +147,33 @@ export function VaccinateScreen({
       onRecorded?.();
     } catch (caught) {
       setError((caught as Error).message);
-    } finally {
-      setBusy(false);
     }
   };
 
+  // D1 — one vertical gesture per render. Both picker steps own a bounded inner
+  // ScrollView (unless the catalog is empty and they fall back to an EmptyState),
+  // so the Screen stays fixed under them rather than nesting a second scroller
+  // that would fight for the same drag. The confirm card owns none: with a long
+  // animal label, the catalog warning and the error notice it is what overflows
+  // on a short screen, and "Confirmar" is the control that goes out of reach.
+  const scrollable = !(
+    (step === 'animal' && animals.length > 0) || (step === 'product' && products.length > 0)
+  );
+
   return (
-    <Screen testID="vaccinate-screen">
+    <Screen testID="vaccinate-screen" scrollable={scrollable}>
       <Title>Vacunar</Title>
 
       {catalogError ? <Notice text={catalogError} tone="warning" /> : null}
       {error ? <Notice text={error} /> : null}
 
-      <View style={styles.body}>
+      {/*
+        `flex: 1` is what bounds the picker steps' inner scroller to the window.
+        Inside a scrollable content box that same clamp caps the content at one
+        window and puts "Confirmar" back out of reach with nothing to scroll, so
+        the scrollable branch only grows.
+      */}
+      <View style={scrollable ? styles.bodyGrow : styles.body}>
         {step === 'animal' ? (
           animals.length === 0 ? (
             <EmptyState
@@ -214,7 +250,20 @@ export function VaccinateScreen({
               label="Confirmar"
               busy={busy}
               disabled={!routeId || !doseKindId || isAnimalObsolete}
-              onPress={() => void confirm()}
+              onPress={() => void runOnce(confirm)}
+            />
+            {/*
+              T5.1 / D3 — the way back from the review card. "Cancelar" was the
+              only control that left it and it runs `reset()`, so an employee who
+              had picked the wrong vaccine lost the animal too and started the
+              three taps over. This moves the step and nothing else: the animal
+              stays chosen.
+            */}
+            <BigButton
+              testID="vaccinate-back-to-product"
+              label="Elegir otro producto"
+              tone="neutral"
+              onPress={() => setStep('product')}
             />
           </Card>
         ) : null}
@@ -227,5 +276,6 @@ export function VaccinateScreen({
 
 const styles = StyleSheet.create({
   body: { flex: 1 },
+  bodyGrow: { flexGrow: 1 },
   list: { gap: theme.space.sm, paddingBottom: theme.space.md },
 });

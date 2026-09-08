@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { ScrollView, Share, StyleSheet, Text, View } from 'react-native';
+import { Share, StyleSheet, Text, View } from 'react-native';
 import NetInfo from '@react-native-community/netinfo';
 
 import { theme } from '../ui/theme';
@@ -133,7 +133,13 @@ export function SyncStatusScreen({
   };
 
   return (
-    <Screen testID="sync-status-screen">
+    /*
+     * Scrollable: this screen is the one the employees named. It stacks two counters,
+     * two buttons, an optional confirmation card, an optional notice, the refused-record
+     * tray and the module switches — on a short tablet (IT-701A, Android 14) the module
+     * section sits below the fold with nothing to drag.
+     */
+    <Screen testID="sync-status-screen" scrollable>
       <Title>Sincronización</Title>
 
       <Card>
@@ -209,7 +215,11 @@ export function SyncStatusScreen({
       {rejected.length === 0 ? (
         <Body muted>Ninguno. Todo lo registrado fue aceptado.</Body>
       ) : (
-        <ScrollView testID="problem-list" contentContainerStyle={styles.list}>
+        /*
+         * A plain View, not a ScrollView: the screen itself now scrolls, and a second
+         * vertical scroller here would swallow the drag that belongs to it (D1).
+         */
+        <View testID="problem-list" style={styles.list}>
           {rejected.map((entry) => (
             <Card key={entry.clientOperationId}>
               <Body>{LABELS[entry.operationType] ?? entry.operationType}</Body>
@@ -219,7 +229,7 @@ export function SyncStatusScreen({
               </View>
             </Card>
           ))}
-        </ScrollView>
+        </View>
       )}
 
       <Title>Módulos del dispositivo</Title>

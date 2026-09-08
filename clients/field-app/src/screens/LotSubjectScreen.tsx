@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { ScrollView, StyleSheet } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
 import { theme } from '../ui/theme';
 import { BigButton, Body, Card, EmptyState, Notice, Screen, Title } from '../ui/components';
@@ -82,7 +82,10 @@ export function LotSubjectScreen({
   if (selectedGroupId) {
     const lot = lots.find((l) => l.groupId === selectedGroupId);
     return (
-      <Screen testID="lot-subject-detail">
+      // Seven buttons at a 64-unit minimum are 448 units before the title and the
+      // summary card ever draw. On the short tablet the employees use that runs off
+      // the bottom, and a fixed Screen gives no way down (feature-0006 D1).
+      <Screen testID="lot-subject-detail" scrollable>
         <Title>{lot?.label ?? selectedGroupId}</Title>
 
         {summary ? (
@@ -150,11 +153,14 @@ export function LotSubjectScreen({
   }
 
   return (
-    <Screen testID="lot-subject-screen">
+    // The screen scrolls, the list does not. A ScrollView with no bounded height
+    // inside a Card that does not flex never scrolls — it just overflows the window,
+    // which is the reported defect. One vertical gesture per screen (D1).
+    <Screen testID="lot-subject-screen" scrollable>
       <Title>Un lote</Title>
       <Card>
         <Body muted>{'Lotes'}</Body>
-        <ScrollView testID="lot-list" contentContainerStyle={styles.list}>
+        <View testID="lot-list" style={styles.list}>
           {lots.map((lot) => (
             <BigButton
               key={lot.groupId}
@@ -164,7 +170,7 @@ export function LotSubjectScreen({
               onPress={() => onSelectLot(lot.groupId)}
             />
           ))}
-        </ScrollView>
+        </View>
       </Card>
     </Screen>
   );

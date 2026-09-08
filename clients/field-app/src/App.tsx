@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Platform, SafeAreaView, StatusBar, StyleSheet, View } from 'react-native';
+import { BackHandler, Platform, SafeAreaView, StatusBar, StyleSheet, View } from 'react-native';
 
 import { createDatabase } from './database';
 import { AnimalEditService } from './services/animalEditService';
@@ -39,7 +39,8 @@ import { TodayScreen } from './screens/TodayScreen';
 import { TreatScreen } from './screens/TreatScreen';
 import { VaccinateScreen } from './screens/VaccinateScreen';
 import type { TabKey } from './screens/navigation';
-import { BigButton, Body, Screen, Title } from './ui/components';
+import { BigButton, Body, Card, Notice, Screen, Title } from './ui/components';
+import { DraftGuardProvider, useDraftGate } from './ui/draftGuard';
 import { theme } from './ui/theme';
 
 // Reads the API URL from the EAS build profile's env (see eas.json), falling back to the
@@ -131,6 +132,27 @@ export default function App() {
 
   const visibility = useMemo(() => new ModuleVisibility(database, api), [database, api]);
 
+  // D3 — leaving a screen with unsaved input asks first. The shell cannot see
+  // inside a screen's form state, so screens report the answer through
+  // `useDraftFlag` and this gate parks the navigation until the employee says.
+  const gate = useDraftGate();
+
+  /**
+   * The one way back to the hub. Both the on-screen "Inicio" button and Android's
+   * hardware back run exactly this, which is what makes their results coherent
+   * (tasks T5.3) — two buttons that land in different places is how a route ends
+   * up unreachable.
+   */
+  const goHome = useCallback(() => {
+    setTab('home');
+    setSelectedAnimalId(null);
+    setEventsInitialAnimalId(undefined);
+    setEventsInitialActivity(undefined);
+    setSelectedGroupId(null);
+    setLotEventsGroupId(undefined);
+    setLotEventsActivity(undefined);
+  }, []);
+
   const refresh = useCallback(async () => {
     const [
       nextHerd,
@@ -197,7 +219,7 @@ export default function App() {
     // Opportunistic sync: fires as soon as the phone finds signal again.
     engine.start();
 
-    const unsubscribe = engine.subscribe((result) => {
+    const unsubscribe = engine.subscribe?.((result) => {
       if (result.pulled > 0 || result.pushed > 0 || result.rejected > 0) {
         void refresh();
       }
@@ -206,14 +228,37 @@ export default function App() {
     void engine.syncNow().then(refresh);
 
     return () => {
-      unsubscribe();
+      unsubscribe?.();
       engine.stop();
     };
   }, [authenticated, engine, refresh]);
 
+  /**
+   * Android's hardware back had no handler at all, so it closed the app from
+   * wherever the employee was — a half-typed treatment gone, in one thumb press
+   * they did not mean as "quit". Now it does what the visible button does, and
+   * only the hub lets the OS take it and actually leave.
+   */
+  useEffect(() => {
+    const onBack = () => {
+      if (gate.isAsking) {
+        // Back dismisses the question rather than answering it: the safe reading
+        // of "no" is "stay", never "discard".
+        gate.keep();
+        return true;
+      }
+      if (tab === 'home') return false;
+      gate.request(goHome);
+      return true;
+    };
+
+    const subscription = BackHandler.addEventListener('hardwareBackPress', onBack);
+    return () => subscription.remove();
+  }, [gate, goHome, tab]);
+
   if (!ready) {
     return (
-      <SafeAreaView style={styles.root}>
+      <SafeAreaView testID="app-root" style={styles.root}>
         <StatusBar barStyle="light-content" backgroundColor={theme.color.background} translucent={false} />
         <Screen>
           <Title>HATO</Title>
@@ -225,7 +270,7 @@ export default function App() {
 
   if (!authenticated) {
     return (
-      <SafeAreaView style={styles.root}>
+      <SafeAreaView testID="app-root" style={styles.root}>
         <StatusBar barStyle="light-content" backgroundColor={theme.color.background} translucent={false} />
         <LoginScreen
           auth={auth}
@@ -237,9 +282,10 @@ export default function App() {
   }
 
   return (
-    <SafeAreaView style={styles.root}>
+    <SafeAreaView testID="app-root" style={styles.root}>
       <StatusBar barStyle="light-content" backgroundColor={theme.color.background} translucent={false} />
 
+      <DraftGuardProvider onDirtyChange={gate.markDirty}>
       <View style={styles.content}>
         {tab === 'home' ? (
           <ActivitiesHub
@@ -429,22 +475,32 @@ export default function App() {
           />
         ) : null}
       </View>
+      </DraftGuardProvider>
 
-      {tab !== 'home' ? (
-        <View style={styles.footer}>
+      {gate.isAsking ? (
+        <View testID="app-discard-prompt" style={styles.footer}>
+          <Card>
+            <Notice tone="warning" text="Hay datos escritos sin registrar en esta pantalla." />
+            <BigButton
+              testID="keep-editing"
+              label="Seguir aquí"
+              onPress={gate.keep}
+            />
+            <BigButton
+              testID="discard-draft"
+              label="Salir y descartar"
+              tone="danger"
+              onPress={gate.discard}
+            />
+          </Card>
+        </View>
+      ) : tab !== 'home' ? (
+        <View testID="app-footer" style={styles.footer}>
           <BigButton
             testID="go-home"
             label="Inicio"
             tone="neutral"
-            onPress={() => {
-              setTab('home');
-              setSelectedAnimalId(null);
-              setEventsInitialAnimalId(undefined);
-              setEventsInitialActivity(undefined);
-              setSelectedGroupId(null);
-              setLotEventsGroupId(undefined);
-              setLotEventsActivity(undefined);
-            }}
+            onPress={() => gate.request(goHome)}
           />
         </View>
       ) : null}
@@ -455,27 +511,35 @@ export default function App() {
 const ANDROID_NAV_BAR_PADDING = 48;
 
 const styles = StyleSheet.create({
+  /**
+   * Every branch of this component sits in `root`, and that is where the system
+   * navigation bar has to be dodged. On Android (back / home / recent, drawn over the
+   * bottom edge of the window on edge-to-edge devices) `SafeAreaView` from react-native
+   * does nothing at all — it only applies insets on iOS — so the app reserves the strip
+   * itself with `ANDROID_NAV_BAR_PADDING`, and pays nothing on iOS, where there is no
+   * system bar to dodge.
+   *
+   * It used to live on the footer instead, which hid the defect the operators reported:
+   * the home screen renders no footer, so the hub's last button ("Sincronización") sat
+   * under the system buttons on a short screen. Reserving the strip at the root covers
+   * every screen, footer or not.
+   */
   root: {
     flex: 1,
     backgroundColor: theme.color.background,
+    paddingBottom: Platform.select({
+      ios: 0,
+      android: ANDROID_NAV_BAR_PADDING,
+      default: 0,
+    }),
   },
   content: {
     flex: 1,
   },
-  /**
-   * Holds the "Inicio" / "Volver" button. On Android the system navigation bar (back /
-   * home / recent) overlays the bottom edge of the app on edge-to-edge devices, which on
-   * SDK 56 means a button placed at the very bottom is half-hidden behind the buttons.
-   * Adding `ANDROID_NAV_BAR_PADDING` on Android only keeps the button legible without
-   * paying that cost on iOS (where there is no system bar to dodge).
-   */
+  /** Holds the "Inicio" / "Volver" button. The system bar is already cleared by `root`. */
   footer: {
     paddingHorizontal: theme.space.md,
     paddingTop: theme.space.md,
-    paddingBottom: Platform.select({
-      ios: theme.space.md,
-      android: theme.space.md + ANDROID_NAV_BAR_PADDING,
-      default: theme.space.md,
-    }),
+    paddingBottom: theme.space.md,
   },
 });

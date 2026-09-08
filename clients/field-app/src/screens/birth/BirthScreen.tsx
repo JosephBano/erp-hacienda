@@ -74,8 +74,12 @@ export function BirthScreen({ service, dams, onRecorded, onCancel }: BirthScreen
     );
   };
 
+  const isDamObsolete = Boolean(
+    dam && !dams.some((d) => d.animalId === dam.animalId && d.pregnancyId === dam.pregnancyId),
+  );
+
   const submit = async () => {
-    if (!dam) return;
+    if (!dam || isDamObsolete) return;
     setBusy(true);
     setError(null);
     try {
@@ -136,6 +140,12 @@ export function BirthScreen({ service, dams, onRecorded, onCancel }: BirthScreen
           difficulty={difficulty}
           offspring={offspring}
           busy={busy}
+          isDamObsolete={isDamObsolete}
+          onChangeDam={() => {
+            setDam(null);
+            setStep(1);
+            setError(null);
+          }}
           onSubmit={submit}
           onBack={() => setStep(3)}
           onCancel={handleCancel}

@@ -44,6 +44,23 @@ plausibilidad actualmente viajan en cadenas JSON anidadas o no se persisten expl
 como columna confirmada. Conviene diseñar un patrón consistente de diálogo de advertencia
 no bloqueante que persista la decisión del operario en todos los módulos de campo.
 
+## Pendiente feature-0005 — Validaciones de aptitud por actividad (2026-09-08)
+
+> Validaciones de aptitud biológica y de estado por actividad en campo y servidor en `feature/livestock-activity-validation`.
+> Los siguientes ítems recogen deuda técnica identificada y límites explícitos de alcance (spec sec. 4 y 5, regla 9):
+
+### [production] Ciclo de vida y exigencia de `Lactation` activa en ordeño
+
+La validación de aptitud para ordeño (`RecordMilkingSessionCommand` y `milkingService`) comprueba sexo hembra, especie ordeñable y ausencia de baja efectiva anterior al hecho, pero no exige una lactancia activa (`Lactation`) porque su ciclo de vida automático y manual aún no está implementado en Livestock ni Production (spec sec. 4). Requiere modelar el inicio (tras parto) y secado de lactancias antes de poder imponerlo como bloqueo.
+
+### [production] Distinción operativa entre leche ordeñada descartada por retiro y vendible
+
+Actualmente la leche de animales bajo período de retiro no es vendible y el sistema bloquea su registro como vendible (ADR-0005, regla dura 6, spec sec. 4). Falta definir una especificación y flujo operativo para registrar sesiones de ordeño donde la leche de animales bajo retiro se descarte físicamente sin registrarse como volumen disponible para tanque ni mezclarse con leche comercializable.
+
+### [livestock] Auditoría y eventos de corrección para registros históricos preexistentes
+
+Conforme a la Regla Dura 1 (inmutabilidad de eventos históricos) y spec sec. 5, los registros históricos preexistentes en la base de datos de producción que no cumplan las nuevas invariantes (p. ej., ordeños o partos previos a estas validaciones) no se eliminan ni alteran de forma automática. Se requiere ejecutar las consultas de auditoría identificadas (TC.4) y emitir eventos de corrección cuando el dueño lo determine.
+
 ## Pendiente 3.5a.2-C — sub-rama cerrada, ítems abiertos
 
 > La sub-rama 3.5a.2-C mergeó a `integration/fase-3-5-wave-1` el 2026-08-09

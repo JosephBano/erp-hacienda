@@ -40,6 +40,7 @@ export function VaccinateScreen({
   products,
   onRecorded,
   onCancel,
+  initialAnimalId,
 }: {
   service: EventService;
   /** Only used to load the local route/dose-kind catalogs (Art. 9: no network). */
@@ -48,9 +49,14 @@ export function VaccinateScreen({
   products: VaccinateProductOption[];
   onRecorded?: () => void;
   onCancel: () => void;
+  initialAnimalId?: string;
 }) {
-  const [step, setStep] = useState<'animal' | 'product' | 'confirm'>('animal');
-  const [animal, setAnimal] = useState<VaccinateAnimalOption | null>(null);
+  const [animal, setAnimal] = useState<VaccinateAnimalOption | null>(() =>
+    initialAnimalId ? (animals.find((a) => a.animalId === initialAnimalId) ?? null) : null,
+  );
+  const [step, setStep] = useState<'animal' | 'product' | 'confirm'>(() =>
+    initialAnimalId ? 'product' : 'animal',
+  );
   const [product, setProduct] = useState<VaccinateProductOption | null>(null);
   const [routeId, setRouteId] = useState<string | null>(null);
   const [doseKindId, setDoseKindId] = useState<string | null>(null);
@@ -93,12 +99,14 @@ export function VaccinateScreen({
     setStep('confirm');
   };
 
+  const isAnimalObsolete = Boolean(animal && !animals.some((a) => a.animalId === animal.animalId));
+
   // 3 — confirm. No plausibility check here: the dose is a fixed "one unit
   // per head" default, never operator-typed, so there is no value to
   // evaluate against `plausibility_ranges` (ADR-0022 only gates values a
   // human entered).
   const confirm = async () => {
-    if (!animal || !product || !routeId || !doseKindId) return;
+    if (!animal || !product || !routeId || !doseKindId || isAnimalObsolete) return;
 
     setBusy(true);
     setError(null);
@@ -147,7 +155,7 @@ export function VaccinateScreen({
                   tone="neutral"
                   onPress={() => {
                     setAnimal(option);
-                    setStep('product');
+                    setStep(product ? 'confirm' : 'product');
                   }}
                 />
               ))}
@@ -180,12 +188,32 @@ export function VaccinateScreen({
         {step === 'confirm' && animal && product ? (
           <Card>
             <Body>{animal.label}</Body>
+
+            {isAnimalObsolete ? (
+              <>
+                <Notice
+                  tone="warning"
+                  text="El animal seleccionado ya no existe en el sistema (fue eliminado o dado de baja en el servidor). No se puede registrar la vacunación contra este animal. Puede elegir otro animal sin perder los datos ingresados."
+                />
+                <BigButton
+                  testID="change-animal"
+                  label="Elegir otro animal"
+                  tone="neutral"
+                  onPress={() => {
+                    setAnimal(null);
+                    setStep('animal');
+                    setError(null);
+                  }}
+                />
+              </>
+            ) : null}
+
             <Body muted>{`${product.name} · 1 ${product.unit} por cabeza`}</Body>
             <BigButton
               testID="vaccinate-confirm"
               label="Confirmar"
               busy={busy}
-              disabled={!routeId || !doseKindId}
+              disabled={!routeId || !doseKindId || isAnimalObsolete}
               onPress={() => void confirm()}
             />
           </Card>

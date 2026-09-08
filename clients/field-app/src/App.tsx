@@ -17,6 +17,7 @@ import {
   loadFeedItems,
   loadGroups,
   loadHerd,
+  loadActiveHerd,
   loadMedications,
   loadMilkingCandidates,
   loadMortalityCauses,
@@ -94,6 +95,7 @@ export default function App() {
   const [tab, setTab] = useState<Tab>('home');
   const [pending, setPending] = useState(0);
   const [herd, setHerd] = useState<Awaited<ReturnType<typeof loadHerd>>>([]);
+  const [activeHerd, setActiveHerd] = useState<Awaited<ReturnType<typeof loadActiveHerd>>>([]);
   const [milkingCandidates, setMilkingCandidates] = useState<Awaited<ReturnType<typeof loadMilkingCandidates>>>([]);
   const [groups, setGroups] = useState<Awaited<ReturnType<typeof loadGroups>>>([]);
   const [treatmentProducts, setTreatmentProducts] = useState<Awaited<ReturnType<typeof loadTreatmentProducts>>>([]);
@@ -130,8 +132,22 @@ export default function App() {
   const visibility = useMemo(() => new ModuleVisibility(database, api), [database, api]);
 
   const refresh = useCallback(async () => {
-    const [nextHerd, nextMilkingCandidates, nextGroups, nextTreatmentProducts, nextMedications, nextMortalityCauses, nextFeedItems, nextPregnantDams, stats, productionVisible, today] = await Promise.all([
+    const [
+      nextHerd,
+      nextActiveHerd,
+      nextMilkingCandidates,
+      nextGroups,
+      nextTreatmentProducts,
+      nextMedications,
+      nextMortalityCauses,
+      nextFeedItems,
+      nextPregnantDams,
+      stats,
+      productionVisible,
+      today,
+    ] = await Promise.all([
       loadHerd(database),
+      loadActiveHerd(database),
       loadMilkingCandidates(database),
       loadGroups(database),
       loadTreatmentProducts(database),
@@ -145,6 +161,7 @@ export default function App() {
     ]);
 
     setHerd(nextHerd);
+    setActiveHerd(nextActiveHerd);
     setMilkingCandidates(nextMilkingCandidates);
     setGroups(nextGroups);
     setTreatmentProducts(nextTreatmentProducts);
@@ -257,7 +274,7 @@ export default function App() {
 
         {tab === 'animal-subject' ? (
           <AnimalSubjectScreen
-            animals={herd.map((member) => ({ animalId: member.animalId, label: member.label }))}
+            animals={activeHerd.map((member) => ({ animalId: member.animalId, label: member.label }))}
             recentIds={[]}
             selectedAnimalId={selectedAnimalId ?? undefined}
             onSelectAnimal={(animalId) => setSelectedAnimalId(animalId)}
@@ -356,7 +373,7 @@ export default function App() {
           <EventsScreen
             service={events}
             database={database}
-            animals={herd}
+            animals={activeHerd}
             groups={groups}
             mortalityCauses={mortalityCauses}
             onRecorded={refresh}
@@ -369,7 +386,7 @@ export default function App() {
           <VaccinateScreen
             service={events}
             database={database}
-            animals={herd}
+            animals={activeHerd}
             products={treatmentProducts}
             onRecorded={refresh}
             onCancel={() => setTab('home')}
@@ -380,7 +397,7 @@ export default function App() {
           <TreatScreen
             service={events}
             database={database}
-            animals={herd}
+            animals={activeHerd}
             products={treatmentProducts}
             onRecorded={refresh}
             onCancel={() => setTab('home')}

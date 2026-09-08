@@ -50,6 +50,7 @@ export function TreatScreen({
   products,
   onRecorded,
   onCancel,
+  initialAnimalId,
 }: {
   service: EventService;
   database: Database;
@@ -57,9 +58,14 @@ export function TreatScreen({
   products: TreatProductOption[];
   onRecorded?: () => void;
   onCancel: () => void;
+  initialAnimalId?: string;
 }) {
-  const [step, setStep] = useState<'animal' | 'product' | 'form' | 'confirm'>('animal');
-  const [animal, setAnimal] = useState<TreatAnimalOption | null>(null);
+  const [animal, setAnimal] = useState<TreatAnimalOption | null>(() =>
+    initialAnimalId ? (animals.find((a) => a.animalId === initialAnimalId) ?? null) : null,
+  );
+  const [step, setStep] = useState<'animal' | 'product' | 'form' | 'confirm'>(() =>
+    initialAnimalId ? 'product' : 'animal',
+  );
   const [product, setProduct] = useState<TreatProductOption | null>(null);
   const [routes, setRoutes] = useState<{ routeId: string; key: string; labelEs: string }[]>([]);
   const [reasons, setReasons] = useState<{ reasonId: string; key: string; labelEs: string }[]>([]);
@@ -131,11 +137,13 @@ export function TreatScreen({
     setStep('confirm');
   };
 
+  const isAnimalObsolete = Boolean(animal && !animals.some((a) => a.animalId === animal.animalId));
+
   // 4 — confirm (or, on an improbable dose, the plausibility dialog stands in
   // for it and a second press finishes the job — ADR-0022 sec.5, same pattern
   // as EventsScreen/MilkingScreen).
   const confirm = async (isPlausibilityConfirmed = false) => {
-    if (!animal || !routeId || !absoluteDoseKindId) return;
+    if (!animal || !routeId || !absoluteDoseKindId || isAnimalObsolete) return;
 
     setError(null);
     const trimmedDose = dose.trim();
@@ -294,6 +302,26 @@ export function TreatScreen({
         {step === 'confirm' && animal ? (
           <Card>
             <Body>{animal.label}</Body>
+
+            {isAnimalObsolete ? (
+              <>
+                <Notice
+                  tone="warning"
+                  text="El animal seleccionado ya no existe en el sistema (fue eliminado o dado de baja en el servidor). No se puede registrar el tratamiento contra este animal. Puede elegir otro animal sin perder los datos ingresados."
+                />
+                <BigButton
+                  testID="change-animal"
+                  label="Elegir otro animal"
+                  tone="neutral"
+                  onPress={() => {
+                    setAnimal(null);
+                    setStep('animal');
+                    setError(null);
+                  }}
+                />
+              </>
+            ) : null}
+
             <Body muted>
               {dose.trim() ? `Dosis: ${dose}${product ? ` ${product.unit}` : ''}` : 'Sin dosis numérica'}
             </Body>
@@ -308,6 +336,7 @@ export function TreatScreen({
                   testID="treat-confirm-plausibility"
                   label="Sí, registrar"
                   busy={busy}
+                  disabled={isAnimalObsolete}
                   onPress={() => void confirm(true)}
                 />
                 <BigButton
@@ -318,7 +347,13 @@ export function TreatScreen({
                 />
               </>
             ) : (
-              <BigButton testID="treat-confirm" label="Confirmar" busy={busy} onPress={() => void confirm(false)} />
+              <BigButton
+                testID="treat-confirm"
+                label="Confirmar"
+                busy={busy}
+                disabled={isAnimalObsolete}
+                onPress={() => void confirm(false)}
+              />
             )}
           </Card>
         ) : null}

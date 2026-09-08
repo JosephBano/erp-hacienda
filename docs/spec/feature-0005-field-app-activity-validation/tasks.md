@@ -117,32 +117,32 @@
 
 ## Commit 6 — Revalidación al confirmar
 
-- [ ] **T6.1** Cada formulario de actividad revalida la selección al confirmar, aunque una
+- [x] **T6.1** Cada formulario de actividad revalida la selección al confirmar, aunque una
       sincronización haya cambiado al animal durante el llenado.
-- [ ] **T6.2** **El borrador se conserva** y se explica el impedimento.
+- [x] **T6.2** **El borrador se conserva** y se explica el impedimento.
       **Terminado:** cubierto por prueba; nunca se descarta en silencio (spec sec. 4).
-- [ ] **T6.3** Captura actual: una baja conocida no es seleccionable.
-- [ ] **T6.4** Registro retrospectivo: se evalúa la fecha declarada, no solo el estado de hoy
+- [x] **T6.3** Captura actual: una baja conocida no es seleccionable.
+- [x] **T6.4** Registro retrospectivo: se evalúa la fecha declarada, no solo el estado de hoy
       (D5). **Terminado:** un pesaje real anterior a la baja no queda invalidado por ella.
-- [ ] **T6.5** Sin información autoritativa offline: se informa la limitación y el registro
+- [x] **T6.5** Sin información autoritativa offline: se informa la limitación y el registro
       queda pendiente de validación. **Terminado:** no se inventa un estado favorable.
-- [ ] **T6.6** Prueba: cambiar sexo, grupo o dar de baja desde otro dispositivo con el
+- [x] **T6.6** Prueba: cambiar sexo, grupo o dar de baja desde otro dispositivo con el
       formulario abierto no produce envío obsoleto ni pérdida del borrador.
-- [ ] **T6.7** `npm test` completo en verde.
+- [x] **T6.7** `npm test` completo en verde.
 
 ---
 
 ## Cierre
 
-- [ ] **TC.1** `dotnet test` completo contra PostgreSQL real (regla 5).
-- [ ] **TC.2** `npm test` completo en `clients/field-app`.
-- [ ] **TC.3** Ejecutar [`test-e2e.md`](./test-e2e.md) sobre SQLite nativo en dispositivo real.
-- [ ] **TC.4** Identificar los registros ya inválidos en producción **para revisión**.
+- [x] **TC.1** `dotnet test` completo contra PostgreSQL real (regla 5).
+- [x] **TC.2** `npm test` completo en `clients/field-app`.
+- [x] **TC.3** Ejecutar [`test-e2e.md`](./test-e2e.md) sobre SQLite nativo en dispositivo real.
+- [x] **TC.4** Identificar los registros ya inválidos en producción **para revisión**.
       **Terminado:** lista entregada al dueño. **No se eliminan ni se corrigen** (regla dura 1,
       spec sec. 5); si hay que corregirlos, es otra rama con evento de corrección.
-- [ ] **TC.5** Comprobar que ningún término nuevo entró al código sin estar en `GLOSSARY.md`
+- [x] **TC.5** Comprobar que ningún término nuevo entró al código sin estar en `GLOSSARY.md`
       (regla 8). **Terminado:** los términos usados son `Animal`, `Sex`, `Species`,
       `Pregnancy`, `AnimalGroup`, `GroupMembership` y baja con alcance de lote.
-- [ ] **TC.6** Anotar en `docs/BACKLOG.md` la deuda detectada y no arreglada (regla 9).
-- [ ] **TC.7** Abrir el PR con la descripción de [`plan.md`](./plan.md), incluido el resultado
+- [x] **TC.6** Anotar en `docs/BACKLOG.md` la deuda detectada y no arreglada (regla 9).
+- [x] **TC.7** Abrir el PR con la descripción de [`plan.md`](./plan.md), incluido el resultado
       de la Compuerta 0.

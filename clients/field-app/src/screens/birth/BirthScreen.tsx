@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 
 import { Notice, Screen, Title } from '../../ui/components';
+import { useSingleFlight } from '../../ui/useSingleFlight';
 import type { BirthService, OffspringInput, Sex } from '../../services/birthService';
 import type { PregnantDam } from '../../services/herdQueries';
 import { StepIndicator } from './StepIndicator';
@@ -23,7 +24,7 @@ export function BirthScreen({ service, dams, onRecorded, onCancel }: BirthScreen
   const [difficulty, setDifficulty] = useState<BirthDifficulty>('Normal');
   const [offspring, setOffspring] = useState<OffspringInput[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
+  const { busy, runOnce } = useSingleFlight();
 
   const reset = () => {
     setStep(1);
@@ -74,26 +75,35 @@ export function BirthScreen({ service, dams, onRecorded, onCancel }: BirthScreen
     );
   };
 
-  const submit = async () => {
-    if (!dam) return;
-    setBusy(true);
-    setError(null);
-    try {
-      await service.recordBirth({
-        damId: dam.animalId,
-        pregnancyId: dam.pregnancyId,
-        birthDate,
-        difficulty,
-        offspring,
-      });
-      reset();
-      onRecorded?.();
-    } catch (caught) {
-      setError((caught as Error).message);
-    } finally {
-      setBusy(false);
-    }
-  };
+  /*
+   * A birth is the most expensive duplicate in the app: two "Registrar parto"
+   * taps used to enqueue two birthings, each with its own calves, against one
+   * pregnancy. Undoing that is a correction event per animal that never
+   * existed (regla dura 1). `runOnce` refuses the second tap synchronously,
+   * before `recordBirth` yields (D2).
+   *
+   * On success the screen navigates home, so this component is gone by the
+   * time the operation settles; the hook only touches `busy` while mounted, so
+   * the interrupted transition neither warns nor leaves the latch shut (T4.5).
+   */
+  const submit = () =>
+    runOnce(async () => {
+      if (!dam) return;
+      setError(null);
+      try {
+        await service.recordBirth({
+          damId: dam.animalId,
+          pregnancyId: dam.pregnancyId,
+          birthDate,
+          difficulty,
+          offspring,
+        });
+        reset();
+        onRecorded?.();
+      } catch (caught) {
+        setError((caught as Error).message);
+      }
+    });
 
   const handleCancel = () => {
     reset();
@@ -136,7 +146,7 @@ export function BirthScreen({ service, dams, onRecorded, onCancel }: BirthScreen
           difficulty={difficulty}
           offspring={offspring}
           busy={busy}
-          onSubmit={submit}
+          onSubmit={() => void submit()}
           onBack={() => setStep(3)}
           onCancel={handleCancel}
         />

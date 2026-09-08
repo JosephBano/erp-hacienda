@@ -17,6 +17,7 @@ import {
 import type { EventService } from '../services/eventService';
 import { evaluatePlausibility } from '../services/plausibilityService';
 import { loadAdministrationRoutes, loadDoseKinds, loadTreatmentReasons } from '../services/herdQueries';
+import { useSingleFlight } from '../ui/useSingleFlight';
 
 export interface TreatAnimalOption {
   animalId: string;
@@ -71,7 +72,16 @@ export function TreatScreen({
   const [formError, setFormError] = useState<string | null>(null);
   const [pendingPlausibility, setPendingPlausibility] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
+  /**
+   * The latch is on `confirm`, which is the single writing path: "Confirmar"
+   * and "Sí, registrar" are the same function with a different argument, so one
+   * `runOnce` per press covers both without ever nesting. It has to start at the
+   * press and not at the enqueue, because on a typed dose `confirm` reads the
+   * plausibility ranges first — a `busy` flag flipped after that await left the
+   * button live for the whole read, which is exactly where a gloved double tap
+   * lands.
+   */
+  const { busy, runOnce } = useSingleFlight();
 
   useEffect(() => {
     void (async () => {
@@ -158,7 +168,6 @@ export function TreatScreen({
       }
     }
 
-    setBusy(true);
     try {
       const unit = product?.unit ?? 'unidad';
       await service.recordTreatmentCourse({
@@ -179,8 +188,6 @@ export function TreatScreen({
       onRecorded?.();
     } catch (caught) {
       setError((caught as Error).message);
-    } finally {
-      setBusy(false);
     }
   };
 
@@ -322,7 +329,7 @@ export function TreatScreen({
                   testID="treat-confirm-plausibility"
                   label="Sí, registrar"
                   busy={busy}
-                  onPress={() => void confirm(true)}
+                  onPress={() => void runOnce(() => confirm(true))}
                 />
                 <BigButton
                   testID="treat-cancel-plausibility"
@@ -332,7 +339,12 @@ export function TreatScreen({
                 />
               </>
             ) : (
-              <BigButton testID="treat-confirm" label="Confirmar" busy={busy} onPress={() => void confirm(false)} />
+              <BigButton
+                testID="treat-confirm"
+                label="Confirmar"
+                busy={busy}
+                onPress={() => void runOnce(() => confirm(false))}
+              />
             )}
           </Card>
         ) : null}

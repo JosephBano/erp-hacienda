@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 
 import { BigButton, Body, Card, Notice, Screen, TextField, Title } from '../ui/components';
 import type { AuthService } from '../services/authService';
+import { useSingleFlight } from '../ui/useSingleFlight';
 
 /**
  * Two ways in, because the farm has two situations.
@@ -23,20 +24,25 @@ export function LoginScreen({
   const [password, setPassword] = useState('');
   const [pin, setPin] = useState('');
   const [error, setError] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
+  const { busy, runOnce } = useSingleFlight();
 
-  const run = async (action: () => Promise<unknown>) => {
-    setBusy(true);
-    setError(null);
-    try {
-      await action();
-      onAuthenticated();
-    } catch (caught) {
-      setError((caught as Error).message);
-    } finally {
-      setBusy(false);
-    }
-  };
+  /*
+   * Nothing here reaches the outbox, but the gesture is the same one (D2): two
+   * taps on "Iniciar sesión" used to fire two login requests, and on the farm's
+   * signal that means the second one lands on a phone that is already
+   * authenticated — two answers, one of which arrives after the screen is gone.
+   * The latch is the hook's, so the rule is the same everywhere in the app.
+   */
+  const run = (action: () => Promise<unknown>) =>
+    runOnce(async () => {
+      setError(null);
+      try {
+        await action();
+        onAuthenticated();
+      } catch (caught) {
+        setError((caught as Error).message);
+      }
+    });
 
   return (
     /*
@@ -58,7 +64,7 @@ export function LoginScreen({
             testID="unlock-with-pin"
             label="Desbloquear"
             busy={busy}
-            onPress={() => run(() => auth.unlockWithPin(pin))}
+            onPress={() => void run(() => auth.unlockWithPin(pin))}
           />
         </Card>
       ) : null}
@@ -78,7 +84,7 @@ export function LoginScreen({
           label="Iniciar sesión"
           tone={hasCachedSession ? 'neutral' : 'primary'}
           busy={busy}
-          onPress={() => run(() => auth.login(email, password))}
+          onPress={() => void run(() => auth.login(email, password))}
         />
       </Card>
     </Screen>

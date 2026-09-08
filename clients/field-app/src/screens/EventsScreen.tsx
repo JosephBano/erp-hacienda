@@ -15,6 +15,7 @@ import {
 } from '../ui/components';
 import type { EventService } from '../services/eventService';
 import { evaluatePlausibility } from '../services/plausibilityService';
+import { useSingleFlight } from '../ui/useSingleFlight';
 
 export interface AnimalOption {
   animalId: string;
@@ -91,7 +92,7 @@ export function EventsScreen({
   const [cause, setCause] = useState<MortalityCauseOption | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [confirmation, setConfirmation] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
+  const { busy, runOnce } = useSingleFlight();
   /**
    * Set when `evaluatePlausibility` returns 'confirm' for the typed weight:
    * holds the number itself so the confirm button submits it directly,
@@ -128,8 +129,17 @@ export function EventsScreen({
     setWeightPendingConfirmation(null);
   };
 
+  /**
+   * The shared body of every write: enqueue, confirm, go back to the menu.
+   *
+   * It deliberately does *not* take the single-flight latch itself. The latch
+   * belongs at the press handler, because `recordWeight` awaits the
+   * plausibility check *before* it gets here — and that await is precisely the
+   * window a gloved double tap lands in (D2). Latching in both places would be
+   * worse than latching in neither: the outer `runOnce` would refuse its own
+   * inner one and the write would be dropped silently.
+   */
   const run = async (action: () => Promise<unknown>, done: string) => {
-    setBusy(true);
     setError(null);
     try {
       await action();
@@ -138,8 +148,6 @@ export function EventsScreen({
       onRecorded?.();
     } catch (caught) {
       setError((caught as Error).message);
-    } finally {
-      setBusy(false);
     }
   };
 
@@ -261,14 +269,16 @@ export function EventsScreen({
                         label="Sí, registrar"
                         busy={busy}
                         onPress={() =>
-                          run(
-                            () =>
-                              service.recordWeight({
-                                animalId: animal.animalId,
-                                weightKg: weightPendingConfirmation,
-                                isPlausibilityConfirmed: true,
-                              }),
-                            'Pesaje registrado.',
+                          void runOnce(() =>
+                            run(
+                              () =>
+                                service.recordWeight({
+                                  animalId: animal.animalId,
+                                  weightKg: weightPendingConfirmation,
+                                  isPlausibilityConfirmed: true,
+                                }),
+                              'Pesaje registrado.',
+                            ),
                           )
                         }
                       />
@@ -284,7 +294,7 @@ export function EventsScreen({
                       testID="confirm-weight"
                       label="Registrar pesaje"
                       busy={busy}
-                      onPress={() => void recordWeight()}
+                      onPress={() => void runOnce(recordWeight)}
                     />
                   )}
                 </>
@@ -306,13 +316,15 @@ export function EventsScreen({
                         tone="neutral"
                         busy={busy}
                         onPress={() =>
-                          run(
-                            () =>
-                              service.recordGroupMove({
-                                animalId: animal.animalId,
-                                toGroupId: group.groupId,
-                              }),
-                            'Movimiento registrado.',
+                          void runOnce(() =>
+                            run(
+                              () =>
+                                service.recordGroupMove({
+                                  animalId: animal.animalId,
+                                  toGroupId: group.groupId,
+                                }),
+                              'Movimiento registrado.',
+                            ),
                           )
                         }
                       />
@@ -353,13 +365,15 @@ export function EventsScreen({
                         label="Registrar baja"
                         busy={busy}
                         onPress={() =>
-                          run(
-                            () =>
-                              service.recordDisposal({
-                                animalId: animal.animalId,
-                                causeId: cause.causeId,
-                              }),
-                            'Baja registrada.',
+                          void runOnce(() =>
+                            run(
+                              () =>
+                                service.recordDisposal({
+                                  animalId: animal.animalId,
+                                  causeId: cause.causeId,
+                                }),
+                              'Baja registrada.',
+                            ),
                           )
                         }
                       />

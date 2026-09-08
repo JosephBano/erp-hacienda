@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import { ScrollView, StyleSheet, TextInput, View } from 'react-native';
 
 import { theme } from '../ui/theme';
@@ -67,6 +67,22 @@ type CorrectionOutcome = 'cancelled' | 'server-correction' | 'rejected' | 'notFo
  */
 export function TodayScreen({ entries, outbox, events, onChanged }: TodayScreenProps) {
   const [busyId, setBusyId] = useState<string | null>(null);
+  /**
+   * The double-tap guard, per row rather than per screen (D2, T4.2).
+   *
+   * This is the one recording screen that does not use `useSingleFlight`: the
+   * hook latches the whole component, and here every entry of the day carries
+   * its own "Corregir" button. Latching the screen would mean that cancelling
+   * the 06:00 ordeño blocks cancelling the 06:05 one — serialising two
+   * intentions that have nothing to do with each other.
+   *
+   * The principle is the hook's, applied per identifier: a `ref` holding the
+   * ids in flight, written synchronously before any `await`, so the second tap
+   * on the *same* row reads what the first one wrote in the same tick. React
+   * schedules `setBusyId`, so `busyId` cannot be the guard — it only drives the
+   * spinner.
+   */
+  const inFlight = useRef<Set<string>>(new Set());
   const [reasonFor, setReasonFor] = useState<string | null>(null);
   const [reasonText, setReasonText] = useState('');
   const [outcome, setOutcome] = useState<{ entryId: string; outcome: CorrectionOutcome; message?: string } | null>(null);
@@ -78,6 +94,8 @@ export function TodayScreen({ entries, outbox, events, onChanged }: TodayScreenP
   );
 
   const cancel = async (entry: TodayEntry) => {
+    if (inFlight.current.has(entry.clientOperationId)) return;
+    inFlight.current.add(entry.clientOperationId);
     setBusyId(entry.clientOperationId);
     setOutcome(null);
     try {
@@ -101,7 +119,11 @@ export function TodayScreen({ entries, outbox, events, onChanged }: TodayScreenP
         setOutcome({ entryId: entry.clientOperationId, outcome: 'notFound' });
       }
     } finally {
-      setBusyId(null);
+      inFlight.current.delete(entry.clientOperationId);
+      // Only clear the spinner if it is still ours: two rows can legitimately be
+      // in flight at once, and a blind `setBusyId(null)` would take the other
+      // row's "Procesando…" away while it is still working.
+      setBusyId((current) => (current === entry.clientOperationId ? null : current));
     }
   };
 
@@ -119,6 +141,8 @@ export function TodayScreen({ entries, outbox, events, onChanged }: TodayScreenP
       return;
     }
 
+    if (inFlight.current.has(entry.clientOperationId)) return;
+    inFlight.current.add(entry.clientOperationId);
     setBusyId(entry.clientOperationId);
     setOutcome(null);
     try {
@@ -131,7 +155,11 @@ export function TodayScreen({ entries, outbox, events, onChanged }: TodayScreenP
       setReasonText('');
       onChanged();
     } finally {
-      setBusyId(null);
+      inFlight.current.delete(entry.clientOperationId);
+      // Only clear the spinner if it is still ours: two rows can legitimately be
+      // in flight at once, and a blind `setBusyId(null)` would take the other
+      // row's "Procesando…" away while it is still working.
+      setBusyId((current) => (current === entry.clientOperationId ? null : current));
     }
   };
 

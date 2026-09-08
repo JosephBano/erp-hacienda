@@ -15,6 +15,7 @@ import {
 } from '../ui/components';
 import type { DailySummary, MilkingShift, MilkingService } from '../services/milkingService';
 import { evaluatePlausibility } from '../services/plausibilityService';
+import { useSingleFlight } from '../ui/useSingleFlight';
 
 export interface MilkingCandidate {
   animalId: string;
@@ -66,7 +67,19 @@ export function MilkingScreen({
   const [shift, setShift] = useState<MilkingShift>(currentShift());
   const [summary, setSummary] = useState<DailySummary | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
+  /**
+   * The latch lives on the two press handlers, not inside `submit`.
+   *
+   * `submit` is reached two ways — straight from `record` when the litres are
+   * plausible, and from "Sí, registrar" when they were not — so latching it too
+   * would nest a `runOnce` inside the one `record` already holds, and a nested
+   * call is dropped by design: the milking would silently never be enqueued.
+   * Guarding the two entry points instead covers each intention exactly once,
+   * and it closes the window `busy` never covered: the plausibility read runs
+   * before the write, so the button has to be latched from the press itself,
+   * not from the moment the outbox is touched.
+   */
+  const { busy, runOnce } = useSingleFlight();
   /**
    * Set when `evaluatePlausibility` returns 'confirm' for the typed value:
    * holds the number itself so the confirm button can submit it directly,
@@ -86,7 +99,6 @@ export function MilkingScreen({
     async (value: number, isPlausibilityConfirmed: boolean) => {
       if (!selected) return;
 
-      setBusy(true);
       setError(null);
       try {
         await service.recordIndividualYield(
@@ -104,8 +116,6 @@ export function MilkingScreen({
         onRecorded?.();
       } catch (caught) {
         setError((caught as Error).message);
-      } finally {
-        setBusy(false);
       }
     },
     [onRecorded, recordedBy, refreshSummary, selected, service, shift],
@@ -201,7 +211,7 @@ export function MilkingScreen({
                 <BigButton
                   testID="milking-confirm-plausibility"
                   label="Sí, registrar"
-                  onPress={() => void submit(pendingConfirmation, true)}
+                  onPress={() => void runOnce(() => submit(pendingConfirmation, true))}
                   busy={busy}
                 />
                 <BigButton
@@ -212,7 +222,12 @@ export function MilkingScreen({
                 />
               </>
             ) : (
-              <BigButton testID="confirm-milking" label="Registrar" onPress={record} busy={busy} />
+              <BigButton
+                testID="confirm-milking"
+                label="Registrar"
+                onPress={() => void runOnce(record)}
+                busy={busy}
+              />
             )}
 
             <BigButton

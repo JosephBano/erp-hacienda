@@ -6,6 +6,7 @@ import { theme } from '../ui/theme';
 import { BigButton, Body, Card, EmptyState, Notice, Screen, Title } from '../ui/components';
 import type { EventService } from '../services/eventService';
 import { loadAdministrationRoutes, loadDoseKinds } from '../services/herdQueries';
+import { useSingleFlight } from '../ui/useSingleFlight';
 
 export interface VaccinateAnimalOption {
   animalId: string;
@@ -56,7 +57,13 @@ export function VaccinateScreen({
   const [doseKindId, setDoseKindId] = useState<string | null>(null);
   const [catalogError, setCatalogError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
+  /**
+   * One writing path, one latch: `confirm` is the only thing on this screen that
+   * touches the outbox. `busy` alone never guarded it — React schedules the flag
+   * rather than applying it, so both halves of a double tap read it as false and
+   * both enqueue a vaccination for an animal that got one dose.
+   */
+  const { busy, runOnce } = useSingleFlight();
 
   useEffect(() => {
     void (async () => {
@@ -100,7 +107,6 @@ export function VaccinateScreen({
   const confirm = async () => {
     if (!animal || !product || !routeId || !doseKindId) return;
 
-    setBusy(true);
     setError(null);
     try {
       await service.recordTreatmentCourse({
@@ -117,8 +123,6 @@ export function VaccinateScreen({
       onRecorded?.();
     } catch (caught) {
       setError((caught as Error).message);
-    } finally {
-      setBusy(false);
     }
   };
 
@@ -202,7 +206,7 @@ export function VaccinateScreen({
               label="Confirmar"
               busy={busy}
               disabled={!routeId || !doseKindId}
-              onPress={() => void confirm()}
+              onPress={() => void runOnce(confirm)}
             />
           </Card>
         ) : null}

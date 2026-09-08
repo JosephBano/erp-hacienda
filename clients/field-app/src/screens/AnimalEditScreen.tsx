@@ -15,6 +15,7 @@ import {
 import type { AnimalEditService } from '../services/animalEditService';
 import type { Database } from '@nozbe/watermelondb';
 import { loadBreeds, loadCategories, type HerdMember } from '../services/herdQueries';
+import { useSingleFlight } from '../ui/useSingleFlight';
 
 /**
  * The one screen that can produce an LWW conflict (ADR-0008): two employees editing the
@@ -44,7 +45,7 @@ export function AnimalEditScreen({
   const [breedId, setBreedId] = useState<string>('');
   const [categoryId, setCategoryId] = useState<string>('');
   const [birthDate, setBirthDate] = useState('');
-  const [busy, setBusy] = useState(false);
+  const { busy, runOnce } = useSingleFlight();
   const [error, setError] = useState<string | null>(null);
   const [confirmation, setConfirmation] = useState<string | null>(null);
 
@@ -66,31 +67,36 @@ export function AnimalEditScreen({
     setError(null);
   };
 
-  const submit = async () => {
-    if (!selected) return;
+  /*
+   * Two taps on "Guardar cambios" used to queue two edit operations. Here that
+   * costs more than a duplicate: each edit is an LWW write (ADR-0008), so the
+   * second one races the first through the same resolution and the employee
+   * gets two answers about one change. `runOnce` refuses the second tap in the
+   * tap's own tick, before `editAnimal` has yielded (D2).
+   */
+  const submit = () =>
+    runOnce(async () => {
+      if (!selected) return;
 
-    setBusy(true);
-    setError(null);
+      setError(null);
 
-    try {
-      await service.editAnimal({
-        animalId: selected.animalId,
-        breedId: breedId || null,
-        categoryId: categoryId || null,
-        birthDate: birthDate || null,
-      });
+      try {
+        await service.editAnimal({
+          animalId: selected.animalId,
+          breedId: breedId || null,
+          categoryId: categoryId || null,
+          birthDate: birthDate || null,
+        });
 
-      setConfirmation(
-        `Cambio de "${selected.label}" en cola. Se verá reflejado al sincronizar — otro dispositivo pudo haber editado lo mismo mientras tanto.`,
-      );
-      reset();
-      onQueued?.();
-    } catch (caught) {
-      setError((caught as Error).message);
-    } finally {
-      setBusy(false);
-    }
-  };
+        setConfirmation(
+          `Cambio de "${selected.label}" en cola. Se verá reflejado al sincronizar — otro dispositivo pudo haber editado lo mismo mientras tanto.`,
+        );
+        reset();
+        onQueued?.();
+      } catch (caught) {
+        setError((caught as Error).message);
+      }
+    });
 
   if (!selected) {
     return (
@@ -195,7 +201,12 @@ export function AnimalEditScreen({
               onChangeText={setBirthDate}
             />
 
-            <BigButton testID="confirm-edit-animal" label="Guardar cambios" busy={busy} onPress={submit} />
+            <BigButton
+              testID="confirm-edit-animal"
+              label="Guardar cambios"
+              busy={busy}
+              onPress={() => void submit()}
+            />
             <BigButton testID="cancel-edit-animal" label="Cancelar" tone="neutral" onPress={reset} />
           </Card>
         </ScrollView>

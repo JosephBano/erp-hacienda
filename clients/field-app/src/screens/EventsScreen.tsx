@@ -225,7 +225,24 @@ export function EventsScreen({
             </ScrollView>
           )
         ) : (
-          <ScrollView contentContainerStyle={styles.bodyScroll}>
+          /*
+           * The form keeps its own scroller instead of switching the whole `Screen` to
+           * `scrollable`: the title above it and "Volver" below it are deliberately
+           * pinned, and a screen-level scroller would carry them off with the content
+           * — and nesting one around this scroller would give the drag two owners (D1).
+           * What the scroller lacked was the keyboard contract that `Screen scrollable`
+           * carries. React Native defaults `keyboardShouldPersistTaps` to 'never', so
+           * with the keyboard open the first tap on "Registrar pesaje" is spent
+           * dismissing it and the button never hears it: the "toco y no pasa nada" the
+           * operators reported. 'on-drag' is the other half — dragging the form away
+           * from the field puts the keyboard down and registers nothing (D2).
+           */
+          <ScrollView
+            testID="events-form"
+            contentContainerStyle={styles.bodyScroll}
+            keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="on-drag"
+          >
             <Card>
               <Body>{animal.label}</Body>
 

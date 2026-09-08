@@ -132,7 +132,21 @@ export function AnimalEditScreen({
       {error ? <Notice text={error} /> : null}
 
       <View style={styles.body}>
-        <ScrollView contentContainerStyle={styles.bodyScroll}>
+        {/*
+          The card scrolls, the screen does not: `Screen scrollable` around this scroller
+          would put two owners on the same vertical drag (D1), and the title is meant to
+          stay put. The keyboard settings are the part that was missing. React Native
+          defaults `keyboardShouldPersistTaps` to 'never', so once the birth-date field
+          has focus the first tap on "Guardar cambios" only dismisses the keyboard —
+          the employee taps, nothing happens, they tap again. 'on-drag' lets a drag put
+          the keyboard down without registering anything (D2).
+        */}
+        <ScrollView
+          testID="animal-edit-form"
+          contentContainerStyle={styles.bodyScroll}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+        >
           <Card>
             <Body>{selected.label}</Body>
 

@@ -38,7 +38,20 @@ export function Step3Offspring({
         ) : null}
       </Card>
 
-      <ScrollView testID="offspring-list" style={styles.scrollList} contentContainerStyle={styles.listContent}>
+      {/*
+        Every calf row carries a tag field, a weight field and its two buttons, all
+        inside this list. With the default `keyboardShouldPersistTaps` ('never') the tap
+        that follows typing an arete — "Cambiar a Hembra", "Quitar" — is swallowed to
+        dismiss the keyboard. The footer below stays outside the scroller on purpose:
+        "Continuar a Resumen" is the step's last control and it must not scroll away.
+      */}
+      <ScrollView
+        testID="offspring-list"
+        style={styles.scrollList}
+        contentContainerStyle={styles.listContent}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+      >
         {offspring.map((calf, index) => (
           <Card key={index} style={styles.offspringRow}>
             <Body muted>{`${index + 1}. ${calf.sex === 'M' ? 'Macho' : 'Hembra'}`}</Body>

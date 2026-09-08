@@ -151,7 +151,20 @@ export function TodayScreen({ entries, outbox, events, onChanged }: TodayScreenP
   return (
     <Screen testID="today-screen">
       <Title>Lo que registré hoy</Title>
-      <ScrollView testID="today-list" contentContainerStyle={styles.list}>
+      {/*
+        The correction reason field and the "Enviar corrección" button live in the same
+        row, inside this list. With React Native's default `keyboardShouldPersistTaps`
+        ('never') the first tap on that button after typing the reason is spent
+        dismissing the keyboard, so the correction looks like it did not register.
+        'on-drag' lets the operator scroll the day's rows with the keyboard open without
+        the drag doing anything else (D2).
+      */}
+      <ScrollView
+        testID="today-list"
+        contentContainerStyle={styles.list}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+      >
         {ordered.map((entry) => {
           const isCorrection = entry.operationType === 'recordCorrection';
           const canCancel = entry.status === 'pending' && !isCorrection;

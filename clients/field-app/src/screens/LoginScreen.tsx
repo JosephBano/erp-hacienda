@@ -39,7 +39,13 @@ export function LoginScreen({
   };
 
   return (
-    <Screen testID="login-screen">
+    /*
+     * Scrollable: with the keyboard up on a short screen the "Iniciar sesión" button sits
+     * under it, and there is nothing to drag. The scrollable mode also brings
+     * keyboardShouldPersistTaps="handled", so the first tap on that button reaches it
+     * instead of being spent dismissing the keyboard.
+     */
+    <Screen testID="login-screen" scrollable>
       <Title>HATO — Campo</Title>
 
       {error ? <Notice text={error} /> : null}

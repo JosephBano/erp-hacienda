@@ -159,3 +159,104 @@ describe('LotSubjectScreen', () => {
     expect(screen.getByTestId('lot-activity-feed')).toBeTruthy();
   });
 });
+
+/**
+ * feature-0006 commit 2 — reachability contract for this screen.
+ *
+ * RTL renders through the mock host and measures nothing, so none of this proves a
+ * pixel is on screen. What it pins is the structure that *causes* unreachable
+ * content: a clamped content box, and a second vertical scroller competing with the
+ * screen's own for the same drag (D1). The on-device pass is `test-e2e.md`, and that
+ * is the one that closes the spec (criterion 6).
+ */
+const countScrollers = (node: unknown): number => {
+  if (!node || typeof node !== 'object') return 0;
+  const element = node as { type?: string; children?: unknown[] };
+  const self = element.type === 'RCTScrollView' || element.type === 'ScrollView' ? 1 : 0;
+  return (element.children ?? []).reduce<number>((acc, child) => acc + countScrollers(child), self);
+};
+
+const flatten = (style: unknown): Record<string, unknown> =>
+  Array.isArray(style)
+    ? style.reduce<Record<string, unknown>>((acc, part) => ({ ...acc, ...flatten(part) }), {})
+    : ((style ?? {}) as Record<string, unknown>);
+
+describe('LotSubjectScreen reachability', () => {
+  const lots = [
+    { groupId: 'lot-1', label: 'Engorde marzo' },
+    { groupId: 'lot-2', label: 'Engorde abril' },
+  ];
+  const noop = () => undefined;
+
+  it('scrolls the seven-button detail instead of cutting it off', async () => {
+    await render(
+      <LotSubjectScreen
+        lots={lots}
+        selectedGroupId="lot-1"
+        onSelectLot={noop}
+        onActivity={noop}
+        onClearSelection={noop}
+      />,
+    );
+
+    // Seven buttons × 64 units = 448 before the title and the summary card.
+    const content = flatten(screen.getByTestId('lot-subject-detail').props.contentContainerStyle);
+    expect(content.flexGrow).toBe(1);
+    expect(content.flex).toBeUndefined();
+    expect(countScrollers(screen.toJSON())).toBe(1);
+  });
+
+  it('keeps the last control of the detail pressable', async () => {
+    const onClearSelection = jest.fn();
+    await render(
+      <LotSubjectScreen
+        lots={lots}
+        selectedGroupId="lot-1"
+        onSelectLot={noop}
+        onActivity={noop}
+        onClearSelection={onClearSelection}
+      />,
+    );
+
+    fireEvent.press(await screen.findByTestId('back-to-lot-picker'));
+
+    expect(onClearSelection).toHaveBeenCalledTimes(1);
+  });
+
+  it('gives the lot picker one scroller — the screen, not the list inside the card', async () => {
+    await render(
+      <LotSubjectScreen lots={lots} onSelectLot={noop} onActivity={noop} onClearSelection={noop} />,
+    );
+
+    // `lot-list` used to be a ScrollView with no bounded height inside a Card that
+    // does not flex: it never scrolled, it overflowed. It is a plain View now, and
+    // the screen carries the single vertical gesture.
+    expect(countScrollers(screen.toJSON())).toBe(1);
+    expect(screen.getByTestId('lot-list').props.contentContainerStyle).toBeUndefined();
+
+    const content = flatten(screen.getByTestId('lot-subject-screen').props.contentContainerStyle);
+    expect(content.flexGrow).toBe(1);
+    expect(content.flex).toBeUndefined();
+  });
+
+  it('keeps the last lot of a long list pressable', async () => {
+    const onSelectLot = jest.fn();
+    const manyLots = Array.from({ length: 20 }, (_, index) => ({
+      groupId: `lot-${index}`,
+      label: `Lote ${index}`,
+    }));
+
+    await render(
+      <LotSubjectScreen
+        lots={manyLots}
+        onSelectLot={onSelectLot}
+        onActivity={noop}
+        onClearSelection={noop}
+      />,
+    );
+
+    fireEvent.press(await screen.findByTestId('lot-row-lot-19'));
+
+    expect(onSelectLot).toHaveBeenCalledWith('lot-19');
+  });
+});

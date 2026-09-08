@@ -182,7 +182,7 @@ export default function App() {
 
   if (!ready) {
     return (
-      <SafeAreaView style={styles.root}>
+      <SafeAreaView testID="app-root" style={styles.root}>
         <StatusBar barStyle="light-content" backgroundColor={theme.color.background} translucent={false} />
         <Screen>
           <Title>HATO</Title>
@@ -194,7 +194,7 @@ export default function App() {
 
   if (!authenticated) {
     return (
-      <SafeAreaView style={styles.root}>
+      <SafeAreaView testID="app-root" style={styles.root}>
         <StatusBar barStyle="light-content" backgroundColor={theme.color.background} translucent={false} />
         <LoginScreen
           auth={auth}
@@ -206,7 +206,7 @@ export default function App() {
   }
 
   return (
-    <SafeAreaView style={styles.root}>
+    <SafeAreaView testID="app-root" style={styles.root}>
       <StatusBar barStyle="light-content" backgroundColor={theme.color.background} translucent={false} />
 
       <View style={styles.content}>
@@ -400,7 +400,7 @@ export default function App() {
       </View>
 
       {tab !== 'home' ? (
-        <View style={styles.footer}>
+        <View testID="app-footer" style={styles.footer}>
           <BigButton
             testID="go-home"
             label="Inicio"
@@ -424,27 +424,35 @@ export default function App() {
 const ANDROID_NAV_BAR_PADDING = 48;
 
 const styles = StyleSheet.create({
+  /**
+   * Every branch of this component sits in `root`, and that is where the system
+   * navigation bar has to be dodged. On Android (back / home / recent, drawn over the
+   * bottom edge of the window on edge-to-edge devices) `SafeAreaView` from react-native
+   * does nothing at all — it only applies insets on iOS — so the app reserves the strip
+   * itself with `ANDROID_NAV_BAR_PADDING`, and pays nothing on iOS, where there is no
+   * system bar to dodge.
+   *
+   * It used to live on the footer instead, which hid the defect the operators reported:
+   * the home screen renders no footer, so the hub's last button ("Sincronización") sat
+   * under the system buttons on a short screen. Reserving the strip at the root covers
+   * every screen, footer or not.
+   */
   root: {
     flex: 1,
     backgroundColor: theme.color.background,
+    paddingBottom: Platform.select({
+      ios: 0,
+      android: ANDROID_NAV_BAR_PADDING,
+      default: 0,
+    }),
   },
   content: {
     flex: 1,
   },
-  /**
-   * Holds the "Inicio" / "Volver" button. On Android the system navigation bar (back /
-   * home / recent) overlays the bottom edge of the app on edge-to-edge devices, which on
-   * SDK 56 means a button placed at the very bottom is half-hidden behind the buttons.
-   * Adding `ANDROID_NAV_BAR_PADDING` on Android only keeps the button legible without
-   * paying that cost on iOS (where there is no system bar to dodge).
-   */
+  /** Holds the "Inicio" / "Volver" button. The system bar is already cleared by `root`. */
   footer: {
     paddingHorizontal: theme.space.md,
     paddingTop: theme.space.md,
-    paddingBottom: Platform.select({
-      ios: theme.space.md,
-      android: theme.space.md + ANDROID_NAV_BAR_PADDING,
-      default: theme.space.md,
-    }),
+    paddingBottom: theme.space.md,
   },
 });

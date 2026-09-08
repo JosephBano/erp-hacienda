@@ -122,14 +122,30 @@ export function VaccinateScreen({
     }
   };
 
+  // D1 — one vertical gesture per render. Both picker steps own a bounded inner
+  // ScrollView (unless the catalog is empty and they fall back to an EmptyState),
+  // so the Screen stays fixed under them rather than nesting a second scroller
+  // that would fight for the same drag. The confirm card owns none: with a long
+  // animal label, the catalog warning and the error notice it is what overflows
+  // on a short screen, and "Confirmar" is the control that goes out of reach.
+  const scrollable = !(
+    (step === 'animal' && animals.length > 0) || (step === 'product' && products.length > 0)
+  );
+
   return (
-    <Screen testID="vaccinate-screen">
+    <Screen testID="vaccinate-screen" scrollable={scrollable}>
       <Title>Vacunar</Title>
 
       {catalogError ? <Notice text={catalogError} tone="warning" /> : null}
       {error ? <Notice text={error} /> : null}
 
-      <View style={styles.body}>
+      {/*
+        `flex: 1` is what bounds the picker steps' inner scroller to the window.
+        Inside a scrollable content box that same clamp caps the content at one
+        window and puts "Confirmar" back out of reach with nothing to scroll, so
+        the scrollable branch only grows.
+      */}
+      <View style={scrollable ? styles.bodyGrow : styles.body}>
         {step === 'animal' ? (
           animals.length === 0 ? (
             <EmptyState
@@ -199,5 +215,6 @@ export function VaccinateScreen({
 
 const styles = StyleSheet.create({
   body: { flex: 1 },
+  bodyGrow: { flexGrow: 1 },
   list: { gap: theme.space.sm, paddingBottom: theme.space.md },
 });

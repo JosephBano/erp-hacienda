@@ -159,3 +159,135 @@ describe('AnimalSubjectScreen', () => {
     expect(onActivity).toHaveBeenCalledWith('a-1', 'disposal');
   });
 });
+
+/**
+ * feature-0006 commit 2 — reachability contract for this screen.
+ *
+ * RTL renders through the mock host and measures nothing, so none of this proves a
+ * pixel is on screen. What it pins is the structure that *causes* unreachable
+ * content: a clamped content box, and a second vertical scroller competing with the
+ * screen's own for the same drag (D1). The on-device pass is `test-e2e.md`, and that
+ * is the one that closes the spec (criterion 6).
+ */
+const countScrollers = (node: unknown): number => {
+  if (!node || typeof node !== 'object') return 0;
+  const element = node as { type?: string; children?: unknown[] };
+  const self = element.type === 'RCTScrollView' || element.type === 'ScrollView' ? 1 : 0;
+  return (element.children ?? []).reduce<number>((acc, child) => acc + countScrollers(child), self);
+};
+
+const flatten = (style: unknown): Record<string, unknown> =>
+  Array.isArray(style)
+    ? style.reduce<Record<string, unknown>>((acc, part) => ({ ...acc, ...flatten(part) }), {})
+    : ((style ?? {}) as Record<string, unknown>);
+
+describe('AnimalSubjectScreen reachability', () => {
+  const animals = [
+    { animalId: 'a-1', label: 'Pinta 01' },
+    { animalId: 'a-2', label: 'Pinta 02' },
+    { animalId: 'a-3', label: 'Negra 03' },
+    { animalId: 'a-4', label: 'Ciel 04' },
+  ];
+  const noop = () => undefined;
+
+  it('scrolls the activity detail instead of cutting it off', async () => {
+    await render(
+      <AnimalSubjectScreen
+        animals={animals}
+        recentIds={[]}
+        selectedAnimalId="a-1"
+        onSelectAnimal={noop}
+        onActivity={noop}
+        onClearSelection={noop}
+      />,
+    );
+
+    const content = flatten(screen.getByTestId('animal-subject-detail').props.contentContainerStyle);
+    expect(content.flexGrow).toBe(1);
+    expect(content.flex).toBeUndefined();
+    expect(countScrollers(screen.toJSON())).toBe(1);
+  });
+
+  it('keeps the last control of the detail pressable', async () => {
+    const onClearSelection = jest.fn();
+    await render(
+      <AnimalSubjectScreen
+        animals={animals}
+        recentIds={[]}
+        selectedAnimalId="a-1"
+        onSelectAnimal={noop}
+        onActivity={noop}
+        onClearSelection={onClearSelection}
+      />,
+    );
+
+    fireEvent.press(await screen.findByTestId('back-to-animal-picker'));
+
+    expect(onClearSelection).toHaveBeenCalledTimes(1);
+  });
+
+  it('gives the animal picker one scroller — the screen, not the list inside the card', async () => {
+    await render(
+      <AnimalSubjectScreen
+        animals={animals}
+        recentIds={['a-4']}
+        onSelectAnimal={noop}
+        onActivity={noop}
+        onClearSelection={noop}
+      />,
+    );
+
+    // Both cards are inside the screen's scroller now: "Recientes" had no scroller of
+    // its own, and `animal-list` had one that could not scroll.
+    expect(countScrollers(screen.toJSON())).toBe(1);
+    expect(screen.getByTestId('animal-list').props.contentContainerStyle).toBeUndefined();
+
+    const content = flatten(screen.getByTestId('animal-subject-screen').props.contentContainerStyle);
+    expect(content.flexGrow).toBe(1);
+    expect(content.flex).toBeUndefined();
+  });
+
+  it('lets the first tap on a result land while the search keyboard is open', async () => {
+    await render(
+      <AnimalSubjectScreen
+        animals={animals}
+        recentIds={[]}
+        onSelectAnimal={noop}
+        onActivity={noop}
+        onClearSelection={noop}
+      />,
+    );
+
+    const scroller = screen.getByTestId('animal-subject-screen');
+
+    // The old inner ScrollView ran on React Native's default 'never', which spends
+    // the first tap after typing on dismissing the keyboard: the employee taps an
+    // animal, nothing happens, they tap again.
+    expect(scroller.props.keyboardShouldPersistTaps).toBe('handled');
+    // Dragging the list away from the search field puts the keyboard down and
+    // registers nothing (D2).
+    expect(scroller.props.keyboardDismissMode).toBe('on-drag');
+  });
+
+  it('keeps the last animal of a long herd pressable', async () => {
+    const onSelectAnimal = jest.fn();
+    const herd = Array.from({ length: 30 }, (_, index) => ({
+      animalId: `a-${index}`,
+      label: `Vaca ${index}`,
+    }));
+
+    await render(
+      <AnimalSubjectScreen
+        animals={herd}
+        recentIds={[]}
+        onSelectAnimal={onSelectAnimal}
+        onActivity={noop}
+        onClearSelection={noop}
+      />,
+    );
+
+    fireEvent.press(await screen.findByTestId('animal-row-a-29'));
+
+    expect(onSelectAnimal).toHaveBeenCalledWith('a-29');
+  });
+});

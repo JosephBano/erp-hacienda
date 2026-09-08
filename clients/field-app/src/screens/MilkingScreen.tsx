@@ -144,7 +144,14 @@ export function MilkingScreen({
   };
 
   return (
-    <Screen testID="milking-screen">
+    /*
+     * Two modes, one vertical gesture each (D1). The picker keeps its own bounded
+     * `cow-list` scroller and a pinned daily total, which is what the 5 AM screen needs;
+     * the selected-animal form has no scroller of its own and grows with the withdrawal
+     * notice, the plausibility notice and its two extra buttons, on top of the numeric
+     * keyboard — so there the screen itself scrolls.
+     */
+    <Screen testID="milking-screen" scrollable={selected !== null}>
       <Title>Ordeño</Title>
 
       <View style={styles.shifts}>
@@ -162,7 +169,12 @@ export function MilkingScreen({
 
       {error ? <Notice text={error} /> : null}
 
-      <View style={styles.body}>
+      {/*
+        No `flex: 1` in the form mode: inside the scrollable Screen it would clamp this
+        box back to the window height and reintroduce the overflow the scroll is there
+        to solve. The picker still needs it (see the style's comment).
+      */}
+      <View style={selected ? undefined : styles.body}>
         {selected ? (
           <Card>
             <Body>{selected.label}</Body>
@@ -284,7 +296,9 @@ const styles = StyleSheet.create({
   /**
    * Fills the remaining vertical space between the shift selector and the daily-total
    * card, so the picker (or its empty state) actually claims the room the layout offers
-   * instead of collapsing to zero height and leaving a black void in the middle.
+   * instead of collapsing to zero height and leaving a black void in the middle. Picker
+   * mode only: the form mode renders this wrapper unstyled so the scrollable Screen can
+   * grow past the window.
    */
   body: {
     flex: 1,

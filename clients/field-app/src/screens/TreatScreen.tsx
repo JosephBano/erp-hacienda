@@ -184,13 +184,27 @@ export function TreatScreen({
     }
   };
 
+  // D1 — one vertical gesture per render. The picker steps own a bounded inner
+  // ScrollView, so the Screen stays fixed under them; nesting a second vertical
+  // scroller there would make the two fight for the same drag and the inner one
+  // traps it. The form and confirm steps own none, and they are precisely the
+  // ones that overflow: with the stress catalog (8 vías + 6 motivos) the two
+  // pickers alone are 14 × 64 units, before the dose, the notes and "Continuar".
+  const scrollable = !((step === 'animal' && animals.length > 0) || step === 'product');
+
   return (
-    <Screen testID="treat-screen">
+    <Screen testID="treat-screen" scrollable={scrollable}>
       <Title>Tratar animal enfermo</Title>
 
       {error ? <Notice text={error} /> : null}
 
-      <View style={styles.body}>
+      {/*
+        `flex: 1` is what bounds the picker steps' inner scroller to the window.
+        Inside a scrollable content box that same clamp caps the form at one
+        window and puts "Continuar" back out of reach with nothing to scroll, so
+        the scrollable branch only grows.
+      */}
+      <View style={scrollable ? styles.bodyGrow : styles.body}>
         {step === 'animal' ? (
           animals.length === 0 ? (
             <EmptyState
@@ -331,5 +345,6 @@ export function TreatScreen({
 
 const styles = StyleSheet.create({
   body: { flex: 1 },
+  bodyGrow: { flexGrow: 1 },
   list: { gap: theme.space.sm, paddingBottom: theme.space.md },
 });

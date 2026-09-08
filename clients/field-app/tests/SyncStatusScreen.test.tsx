@@ -155,6 +155,69 @@ describe('SyncStatusScreen', () => {
     expect(resetCalled).toBe(false);
   });
 
+  /**
+   * feature-0006 commit 2 — this is the screen the employees named: on a short tablet
+   * (IT-701A, Android 14) the module switches at the foot sit below the fold and there is
+   * nothing to drag. These are structural assertions, not layout measurements — RTL
+   * renders through the mock host and cannot tell whether a pixel is on screen. What they
+   * pin is the shape that *causes* unreachable content. `test-e2e.md` on the real tablet
+   * is what closes the spec.
+   */
+  describe('reachability', () => {
+    /** Counts the host scrollers in the rendered tree — the D1 "one vertical gesture" check. */
+    const countScrollers = (node: unknown): number => {
+      if (!node || typeof node !== 'object') return 0;
+      const element = node as { type?: string; children?: unknown[] };
+      const self = element.type === 'RCTScrollView' || element.type === 'ScrollView' ? 1 : 0;
+      return (element.children ?? []).reduce<number>((acc, child) => acc + countScrollers(child), self);
+    };
+
+    const flatten = (style: unknown): Record<string, unknown> =>
+      Array.isArray(style)
+        ? style.reduce<Record<string, unknown>>((acc, part) => ({ ...acc, ...flatten(part) }), {})
+        : ((style ?? {}) as Record<string, unknown>);
+
+    it('lets the screen grow past the window instead of clamping its tail off', async () => {
+      await render(<SyncStatusScreen engine={new SyncEngine(database, api)} outbox={outbox} visibility={visibility} />);
+
+      const content = flatten(screen.getByTestId('sync-status-screen').props.contentContainerStyle);
+
+      // `flex: 1` clamps the content box to the viewport height, which is exactly how the
+      // module switches end up below the fold with no way to reach them.
+      expect(content.flexGrow).toBe(1);
+      expect(content.flex).toBeUndefined();
+      expect(screen.getByTestId('sync-status-screen').props.keyboardShouldPersistTaps).toBe('handled');
+    });
+
+    it('opens exactly one vertical scroller even with the problem tray on screen', async () => {
+      await outbox.enqueue('recordAnimalEvent', { animalId: 'ghost' });
+
+      await render(<SyncStatusScreen engine={new SyncEngine(database, api)} outbox={outbox} visibility={visibility} />);
+
+      fireEvent.press(screen.getByTestId('sync-now'));
+
+      await waitFor(() => {
+        expect(screen.getByTestId('problem-list')).toBeTruthy();
+      });
+
+      // The refused-record tray used to be a ScrollView of its own. Nested inside the
+      // screen's scroller it would swallow the drag that belongs to the screen (D1).
+      expect(countScrollers(screen.toJSON())).toBe(1);
+    });
+
+    it('keeps the last control of the screen in the tree and pressable', async () => {
+      await render(<SyncStatusScreen engine={new SyncEngine(database, api)} outbox={outbox} visibility={visibility} />);
+
+      // The module switch is the last thing on the screen — the part the employees could
+      // not reach. Pressing it must still open the confirmation, tray or no tray.
+      fireEvent.press(await screen.findByTestId('module-toggle-production-on'));
+
+      await waitFor(() => {
+        expect(screen.getByTestId('confirm-disable-production')).toBeTruthy();
+      });
+    });
+  });
+
   it('surfaces a visible warning notice when sync fails due to an unmapped collection', async () => {
     const brokenApi: SyncApi = {
       async push(): Promise<PushResponse> {

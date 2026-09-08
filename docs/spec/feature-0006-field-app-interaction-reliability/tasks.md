@@ -10,13 +10,13 @@
 
 ## Compuerta 0 — Identificar el fallo reportado
 
-- [ ] **T0.1** Obtener de los empleados teléfono y build donde ocurre.
+- [x] **T0.1** Obtener de los empleados teléfono y build donde ocurre.
       **Terminado:** modelo, SO y build anotados en el PR.
-- [ ] **T0.2** Obtener pantalla y gesto exactos. **Terminado:** descripción concreta de qué
+- [x] **T0.2** Obtener pantalla y gesto exactos. **Terminado:** descripción concreta de qué
       estaban haciendo, no «la app se traba».
-- [ ] **T0.3** Clasificar el problema: **no llegar a un control** o **fluidez**.
+- [x] **T0.3** Clasificar el problema: **no llegar a un control** o **fluidez**.
       **Terminado:** clasificación registrada; determina si los commits 1-5 cierran la queja.
-- [ ] **T0.4** Si es fluidez: reproducir en compilación equivalente a producción antes de
+- [x] **T0.4** Si es fluidez: reproducir en compilación equivalente a producción antes de
       proponer corrección. **Terminado:** reproducido, o registrado explícitamente como no
       reproducible (D6). No se atribuye al producto la sobrecarga de herramientas de desarrollo.
 
@@ -24,100 +24,100 @@
 
 ## Commit 1 — `Screen` desplazable
 
-- [ ] **T1.1** Añadir modo desplazable **explícito** a `Screen`
+- [x] **T1.1** Añadir modo desplazable **explícito** a `Screen`
       (`clients/field-app/src/ui/components.tsx:66`, `flex: 1` en `:257`).
       **Terminado:** quien no lo pida conserva el comportamiento actual.
-- [ ] **T1.2** Los objetivos táctiles de 64 unidades (`theme.ts:44`) se conservan.
-- [ ] **T1.3** El modo desplazable no anida con otro scroll vertical que compita por el mismo
+- [x] **T1.2** Los objetivos táctiles de 64 unidades (`theme.ts:44`) se conservan.
+- [x] **T1.3** El modo desplazable no anida con otro scroll vertical que compita por el mismo
       arrastre. **Terminado:** D1 verificado; no hay scroll atrapado.
-- [ ] **T1.4** Prueba de componente: contenido más alto que la ventana permite alcanzar el
+- [x] **T1.4** Prueba de componente: contenido más alto que la ventana permite alcanzar el
       último elemento.
-- [ ] **T1.5** Las pruebas de componentes existentes siguen en verde.
+- [x] **T1.5** Las pruebas de componentes existentes siguen en verde.
       **Terminado:** ninguna pantalla que no adoptó el modo nuevo cambió de comportamiento.
 
 ---
 
 ## Commit 2 — Las cuatro pantallas con riesgo confirmado
 
-- [ ] **T2.1** `LotSubjectScreen.tsx:82` — título, resumen y siete botones alcanzables.
+- [x] **T2.1** `LotSubjectScreen.tsx:82` — título, resumen y siete botones alcanzables.
       **Terminado:** los 448 unidades lógicas de mínimos de botones ya no desbordan.
-- [ ] **T2.2** `AnimalSubjectScreen.tsx:77` — alcanzable con títulos largos y texto ampliado.
-- [ ] **T2.3** `TreatScreen.tsx:185,242` — el formulario variable se desplaza, no solo los
+- [x] **T2.2** `AnimalSubjectScreen.tsx:77` — alcanzable con títulos largos y texto ampliado.
+- [x] **T2.3** `TreatScreen.tsx:185,242` — el formulario variable se desplaza, no solo los
       selectores. **Terminado:** con 8 vías y 6 motivos sigue siendo alcanzable.
-- [ ] **T2.4** `MilkingScreen.tsx:160,225` — el formulario seleccionado se desplaza, no solo
+- [x] **T2.4** `MilkingScreen.tsx:160,225` — el formulario seleccionado se desplaza, no solo
       la lista.
-- [ ] **T2.5** Barrer el resto de `clients/field-app/src/screens/` buscando `Screen` fijo con
+- [x] **T2.5** Barrer el resto de `clients/field-app/src/screens/` buscando `Screen` fijo con
       contenido de altura variable. **Terminado:** lista revisada; las que apliquen, corregidas.
-- [ ] **T2.6** Prueba: con área útil de 360 × 640 y texto al 150 %, cada pantalla llega a su
+- [x] **T2.6** Prueba: con área útil de 360 × 640 y texto al 150 %, cada pantalla llega a su
       último control, sin recorte irreversible ni solapamiento con la barra del sistema.
-- [ ] **T2.7** `npm test` completo en verde.
+- [x] **T2.7** `npm test` completo en verde.
 
 ---
 
 ## Commit 3 — Teclado y foco
 
-- [ ] **T3.1** Observar el comportamiento real del teclado antes de corregir.
+- [x] **T3.1** Observar el comportamiento real del teclado antes de corregir.
       **Terminado:** la ausencia de `KeyboardAvoidingView` en `src` no prueba que el SO no
       adapte nada (spec sec. 2); se documenta qué hace hoy en cada pantalla con entrada.
-- [ ] **T3.2** La acción principal no queda debajo del teclado sin forma de llegar a ella.
-- [ ] **T3.3** Los avisos de validación llevan al campo correspondiente.
-- [ ] **T3.4** Un aviso de validación **no borra entradas**.
+- [x] **T3.2** La acción principal no queda debajo del teclado sin forma de llegar a ella.
+- [x] **T3.3** Los avisos de validación llevan al campo correspondiente.
+- [x] **T3.4** Un aviso de validación **no borra entradas**.
       **Terminado:** cubierto por prueba, no por lectura.
-- [ ] **T3.5** El primer toque intencional en una acción con teclado abierto tiene
+- [x] **T3.5** El primer toque intencional en una acción con teclado abierto tiene
       comportamiento consistente. **Terminado:** definido y verificable, no «depende».
-- [ ] **T3.6** `npm test` completo en verde.
+- [x] **T3.6** `npm test` completo en verde.
 
 ---
 
 ## Commit 4 — Gestos idempotentes
 
-- [ ] **T4.1** Deslizar sobre una lista o un botón **no registra nada**.
+- [x] **T4.1** Deslizar sobre una lista o un botón **no registra nada**.
       **Terminado:** cubierto por prueba de gesto simulado.
-- [ ] **T4.2** **Prueba: dos confirmaciones seguidas mientras se guarda producen UNA entrada
+- [x] **T4.2** **Prueba: dos confirmaciones seguidas mientras se guarda producen UNA entrada
       en el outbox.** **Terminado:** sin esta prueba el commit no entra; es la garantía que
       sostiene D2.
-- [ ] **T4.3** Un único resultado visible por operación; no se muestran dos éxitos.
-- [ ] **T4.4** El teléfono responde visualmente al toque y señala guardado en curso, éxito o
+- [x] **T4.3** Un único resultado visible por operación; no se muestran dos éxitos.
+- [x] **T4.4** El teléfono responde visualmente al toque y señala guardado en curso, éxito o
       error.
-- [ ] **T4.5** Una transición se puede interrumpir con navegación sin bloquear ni duplicar.
-- [ ] **T4.6** Si hay animaciones, respetan la preferencia de reducir movimiento.
+- [x] **T4.5** Una transición se puede interrumpir con navegación sin bloquear ni duplicar.
+- [x] **T4.6** Si hay animaciones, respetan la preferencia de reducir movimiento.
       **Terminado:** ninguna es necesaria para comprender el estado o completar una operación.
-- [ ] **T4.7** Verificar que **no se añadió ninguna dependencia** (regla dura 2, D4).
+- [x] **T4.7** Verificar que **no se añadió ninguna dependencia** (regla dura 2, D4).
       **Terminado:** `git diff clients/field-app/package.json` sin cambios en dependencias.
-- [ ] **T4.8** `npm test` completo en verde.
+- [x] **T4.8** `npm test` completo en verde.
 
 ---
 
 ## Commit 5 — Regreso y borradores
 
-- [ ] **T5.1** Retroceder dentro de un flujo conserva sus valores.
+- [x] **T5.1** Retroceder dentro de un flujo conserva sus valores.
       **Terminado:** sexo, arete, peso y dosis siguen ahí; cubierto por prueba.
-- [ ] **T5.2** Abandonar un formulario modificado advierte antes de descartar.
-- [ ] **T5.3** El botón atrás de Android y el de pantalla dan resultados coherentes.
+- [x] **T5.2** Abandonar un formulario modificado advierte antes de descartar.
+- [x] **T5.3** El botón atrás de Android y el de pantalla dan resultados coherentes.
       **Terminado:** ninguna ruta queda inaccesible.
-- [ ] **T5.4** Una lista larga conserva selección y posición razonable al volver del detalle.
-- [ ] **T5.5** Un refresco de datos no salta al inicio ni cierra el formulario.
-- [ ] **T5.6** Si un refresco invalida el sujeto, se delega en
+- [x] **T5.4** Una lista larga conserva selección y posición razonable al volver del detalle.
+- [x] **T5.5** Un refresco de datos no salta al inicio ni cierra el formulario.
+- [x] **T5.6** Si un refresco invalida el sujeto, se delega en
       [0005](../feature-0005-field-app-activity-validation/spec.md).
       **Terminado:** esta rama no duplica esa regla ni la estorba.
-- [ ] **T5.7** `npm test` completo en verde.
+- [x] **T5.7** `npm test` completo en verde.
 
 ---
 
 ## Cierre
 
-- [ ] **TC.1** `npm test` completo en `clients/field-app`. Las seis omisiones existentes
+- [x] **TC.1** `npm test` completo en `clients/field-app`. Las seis omisiones existentes
       siguen siendo seis; esta rama no las aumenta.
-- [ ] **TC.2** `dotnet test` en verde. Esta rama no toca backend: cualquier fallo es una
+- [x] **TC.2** `dotnet test` en verde. Esta rama no toca backend: cualquier fallo es una
       regresión ajena que hay que detectar antes del merge.
 - [ ] **TC.3** Ejecutar [`test-e2e.md`](./test-e2e.md) completo **en teléfono real**, en
       compilación equivalente a producción. **Terminado:** aprobar tests de componentes por sí
       solo no cierra este spec (criterio 6).
 - [ ] **TC.4** Conservar evidencia de pantalla o build del fallo original y de su reproducción
       corregida.
-- [ ] **TC.5** Registrar el estado de la queja de fluidez: reproducida y corregida, o
+- [x] **TC.5** Registrar el estado de la queja de fluidez: reproducida y corregida, o
       documentada como no reproducible (D6).
-- [ ] **TC.6** Anotar en `docs/BACKLOG.md` o en
+- [x] **TC.6** Anotar en `docs/BACKLOG.md` o en
       [0010](../feature-0010-field-app-redesign/spec.md) la deuda visual vista de paso
       (regla 9). **Terminado:** no se arregló en esta rama.
 - [ ] **TC.7** Abrir el PR con la descripción de [`plan.md`](./plan.md), incluido el resultado

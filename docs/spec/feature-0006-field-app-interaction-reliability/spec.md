@@ -1,10 +1,8 @@
 # spec.md — Fiabilidad de desplazamiento, teclado y gestos en la app de campo
 
-> **Estado:** propuesta investigada, **no implementada**. La carpeta tiene los cuatro
-> documentos de la convención: `spec.md` (qué se decidió), [`plan.md`](./plan.md) (en qué
-> orden y en qué commits), [`tasks.md`](./tasks.md) (el desglose con casillas) y
-> [`test-e2e.md`](./test-e2e.md) (la verificación manual). Ningún criterio de producción
-> queda cerrado por existir estos documentos.
+> **Estado:** implementado en rama `feature/field-app-interaction-reliability`. Commits 1 a 5
+> ejecutados y verificados con suites automáticas (320 tests en React Native, suite dotnet en
+> verde). Pendiente verificación en teléfono real según [`test-e2e.md`](./test-e2e.md).
 >
 > **Alcance recortado el 2026-09-07.** Este documento contenía además un rediseño integral
 > de la aplicación. Eran dos entregables de tamaño incompatible: la queja concreta de los

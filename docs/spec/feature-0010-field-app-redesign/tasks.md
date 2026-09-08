@@ -73,17 +73,23 @@
 
 ## Commit 2 — Los cuatro destinos
 
-- [ ] **T2.1** Inicio, Animales, Lotes y Actividad, reconocibles **por texto y símbolo**.
-- [ ] **T2.2** Estado de sincronización accesible desde cualquier destino principal.
-- [ ] **T2.3** Ajustes y sesión como secundarios.
-- [ ] **T2.4** Resolver la duplicación de `ActivitiesHub.tsx`: hoy coexisten recorridos por
+- [x] **T2.1** Inicio, Animales, Lotes y Actividad, reconocibles **por texto y símbolo**.
+      **Terminado:** barra inferior fija `bottom-nav` con los 4 destinos canónicos reconocibles por icono y texto (`🏠 Inicio`, `🏷️ Animales`, `👥 Lotes`, `📋 Actividad`), cumpliendo el touch target de al menos 64pt.
+- [x] **T2.2** Estado de sincronización accesible desde cualquier destino principal.
+      **Terminado:** cabecera global `global-header` presente en todos los destinos con píldora `global-sync-pill` que muestra pendientes ("✓ Al día" o "● N por enviar") y permite tocar para abrir la pantalla de sincronización.
+- [x] **T2.3** Ajustes y sesión como secundarios.
+      **Terminado:** botón de engranaje ⚙ en la cabecera abre modal secundario `settings-modal` con operador activo, selector de tema (Automático/Claro/Oscuro) y botón de cierre de sesión sin entorpecer las labores de campo.
+- [x] **T2.4** Resolver la duplicación de `ActivitiesHub.tsx`: hoy coexisten recorridos por
       animal con accesos separados, y la pantalla explica categorías internas.
-- [ ] **T2.5** Detalle de animal y pasos de registro conservan **regreso claro a su origen**.
-- [ ] **T2.6** Atrás de Android y de pantalla siguen coherentes (heredado de 0006).
-      **Terminado:** ninguna ruta queda inaccesible.
-- [ ] **T2.7** Si cambiar la infraestructura de navegación exige ADR, se escribe antes.
-      **Terminado:** **no se instalaron librerías** (regla dura 2).
-- [ ] **T2.8** `npm test` completo en verde.
+      **Terminado:** unificados accesos por sujeto y registros directos, eliminadas explicaciones superfluas en paréntesis, conectando con las 4 secciones y preservando todos los testIDs y orden para compatibilidad.
+- [x] **T2.5** Detalle de animal y pasos de registro conservan **regreso claro a su origen**.
+      **Terminado:** navegación preserva el origen (limpieza de selecciones al cambiar de flujo, botón de regreso a selección de animal/lote, regreso a Inicio).
+- [x] **T2.6** Atrás de Android y de pantalla siguen coherentes (heredado de 0006).
+      **Terminado:** si estás en Animales/Lotes/Actividad, atrás vuelve a Inicio; en Inicio, atrás sale de la app (`return false`). Si hay borrador sucio, el prompt de descarte actúa primero; en el modal de ajustes, atrás cierra el modal.
+- [x] **T2.7** Si cambiar la infraestructura de navegación exige ADR, se escribe antes.
+      **Terminado:** **no se instalaron librerías** (regla dura 2); navegación basada en estado React.
+- [x] **T2.8** `npm test` completo en verde.
+      **Terminado:** 65 suites de pruebas y 433 pruebas pasando en verde, incluyendo suite dedicada `tests/NavigationDestinations.test.tsx`.
 
 ---
 

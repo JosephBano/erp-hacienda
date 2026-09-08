@@ -69,17 +69,17 @@
 
 ## Commit 3 — Alcance propio en operaciones de sync
 
-- [ ] **T3.1** `/sync/operations` (`SyncEndpoints.cs:26`, `SyncPullQueries.cs:632`) filtra por
+- [x] **T3.1** `/sync/operations` (`SyncEndpoints.cs:26`, `SyncPullQueries.cs:632`) filtra por
       usuario. **Terminado:** hoy consulta las últimas operaciones sin filtro.
-- [ ] **T3.2** `people.users.manage` permite supervisión global, coherente con
+- [x] **T3.2** `people.users.manage` permite supervisión global, coherente con
       `/sync/conflicts` (D3).
-- [ ] **T3.3** Las pantallas que llaman `/sync/operations` toleran el alcance propio.
+- [x] **T3.3** Las pantallas que llaman `/sync/operations` toleran el alcance propio.
       **Terminado:** ninguna se rompe por recibir menos filas (spec sec. 5).
-- [ ] **T3.4** **Prueba: pedir explícitamente una colección no permitida no evita el filtro de
+- [x] **T3.4** **Prueba: pedir explícitamente una colección no permitida no evita el filtro de
       pull.** **Terminado:** criterio 3; el control de `SyncPullQueries.cs:366` se conserva y
       se refuerza, no se toca a la baja.
-- [ ] **T3.5** Prueba: empleado ve solo sus operaciones; supervisor autorizado ve las globales.
-- [ ] **T3.6** `dotnet test` completo en verde.
+- [x] **T3.5** Prueba: empleado ve solo sus operaciones; supervisor autorizado ve las globales.
+- [x] **T3.6** `dotnet test` completo en verde.
 
 ---
 

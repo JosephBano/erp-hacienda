@@ -80,6 +80,36 @@ describe('SyncStatusScreen', () => {
     expect(await outbox.rejected()).toHaveLength(1);
   });
 
+  it('displays friendly Spanish labels and legible reasons for all known rejected operation types (T4.2)', async () => {
+    const operationTypes = [
+      { type: 'recordMilking', label: 'Ordeño' },
+      { type: 'recordAnimalEvent', label: 'Evento del animal' },
+      { type: 'createAnimal', label: 'Alta de animal' },
+      { type: 'recordBirth', label: 'Parto' },
+      { type: 'moveAnimal', label: 'Movimiento de lote' },
+      { type: 'createTreatmentCourse', label: 'Tratamiento / Vacunación' },
+      { type: 'recordGroupEvent', label: 'Evento de lote' },
+      { type: 'recordFeedConsumption', label: 'Consumo de alimento' },
+      { type: 'updateAnimal', label: 'Actualización de animal' },
+      { type: 'recordCorrection', label: 'Corrección de evento' },
+      { type: 'assignAnimalIdentifier', label: 'Identificación de animal' },
+    ];
+
+    for (const op of operationTypes) {
+      const entry = await outbox.enqueue(op.type, { sample: true });
+      await outbox.markRejected(entry.clientOperationId, `Rechazo de prueba: falta de permiso para ${op.label}`);
+    }
+
+    await render(<SyncStatusScreen engine={new SyncEngine(database, api)} outbox={outbox} visibility={visibility} />);
+
+    await waitFor(() => {
+      for (const op of operationTypes) {
+        expect(screen.getByText(op.label)).toBeTruthy();
+        expect(screen.getByText(`Rechazo de prueba: falta de permiso para ${op.label}`)).toBeTruthy();
+      }
+    });
+  });
+
   /** No signal is a normal state on this farm, not an error to alarm anybody with. */
   it('explains an offline attempt in words the employee can act on', async () => {
     await outbox.enqueue('recordMilking', { totalLiters: 5 });

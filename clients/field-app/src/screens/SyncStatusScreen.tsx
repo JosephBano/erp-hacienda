@@ -225,7 +225,9 @@ export function SyncStatusScreen({
               <Body>{LABELS[entry.operationType] ?? entry.operationType}</Body>
               <Body muted>{new Date(entry.occurredAt).toLocaleString()}</Body>
               <View style={styles.reason}>
-                <Text style={styles.reasonText}>{entry.errorDetails}</Text>
+                <Text style={styles.reasonText}>
+                  {entry.errorDetails || 'El servidor rechazó la operación sin indicar el motivo.'}
+                </Text>
               </View>
             </Card>
           ))}
@@ -255,12 +257,18 @@ export function SyncStatusScreen({
   );
 }
 
-const LABELS: Record<string, string> = {
+export const LABELS: Record<string, string> = {
   recordMilking: 'Ordeño',
   recordAnimalEvent: 'Evento del animal',
   createAnimal: 'Alta de animal',
   recordBirth: 'Parto',
   moveAnimal: 'Movimiento de lote',
+  createTreatmentCourse: 'Tratamiento / Vacunación',
+  recordGroupEvent: 'Evento de lote',
+  recordFeedConsumption: 'Consumo de alimento',
+  updateAnimal: 'Actualización de animal',
+  recordCorrection: 'Corrección de evento',
+  assignAnimalIdentifier: 'Identificación de animal',
 };
 
 const styles = StyleSheet.create({

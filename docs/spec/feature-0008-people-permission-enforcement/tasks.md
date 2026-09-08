@@ -87,17 +87,17 @@
 
 > Bloqueado por la Compuerta 0, decisión B.
 
-- [ ] **T4.1** Una denegación conserva **payload, contenido y autoría** en el teléfono (D2,
+- [x] **T4.1** Una denegación conserva **payload, contenido y autoría** en el teléfono (D2,
       regla dura 10).
-- [ ] **T4.2** El motivo del rechazo se muestra de forma legible.
+- [x] **T4.2** El motivo del rechazo se muestra de forma legible.
       **Terminado:** el empleado entiende qué pasó sin abrir una herramienta técnica.
-- [ ] **T4.3** **Prueba: la operación denegada no se convierte en aceptada al reintentar.**
+- [x] **T4.3** **Prueba: la operación denegada no se convierte en aceptada al reintentar.**
       **Terminado:** criterio 5.
-- [ ] **T4.4** Prueba: tampoco al refrescar permisos.
-- [ ] **T4.5** Coherencia con [0004](../feature-0004-field-app-sync-reliability/spec.md): los
+- [x] **T4.4** Prueba: tampoco al refrescar permisos.
+- [x] **T4.5** Coherencia con [0004](../feature-0004-field-app-sync-reliability/spec.md): los
       replays respetan el estado real. **Terminado:** si 0004 ya está mergeado, el arreglo de
       `Duplicate` cubre este caso y no se duplica la lógica.
-- [ ] **T4.6** `npm test` completo en verde.
+- [x] **T4.6** `npm test` completo en verde.
 
 ---
 

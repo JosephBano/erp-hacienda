@@ -1,4 +1,5 @@
 import React from 'react';
+import { Share } from 'react-native';
 import { Database } from '@nozbe/watermelondb';
 import LokiJSAdapter from '@nozbe/watermelondb/adapters/lokijs';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
@@ -242,5 +243,127 @@ describe('SyncStatusScreen', () => {
     await waitFor(() => {
       expect(screen.getByText(/no se pudo enviar/i)).toBeTruthy();
     });
+  });
+
+  it('displays a warning notice when pull has pending work and never claims everything updated (T3.4)', async () => {
+    const pendingApi: SyncApi = {
+      async push(): Promise<PushResponse> {
+        return { processedCount: 0, results: [] };
+      },
+      async pull(): Promise<PullResponse> {
+        return {
+          cursor: 'c-next',
+          hasMore: true,
+          collections: {},
+        };
+      },
+    };
+
+    const engine = new SyncEngine(database, pendingApi);
+    await render(<SyncStatusScreen engine={engine} outbox={outbox} visibility={visibility} />);
+
+    fireEvent.press(screen.getByTestId('sync-now'));
+
+    await waitFor(() => {
+      expect(screen.getByText(/quedan datos por descargar/i)).toBeTruthy();
+      expect(screen.queryByText(/enviados.*recibidos/i)).toBeNull();
+    });
+  });
+
+  it('informs how to recover from expired session and preserves local records intact (T5.5)', async () => {
+    await outbox.enqueue('recordMilking', { totalLiters: 8 });
+
+    const authApi: SyncApi = {
+      async push(): Promise<PushResponse> {
+        const err = new Error('Unauthorized');
+        err.name = 'AuthenticationExpiredError';
+        throw err;
+      },
+      async pull(): Promise<PullResponse> {
+        return { cursor: 'c', hasMore: false, collections: {} };
+      },
+    };
+
+    const engine = new SyncEngine(database, authApi);
+    await render(<SyncStatusScreen engine={engine} outbox={outbox} visibility={visibility} />);
+
+    fireEvent.press(screen.getByTestId('sync-now'));
+
+    await waitFor(() => {
+      expect(screen.getByText(/la sesión caducó.*sus registros locales están a salvo/i)).toBeTruthy();
+      expect(screen.getByTestId('pending-count')).toHaveTextContent('1');
+    });
+
+    expect(await outbox.pending()).toHaveLength(1);
+  });
+
+  it('does not invoke recovery when offline, preserving local catalog and displaying notice (T7.2)', async () => {
+    // Populate an animal in mirror table
+    await database.write(async () => {
+      await database.get('animals').create((record: any) => {
+        record._raw.id = 'cow-preserved';
+        record.sex = 'Female';
+        record.speciesId = 'sp-1';
+        record.isDeleted = false;
+        record.serverCreatedAt = Date.now();
+      });
+    });
+
+    let resetCalled = false;
+    const engine = new SyncEngine(database, api);
+    engine.resetMirror = async () => {
+      resetCalled = true;
+    };
+
+    // Simulate offline
+    (global as any).__setNetworkConnected(false);
+
+    await render(<SyncStatusScreen engine={engine} outbox={outbox} visibility={visibility} />);
+
+    // Request redownload
+    fireEvent.press(screen.getByTestId('redownload'));
+    await waitFor(() => {
+      expect(screen.getByTestId('confirm-redownload')).toBeTruthy();
+    });
+
+    // Confirm redownload while offline
+    fireEvent.press(screen.getByTestId('confirm-redownload'));
+
+    await waitFor(() => {
+      // Offline notice is displayed
+      expect(screen.getByText(/sin señal.*lo registrado está guardado/i)).toBeTruthy();
+    });
+
+    // Recovery was NOT invoked
+    expect(resetCalled).toBe(false);
+
+    // Local catalog was NOT wiped
+    expect(await database.get('animals').query().fetchCount()).toBe(1);
+  });
+
+  it('shares diagnostic log on explicit user action without automatic third-party transmission (T8.4)', async () => {
+    const engine = new SyncEngine(database, api);
+    engine.logger.logError('Fallo en sync', { failedStage: 'push', clientOperationId: 'op-test' });
+
+    const shareSpy = jest.spyOn(Share, 'share').mockResolvedValue({ action: 'sharedAction' } as any);
+
+    await render(<SyncStatusScreen engine={engine} outbox={outbox} visibility={visibility} />);
+
+    // No automatic sharing occurs on mount or render
+    expect(shareSpy).not.toHaveBeenCalled();
+
+    // User explicitly taps share diagnostic button
+    fireEvent.press(screen.getByTestId('share-diagnostic'));
+
+    await waitFor(() => {
+      expect(shareSpy).toHaveBeenCalledTimes(1);
+    });
+
+    const callArg = shareSpy.mock.calls[0][0];
+    expect(callArg.message).toContain('Fallo en sync');
+    expect(callArg.message).toContain('push');
+    expect(callArg.message).toContain('op-test');
+
+    shareSpy.mockRestore();
   });
 });

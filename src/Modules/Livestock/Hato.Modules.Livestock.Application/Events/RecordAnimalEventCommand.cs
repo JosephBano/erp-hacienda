@@ -47,24 +47,16 @@ public class RecordAnimalEventHandler(ILivestockDbContext dbContext)
 {
     public async Task<Guid> Handle(RecordAnimalEventCommand request, CancellationToken cancellationToken)
     {
-        // An individual disposal closes the animal (Animal.DisposedAt) in the same write
-        // that appends the AnimalEvent. Until 2026-08-07 the handler only added the
-        // event, leaving the animal resolvable as Alive/Indeterminate in every aggregate
-        // (pre-weaning mortality, group-head-count roll-ups, ResolveIndividualStateQuery).
-        // We load the entity only when needed to keep the hot path cheap.
+        var occurredAtUtc = request.OccurredAt.ToUniversalTime();
         var isIndividualDisposal = request.EventType == EventType.Disposal;
 
-        var animal = isIndividualDisposal
-            ? await dbContext.Animals.FirstOrDefaultAsync(a => a.Id == request.AnimalId, cancellationToken)
-                ?? throw new DomainException($"El animal con ID '{request.AnimalId}' no existe.")
-            : null;
+        var animal = await dbContext.Animals
+            .FirstOrDefaultAsync(a => a.Id == request.AnimalId && a.DeletedAt == null, cancellationToken)
+            ?? throw new DomainException($"El animal con ID '{request.AnimalId}' no existe.");
 
-        if (animal is null && !isIndividualDisposal)
+        if (!isIndividualDisposal && animal.DisposedAt is { } disposedAt && disposedAt <= occurredAtUtc)
         {
-            // Non-disposal events: cheap existence probe, same shape as before.
-            var animalExists = await dbContext.Animals.AnyAsync(a => a.Id == request.AnimalId, cancellationToken);
-            if (!animalExists)
-                throw new DomainException($"El animal con ID '{request.AnimalId}' no existe.");
+            throw new DomainException("El animal fue dado de baja y no puede registrar eventos en o después de su fecha de baja.");
         }
 
         if (request.CauseId is { } causeId)
@@ -115,12 +107,6 @@ public class RecordAnimalEventHandler(ILivestockDbContext dbContext)
             // or a cross-module validation contract.)
             _ = appliedBy;
         }
-
-        // Dates in UTC in persistence (AGENTS.md rule 6): Npgsql only accepts
-        // DateTimeOffset with Offset=0 for 'timestamp with time zone', so a client
-        // submitting a local Ecuador offset must be normalized here, once, rather than
-        // crashing at SaveChangesAsync or drifting the withdrawal start date.
-        var occurredAtUtc = request.OccurredAt.ToUniversalTime();
 
         var animalEvent = AnimalEvent.Create(
             request.AnimalId,

@@ -41,6 +41,8 @@ jest.mock('../src/database', () => ({ createDatabase: () => ({}) }));
 
 jest.mock('../src/services/herdQueries', () => ({
   loadHerd: async () => [],
+  loadActiveHerd: async () => [],
+  loadMilkingCandidates: async () => [],
   loadGroups: async () => [],
   loadTreatmentProducts: async () => [],
   loadMedications: async () => [],
@@ -77,6 +79,9 @@ jest.mock('../src/services/syncEngine', () => ({
   SyncEngine: class {
     start() {}
     stop() {}
+    subscribe() {
+      return () => {};
+    }
     async syncNow() {
       return { pushed: 0, pulled: 0 };
     }

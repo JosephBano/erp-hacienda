@@ -5,7 +5,7 @@ import { schema } from '../src/database/schema';
 import { migrations } from '../src/database/migrations';
 import { modelClasses } from '../src/database/models';
 import { Outbox } from '../src/services/outbox';
-import { SyncEngine, backoffDelayMs, applyRow } from '../src/services/syncEngine';
+import { SyncEngine, backoffDelayMs, applyRow, type SyncResult } from '../src/services/syncEngine';
 import { LoggerService } from '../src/services/loggerService';
 import type { PullResponse, PushResponse, SyncApi } from '../src/services/syncApi';
 
@@ -104,6 +104,28 @@ describe('SyncEngine', () => {
       const [synced] = await outbox.all();
       expect(synced.clientOperationId).toBe(entry.clientOperationId);
       expect(synced.status).toBe('synced');
+    });
+
+    it('keeps a duplicate operation rejected when the server returns errorDetails', async () => {
+      const entry = await outbox.enqueue('recordMilking', { totalLiters: 4 });
+      api.pushHandler = async (ops) => ({
+        processedCount: ops.length,
+        results: ops.map((o) => ({
+          clientOperationId: o.clientOperationId,
+          status: 'Duplicate' as const,
+          resultRef: null,
+          errorDetails: 'La operación fue rechazada previamente en el servidor.',
+        })),
+      });
+
+      await engine.syncNow();
+
+      expect(await outbox.pending()).toHaveLength(0);
+      const rejected = await outbox.rejected();
+      expect(rejected).toHaveLength(1);
+      expect(rejected[0].clientOperationId).toBe(entry.clientOperationId);
+      expect(rejected[0].status).toBe('rejected');
+      expect(rejected[0].errorDetails).toBe('La operación fue rechazada previamente en el servidor.');
     });
 
     /** A refused record is a problem to show a human, never a record to drop. */
@@ -498,6 +520,60 @@ describe('SyncEngine', () => {
 
       expect(api.pullCalls).toHaveLength(3);
     });
+
+    it('stops reporting success when the pull page budget is exhausted (T3.1 & T3.2)', async () => {
+      let call = 0;
+      api.pullHandler = async () => {
+        call += 1;
+        return { cursor: `cursor-${call}`, hasMore: true, collections: {} };
+      };
+
+      const result = await engine.syncNow();
+
+      expect(result.ok).toBe(false);
+      expect(result.reason).toBe('pending');
+      expect(api.pullCalls).toHaveLength(200);
+    });
+
+    it('advances the cursor only after applying the page and supports idempotent replay on interruption (T3.3)', async () => {
+      const row = {
+        id: 'an-replay-test',
+        sex: 'Female',
+        speciesId: 'sp-1',
+        isDeleted: false,
+        createdAt: '2026-08-01T00:00:00Z',
+        updatedAt: null,
+      };
+
+      let step = 0;
+      api.pullHandler = async () => {
+        step += 1;
+        if (step === 1) {
+          return { cursor: 'c1', hasMore: true, collections: { animals: [row] } };
+        }
+        if (step === 2) {
+          return { cursor: 'c2', hasMore: true, collections: { animals: [{ ...row, isDeleted: true }] } };
+        }
+        throw new Error('Network interruption before c3');
+      };
+
+      const firstSync = await engine.syncNow();
+      expect(firstSync.ok).toBe(false);
+      expect(firstSync.reason).toBe('network');
+
+      // Animal was deleted when page 2 applied
+      expect(await database.get('animals').query().fetchCount()).toBe(0);
+
+      // Replay from cursor c2: next sync starts with since: 'c2'
+      api.pullHandler = async (cursor) => {
+        expect(cursor).toBe('c2');
+        return { cursor: 'c3', hasMore: false, collections: {} };
+      };
+
+      const secondSync = await engine.syncNow();
+      expect(secondSync.ok).toBe(true);
+      expect(await database.get('animals').query().fetchCount()).toBe(0);
+    });
   });
 
   describe('resetMirror', () => {
@@ -549,6 +625,95 @@ describe('SyncEngine', () => {
       await engine.syncNow();
       expect(api.pullCalls[0]).toBeUndefined();
     });
+
+    it('coordinates resetMirror and syncNow mutually exclusively (T7.1)', async () => {
+      let resolvePush!: () => void;
+      const pushBarrier = new Promise<void>((r) => {
+        resolvePush = r;
+      });
+      api.pushHandler = async () => {
+        await pushBarrier;
+        return { processedCount: 0, results: [] };
+      };
+
+      await outbox.enqueue('recordMilking', { totalLiters: 10 });
+
+      // Start sync
+      const syncPromise = engine.syncNow();
+      expect(engine.isRunning).toBe(true);
+
+      // Call resetMirror concurrently while sync is in flight
+      let resetFinished = false;
+      const resetPromise = engine.resetMirror().then(() => {
+        resetFinished = true;
+      });
+
+      // resetMirror should NOT have finished yet because sync is in flight
+      expect(resetFinished).toBe(false);
+      expect(engine.isRunning).toBe(true);
+
+      // Complete sync push
+      resolvePush();
+      await syncPromise;
+
+      // Now resetMirror completes
+      await resetPromise;
+      expect(resetFinished).toBe(true);
+      expect(engine.isRunning).toBe(false);
+    });
+
+    it('recovery interrupted halfway does not lose pending outbox entries or local-only records (T7.4)', async () => {
+      // 1. Mirror tables populated
+      await database.write(async () => {
+        await database.get('animals').create((record: any) => {
+          record._raw.id = 'an-interrupted-1';
+          record.sex = 'Female';
+          record.speciesId = 'sp-1';
+          record.isDeleted = false;
+          record.serverCreatedAt = Date.now();
+        });
+      });
+
+      // 2. Local-only records (milk_yields) populated
+      await database.write(async () => {
+        await database.get('milk_yields').create((record: any) => {
+          record._raw.id = 'yield-local-1';
+          record.clientOperationId = 'op-yield-1';
+          record.shift = 'Morning';
+          record.liters = 18;
+          record.date = '2026-09-07';
+        });
+      });
+
+      // 3. Outbox pending forms populated
+      const outboxEntry = await outbox.enqueue('recordGroupEvent', {
+        groupId: 'g-1',
+        eventType: 'Weighing',
+        payloadJson: JSON.stringify({ averageWeightKg: 400 }),
+      });
+
+      // 4. Reset mirror executes
+      await engine.resetMirror();
+
+      // 5. Subsequent sync fails with network error (interrupted recovery)
+      api.pushHandler = async () => {
+        throw new Error('Network timeout during push');
+      };
+      api.pullHandler = async () => {
+        throw new Error('Network timeout during pull');
+      };
+      const result = await engine.syncNow();
+      expect(result.ok).toBe(false);
+
+      // 6. Assert pending forms and local records are completely intact
+      const pendingOutbox = await outbox.pending();
+      expect(pendingOutbox).toHaveLength(1);
+      expect(pendingOutbox[0].clientOperationId).toBe(outboxEntry.clientOperationId);
+
+      const localYields = await database.get('milk_yields').query().fetch();
+      expect(localYields).toHaveLength(1);
+      expect(localYields[0].id).toBe('yield-local-1');
+    });
   });
 
   /**
@@ -568,6 +733,173 @@ describe('SyncEngine', () => {
 
     it('starts small enough to feel immediate to the employee', () => {
       expect(backoffDelayMs(0)).toBeLessThanOrEqual(2000);
+    });
+  });
+
+  describe('scheduling and coordination (Commit 5)', () => {
+    it('serialises concurrent sync triggers into a single coordinated execution (T5.1)', async () => {
+      let pushCount = 0;
+      api.pushHandler = async (ops) => {
+        pushCount++;
+        await new Promise((resolve) => setTimeout(resolve, 50));
+        return {
+          processedCount: ops.length,
+          results: ops.map((o) => ({
+            clientOperationId: o.clientOperationId,
+            status: 'Accepted' as const,
+            resultRef: 'ok',
+            errorDetails: null,
+          })),
+        };
+      };
+
+      await outbox.enqueue('createAnimal', { sex: 'Female' });
+
+      const [res1, res2] = await Promise.all([engine.syncNow(), engine.syncNow()]);
+
+      expect(pushCount).toBe(1);
+      expect(res1.ok).toBe(true);
+      expect(res2.ok).toBe(true);
+      expect(res1).toEqual(res2);
+    });
+
+    it('schedules a bounded retry via retryDelayMs on transient failure while active (T5.2)', async () => {
+      jest.useFakeTimers();
+      try {
+        let attempts = 0;
+        api.pushHandler = async (ops) => {
+          attempts++;
+          if (attempts === 1) {
+            throw new Error('Network request failed');
+          }
+          return {
+            processedCount: ops.length,
+            results: ops.map((o) => ({
+              clientOperationId: o.clientOperationId,
+              status: 'Accepted' as const,
+              resultRef: 'ok',
+              errorDetails: null,
+            })),
+          };
+        };
+
+        await outbox.enqueue('recordMilking', { totalLiters: 5 });
+        engine.start();
+
+        const firstResult = await engine.syncNow();
+        expect(firstResult.ok).toBe(false);
+        expect(firstResult.reason).toBe('network');
+        expect(attempts).toBe(1);
+
+        // Advance timers by retry delay
+        await jest.advanceTimersByTimeAsync(engine.retryDelayMs + 500);
+
+        expect(attempts).toBe(2);
+        expect(await outbox.pending()).toHaveLength(0);
+      } finally {
+        engine.stop();
+        jest.useRealTimers();
+      }
+    });
+
+    it('triggers sync when returning to active foreground state via AppState (T5.3)', async () => {
+      let runs = 0;
+      api.pullHandler = async () => {
+        runs++;
+        return { cursor: 'c', hasMore: false, collections: {} };
+      };
+
+      engine.start();
+      expect(runs).toBe(0);
+
+      (global as any).__setAppState('active');
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
+      expect(runs).toBe(1);
+      engine.stop();
+    });
+
+    it('does not schedule retries for business rejections (T5.4)', async () => {
+      jest.useFakeTimers();
+      try {
+        let pushCalls = 0;
+        api.pushHandler = async (ops) => {
+          pushCalls++;
+          return {
+            processedCount: ops.length,
+            results: ops.map((o) => ({
+              clientOperationId: o.clientOperationId,
+              status: 'Rejected' as const,
+              resultRef: null,
+              errorDetails: 'El animal no existe.',
+            })),
+          };
+        };
+
+        await outbox.enqueue('recordAnimalEvent', { animalId: 'ghost' });
+        engine.start();
+
+        const result = await engine.syncNow();
+        expect(result.ok).toBe(true);
+        expect(result.rejected).toBe(1);
+        expect(pushCalls).toBe(1);
+
+        // Advance timers - no auto-retry should occur
+        await jest.advanceTimersByTimeAsync(10 * 60 * 1000);
+        expect(pushCalls).toBe(1);
+      } finally {
+        engine.stop();
+        jest.useRealTimers();
+      }
+    });
+
+    it('does not auto-retry on session expiration and preserves local records intact (T5.5)', async () => {
+      jest.useFakeTimers();
+      try {
+        let attempts = 0;
+        api.pushHandler = async () => {
+          attempts++;
+          const err = new Error('Unauthorized');
+          err.name = 'AuthenticationExpiredError';
+          throw err;
+        };
+
+        await outbox.enqueue('recordMilking', { totalLiters: 10 });
+        engine.start();
+
+        const result = await engine.syncNow();
+        expect(result.ok).toBe(false);
+        expect(result.reason).toBe('auth');
+        expect(attempts).toBe(1);
+
+        // Advance timers - auth error never auto-retries
+        await jest.advanceTimersByTimeAsync(10 * 60 * 1000);
+        expect(attempts).toBe(1);
+
+        // Outbox entry is preserved intact
+        expect(await outbox.pending()).toHaveLength(1);
+      } finally {
+        engine.stop();
+        jest.useRealTimers();
+      }
+    });
+
+    it('notifies subscribers when changes are applied (T6.1)', async () => {
+      const notifications: SyncResult[] = [];
+      const unsubscribe = engine.subscribe((result) => {
+        notifications.push(result);
+      });
+
+      await outbox.enqueue('createAnimal', { sex: 'Female' });
+      await engine.syncNow();
+
+      expect(notifications).toHaveLength(1);
+      expect(notifications[0].pushed).toBe(1);
+
+      unsubscribe();
+      await outbox.enqueue('createAnimal', { sex: 'Male' });
+      await engine.syncNow();
+      expect(notifications).toHaveLength(1);
     });
   });
 });

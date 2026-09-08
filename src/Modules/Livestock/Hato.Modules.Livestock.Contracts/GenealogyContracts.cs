@@ -27,6 +27,12 @@ public record RegisterOffspringRequest(
     Guid? BirthingId,
     decimal? BirthWeightKg = null);
 
+public record DamFitnessDto(
+    Guid DamId,
+    bool IsFemale,
+    DateTimeOffset? DisposedAt,
+    Guid? SpeciesId);
+
 /// <summary>
 /// Public write port used by Breeding to enroll a newborn as a first-class Animal with
 /// genealogy set, without Breeding depending on Livestock.Domain (Art. 6).
@@ -34,6 +40,12 @@ public record RegisterOffspringRequest(
 public interface IAnimalRegistrationService
 {
     Task<Guid> RegisterOffspringAsync(RegisterOffspringRequest request, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Reads dam eligibility for birthing: existence, sex, disposal timestamp, and species id.
+    /// Used by Breeding to validate dam fitness before recording a birth.
+    /// </summary>
+    Task<DamFitnessDto?> GetDamFitnessAsync(Guid damId, CancellationToken cancellationToken);
 
     /// <summary>
     /// Reads the species id of an animal. Used by Breeding to pick the right cohort

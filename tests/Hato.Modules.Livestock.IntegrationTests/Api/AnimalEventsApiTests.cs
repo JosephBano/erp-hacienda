@@ -106,5 +106,154 @@ public class AnimalEventsApiTests(HatoApiFactory factory) : IClassFixture<HatoAp
         Assert.Equal(expectedUtcDate, withdrawals[0].StartsAt);
     }
 
+    [Fact]
+    public async Task RecordEvent_OnDisposedAnimal_AfterDisposalDate_ReturnsProblemDetails()
+    {
+        var speciesResponse = await _client.PostAsJsonAsync("/api/v1/species", new { name = $"Bovino-{Guid.NewGuid():N}", gestationDays = 283 });
+        speciesResponse.EnsureSuccessStatusCode();
+        var speciesId = (await speciesResponse.Content.ReadFromJsonAsync<CreatedId>())!.Id;
+
+        var animalResponse = await _client.PostAsJsonAsync("/api/v1/animals", new { speciesId, sex = Sex.Female });
+        animalResponse.EnsureSuccessStatusCode();
+        var animalId = (await animalResponse.Content.ReadFromJsonAsync<CreatedId>())!.Id;
+
+        var disposalTime = new DateTimeOffset(2026, 5, 10, 12, 0, 0, TimeSpan.Zero);
+        var disposeResponse = await _client.PostAsJsonAsync($"/api/v1/animals/{animalId}/events", new
+        {
+            eventType = EventType.Disposal,
+            occurredAt = disposalTime,
+            recordedBy = "mayordomo",
+            payloadJson = "{}"
+        });
+        disposeResponse.EnsureSuccessStatusCode();
+
+        // Event on or after disposal
+        var eventResponse = await _client.PostAsJsonAsync($"/api/v1/animals/{animalId}/events", new
+        {
+            eventType = EventType.Weighing,
+            occurredAt = disposalTime.AddHours(1),
+            recordedBy = "mayordomo",
+            payloadJson = "{\"weightKg\": 400}"
+        });
+
+        Assert.Equal(System.Net.HttpStatusCode.BadRequest, eventResponse.StatusCode);
+        var body = await eventResponse.Content.ReadAsStringAsync();
+        Assert.Contains("baja", body, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task RecordDisposal_OnAlreadyDisposedAnimal_ReturnsProblemDetails()
+    {
+        var speciesResponse = await _client.PostAsJsonAsync("/api/v1/species", new { name = $"Bovino-{Guid.NewGuid():N}", gestationDays = 283 });
+        speciesResponse.EnsureSuccessStatusCode();
+        var speciesId = (await speciesResponse.Content.ReadFromJsonAsync<CreatedId>())!.Id;
+
+        var animalResponse = await _client.PostAsJsonAsync("/api/v1/animals", new { speciesId, sex = Sex.Male });
+        animalResponse.EnsureSuccessStatusCode();
+        var animalId = (await animalResponse.Content.ReadFromJsonAsync<CreatedId>())!.Id;
+
+        var disposalTime = new DateTimeOffset(2026, 5, 10, 12, 0, 0, TimeSpan.Zero);
+        var firstDispose = await _client.PostAsJsonAsync($"/api/v1/animals/{animalId}/events", new
+        {
+            eventType = EventType.Disposal,
+            occurredAt = disposalTime,
+            recordedBy = "mayordomo",
+            payloadJson = "{}"
+        });
+        firstDispose.EnsureSuccessStatusCode();
+
+        // Second disposal
+        var secondDispose = await _client.PostAsJsonAsync($"/api/v1/animals/{animalId}/events", new
+        {
+            eventType = EventType.Disposal,
+            occurredAt = disposalTime.AddDays(1),
+            recordedBy = "mayordomo",
+            payloadJson = "{}"
+        });
+
+        Assert.Equal(System.Net.HttpStatusCode.BadRequest, secondDispose.StatusCode);
+        var body = await secondDispose.Content.ReadAsStringAsync();
+        Assert.Contains("baja", body, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task RecordEvent_OnDisposedAnimal_BeforeDisposalDate_Succeeds()
+    {
+        var speciesResponse = await _client.PostAsJsonAsync("/api/v1/species", new { name = $"Bovino-{Guid.NewGuid():N}", gestationDays = 283 });
+        speciesResponse.EnsureSuccessStatusCode();
+        var speciesId = (await speciesResponse.Content.ReadFromJsonAsync<CreatedId>())!.Id;
+
+        var animalResponse = await _client.PostAsJsonAsync("/api/v1/animals", new { speciesId, sex = Sex.Female });
+        animalResponse.EnsureSuccessStatusCode();
+        var animalId = (await animalResponse.Content.ReadFromJsonAsync<CreatedId>())!.Id;
+
+        var disposalTime = new DateTimeOffset(2026, 5, 10, 12, 0, 0, TimeSpan.Zero);
+        var disposeResponse = await _client.PostAsJsonAsync($"/api/v1/animals/{animalId}/events", new
+        {
+            eventType = EventType.Disposal,
+            occurredAt = disposalTime,
+            recordedBy = "mayordomo",
+            payloadJson = "{}"
+        });
+        disposeResponse.EnsureSuccessStatusCode();
+
+        // Retrospective weighing before disposal is valid per D5
+        var eventResponse = await _client.PostAsJsonAsync($"/api/v1/animals/{animalId}/events", new
+        {
+            eventType = EventType.Weighing,
+            occurredAt = disposalTime.AddDays(-5),
+            recordedBy = "mayordomo",
+            payloadJson = "{\"weightKg\": 390}"
+        });
+
+        eventResponse.EnsureSuccessStatusCode();
+    }
+
+    [Fact]
+    public async Task WeighingAndTreatment_BothMaleAndFemale_Succeeds()
+    {
+        var speciesResponse = await _client.PostAsJsonAsync("/api/v1/species", new { name = $"Bovino-{Guid.NewGuid():N}", gestationDays = 283 });
+        speciesResponse.EnsureSuccessStatusCode();
+        var speciesId = (await speciesResponse.Content.ReadFromJsonAsync<CreatedId>())!.Id;
+
+        var maleResponse = await _client.PostAsJsonAsync("/api/v1/animals", new { speciesId, sex = Sex.Male });
+        maleResponse.EnsureSuccessStatusCode();
+        var maleId = (await maleResponse.Content.ReadFromJsonAsync<CreatedId>())!.Id;
+
+        var femaleResponse = await _client.PostAsJsonAsync("/api/v1/animals", new { speciesId, sex = Sex.Female });
+        femaleResponse.EnsureSuccessStatusCode();
+        var femaleId = (await femaleResponse.Content.ReadFromJsonAsync<CreatedId>())!.Id;
+
+        // Weigh male
+        var weighMale = await _client.PostAsJsonAsync($"/api/v1/animals/{maleId}/events", new
+        {
+            eventType = EventType.Weighing,
+            occurredAt = DateTimeOffset.UtcNow,
+            recordedBy = "operador",
+            payloadJson = "{\"weightKg\": 720}"
+        });
+        weighMale.EnsureSuccessStatusCode();
+
+        // Weigh female
+        var weighFemale = await _client.PostAsJsonAsync($"/api/v1/animals/{femaleId}/events", new
+        {
+            eventType = EventType.Weighing,
+            occurredAt = DateTimeOffset.UtcNow,
+            recordedBy = "operador",
+            payloadJson = "{\"weightKg\": 510}"
+        });
+        weighFemale.EnsureSuccessStatusCode();
+
+        // Treat male
+        var treatMale = await _client.PostAsJsonAsync($"/api/v1/animals/{maleId}/events", new
+        {
+            eventType = EventType.Treatment,
+            occurredAt = DateTimeOffset.UtcNow,
+            recordedBy = "veterinario",
+            payloadJson = "{\"medicine\": \"Vitamina\"}"
+        });
+        treatMale.EnsureSuccessStatusCode();
+    }
+
     private sealed record CreatedId(Guid Id);
 }

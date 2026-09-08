@@ -53,6 +53,26 @@ public class AddTreatmentCourseApplicationHandler(ILivestockDbContext dbContext)
 
         var appliedAtUtc = request.AppliedAt.ToUniversalTime();
 
+        if (course.AnimalId is { } animalId)
+        {
+            var animal = await dbContext.Animals
+                .FirstOrDefaultAsync(a => a.Id == animalId && a.DeletedAt == null, cancellationToken);
+            if (animal?.DisposedAt is { } disposedAt && disposedAt <= appliedAtUtc)
+            {
+                throw new DomainException("El animal fue dado de baja y no puede registrar tratamientos en o después de su fecha de baja.");
+            }
+        }
+
+        if (course.GroupId is { } groupId)
+        {
+            var group = await dbContext.AnimalGroups
+                .FirstOrDefaultAsync(g => g.Id == groupId && g.DeletedAt == null, cancellationToken);
+            if (group is not null && !group.IsActive)
+            {
+                throw new DomainException("No se pueden registrar tratamientos sobre un lote inactivo.");
+            }
+        }
+
         var resolved = await DoseResolver.ResolveAsync(
             dbContext, doseKind.Key, course.DoseFactorAmount, course.DoseFactorUnit,
             course.AnimalId, course.GroupId, cancellationToken);

@@ -151,6 +151,8 @@ export function EventsScreen({
     }
   };
 
+  const isAnimalObsolete = Boolean(animal && !animals.some((a) => a.animalId === animal.animalId));
+
   /**
    * Plausibility gate for the weight form (ADR-0022, 3.5a.6). Runs entirely
    * offline against the local `plausibility_ranges` mirror: 'pass' (or no
@@ -158,7 +160,7 @@ export function EventsScreen({
    * dialog below, 'block' stops the entry before it reaches the outbox.
    */
   const recordWeight = async () => {
-    if (!animal) return;
+    if (!animal || isAnimalObsolete) return;
 
     setError(null);
     const value = Number(weight.replace(',', '.'));
@@ -254,6 +256,21 @@ export function EventsScreen({
             <Card>
               <Body>{animal.label}</Body>
 
+              {isAnimalObsolete ? (
+                <>
+                  <Notice
+                    tone="warning"
+                    text="El animal seleccionado ya no existe en el sistema (fue eliminado o dado de baja en el servidor). No se puede registrar el evento contra este animal. Puede elegir otro animal sin perder los datos ingresados."
+                  />
+                  <BigButton
+                    testID="change-animal"
+                    label="Elegir otro animal"
+                    tone="neutral"
+                    onPress={() => setAnimal(null)}
+                  />
+                </>
+              ) : null}
+
               {mode === 'weight' ? (
                 <>
                   <NumberField label="Peso (kg)" testID="weight-input" value={weight} onChangeText={setWeight} />
@@ -268,7 +285,9 @@ export function EventsScreen({
                         testID="weight-confirm-plausibility"
                         label="Sí, registrar"
                         busy={busy}
-                        onPress={() =>
+                        disabled={isAnimalObsolete}
+                        onPress={() => {
+                          if (isAnimalObsolete) return;
                           void runOnce(() =>
                             run(
                               () =>
@@ -279,8 +298,8 @@ export function EventsScreen({
                                 }),
                               'Pesaje registrado.',
                             ),
-                          )
-                        }
+                          );
+                        }}
                       />
                       <BigButton
                         testID="weight-cancel-plausibility"
@@ -294,7 +313,11 @@ export function EventsScreen({
                       testID="confirm-weight"
                       label="Registrar pesaje"
                       busy={busy}
-                      onPress={() => void runOnce(recordWeight)}
+                      disabled={isAnimalObsolete}
+                      onPress={() => {
+                        if (isAnimalObsolete) return;
+                        void runOnce(recordWeight);
+                      }}
                     />
                   )}
                 </>
@@ -315,7 +338,9 @@ export function EventsScreen({
                         label={`Mover a ${group.label}`}
                         tone="neutral"
                         busy={busy}
-                        onPress={() =>
+                        disabled={isAnimalObsolete}
+                        onPress={() => {
+                          if (isAnimalObsolete) return;
                           void runOnce(() =>
                             run(
                               () =>
@@ -325,8 +350,8 @@ export function EventsScreen({
                                 }),
                               'Movimiento registrado.',
                             ),
-                          )
-                        }
+                          );
+                        }}
                       />
                     ))
                   )}
@@ -364,7 +389,9 @@ export function EventsScreen({
                         testID="confirm-disposal"
                         label="Registrar baja"
                         busy={busy}
-                        onPress={() =>
+                        disabled={isAnimalObsolete}
+                        onPress={() => {
+                          if (isAnimalObsolete) return;
                           void runOnce(() =>
                             run(
                               () =>
@@ -374,8 +401,8 @@ export function EventsScreen({
                                 }),
                               'Baja registrada.',
                             ),
-                          )
-                        }
+                          );
+                        }}
                       />
                     </>
                   )}

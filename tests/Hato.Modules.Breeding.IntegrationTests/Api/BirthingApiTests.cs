@@ -151,6 +151,118 @@ public class BirthingApiTests(BreedingApiFactory factory) : IClassFixture<Breedi
         Assert.Equal("Weighing", weighing.EventType);
     }
 
+    [Fact]
+    public async Task RecordBirthing_WithMaleDam_ReturnsProblemDetails()
+    {
+        var speciesResponse = await _client.PostAsJsonAsync("/api/v1/species", new { name = $"Bovino-{Guid.NewGuid():N}", gestationDays = 283 });
+        speciesResponse.EnsureSuccessStatusCode();
+        var speciesId = (await speciesResponse.Content.ReadFromJsonAsync<CreatedId>())!.Id;
+
+        var maleDamResponse = await _client.PostAsJsonAsync("/api/v1/animals", new { speciesId, sex = "Male" });
+        maleDamResponse.EnsureSuccessStatusCode();
+        var maleDamId = (await maleDamResponse.Content.ReadFromJsonAsync<CreatedId>())!.Id;
+
+        var birthingResponse = await _client.PostAsJsonAsync("/api/v1/breeding/birthings", new
+        {
+            damId = maleDamId,
+            birthDate = new DateOnly(2026, 8, 1),
+            difficulty = "Normal",
+            bornAlive = 1,
+            offspring = new[]
+            {
+                new { childId = Guid.NewGuid(), sex = "F" }
+            }
+        });
+
+        Assert.Equal(System.Net.HttpStatusCode.BadRequest, birthingResponse.StatusCode);
+        var body = await birthingResponse.Content.ReadAsStringAsync();
+        Assert.Contains("hembra", body, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task RecordBirthing_WithDamDisposedBeforeBirthDate_ReturnsProblemDetails()
+    {
+        var speciesResponse = await _client.PostAsJsonAsync("/api/v1/species", new { name = $"Bovino-{Guid.NewGuid():N}", gestationDays = 283 });
+        speciesResponse.EnsureSuccessStatusCode();
+        var speciesId = (await speciesResponse.Content.ReadFromJsonAsync<CreatedId>())!.Id;
+
+        var damResponse = await _client.PostAsJsonAsync("/api/v1/animals", new { speciesId, sex = "Female" });
+        damResponse.EnsureSuccessStatusCode();
+        var damId = (await damResponse.Content.ReadFromJsonAsync<CreatedId>())!.Id;
+
+        // Dispose dam on 2026-07-15
+        var disposeResponse = await _client.PostAsJsonAsync($"/api/v1/animals/{damId}/events", new
+        {
+            eventType = "Disposal",
+            occurredAt = new DateTimeOffset(2026, 7, 15, 10, 0, 0, TimeSpan.Zero),
+            recordedBy = "mayordomo",
+            payloadJson = "{}"
+        });
+        disposeResponse.EnsureSuccessStatusCode();
+
+        // Attempt birthing on 2026-08-01 (after disposal)
+        var birthingResponse = await _client.PostAsJsonAsync("/api/v1/breeding/birthings", new
+        {
+            damId,
+            birthDate = new DateOnly(2026, 8, 1),
+            difficulty = "Normal",
+            bornAlive = 1,
+            offspring = new[]
+            {
+                new { childId = Guid.NewGuid(), sex = "F" }
+            }
+        });
+
+        Assert.Equal(System.Net.HttpStatusCode.BadRequest, birthingResponse.StatusCode);
+        var body = await birthingResponse.Content.ReadAsStringAsync();
+        Assert.Contains("baja", body, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task RecordBirthing_WithCompletedPregnancy_ReturnsProblemDetails()
+    {
+        var speciesResponse = await _client.PostAsJsonAsync("/api/v1/species", new { name = $"Bovino-{Guid.NewGuid():N}", gestationDays = 283 });
+        speciesResponse.EnsureSuccessStatusCode();
+        var speciesId = (await speciesResponse.Content.ReadFromJsonAsync<CreatedId>())!.Id;
+
+        var damResponse = await _client.PostAsJsonAsync("/api/v1/animals", new { speciesId, sex = "Female" });
+        damResponse.EnsureSuccessStatusCode();
+        var damId = (await damResponse.Content.ReadFromJsonAsync<CreatedId>())!.Id;
+
+        // First birth completes any active pregnancy or registers one
+        var firstBirthResponse = await _client.PostAsJsonAsync("/api/v1/breeding/birthings", new
+        {
+            damId,
+            birthDate = new DateOnly(2026, 7, 1),
+            difficulty = "Normal",
+            bornAlive = 1,
+            offspring = new[]
+            {
+                new { childId = Guid.NewGuid(), sex = "F" }
+            }
+        });
+        firstBirthResponse.EnsureSuccessStatusCode();
+        var firstBirth = await firstBirthResponse.Content.ReadFromJsonAsync<BirthingDto>();
+
+        // If pregnancyId does not exist or was completed
+        var birthingResponse = await _client.PostAsJsonAsync("/api/v1/breeding/birthings", new
+        {
+            damId,
+            pregnancyId = Guid.NewGuid(),
+            birthDate = new DateOnly(2026, 8, 1),
+            difficulty = "Normal",
+            bornAlive = 1,
+            offspring = new[]
+            {
+                new { childId = Guid.NewGuid(), sex = "F" }
+            }
+        });
+
+        Assert.Equal(System.Net.HttpStatusCode.BadRequest, birthingResponse.StatusCode);
+        var body = await birthingResponse.Content.ReadAsStringAsync();
+        Assert.Contains("preñez", body, StringComparison.OrdinalIgnoreCase);
+    }
+
     private sealed record CreatedId(Guid Id);
     private sealed record BirthingDto(Guid Id);
     private sealed record AnimalListItemDto(Guid Id, string? FarmTag, string Gender);

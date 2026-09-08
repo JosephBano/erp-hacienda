@@ -247,4 +247,56 @@ describe('MilkingService', () => {
       /sincroniz/i,
     );
   });
+
+  it('refuses to milk a male animal', async () => {
+    await database.write(async () => {
+      await database.get('animals').create((row: any) => {
+        row._raw.id = 'bull-1';
+        row.sex = 'Male';
+        row.speciesId = 'species-bovino';
+        row.isDeleted = false;
+        row.serverCreatedAt = Date.now();
+      });
+    });
+
+    await expect(service.recordIndividualYield('bull-1', 'Morning', 10, recordedBy)).rejects.toThrow(
+      'Solo se pueden ordeñar animales de sexo hembra.',
+    );
+    expect(await outbox.pending()).toHaveLength(0);
+  });
+
+  it('refuses to milk an animal disposed at or before the record date', async () => {
+    await database.write(async () => {
+      await database.get('animals').create((row: any) => {
+        row._raw.id = 'cow-disposed';
+        row.sex = 'Female';
+        row.speciesId = 'species-bovino';
+        row.disposedAt = '2026-09-01T10:00:00Z';
+        row.isDeleted = false;
+        row.serverCreatedAt = Date.now();
+      });
+    });
+
+    await expect(
+      service.recordIndividualYield('cow-disposed', 'Morning', 10, recordedBy, '2026-09-05'),
+    ).rejects.toThrow('El animal fue dado de baja y no puede ser ordeñado.');
+    expect(await outbox.pending()).toHaveLength(0);
+  });
+
+  it('refuses to milk a deleted animal', async () => {
+    await database.write(async () => {
+      await database.get('animals').create((row: any) => {
+        row._raw.id = 'cow-deleted';
+        row.sex = 'Female';
+        row.speciesId = 'species-bovino';
+        row.isDeleted = true;
+        row.serverCreatedAt = Date.now();
+      });
+    });
+
+    await expect(service.recordIndividualYield('cow-deleted', 'Morning', 10, recordedBy)).rejects.toThrow(
+      'No se encontró el animal en este dispositivo.',
+    );
+    expect(await outbox.pending()).toHaveLength(0);
+  });
 });

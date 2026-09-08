@@ -6,6 +6,7 @@ using Hato.Modules.Breeding.Domain;
 using Hato.Modules.Breeding.Domain.Enums;
 using Hato.Modules.Breeding.Domain.Events;
 using Hato.Modules.Livestock.Contracts;
+using Hato.SharedKernel;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
@@ -52,10 +53,38 @@ public class RecordBirthingCommandHandler(
 {
     public async Task<BirthingDto> Handle(RecordBirthingCommand request, CancellationToken cancellationToken)
     {
+        var damFitness = await animalRegistration.GetDamFitnessAsync(request.DamId, cancellationToken)
+            ?? throw new DomainException($"La madre con ID '{request.DamId}' no existe en Livestock.");
+
+        if (!damFitness.IsFemale)
+        {
+            throw new DomainException("La madre debe ser un animal hembra.");
+        }
+
+        if (damFitness.DisposedAt is { } disposedAt)
+        {
+            var disposedDate = DateOnly.FromDateTime(disposedAt.UtcDateTime);
+            if (disposedDate <= request.BirthDate)
+            {
+                throw new DomainException("La madre fue dada de baja antes o en la fecha del parto.");
+            }
+        }
+
         Pregnancy? pregnancy = null;
         if (request.PregnancyId.HasValue)
         {
-            pregnancy = await dbContext.Pregnancies.FirstOrDefaultAsync(p => p.Id == request.PregnancyId.Value, cancellationToken);
+            pregnancy = await dbContext.Pregnancies.FirstOrDefaultAsync(p => p.Id == request.PregnancyId.Value, cancellationToken)
+                ?? throw new DomainException($"La preñez con ID '{request.PregnancyId.Value}' no existe.");
+
+            if (pregnancy.DamId != request.DamId)
+            {
+                throw new DomainException("La preñez seleccionada no corresponde a la madre indicada.");
+            }
+
+            if (pregnancy.Status != PregnancyStatus.Active)
+            {
+                throw new DomainException("La preñez seleccionada ya fue completada o no está activa.");
+            }
         }
         else
         {
@@ -85,7 +114,7 @@ public class RecordBirthingCommandHandler(
         }
 
         // Pull the species off the dam so the cohort assigner knows which window to apply.
-        var speciesId = await ResolveDamSpeciesAsync(request.DamId, cancellationToken);
+        var speciesId = damFitness.SpeciesId ?? await ResolveDamSpeciesAsync(request.DamId, cancellationToken);
 
         // Cohort assignment happens before Save so the new birthings row carries the
         // nursing_cohort_id; the assigner opens a new cohort when no candidate is open.

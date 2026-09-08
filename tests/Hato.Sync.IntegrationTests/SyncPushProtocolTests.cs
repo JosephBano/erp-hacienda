@@ -103,6 +103,36 @@ public class SyncPushProtocolTests(SyncApiFactory factory)
     }
 
     /// <summary>
+    /// Commit 4 (T4.3): If an operation was rejected by the server and retried (e.g. response lost),
+    /// the server returns Duplicate while preserving the rejection reason in errorDetails so the client
+    /// does not whitewash the rejection into an accepted record.
+    /// </summary>
+    [Fact]
+    public async Task Push_RetryRejectedOperation_ReturnsDuplicateWithOriginalRejectionReason()
+    {
+        var context = await SyncTestContext.CreateAsync(factory, "push-retry-rejected");
+        var orphanAnimalId = Guid.NewGuid();
+        var operationId = Guid.NewGuid();
+        var payload = new
+        {
+            animalId = orphanAnimalId,
+            eventType = "Weighing",
+            occurredAt = DateTimeOffset.UtcNow,
+            recordedBy = "empleado-campo",
+            payloadJson = "{\"weightKg\":180}",
+        };
+
+        var first = await context.PushAsync("recordAnimalEvent", payload, operationId);
+        Assert.Equal("Rejected", first.GetProperty("status").GetString());
+        var originalError = first.GetProperty("errorDetails").GetString();
+        Assert.False(string.IsNullOrWhiteSpace(originalError));
+
+        var retry = await context.PushAsync("recordAnimalEvent", payload, operationId);
+        Assert.Equal("Duplicate", retry.GetProperty("status").GetString());
+        Assert.Equal(originalError, retry.GetProperty("errorDetails").GetString());
+    }
+
+    /// <summary>
     /// ADR-0015 + docs/spec/plan-0001-fase-3/spec.md sec.2.2: a group disposal replayed by a retry or a double
     /// tap must decrement <c>LiveHeadCount</c> exactly once, the same "never duplicate"
     /// guarantee every other push operation gets from the generic claim step.
@@ -306,5 +336,85 @@ public class SyncPushProtocolTests(SyncApiFactory factory)
         // The server's own ordering clock is unaffected by the device's.
         var receivedAt = record.GetProperty("receivedAt").GetDateTimeOffset();
         Assert.InRange(receivedAt, before, DateTimeOffset.UtcNow.AddMinutes(1));
+    }
+
+    [Fact]
+    public async Task Push_MoveAnimal_WhenFromEqualsTo_ReturnsRejected()
+    {
+        var context = await SyncTestContext.CreateAsync(factory, "push-move-same");
+        var speciesId = await context.CreateSpeciesAsync("Bovino");
+        var animalId = await context.CreateAnimalAsync(speciesId, "Female");
+        var groupId = Guid.NewGuid();
+
+        var result = await context.PushAsync("moveAnimal", new
+        {
+            animalId,
+            fromGroupId = groupId,
+            toGroupId = groupId,
+            movedOn = DateOnly.FromDateTime(DateTime.UtcNow)
+        });
+
+        Assert.Equal("Rejected", result.GetProperty("status").GetString());
+        var error = result.GetProperty("errorDetails").GetString();
+        Assert.NotNull(error);
+        Assert.Contains("diferente", error, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task Push_Birthing_WithMaleDam_ReturnsRejected()
+    {
+        var context = await SyncTestContext.CreateAsync(factory, "push-birth-male-dam");
+        var speciesId = await context.CreateSpeciesAsync("Bovino");
+        var maleDamId = await context.CreateAnimalAsync(speciesId, "Male");
+
+        var result = await context.PushAsync("recordBirth", new
+        {
+            damId = maleDamId,
+            birthDate = DateOnly.FromDateTime(DateTime.UtcNow),
+            difficulty = "Normal",
+            bornAlive = 1,
+            offspring = new[]
+            {
+                new { sex = "F" }
+            }
+        });
+
+        Assert.Equal("Rejected", result.GetProperty("status").GetString());
+        var error = result.GetProperty("errorDetails").GetString();
+        Assert.NotNull(error);
+        Assert.Contains("hembra", error, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task Push_RecordAnimalEvent_OnDisposedAnimal_ReturnsRejected()
+    {
+        var context = await SyncTestContext.CreateAsync(factory, "push-event-disposed");
+        var speciesId = await context.CreateSpeciesAsync("Bovino");
+        var cowId = await context.CreateAnimalAsync(speciesId, "Female");
+
+        var disposalTime = DateTimeOffset.UtcNow.AddHours(-2);
+        var disposeResult = await context.PushAsync("recordAnimalEvent", new
+        {
+            animalId = cowId,
+            eventType = "Disposal",
+            occurredAt = disposalTime,
+            recordedBy = "mayordomo",
+            payloadJson = "{}"
+        });
+        Assert.Equal("Accepted", disposeResult.GetProperty("status").GetString());
+
+        var eventResult = await context.PushAsync("recordAnimalEvent", new
+        {
+            animalId = cowId,
+            eventType = "Weighing",
+            occurredAt = disposalTime.AddHours(1),
+            recordedBy = "mayordomo",
+            payloadJson = "{\"weightKg\":410}"
+        });
+
+        Assert.Equal("Rejected", eventResult.GetProperty("status").GetString());
+        var error = eventResult.GetProperty("errorDetails").GetString();
+        Assert.NotNull(error);
+        Assert.Contains("baja", error, StringComparison.OrdinalIgnoreCase);
     }
 }

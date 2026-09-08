@@ -158,6 +158,27 @@ describe('AnimalSubjectScreen', () => {
 
     expect(onActivity).toHaveBeenCalledWith('a-1', 'disposal');
   });
+
+  it('displays notice and lets operator choose another animal when selected animal disappears (T6.4)', async () => {
+    const onClearSelection = jest.fn();
+    await render(
+      <AnimalSubjectScreen
+        animals={animals}
+        recentIds={[]}
+        selectedAnimalId="deleted-animal-id"
+        onSelectAnimal={noop}
+        onActivity={noop}
+        onClearSelection={onClearSelection}
+      />,
+    );
+
+    expect(await screen.findByText('Animal no disponible')).toBeTruthy();
+    expect(screen.getByText(/ya no existe en el sistema/i)).toBeTruthy();
+    expect(screen.queryByTestId('activity-weight')).toBeNull();
+
+    fireEvent.press(screen.getByTestId('back-to-animal-picker'));
+    expect(onClearSelection).toHaveBeenCalled();
+  });
 });
 
 /**

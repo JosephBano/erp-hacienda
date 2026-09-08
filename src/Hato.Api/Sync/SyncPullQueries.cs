@@ -64,7 +64,8 @@ public record SyncAnimalDto(
     // next updateAnimal push, so the server can tell whether another write landed on
     // the row after this device last saw it. Distinct from UpdatedAt, which is server
     // processing time and would make conflict resolution depend on network luck.
-    DateTimeOffset? LastEditedAt) : ISyncRow;
+    DateTimeOffset? LastEditedAt,
+    DateTimeOffset? DisposedAt = null) : ISyncRow;
 
 public record SyncAnimalIdentifierDto(
     Guid Id,
@@ -383,7 +384,8 @@ public class GetSyncPullQueryHandler(
             a => new SyncAnimalDto(
                 a.Id, a.Sex.ToString(), a.BirthDate, a.SpeciesId, a.BreedId, a.CategoryId,
                 a.MotherId, a.FatherAnimalId, a.FatherStrawId,
-                a.CreatedAt, a.UpdatedAt, a.DeletedAt != null, a.LastEditedAt),
+                a.CreatedAt, a.UpdatedAt, a.DeletedAt != null, a.LastEditedAt,
+                a.DisposedAt),
             cancellationToken);
 
         var identifiers = await ReadAsync(

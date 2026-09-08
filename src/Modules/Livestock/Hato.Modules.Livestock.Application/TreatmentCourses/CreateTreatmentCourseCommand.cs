@@ -70,25 +70,35 @@ public class CreateTreatmentCourseHandler(ILivestockDbContext dbContext)
         if (doseKind is null)
             throw new DomainException($"La forma de dosis con ID '{request.DoseKindId}' no existe o está inactiva.");
 
+        var startsAtUtc = request.StartsAt.ToUniversalTime();
+
         if (request.AnimalId is { } animalId)
         {
-            var animalExists = await dbContext.Animals.AnyAsync(a => a.Id == animalId, cancellationToken);
-            if (!animalExists)
-                throw new DomainException($"El animal con ID '{animalId}' no existe.");
+            var animal = await dbContext.Animals
+                .FirstOrDefaultAsync(a => a.Id == animalId && a.DeletedAt == null, cancellationToken)
+                ?? throw new DomainException($"El animal con ID '{animalId}' no existe.");
+
+            if (animal.DisposedAt is { } disposedAt && disposedAt <= startsAtUtc)
+            {
+                throw new DomainException("El animal fue dado de baja y no puede registrar tratamientos en o después de su fecha de baja.");
+            }
         }
 
         if (request.GroupId is { } groupId)
         {
-            var groupExists = await dbContext.AnimalGroups.AnyAsync(g => g.Id == groupId, cancellationToken);
-            if (!groupExists)
-                throw new DomainException($"El lote con ID '{groupId}' no existe.");
+            var group = await dbContext.AnimalGroups
+                .FirstOrDefaultAsync(g => g.Id == groupId && g.DeletedAt == null, cancellationToken)
+                ?? throw new DomainException($"El lote con ID '{groupId}' no existe.");
+
+            if (!group.IsActive)
+            {
+                throw new DomainException("No se pueden registrar tratamientos sobre un lote inactivo.");
+            }
         }
 
-        var startsAtUtc = request.StartsAt.ToUniversalTime();
-
-        var course = request.AnimalId is { } animal
+        var course = request.AnimalId is { } aId
             ? TreatmentCourse.CreateForAnimal(
-                animal, startsAtUtc, request.RouteId, request.Reason, request.ProductId,
+                aId, startsAtUtc, request.RouteId, request.Reason, request.ProductId,
                 request.DoseKindId, request.DoseFactorAmount, request.DoseFactorUnit, request.Notes)
             : TreatmentCourse.CreateForGroup(
                 request.GroupId!.Value, startsAtUtc, request.RouteId, request.Reason, request.ProductId,

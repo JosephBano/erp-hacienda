@@ -71,7 +71,7 @@ public class PushSyncBatchCommandHandler(
     // earlier phase (a dropped `motherId`, no error, no signal). Disallow turns an
     // unknown field into a loud `JsonException` → 400 the device's problems tray can
     // show, instead of a record silently missing data on the server.
-    private static readonly JsonSerializerOptions JsonOptions = new()
+    public static readonly JsonSerializerOptions JsonOptions = new()
     {
         PropertyNameCaseInsensitive = true,
         Converters = { new JsonStringEnumConverter() },
@@ -115,11 +115,18 @@ public class PushSyncBatchCommandHandler(
 
         if (claim.Existing is not null)
         {
+            var errorDetails = claim.Existing.Status switch
+            {
+                SyncOperationStatus.Rejected => claim.Existing.ErrorDetails ?? "La operación fue rechazada previamente en el servidor.",
+                SyncOperationStatus.Processing => "La operación anterior sigue en procesamiento en el servidor.",
+                _ => claim.Existing.ErrorDetails
+            };
+
             return new SyncOperationResultDto(
                 operation.ClientOperationId,
                 nameof(SyncOperationStatus.Duplicate),
                 claim.Existing.ResultRef,
-                claim.Existing.ErrorDetails);
+                errorDetails);
         }
 
         var record = claim.Claimed!;
@@ -286,6 +293,11 @@ public class PushSyncBatchCommandHandler(
             case "moveanimal":
                 {
                     var move = Deserialize<MoveAnimalPayload>(payloadJson, "movimiento");
+                    if (move.FromGroupId.HasValue && move.FromGroupId.Value == move.ToGroupId)
+                    {
+                        throw new DomainException("El lote de destino debe ser diferente del lote de origen.");
+                    }
+
                     var movedOn = move.MovedOn ?? DateOnly.FromDateTime(DateTime.UtcNow);
 
                     if (move.FromGroupId is { } from)

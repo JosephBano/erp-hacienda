@@ -140,6 +140,19 @@ móvil, incluyendo días sin señal, sin pérdida ni duplicación de datos.
 > rechazadas, `ng test` roto en `admin-web`) y por qué. Sigue pendiente, heredado y sin
 > relación con esta fase: la subida de fotos (Fase 4) y el ciclo de vida de `Lactation`
 > (Fase 2, nunca implementado).
+>
+> **Actualización post-reporte de campo (2026-09-07, `feature/sync-field-app-reliability`):**
+> Tras el reporte de tres semanas de uso en producción con fallos intermitentes de sincronización,
+> se implementó la estabilización de contratos y motor móvil (feature-0004):
+> 1. Se resolvió la causa viva de rechazo determinista en ordeño individual persistiendo el flag
+>    `isPlausibilityConfirmed` en backend (`MilkingSession`) y comandos.
+> 2. Se corrigió el pull para no reportar éxito si se agota el presupuesto de páginas con datos pendientes.
+> 3. Se garantizó que una operación rechazada permanezca rechazada con su motivo original ante duplicados.
+> 4. Se unificaron los disparadores de sincronización con serialización y reintento programado por backoff y primer plano.
+> 5. Se conectó la reactividad de pantallas abiertas al aplicar cambios confirmados en SQLite sin descartar formularios en edición.
+> 6. Se aseguró la recuperación manual (`resetMirror`) con exclusión mutua frente a sync, verificación de red previa e inmunidad de `sync_outbox`.
+> 7. Se implementó bitácora diagnóstica persistente en almacenamiento nativo con retención acotada (100 entradas), redacción de secretos y exportación deliberada vía `Share`.
+> Sigue abierto para el cierre definitivo de la fase: validación manual de `test-e2e.md` en SQLite nativo en el dispositivo físico de la finca.
 
 ---
 

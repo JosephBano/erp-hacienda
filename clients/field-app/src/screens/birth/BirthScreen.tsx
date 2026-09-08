@@ -83,6 +83,10 @@ export function BirthScreen({ service, dams, onRecorded, onCancel }: BirthScreen
     );
   };
 
+  const isDamObsolete = Boolean(
+    dam && !dams.some((d) => d.animalId === dam.animalId && d.pregnancyId === dam.pregnancyId),
+  );
+
   /*
    * A birth is the most expensive duplicate in the app: two "Registrar parto"
    * taps used to enqueue two birthings, each with its own calves, against one
@@ -96,7 +100,7 @@ export function BirthScreen({ service, dams, onRecorded, onCancel }: BirthScreen
    */
   const submit = () =>
     runOnce(async () => {
-      if (!dam) return;
+      if (!dam || isDamObsolete) return;
       setError(null);
       try {
         await service.recordBirth({
@@ -154,6 +158,12 @@ export function BirthScreen({ service, dams, onRecorded, onCancel }: BirthScreen
           difficulty={difficulty}
           offspring={offspring}
           busy={busy}
+          isDamObsolete={isDamObsolete}
+          onChangeDam={() => {
+            setDam(null);
+            setStep(1);
+            setError(null);
+          }}
           onSubmit={() => void submit()}
           onBack={() => setStep(3)}
           onCancel={handleCancel}

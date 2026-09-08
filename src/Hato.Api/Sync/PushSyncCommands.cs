@@ -76,7 +76,7 @@ public class PushSyncBatchCommandHandler(
             ["recordAnimalEvent"] = SystemPermissions.LivestockAnimalsWrite,
             ["createTreatmentCourse"] = SystemPermissions.LivestockAnimalsWrite,
             ["recordGroupEvent"] = SystemPermissions.LivestockAnimalsWrite,
-            ["recordFeedConsumption"] = SystemPermissions.InventoryItemsManage,
+            ["recordFeedConsumption"] = SystemPermissions.InventoryFeedConsumptionsRecord,
             ["createAnimal"] = SystemPermissions.LivestockAnimalsWrite,
             ["recordBirth"] = SystemPermissions.BreedingEventsRecord,
             ["moveAnimal"] = SystemPermissions.LivestockAnimalsWrite,

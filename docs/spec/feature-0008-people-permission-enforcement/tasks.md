@@ -12,7 +12,7 @@
 
 > Bloquea los commits 4 y 5, no la rama entera.
 
-- [ ] **TG0.1** Definir código, descripción y roles del permiso de consumo de alimento.
+- [x] **TG0.1** Definir código, descripción y roles del permiso de consumo de alimento.
       **Terminado:** **no** se reutiliza `inventory.items.manage` si eso obliga a dar
       administración de catálogo a quien solo alimenta animales (spec sec. 4).
 - [ ] **TG0.2** Definir desde qué momento una revocación deja de aceptar nuevas escrituras
@@ -105,18 +105,18 @@
 
 > Bloqueado por la Compuerta 0, decisión A.
 
-- [ ] **T5.1** Declarar el permiso nuevo en `SystemPermissions`, con el código decidido en TG0.1.
-- [ ] **T5.2** Migración/semilla con la asignación a roles (regla 7).
+- [x] **T5.1** Declarar el permiso nuevo en `SystemPermissions`, con el código decidido en TG0.1.
+- [x] **T5.2** Migración/semilla con la asignación a roles (regla 7).
       **Terminado:** conserva **intención y mínimo alcance**; **no** asignación indiscriminada
       a todos los usuarios (D4).
-- [ ] **T5.3** Aplicar el permiso en `InventoryEndpoints.cs` `/feed-consumptions`.
-- [ ] **T5.4** Aplicar el permiso en la ruta de push equivalente.
+- [x] **T5.3** Aplicar el permiso en `InventoryEndpoints.cs` `/feed-consumptions`.
+- [x] **T5.4** Aplicar el permiso en la ruta de push equivalente.
       **Terminado:** REST y push exigen lo mismo (D1).
-- [ ] **T5.5** **Prueba: quien solo alimenta animales registra consumo SIN recibir
+- [x] **T5.5** **Prueba: quien solo alimenta animales registra consumo SIN recibir
       administración de catálogo.** **Terminado:** es la razón por la que este permiso existe
       en vez de reutilizar `inventory.items.manage`.
-- [ ] **T5.6** La fila pendiente de la matriz de `spec.md` sec. 4 queda cerrada.
-- [ ] **T5.7** `dotnet test` completo en verde.
+- [x] **T5.6** La fila pendiente de la matriz de `spec.md` sec. 4 queda cerrada.
+- [x] **T5.7** `dotnet test` completo en verde.
 
 ---
 

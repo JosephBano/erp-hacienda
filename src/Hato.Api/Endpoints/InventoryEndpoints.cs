@@ -20,7 +20,7 @@ public static class InventoryEndpoints
         {
             var id = await sender.Send(command);
             return Results.Created($"/api/v1/inventory/items/{id}", new { id });
-        });
+        }).RequireAuthorization(policy => policy.RequirePermission(SystemPermissions.InventoryItemsManage));
 
         group.MapGet("/items", async (ItemCategory? category, ISender sender) =>
         {
@@ -103,7 +103,7 @@ public static class InventoryEndpoints
         {
             var id = await sender.Send(command);
             return Results.Created($"/api/v1/inventory/feed-consumptions/{id}", new { id });
-        });
+        }).RequireAuthorization(policy => policy.RequirePermission(SystemPermissions.InventoryFeedConsumptionsRecord));
 
         // Read-side of the consumption feature (feature/inventory-consumption-history).
         // The panel's "Consumos registrados" section under each item detail calls this

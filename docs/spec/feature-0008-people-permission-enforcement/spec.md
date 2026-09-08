@@ -62,12 +62,12 @@ No se hicieron peticiones con credenciales de producción ni se ejecutó la suit
 | Consultar usuarios / administrarlos | `people.users.read` / `people.users.manage` |
 | Modificar rangos de plausibilidad | `livestock.animals.write`, alineado con la intención ya documentada del endpoint |
 | Inventario, etapas de alimentación y recepciones | Conservar permisos específicos existentes |
-| Registrar consumo de alimento | Requiere permiso de escritura específico; su código y asignación quedan pendientes de decisión, pues `SystemPermissions` no declara uno propio |
+| Registrar consumo de alimento | `inventory.feed-consumptions.record` |
 | Consultar operaciones sync | Propias por usuario; global con `people.users.manage` |
 
-La decisión pendiente sobre consumo bloquea implementar esa fila, no redactar el spec.
-No se reutiliza automáticamente `inventory.items.manage` si eso obliga a dar administración
-de catálogo a quien solo alimenta animales. Todas las operaciones de push deben tener
+La decisión sobre consumo se resolvió con `inventory.feed-consumptions.record` (Commit 5, D4).
+No se reutiliza automáticamente `inventory.items.manage` para evitar dar administración
+de catálogo a quien solo alimenta animales. Todas las operaciones de push tienen
 una correspondencia explícita, incluidas las que producen varios comandos internos.
 
 Sin autenticación, REST/push devuelve 401. Sin permiso, REST devuelve 403; un lote de

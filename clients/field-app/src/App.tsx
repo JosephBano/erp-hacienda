@@ -320,7 +320,16 @@ export default function App() {
 
         {tab === 'animal-subject' ? (
           <AnimalSubjectScreen
-            animals={activeHerd.map((member) => ({ animalId: member.animalId, label: member.label }))}
+            animals={activeHerd.map((member) => ({
+              animalId: member.animalId,
+              label: member.label,
+              sex: member.sex,
+              groupName: member.groupName,
+              tag: member.tag,
+              activeIdentifiers: member.activeIdentifiers,
+              name: member.name,
+              hasPendingTag: member.hasPendingTag,
+            }))}
             recentIds={[]}
             selectedAnimalId={selectedAnimalId ?? undefined}
             onSelectAnimal={(animalId) => setSelectedAnimalId(animalId)}
@@ -353,7 +362,12 @@ export default function App() {
 
         {tab === 'lot-subject' ? (
           <LotSubjectScreen
-            lots={groups.map((group) => ({ groupId: group.groupId, label: group.label }))}
+            lots={groups.map((group) => ({
+              groupId: group.groupId,
+              label: group.label,
+              trackingMode: group.trackingMode,
+              speciesId: group.speciesId,
+            }))}
             selectedGroupId={selectedGroupId ?? undefined}
             onSelectLot={(groupId) => setSelectedGroupId(groupId)}
             onClearSelection={() => setSelectedGroupId(null)}

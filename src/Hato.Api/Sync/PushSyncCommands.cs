@@ -6,6 +6,7 @@ using Hato.Modules.Livestock.Application.AnimalGroups;
 using Hato.Modules.Livestock.Application.Animals;
 using Hato.Modules.Livestock.Application.Events;
 using Hato.Modules.Livestock.Application.TreatmentCourses;
+using Hato.Modules.Livestock.Domain;
 using Hato.Modules.People.Application.Abstractions;
 using Hato.Modules.People.Domain;
 using Hato.Modules.Production.Application.Milking;
@@ -348,6 +349,19 @@ public class PushSyncBatchCommandHandler(
                     return id.ToString();
                 }
 
+            case "assignanimalidentifier":
+                {
+                    var payload = Deserialize<AssignAnimalIdentifierPushPayload>(payloadJson, "asignación de identificación");
+                    var validFrom = payload.ValidFrom ?? DateOnly.FromDateTime(operation.OccurredAt.UtcDateTime);
+                    var command = new AssignAnimalIdentifierCommand(
+                        payload.AnimalId,
+                        payload.Type,
+                        payload.Value,
+                        validFrom);
+                    var id = await sender.Send(command, cancellationToken);
+                    return id.ToString();
+                }
+
             default:
                 throw new DomainException($"Tipo de operación no soportado: '{operation.OperationType}'.");
         }
@@ -453,3 +467,9 @@ public record RecordFeedConsumptionPushPayload(
     Guid? BatchId = null,
     string? Notes = null,
     DateOnly? ConsumedAt = null);
+
+public record AssignAnimalIdentifierPushPayload(
+    Guid AnimalId,
+    IdentifierType Type,
+    string Value,
+    DateOnly? ValidFrom = null);

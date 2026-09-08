@@ -40,12 +40,16 @@ public record PregnancyConfirmedEvent(
 }
 
 public record OffspringBirthInfo(
-    Guid ChildId,
-    string? FarmTag,
-    string Sex, // "M" or "F"
-    decimal? BirthWeightKg,
-    Guid? CategoryId = null
-);
+    Guid ChildId = default,
+    string? FarmTag = null,
+    string Sex = "", // "M" or "F"
+    decimal? BirthWeightKg = null,
+    Guid? CategoryId = null,
+    Guid? Id = null
+)
+{
+    public Guid ChildId { get; init; } = ChildId != Guid.Empty ? ChildId : (Id ?? Guid.Empty);
+}
 
 public record BirthingRecordedEvent(
     Guid BirthingId,

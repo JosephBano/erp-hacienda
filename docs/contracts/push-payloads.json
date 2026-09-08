@@ -98,6 +98,7 @@
         "notes": "Parto normal",
         "offspring": [
           {
+            "childId": "00000000-0000-0000-0000-000000000002",
             "sex": "F",
             "farmTag": "H-101",
             "birthWeightKg": 38
@@ -126,6 +127,15 @@
         "unit": "kg",
         "batchId": "00000000-0000-0000-0000-000000000011",
         "notes": "Alimento concentrado"
+      }
+    },
+    {
+      "operationType": "assignAnimalIdentifier",
+      "payload": {
+        "animalId": "00000000-0000-0000-0000-000000000001",
+        "type": "FarmTag",
+        "value": "H-102",
+        "validFrom": "2026-09-07"
       }
     }
   ]

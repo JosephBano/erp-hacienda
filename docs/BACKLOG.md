@@ -61,6 +61,30 @@ Actualmente la leche de animales bajo período de retiro no es vendible y el sis
 
 Conforme a la Regla Dura 1 (inmutabilidad de eventos históricos) y spec sec. 5, los registros históricos preexistentes en la base de datos de producción que no cumplan las nuevas invariantes (p. ej., ordeños o partos previos a estas validaciones) no se eliminan ni alteran de forma automática. Se requiere ejecutar las consultas de auditoría identificadas (TC.4) y emitir eventos de corrección cuando el dueño lo determine.
 
+## Pendiente feature-0007 — Identificación individual por arete en campo (2026-09-08)
+
+> Identificación individual por arete, convivencia con lotes por conteo y desambiguación móvil en `feature/livestock-individual-tagging`.
+> Los siguientes ítems recogen deuda técnica identificada y límites explícitos de alcance (spec sec. 4 y 5, tasks T2.5, regla 9):
+
+### [livestock] Unicidad concurrente de aretes / identificadores en base de datos (spec sec. 4, T2.5)
+
+Actualmente, `AnimalIdentifierConfiguration.cs:24` garantiza unicidad por animal y tipo vigente (`AnimalId` + `Type` + `IsActive`), pero no restringe que dos animales distintos compartan el mismo valor de arete o identificador. Además, `AssignAnimalIdentifierCommand.cs:17` carga el animal y sus identificadores pero no busca la existencia previa del mismo valor en otros animales.
+
+Garantizar la unicidad concurrente de aretes a nivel de base de datos entre animales requiere:
+1. Un ADR formal que defina la política de duplicados y su normalización (alcance por finca, por tipo de identificador, reglas para reutilización temporal tras baja o muerte, tratamiento de mayúsculas y ceros iniciales).
+2. Una revisión no destructiva de los datos existentes en la base de datos de producción (la Regla Dura 1 prohíbe borrados o alteraciones destructivas arbitrarias).
+3. Una migración de EF Core que cree el índice único filtrado correspondiente (p. ej. sobre `FarmId` + `Type` + `Value` donde `IsActive = true`).
+
+Hasta que este ADR y su migración se definan y aprueben, el diseño móvil de campo detecta y presenta explícitamente las ambigüedades sin resolverlas de manera automática y sin fusionar registros de animales (Commit 2, T2.1–T2.4).
+
+### [livestock] Política de duplicados y normalización de aretes (spec sec. 4, TC.6)
+
+El tratamiento de aretes repetidos entre distintos animales o reingresos exige fijar reglas formales de normalización: alcance por finca y por tipo de arete, posibilidad y condiciones de reutilización temporal de aretes tras baja confirmada, preservación estricta de mayúsculas y conservación de ceros a la izquierda. Hasta la definición de esta política, el sistema móvil detecta ambigüedades y exige selección consciente sin adivinar.
+
+### [livestock] Transición física y linaje de lotes históricos ya mezclados (spec sec. 1, 5, TC.6)
+
+La declaración del dueño «todos ellos van a tener un arete» no autoriza la reconstrucción arbitraria de genealogías ni la asignación de identificadores a filas del sistema en lotes antiguos que ya fueron mezclados físicamente (ADR-0015 y D4). La transición de estos lotes históricos requiere un protocolo aprobado de inventario físico presencial con el dueño y registro de linaje desconocido, el cual queda fuera de la fase actual y deberá abordarse cuando se complete dicho inventario.
+
 ## Pendiente 3.5a.2-C — sub-rama cerrada, ítems abiertos
 
 > La sub-rama 3.5a.2-C mergeó a `integration/fase-3-5-wave-1` el 2026-08-09

@@ -25,7 +25,8 @@ public record RegisterOffspringRequest(
     Guid? FatherAnimalId,
     Guid? FatherStrawId,
     Guid? BirthingId,
-    decimal? BirthWeightKg = null);
+    decimal? BirthWeightKg = null,
+    Guid? ChildId = null);
 
 public record DamFitnessDto(
     Guid DamId,

@@ -264,7 +264,13 @@ export class SyncEngine {
         return { ok: false, reason: classify(error), pushed, rejected };
       }
 
+      const cascadeRejectedIds = new Set<string>();
+
       for (const result of results) {
+        if (cascadeRejectedIds.has(result.clientOperationId)) {
+          continue;
+        }
+
         if (result.status === 'Rejected') {
           rejected += 1;
           const matching = batch.find((b) => b.clientOperationId === result.clientOperationId);
@@ -279,6 +285,13 @@ export class SyncEngine {
             result.clientOperationId,
             result.errorDetails ?? 'El servidor rechazó la operación sin indicar el motivo.',
           );
+          if (matching?.operationType === 'recordBirth') {
+            rejected += await this.cascadeBirthRejection(
+              matching.payload,
+              result.errorDetails,
+              cascadeRejectedIds,
+            );
+          }
           continue;
         }
 
@@ -295,6 +308,13 @@ export class SyncEngine {
             errorDetails: result.errorDetails,
           });
           await this.outbox.markRejected(result.clientOperationId, result.errorDetails);
+          if (matching?.operationType === 'recordBirth') {
+            rejected += await this.cascadeBirthRejection(
+              matching.payload,
+              result.errorDetails,
+              cascadeRejectedIds,
+            );
+          }
           continue;
         }
 
@@ -309,6 +329,39 @@ export class SyncEngine {
         return { ok: false, reason: 'unknown', pushed, rejected };
       }
     }
+  }
+
+  private async cascadeBirthRejection(
+    birthPayload: any,
+    errorDetails: string | undefined | null,
+    cascadeRejectedIds: Set<string>,
+  ): Promise<number> {
+    const offspring = birthPayload?.offspring;
+    const childIds: string[] = [];
+    if (Array.isArray(offspring)) {
+      for (const calf of offspring) {
+        const cid = calf?.childId ?? calf?.id;
+        if (cid && typeof cid === 'string') {
+          childIds.push(cid);
+        }
+      }
+    }
+
+    if (childIds.length === 0) return 0;
+
+    let cascadeCount = 0;
+    const pendingEntries = await this.outbox.pending();
+    for (const entry of pendingEntries) {
+      if (cascadeRejectedIds.has(entry.clientOperationId)) continue;
+      const targetAnimalId = (entry.payload as any)?.animalId ?? (entry.payload as any)?.id;
+      if (targetAnimalId && childIds.includes(String(targetAnimalId))) {
+        const rejectionReason = `Depende de un nacimiento rechazado: ${errorDetails ?? 'Parto rechazado por el servidor'}`;
+        await this.outbox.markRejected(entry.clientOperationId, rejectionReason);
+        cascadeRejectedIds.add(entry.clientOperationId);
+        cascadeCount += 1;
+      }
+    }
+    return cascadeCount;
   }
 
   /**

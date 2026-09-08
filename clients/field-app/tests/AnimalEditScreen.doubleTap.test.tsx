@@ -33,6 +33,9 @@ describe('AnimalEditScreen — double tap (feature-0006 T4.2)', () => {
       isWithheld: false,
       speciesId: 'species-1',
       speciesIsMilkable: true,
+      activeIdentifiers: [],
+      historicalIdentifiers: [],
+      hasPendingTag: false,
     },
   ];
 

@@ -8,6 +8,9 @@ import { Outbox } from '../src/services/outbox';
 import { SyncEngine, backoffDelayMs, applyRow, type SyncResult } from '../src/services/syncEngine';
 import { LoggerService } from '../src/services/loggerService';
 import type { PullResponse, PushResponse, SyncApi } from '../src/services/syncApi';
+import { BirthService } from '../src/services/birthService';
+import { EventService } from '../src/services/eventService';
+import { loadHerd } from '../src/services/herdQueries';
 
 /**
  * The sync engine is the part that can lose a week of work without anybody noticing, so
@@ -900,6 +903,156 @@ describe('SyncEngine', () => {
       await outbox.enqueue('createAnimal', { sex: 'Male' });
       await engine.syncNow();
       expect(notifications).toHaveLength(1);
+    });
+
+    it('marks dependent operations as rejected with cause when recordBirth is rejected, preventing orphan push (T4.4, T4.5)', async () => {
+      const birthService = new BirthService(database);
+      const eventService = new EventService(database);
+
+      // Seed dam
+      const damId = 'dam-cow-99';
+      await database.write(async () => {
+        await database.get('animals').create((row: any) => {
+          row._raw.id = damId;
+          row.speciesId = 'species-1';
+          row.sex = 'Female';
+          row.isDeleted = false;
+          row.serverCreatedAt = Date.now();
+        });
+      });
+
+      const birth = await birthService.recordBirth({
+        damId,
+        birthDate: '2026-09-08',
+        offspring: [{ sex: 'F', farmTag: 'CALF-FAIL', birthWeightKg: 35 }],
+      });
+
+      const calfId = birth.offspringIds[0];
+      expect(calfId).toBeDefined();
+
+      // Record a weighing on the newborn offspring while offline
+      await eventService.recordWeight({
+        animalId: calfId,
+        weightKg: 36,
+      });
+
+      // We now have 2 pending operations in outbox: recordBirth and recordAnimalEvent (Weighing)
+      const initialPending = await outbox.pending();
+      expect(initialPending).toHaveLength(2);
+      expect(initialPending[0].operationType).toBe('recordBirth');
+      expect(initialPending[1].operationType).toBe('recordAnimalEvent');
+
+      // Server rejects the birth
+      api.pushHandler = async (ops) => {
+        return {
+          processedCount: ops.length,
+          results: ops.map((op) => {
+            if (op.operationType === 'recordBirth') {
+              return {
+                clientOperationId: op.clientOperationId,
+                status: 'Rejected' as const,
+                resultRef: null,
+                errorDetails: 'La madre ya no existe en el servidor.',
+              };
+            }
+            return {
+              clientOperationId: op.clientOperationId,
+              status: 'Accepted' as const,
+              resultRef: `ref-${op.clientOperationId}`,
+              errorDetails: null,
+            };
+          }),
+        };
+      };
+
+      const result = await engine.syncNow();
+      expect(result.rejected).toBe(2);
+
+      // No operations remain pending
+      expect(await outbox.pending()).toHaveLength(0);
+
+      // Check rejected entries
+      const rejected = await outbox.rejected();
+      expect(rejected).toHaveLength(2);
+
+      const rejectedBirth = rejected.find((r) => r.operationType === 'recordBirth');
+      expect(rejectedBirth?.errorDetails).toBe('La madre ya no existe en el servidor.');
+
+      const rejectedWeight = rejected.find((r) => r.operationType === 'recordAnimalEvent');
+      expect(rejectedWeight?.errorDetails).toBe(
+        'Depende de un nacimiento rechazado: La madre ya no existe en el servidor.',
+      );
+    });
+
+    it('retains exact client UUID and genealogy offline, across DB reload, and after sync (T4.7)', async () => {
+      const bService = new BirthService(database);
+      const eService = new EventService(database);
+
+      const damId = 'dam-e2e-1';
+      const speciesId = 'species-e2e-1';
+
+      await database.write(async () => {
+        await database.get('species').create((row: any) => {
+          row._raw.id = speciesId;
+          row.name = 'Bovino';
+          row.isMilkable = true;
+        });
+        await database.get('animals').create((row: any) => {
+          row._raw.id = damId;
+          row.speciesId = speciesId;
+          row.sex = 'Female';
+          row.isDeleted = false;
+          row.serverCreatedAt = Date.now();
+        });
+      });
+
+      // 1. Record birth with tagged offspring offline
+      const birth = await bService.recordBirth({
+        damId,
+        birthDate: '2026-09-08',
+        offspring: [{ sex: 'F', farmTag: 'TAG-E2E-1', birthWeightKg: 34 }],
+      });
+
+      const calfId = birth.offspringIds[0];
+      expect(calfId).toBeDefined();
+
+      // 2. Record weight on the offspring offline
+      await eService.recordWeight({
+        animalId: calfId,
+        weightKg: 35.5,
+      });
+
+      // 3. Simulate phone restart / new app session by creating fresh service and outbox instances on database
+      const reloadedOutbox = new Outbox(database);
+
+      // Verify offspring retains exact same UUID and tag in local herd before sync
+      const herdBeforeSync = await loadHerd(database);
+      const calfBeforeSync = herdBeforeSync.find((m) => m.animalId === calfId);
+      expect(calfBeforeSync).toBeDefined();
+      expect(calfBeforeSync?.animalId).toBe(calfId);
+      expect(calfBeforeSync?.motherId).toBe(damId);
+      expect(calfBeforeSync?.tag).toBe('TAG-E2E-1');
+
+      // 4. Push sync
+      const syncApi = new FakeSyncApi();
+      const newEngine = new SyncEngine(database, syncApi);
+      const syncResult = await newEngine.syncNow();
+
+      expect(syncResult.ok).toBe(true);
+      expect(syncResult.pushed).toBe(2);
+      expect(await reloadedOutbox.pending()).toHaveLength(0);
+
+      // Verify push payloads carried exact calf UUID in both birth and weighing
+      const allPushedOps = syncApi.pushCalls.flat();
+      expect(allPushedOps).toHaveLength(2);
+
+      // Verify offspring still retains exact same UUID and genealogy after sync
+      const herdAfterSync = await loadHerd(database);
+      const calfAfterSync = herdAfterSync.find((m) => m.animalId === calfId);
+      expect(calfAfterSync).toBeDefined();
+      expect(calfAfterSync?.animalId).toBe(calfId);
+      expect(calfAfterSync?.motherId).toBe(damId);
+      expect(calfAfterSync?.tag).toBe('TAG-E2E-1');
     });
   });
 });

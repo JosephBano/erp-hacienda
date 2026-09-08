@@ -8,12 +8,42 @@ import {
   Breed,
   BreedingService,
   DoseKind,
+  GroupMembership,
   InventoryItem,
   MortalityCause,
   Pregnancy,
   Species,
   WithdrawalPeriod,
 } from '../database/models';
+
+export interface ActiveIdentifier {
+  type: string;
+  value: string;
+}
+
+export interface HistoricalIdentifier {
+  type: string;
+  value: string;
+}
+
+export interface AnimalForSubject {
+  animalId: string;
+  label: string;
+  sex?: string;
+  groupName?: string;
+  tag?: string;
+  activeIdentifiers?: ActiveIdentifier[];
+  historicalIdentifiers?: HistoricalIdentifier[];
+  matchedHistoricalTag?: string;
+  name?: string;
+  hasPendingTag?: boolean;
+}
+
+export interface AnimalSearchResults<T> {
+  exactMatches: T[];
+  partialMatches: T[];
+  allMatches: T[];
+}
 
 export interface HerdMember {
   animalId: string;
@@ -28,6 +58,13 @@ export interface HerdMember {
   birthDate?: string;
   motherId?: string;
   disposedAt?: string;
+  activeIdentifiers: ActiveIdentifier[];
+  historicalIdentifiers: HistoricalIdentifier[];
+  matchedHistoricalTag?: string;
+  tag?: string;
+  name?: string;
+  groupName?: string;
+  hasPendingTag: boolean;
 }
 
 export interface PregnantDam {
@@ -46,26 +83,68 @@ export interface PregnantDam {
  * to display is an animal the employee cannot record against.
  */
 export async function loadHerd(database: Database, date = todayIso()): Promise<HerdMember[]> {
-  const [animals, identifiers, withdrawals, speciesList] = await Promise.all([
+  const [animals, identifiers, withdrawals, speciesList, memberships, groups] = await Promise.all([
     database.get<Animal>('animals').query().fetch(),
-    database.get<AnimalIdentifier>('animal_identifiers').query(Q.where('is_active', true)).fetch(),
+    database.get<AnimalIdentifier>('animal_identifiers').query().fetch(),
     database.get<WithdrawalPeriod>('withdrawal_periods').query().fetch(),
     database.get<Species>('species').query().fetch(),
+    database.get<GroupMembership>('group_memberships').query(Q.where('is_active', true)).fetch(),
+    database.get<AnimalGroup>('animal_groups').query().fetch(),
   ]);
 
+  const groupNameById = new Map<string, string>();
+  for (const group of groups) {
+    if (!group.isDeleted && group.isActive) {
+      groupNameById.set(group.id, group.name);
+    }
+  }
+
+  const activeMembershipByAnimal = new Map<string, { groupId: string; joinedAt: string }>();
+  for (const membership of memberships) {
+    if (membership.isDeleted || !membership.isActive) continue;
+    const existing = activeMembershipByAnimal.get(membership.animalId);
+    if (!existing || (membership.joinedAt && (!existing.joinedAt || membership.joinedAt > existing.joinedAt))) {
+      activeMembershipByAnimal.set(membership.animalId, {
+        groupId: membership.groupId,
+        joinedAt: membership.joinedAt,
+      });
+    }
+  }
+
+  const groupNameByAnimal = new Map<string, string>();
+  for (const [animalId, mem] of activeMembershipByAnimal.entries()) {
+    const gName = groupNameById.get(mem.groupId);
+    if (gName) {
+      groupNameByAnimal.set(animalId, gName);
+    }
+  }
+
+  const activeIdentifiersByAnimal = new Map<string, ActiveIdentifier[]>();
+  const historicalIdentifiersByAnimal = new Map<string, HistoricalIdentifier[]>();
   const nameByAnimal = new Map<string, string>();
   const tagByAnimal = new Map<string, string>();
   for (const identifier of identifiers) {
     if (identifier.isDeleted) continue;
-    const type = (identifier.type ?? '').toLowerCase();
-    if (type === 'name' || type === 'nombre') {
-      if (!nameByAnimal.has(identifier.animalId)) {
-        nameByAnimal.set(identifier.animalId, identifier.value);
+
+    if (identifier.isActive) {
+      const list = activeIdentifiersByAnimal.get(identifier.animalId) ?? [];
+      list.push({ type: identifier.type, value: identifier.value });
+      activeIdentifiersByAnimal.set(identifier.animalId, list);
+
+      const type = (identifier.type ?? '').toLowerCase();
+      if (type === 'name' || type === 'nombre') {
+        if (!nameByAnimal.has(identifier.animalId)) {
+          nameByAnimal.set(identifier.animalId, identifier.value);
+        }
+      } else {
+        if (!tagByAnimal.has(identifier.animalId) || type.includes('farm')) {
+          tagByAnimal.set(identifier.animalId, identifier.value);
+        }
       }
     } else {
-      if (!tagByAnimal.has(identifier.animalId) || type.includes('farm')) {
-        tagByAnimal.set(identifier.animalId, identifier.value);
-      }
+      const list = historicalIdentifiersByAnimal.get(identifier.animalId) ?? [];
+      list.push({ type: identifier.type, value: identifier.value });
+      historicalIdentifiersByAnimal.set(identifier.animalId, list);
     }
   }
 
@@ -95,6 +174,11 @@ export async function loadHerd(database: Database, date = todayIso()): Promise<H
     .map((animal) => {
       const name = nameByAnimal.get(animal.id);
       const tag = tagByAnimal.get(animal.id);
+      const groupName = groupNameByAnimal.get(animal.id);
+      const activeIdentifiers = activeIdentifiersByAnimal.get(animal.id) ?? [];
+      const historicalIdentifiers = historicalIdentifiersByAnimal.get(animal.id) ?? [];
+      const hasPendingTag = !tag || tag.trim().length === 0;
+
       let label: string;
       if (name && name.trim().length > 0) {
         label = tag ? `${name} (${tag})` : name;
@@ -117,9 +201,169 @@ export async function loadHerd(database: Database, date = todayIso()): Promise<H
         birthDate: animal.birthDate,
         motherId: animal.motherId,
         disposedAt: animal.disposedAt,
+        activeIdentifiers,
+        historicalIdentifiers,
+        tag,
+        name,
+        groupName,
+        hasPendingTag,
       };
     })
     .sort((a, b) => a.label.localeCompare(b.label));
+}
+
+/**
+ * Search logic for livestock across active identifiers, names and labels.
+ *
+ * Requirements (spec D3, D5, Commit 1 & 2):
+ * - Searches across name and all active identifiers (not just single label).
+ * - Preserves leading zeros strictly: '007' does NOT match '7' (no number coercion).
+ * - Distinguishes exact matches vs partial matches.
+ * - Allows untagged animals to be found by alternative readable id (id snippet in label or animalId).
+ */
+export function searchAnimals<T extends AnimalForSubject>(
+  animals: T[],
+  rawQuery: string,
+): AnimalSearchResults<T> {
+  const query = rawQuery.trim();
+  if (!query) {
+    const cleaned = animals.map((a) => (a.matchedHistoricalTag ? { ...a, matchedHistoricalTag: undefined } : a));
+    return {
+      exactMatches: [],
+      partialMatches: cleaned,
+      allMatches: cleaned,
+    };
+  }
+
+  const needle = query.toLowerCase();
+  const exactMatches: T[] = [];
+  const partialMatches: T[] = [];
+
+  for (const animal of animals) {
+    let isExact = false;
+
+    // 1. Check tag exact match
+    if (animal.tag && animal.tag.toLowerCase() === needle) {
+      isExact = true;
+    }
+
+    // 2. Check name exact match
+    if (!isExact && animal.name && animal.name.toLowerCase() === needle) {
+      isExact = true;
+    }
+
+    // 3. Check activeIdentifiers exact match
+    if (!isExact && animal.activeIdentifiers) {
+      for (const id of animal.activeIdentifiers) {
+        if (id.value && id.value.toLowerCase() === needle) {
+          isExact = true;
+          break;
+        }
+      }
+    }
+
+    // 4. Check alternative readable ID (full animalId or last 6 characters)
+    if (!isExact) {
+      if (animal.animalId.toLowerCase() === needle) {
+        isExact = true;
+      } else if (animal.animalId.length >= 6 && animal.animalId.slice(-6).toLowerCase() === needle) {
+        isExact = true;
+      }
+    }
+
+    // 5. Check label exact match or untagged readable ID in label ("Sin arete · XXXXXX")
+    if (!isExact && animal.label) {
+      if (animal.label.toLowerCase() === needle) {
+        isExact = true;
+      } else {
+        const sinAreteMatch = animal.label.match(/sin arete\s*[·•-]\s*([a-z0-9]+)/i);
+        if (sinAreteMatch && sinAreteMatch[1].toLowerCase() === needle) {
+          isExact = true;
+        }
+      }
+    }
+
+    if (isExact) {
+      exactMatches.push(animal.matchedHistoricalTag ? { ...animal, matchedHistoricalTag: undefined } : animal);
+      continue;
+    }
+
+    // Check historical identifiers exact match
+    let matchedHistoricalExactTag: string | undefined;
+    if (animal.historicalIdentifiers) {
+      for (const id of animal.historicalIdentifiers) {
+        if (id.value && id.value.toLowerCase() === needle) {
+          matchedHistoricalExactTag = id.value;
+          break;
+        }
+      }
+    }
+
+    if (matchedHistoricalExactTag) {
+      exactMatches.push({
+        ...animal,
+        matchedHistoricalTag: matchedHistoricalExactTag,
+      });
+      continue;
+    }
+
+    // Partial match checks
+    let isPartial = false;
+
+    if (animal.tag && animal.tag.toLowerCase().includes(needle)) {
+      isPartial = true;
+    }
+
+    if (!isPartial && animal.name && animal.name.toLowerCase().includes(needle)) {
+      isPartial = true;
+    }
+
+    if (!isPartial && animal.activeIdentifiers) {
+      for (const id of animal.activeIdentifiers) {
+        if (id.value && id.value.toLowerCase().includes(needle)) {
+          isPartial = true;
+          break;
+        }
+      }
+    }
+
+    if (!isPartial && animal.label && animal.label.toLowerCase().includes(needle)) {
+      isPartial = true;
+    }
+
+    if (!isPartial && animal.animalId && animal.animalId.toLowerCase().includes(needle)) {
+      isPartial = true;
+    }
+
+    if (isPartial) {
+      partialMatches.push(animal.matchedHistoricalTag ? { ...animal, matchedHistoricalTag: undefined } : animal);
+      continue;
+    }
+
+    // Check historical identifiers partial match
+    let matchedHistoricalPartialTag: string | undefined;
+    if (animal.historicalIdentifiers) {
+      for (const id of animal.historicalIdentifiers) {
+        if (id.value && id.value.toLowerCase().includes(needle)) {
+          matchedHistoricalPartialTag = id.value;
+          break;
+        }
+      }
+    }
+
+    if (matchedHistoricalPartialTag) {
+      partialMatches.push({
+        ...animal,
+        matchedHistoricalTag: matchedHistoricalPartialTag,
+      });
+    }
+  }
+
+  return {
+    exactMatches,
+    partialMatches,
+    allMatches: [...exactMatches, ...partialMatches],
+  };
 }
 
 /**

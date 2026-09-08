@@ -37,6 +37,58 @@ public class SyncPushBirthTests(SyncApiFactory factory)
     }
 
     [Fact]
+    public async Task Push_RecordBirthWithClientChildId_EnrollsOffspringWithExactGuidAndGenealogy()
+    {
+        var context = await SyncTestContext.CreateAsync(factory, "birth-client-uuid");
+        var speciesId = await context.CreateSpeciesAsync("Bovino");
+        var damId = await context.CreateAnimalAsync(speciesId);
+        var expectedChildId = Guid.NewGuid();
+
+        var result = await context.PushAsync(
+            "recordBirth",
+            new
+            {
+                damId,
+                birthDate = DateOnly.FromDateTime(DateTime.UtcNow),
+                difficulty = "Normal",
+                bornAlive = 1,
+                offspring = new[]
+                {
+                    new
+                    {
+                        childId = expectedChildId,
+                        sex = "F",
+                        farmTag = "CRIA-01",
+                        birthWeightKg = 34.5m
+                    }
+                },
+            });
+
+        Assert.Equal("Accepted", result.GetProperty("status").GetString());
+
+        var offspring = await context.FindOffspringOfAsync(damId);
+        Assert.Contains(expectedChildId, offspring);
+
+        var calf = await context.FindAsync("animals", expectedChildId);
+        Assert.Equal(expectedChildId, calf.GetProperty("id").GetGuid());
+        Assert.Equal(damId, calf.GetProperty("motherId").GetGuid());
+
+        // Subsequent event (weighing) on the newborn calf with client-generated UUID succeeds without orphan rejection
+        var weightResult = await context.PushAsync(
+            "recordAnimalEvent",
+            new
+            {
+                animalId = expectedChildId,
+                eventType = "Weighing",
+                occurredAt = DateTimeOffset.UtcNow,
+                recordedBy = "field-app",
+                payloadJson = JsonSerializer.Serialize(new { weightKg = 36.0m })
+            });
+
+        Assert.Equal("Accepted", weightResult.GetProperty("status").GetString());
+    }
+
+    [Fact]
     public async Task Push_RecordBirthSentTwice_DoesNotCreateTwoCalves()
     {
         var context = await SyncTestContext.CreateAsync(factory, "birth-doubletap");

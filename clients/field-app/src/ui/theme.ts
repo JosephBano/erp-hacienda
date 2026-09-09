@@ -75,6 +75,8 @@ export const space = {
 } as const;
 
 export const radius = {
+  xs: 4,
+  sm: 6,
   md: 12,
   lg: 20,
 } as const;

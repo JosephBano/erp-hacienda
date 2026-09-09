@@ -129,11 +129,15 @@ export function formatOperationError(errorDetails?: string | null): string {
 
 export type RecordStatus =
   | 'local_pending'
+  | 'pending'
   | 'syncing'
   | 'accepted_pull_pending'
   | 'synced'
   | 'rejected'
+  | 'cancelled'
   | 'error';
+
+export type SyncRecordStatus = RecordStatus;
 
 export interface RecordStatusBadgeProps {
   status: RecordStatus;

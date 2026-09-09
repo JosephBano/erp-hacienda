@@ -310,8 +310,6 @@ export function VaccinateScreen({
             ) : null}
 
             <Body>{animal.label}</Body>
-            <Body muted>{`${product.name} · ${product.dose}`}</Body>
-
             <Body muted>{`${product.name} · 1 ${product.unit} por cabeza`}</Body>
             <BigButton
               testID="vaccinate-confirm"

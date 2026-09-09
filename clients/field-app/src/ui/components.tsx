@@ -5,9 +5,11 @@ import {
   Platform,
   Pressable,
   ScrollView,
+  StyleProp,
   StyleSheet,
   Text,
   TextInput,
+  TextStyle,
   View,
   ViewStyle,
 } from 'react-native';
@@ -224,10 +226,12 @@ export function Body({
   children,
   muted,
   testID,
+  style,
 }: {
   children: React.ReactNode;
   muted?: boolean;
   testID?: string;
+  style?: StyleProp<TextStyle>;
 }) {
   const { theme: activeTheme } = useTheme();
   return (
@@ -239,6 +243,7 @@ export function Body({
           fontSize: activeTheme.font.body,
           color: muted ? activeTheme.color.textMuted : activeTheme.color.text,
         },
+        style,
       ]}
     >
       {children}
@@ -574,7 +579,7 @@ export function TagBadge({
   testID,
 }: {
   tag?: string | null;
-  label?: string;
+  label?: string | null;
   size?: 'normal' | 'large';
   tone?: 'default' | 'accent' | 'muted';
   testID?: string;

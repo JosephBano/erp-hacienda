@@ -1,3 +1,14 @@
+/* Las fuentes se piden a Google desde el navegador, no se incrustan en el
+   build: `optimization.fonts.inline` está en false en angular.json. Angular
+   las descargaba durante `ng build --configuration production` y eso ataba la
+   compilación a tener salida a fonts.googleapis.com, cosa que el runner
+   institucional no garantiza — el job moría con "Failed to inline external
+   stylesheet".
+
+   Es una solución de paso: mueve la dependencia del build al cliente, no la
+   elimina. Cuando se rehagan los diseños según el manual de marca real, estas
+   familias se auto-hospedarán en public/fonts/ con @font-face. Ver
+   docs/adr/0028-fuentes-web-sin-inlining.md. */
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
 
 :root {

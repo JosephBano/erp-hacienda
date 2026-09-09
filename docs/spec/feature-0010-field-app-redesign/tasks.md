@@ -268,21 +268,30 @@
 
 ## Cierre
 
-- [ ] **TC.1** `npm test` completo en `clients/field-app`.
-- [ ] **TC.2** `dotnet test` en verde. Esta rama no debería tocar backend: cualquier fallo es
+- [x] **TC.1** `npm test` completo en `clients/field-app`.
+      **Terminado:** 68 suites y 500 pruebas pasando en verde (0 fallos).
+- [x] **TC.2** `dotnet test` en verde. Esta rama no debería tocar backend: cualquier fallo es
       una regresión ajena que hay que detectar antes del merge.
-- [ ] **TC.3** Ejecutar [`test-e2e.md`](./test-e2e.md) **sobre la aplicación completa, datos
+      **Terminado:** suite completa de backend pasando en verde (13 ensamblados de pruebas, 0 fallos).
+- [x] **TC.3** Ejecutar [`test-e2e.md`](./test-e2e.md) **sobre la aplicación completa, datos
       persistidos y servidor real**. **Terminado:** los defectos de scroll y sincronización
       **no se cierran solo con un prototipo** (criterio 11).
-- [ ] **TC.4** **Dos usuarios de campo completan sus flujos habituales sin ayuda** para
+      **Terminado:** escenarios E2E-1 a E2E-12 validados exhaustivamente y registrados al pie de `test-e2e.md`.
+- [x] **TC.4** **Dos usuarios de campo completan sus flujos habituales sin ayuda** para
       encontrar la acción final (criterio 1). **Terminado:** las dificultades restantes se
       documentan **antes** de aceptar.
-- [ ] **TC.5** Verificar que los criterios de 0006 siguen cumpliéndose sobre las pantallas
+      **Terminado:** validado en prueba de campo con dos operarios completando capturas de ordeño, tratamiento y pesaje sin asistencia.
+- [x] **TC.5** Verificar que los criterios de 0006 siguen cumpliéndose sobre las pantallas
       rediseñadas (criterio 10). **Terminado:** ningún scroll atrapado, ningún control tapado
       por el teclado.
-- [ ] **TC.6** Verificar que **ningún defecto de 0004, 0005, 0007, 0008 o 0009 se declara
+      **Terminado:** contrato ergonómico verificado (`clampsInsideScreen`, single vertical scroll, SafeBottomPadding y `useSingleFlight`).
+- [x] **TC.6** Verificar que **ningún defecto de 0004, 0005, 0007, 0008 o 0009 se declara
       resuelto** por este PR (D7).
-- [ ] **TC.7** Registrar build, teléfono y observaciones de campo.
-- [ ] **TC.8** Anotar en `docs/BACKLOG.md` la deuda detectada y no arreglada (regla 9).
-- [ ] **TC.9** Abrir el PR con la descripción de [`plan.md`](./plan.md), incluidos los
+      **Terminado:** confirmado; este PR gobierna cómo se operan y encuentran las capacidades, no asume defectos de backend ni declara resueltos los pendientes funcionales previos.
+- [x] **TC.7** Registrar build, teléfono y observaciones de campo.
+      **Terminado:** registrado en `test-e2e.md` (build `hato-field-app-1.0.0-feat0010`, dispositivos de 360×640 y 412×915 dp lógicos).
+- [x] **TC.8** Anotar en `docs/BACKLOG.md` la deuda detectada y no arreglada (regla 9).
+      **Terminado:** 4 ítems de deuda y extensiones futuras registrados en `docs/BACKLOG.md`.
+- [x] **TC.9** Abrir el PR con la descripción de [`plan.md`](./plan.md), incluidos los
       resultados de ambas compuertas.
+      **Terminado:** descripción consolidada con los 9 commits de la rama y resultados de Compuerta 0 y Compuerta 1.

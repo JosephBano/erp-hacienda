@@ -8,6 +8,27 @@
 
 ## Deuda abierta por sub-rama
 
+## Pendiente feature-0010 — Rediseño de la aplicación de campo (2026-09-08)
+
+> Rediseño general de la aplicación móvil de campo centrado en aretes, fichas y estados en `feature/field-app-redesign`.
+> Los siguientes ítems recogen deuda técnica identificada, extensiones ergonómicas y límites explícitos de alcance (spec sec. 2, tasks TC.8, regla 9):
+
+### [mobile] Lectura directa de identificadores físicos (cámara QR / RFID / NFC)
+
+Actualmente la búsqueda de aretes se realiza mediante teclado táctil optimizado (filtro de dígitos y prefijos alfanuméricos) y selector de coincidencias. La integración de escaneo directo de códigos QR mediante cámara del teléfono o bastones RFID vía Bluetooth permanece diferida para una fase posterior, requiriendo un ADR previo para dependencias nativas de hardware.
+
+### [mobile] Detección de tema oscuro a nivel de sistema operativo
+
+El sistema visual implementa tanto tema claro (alto contraste para luz solar directa) como tema oscuro (poca luz y establos). La alternancia se gestiona actualmente de forma manual mediante el interruptor en la barra superior. Se difiere la vinculación automática con el `Appearance` / tema del sistema operativo para mantener el control explícito del operario sin depender de sensores ambientales.
+
+### [mobile] Virtualización avanzada para hatos extensivos (> 5.000 cabezas)
+
+La lista de animales y grupos maneja eficientemente el volumen objetivo de la finca (200 a 1.000 animales) con `FlatList`, `initialNumToRender` y debounce en búsquedas locales. Si en el futuro el hato supera las 5.000 cabezas concurrentes en un único dispositivo de gama baja, se evaluará migrar a un listado con ventana virtualizada estricta (`FlashList` o paginación por cursor en WatermelonDB).
+
+### [mobile] Resolución guiada interactiva de conflictos en fichas de animal
+
+El modelo actual aplica Last-Write-Wins (LWW) en backend mediante `knownUpdatedAt` y `lastEditedAt`. Cuando un animal es editado concurrentemente en el panel de oficina y en el campo, el backend detecta el conflicto y rechaza o actualiza según LWW. Una interfaz móvil interactiva que presente un diff visual campo por campo para resolución asistida por el operario queda para una fase posterior.
+
 ## Pendiente feature-0008 — Aplicar permisos de forma consistente en API y sincronización (2026-09-08)
 
 > Aplicación de permisos granulares en rutas REST y sincronización offline en `feature/people-permission-enforcement`.

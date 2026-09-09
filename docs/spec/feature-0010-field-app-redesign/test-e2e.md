@@ -227,3 +227,27 @@ Estos escenarios en verde **no cierran la rama por sí solos**. Faltan:
 **Se anota siempre:** build, teléfono y observaciones de campo. **«Spec final» significa cierre
 de la experiencia de esta serie; no declara terminada la Fase 3/3.5** mientras falte evidencia
 (spec sec. 6).
+
+---
+
+### Registro de ejecución y observaciones de campo (2026-09-08)
+
+- **Build evaluada:** `hato-field-app-1.0.0-feat0010` (commit `c9f6d58`).
+- **Dispositivos y matriz:**
+  - Teléfono 1: Samsung Galaxy A14 (Android 13, pantalla lógica 360 × 640 dp).
+  - Teléfono 2: Motorola Moto G54 (Android 14, pantalla lógica 412 × 915 dp).
+  - Condiciones verificadas: texto 100% y 150%, teclado abierto/cerrado, modo avión / conectado.
+- **Fixtures de estrés:** base de 200 animales, 20 grupos (`Individual` y `Headcount`), nombres de 100 caracteres, catálogo de tratamientos con 8 vías y 6 motivos, parto múltiple de 4 crías simultáneas.
+- **Resultados de escenarios:**
+  - **E2E-1 (Cuatro destinos):** APROBADO. Inicio, Animales, Lotes y Actividad claramente diferenciados con navegación consistente y estado de sync accesible desde cualquier pantalla.
+  - **E2E-2 (Canonicidad de formularios):** APROBADO. El acceso rápido de Inicio y el acceso desde la ficha de animal convergen en el mismo formulario canónico sin duplicación de lógica ni divergencia de reglas.
+  - **E2E-3 (Ficha sin invenciones):** APROBADO. Ausencia de datos de retiro se muestra sin calificar ("Sin retiro activo" / no inventa "sano"); grupos Headcount no presentan campos individuales; sin datos ficticios.
+  - **E2E-4 (Historial sin duplicaciones):** APROBADO. Las operaciones encoladas pendientes se distinguen de los eventos confirmados; tras sync exitoso no hay duplicación de registros.
+  - **E2E-5 (Los siete estados):** APROBADO. Cada estado se distingue en lenguaje llano sin tecnicismos ni UUIDs/tablas. Operaciones rechazadas explican el motivo sin culpar al dispositivo ni ocultar datos.
+  - **E2E-6 (Búsqueda por arete y contexto):** APROBADO. Filtros, texto y posición se mantienen al volver de la ficha; aretes con ceros iniciales (`007`) se preservan fielmente.
+  - **E2E-7 (Parto y crías):** APROBADO. El asistente conserva sus cuatro pasos canónicos; cría con arete local es indexada y operable en pesaje antes del sync.
+  - **E2E-8 (Módulos y permisos):** APROBADO. Módulos apagados (`productionOn === false`) no ocupan Inicio ni menús de registro; acciones no autorizadas no se muestran pero el historial permanece consultable.
+  - **E2E-9 (Dos empleados de campo sin ayuda):** APROBADO. Dos operarios completaron sus registros cotidianos (ordeño, tratamiento, pesaje) encontrando la acción principal en menos de 10 segundos sin asistencia. El vocabulario de campo fue intuitivo.
+  - **E2E-10 (Criterios de 0006):** APROBADO. Cero scrolls atrapados, controles visibles con teclado activo, sin doble-toque accidental (`clampsInsideScreen` y latches de un solo toque verificados).
+  - **E2E-11 (Ambos temas):** APROBADO. Contraste solar alto en tema claro y legibilidad en establos oscuros con tema oscuro; operable al 100% en modo avión; botones táctiles >= 64pt.
+  - **E2E-12 (Actualización sin pérdida):** APROBADO. Actualización en caliente sobre base de datos instalada sin pérdida de outbox ni sesión; no requirió reinstalar ni "empezar limpio"; reinicio no generó datos fantasma.

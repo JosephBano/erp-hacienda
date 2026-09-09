@@ -1,0 +1,61 @@
+# Pipeline de HATO en el GitLab institucional.
+#
+# Las reglas comunes se mantienen en istpet/plantillas para que sus
+# correcciones lleguen a todos los proyectos desde una única fuente.
+include:
+  - project: istpet/plantillas
+    ref: main
+    file:
+      - /ci/gitflow.yml
+      - /ci/gitleaks.yml
+
+# El runner institucional no acepta jobs sin etiqueta. Este valor también se
+# aplica a los jobs heredados mediante los includes anteriores.
+default:
+  tags:
+    - k3s
+
+# Compila y prueba toda la solución contra un PostgreSQL real. Cada fixture
+# crea su propia base en este servidor mediante Hato.TestSupport.TestDatabase.
+test:backend:
+  stage: test
+  image: mcr.microsoft.com/dotnet/sdk:8.0
+  services:
+    - name: postgres:16-alpine
+      alias: postgres
+  variables:
+    POSTGRES_HOST_AUTH_METHOD: trust
+    POSTGRES_DB: postgres
+    HATO_TEST_POSTGRES: "Host=postgres;Port=5432;Database=postgres;Username=postgres"
+  script:
+    - dotnet restore
+    - dotnet format --verify-no-changes
+    - dotnet build --no-restore --configuration Release
+    - dotnet test --no-build --configuration Release --logger "trx" --results-directory TestResults
+  artifacts:
+    when: always
+    expire_in: 7 days
+    paths:
+      - TestResults/
+
+# Verifica que la aplicación de campo compile a nivel de tipos y que sus
+# pruebas unitarias pasen. La opción legacy mantiene el contrato del CI actual.
+test:field-app:
+  stage: test
+  image: node:20-alpine
+  script:
+    - cd clients/field-app
+    - npm ci --legacy-peer-deps
+    - npm run typecheck
+    - npm test
+
+# La compilación de producción de Angular incluye compilación, comprobación de
+# tipos y presupuestos; después se ejecutan sus pruebas unitarias sin watch.
+test:admin-web:
+  stage: test
+  image: node:20-alpine
+  script:
+    - cd clients/admin-web
+    - npm ci
+    - npx ng build --configuration production
+    - npx ng test --watch=false

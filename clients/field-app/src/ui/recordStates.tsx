@@ -165,6 +165,7 @@ export function RecordStatusBadge({
   const config = React.useMemo(() => {
     switch (status) {
       case 'local_pending':
+      case 'pending':
         return {
           defaultLabel: 'Guardado local',
           defaultA11y: 'Guardado en este teléfono. Pendiente de enviar. Puede seguir trabajando.',
@@ -205,6 +206,8 @@ export function RecordStatusBadge({
           borderColor: 'transparent',
         };
       case 'error':
+      case 'cancelled':
+      default:
         return {
           defaultLabel: 'Error local',
           defaultA11y: 'Error de almacenamiento local. No se pudo guardar en el teléfono.',

@@ -197,16 +197,22 @@
 
 ## Commit 7 — Inicio
 
-- [ ] **T7.1** Estado de trabajo local y de envío, con datos disponibles.
-- [ ] **T7.2** Acceso destacado a **buscar arete**.
-- [ ] **T7.3** Accesos de registro y registros recientes propios.
-- [ ] **T7.4** Una acción iniciada en Inicio **solicita un sujeto apto** para esa actividad.
-- [ ] **T7.5** El registro de parto ofrece madres elegibles **sin recorrer antes todo el hato**.
-- [ ] **T7.6** **Módulos desactivados y acciones no autorizadas no ocupan accesos operativos.**
-      **Terminado:** un módulo desactivado no domina Inicio (criterio 5).
-- [ ] **T7.7** **No** añade analítica productiva, métricas financieras ni funciones de fases
-      futuras.
-- [ ] **T7.8** `npm test` completo en verde.
+- [x] **T7.1** Estado de trabajo local y de envío, con datos disponibles.
+      **Terminado:** `home-work-status` muestra con precisión si el dispositivo está al día o la cantidad de registros locales pendientes de enviar.
+- [x] **T7.2** Acceso destacado a **buscar arete**.
+      **Terminado:** botón primario `home-search-tag` en Inicio para búsqueda rápida por arete o código interno.
+- [x] **T7.3** Accesos de registro y registros recientes propios.
+      **Terminado:** accesos directos canónicos y tarjeta `home-recent-entries` con las operaciones recientes de este teléfono.
+- [x] **T7.4** Una acción iniciada en Inicio **solicita un sujeto apto** para esa actividad.
+      **Terminado:** `vaccinate`, `treat` y `milking` solicitan sujetos biológicamente aptos y no permiten operar sin sujeto válido.
+- [x] **T7.5** El registro de parto ofrece madres elegibles **sin recorrer antes todo el hato**.
+      **Terminado:** acceso "Un parto" abre el paso 1 del asistente de parto filtrado exclusivamente a preñeces activas.
+- [x] **T7.6** **Módulos desactivados y acciones no autorizadas no ocupan accesos operativos.**
+      **Terminado:** un módulo desactivado como producción/ordeño (`productionOn === false`) o acciones sin permisos (`livestock.animals.write`) no se muestran en Inicio (criterio 5).
+- [x] **T7.7** **No** añade analítica productiva, métricas financieras ni funciones de fases futuras.
+      **Terminado:** pantalla estrictamente operativa sin gráficos financieros ni agregaciones sintéticas.
+- [x] **T7.8** `npm test` completo en verde.
+      **Terminado:** 67 suites y 495 pruebas pasando en verde sin regresiones.
 
 ---
 

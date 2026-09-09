@@ -252,6 +252,8 @@ export function MilkingScreen({
               value={liters}
               onChangeText={setLiters}
               placeholder="0.0"
+              unit="L"
+              hint="Volumen obtenido en el ordeño"
             />
 
             {pendingConfirmation !== null ? (

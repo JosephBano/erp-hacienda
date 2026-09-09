@@ -3,7 +3,18 @@ import { ScrollView, StyleSheet, View } from 'react-native';
 import { Database } from '@nozbe/watermelondb';
 
 import { theme } from '../ui/theme';
-import { BigButton, Body, Card, EmptyState, Notice, Screen, Title } from '../ui/components';
+import {
+  BigButton,
+  Body,
+  Card,
+  EmptyState,
+  FormConfirmationSummary,
+  FormHeader,
+  Notice,
+  Screen,
+  TextField,
+  Title,
+} from '../ui/components';
 import type { EventService } from '../services/eventService';
 import { loadAdministrationRoutes, loadDoseKinds } from '../services/herdQueries';
 import { useSingleFlight } from '../ui/useSingleFlight';
@@ -59,6 +70,9 @@ export function VaccinateScreen({
     initialAnimalId ? 'product' : 'animal',
   );
   const [product, setProduct] = useState<VaccinateProductOption | null>(null);
+  const [animalFilter, setAnimalFilter] = useState('');
+  const [productFilter, setProductFilter] = useState('');
+  const [saveNotice, setSaveNotice] = useState<string | null>(null);
   const [routeId, setRouteId] = useState<string | null>(null);
   const [doseKindId, setDoseKindId] = useState<string | null>(null);
   const [catalogError, setCatalogError] = useState<string | null>(null);
@@ -107,10 +121,13 @@ export function VaccinateScreen({
     setStep('animal');
     setAnimal(null);
     setProduct(null);
+    setAnimalFilter('');
+    setProductFilter('');
     setError(null);
   };
 
   const cancel = () => {
+    setSaveNotice(null);
     reset();
     onCancel();
   };
@@ -143,12 +160,26 @@ export function VaccinateScreen({
         doseFactorUnit: product.unit,
         notes: `Vacunación: ${product.name}.`,
       });
+      const recordedLabel = animal.label;
       reset();
+      setSaveNotice(`Vacunación de ${recordedLabel} guardada en este teléfono. Pendiente de enviar.`);
       onRecorded?.();
     } catch (caught) {
       setError((caught as Error).message);
     }
   };
+
+  const filteredAnimals = animals.filter((a) => {
+    const q = animalFilter.trim().toLowerCase();
+    if (!q) return true;
+    return a.label.toLowerCase().includes(q) || a.animalId.toLowerCase().includes(q);
+  });
+
+  const filteredProducts = products.filter((p) => {
+    const q = productFilter.trim().toLowerCase();
+    if (!q) return true;
+    return p.name.toLowerCase().includes(q) || p.itemId.toLowerCase().includes(q);
+  });
 
   // D1 — one vertical gesture per render. Both picker steps own a bounded inner
   // ScrollView (unless the catalog is empty and they fall back to an EmptyState),
@@ -162,7 +193,21 @@ export function VaccinateScreen({
 
   return (
     <Screen testID="vaccinate-screen" scrollable={scrollable}>
+      <FormHeader
+        title={step === 'animal' ? 'Vacunar animal' : 'Vacunación'}
+        subtitle={step === 'animal' ? 'Seleccione el animal a vacunar' : step === 'product' ? 'Seleccione la vacuna' : 'Revise y confirme el registro'}
+        animalLabel={step !== 'confirm' ? animal?.label : undefined}
+        onCancel={cancel}
+        testID="vaccinate-header"
+      />
+
       <Title>Vacunar</Title>
+
+      {saveNotice && step === 'animal' ? (
+        <Card testID="vaccinate-save-notice">
+          <Body>{`✓ ${saveNotice}`}</Body>
+        </Card>
+      ) : null}
 
       {catalogError ? <Notice text={catalogError} tone="warning" /> : null}
       {error ? <Notice text={error} /> : null}
@@ -182,20 +227,31 @@ export function VaccinateScreen({
               hint="Vaya a Inicio → Sincronización para descargar el hato."
             />
           ) : (
-            <ScrollView testID="vaccinate-animal-list" contentContainerStyle={styles.list}>
-              {animals.map((option) => (
-                <BigButton
-                  key={option.animalId}
-                  testID={`vaccinate-animal-${option.animalId}`}
-                  label={option.label}
-                  tone="neutral"
-                  onPress={() => {
-                    setAnimal(option);
-                    setStep(product ? 'confirm' : 'product');
-                  }}
+            <>
+              {animals.length > 5 ? (
+                <TextField
+                  testID="vaccinate-animal-search"
+                  label="Buscar animal"
+                  placeholder="Buscar por arete o nombre..."
+                  value={animalFilter}
+                  onChangeText={setAnimalFilter}
                 />
-              ))}
-            </ScrollView>
+              ) : null}
+              <ScrollView testID="vaccinate-animal-list" contentContainerStyle={styles.list}>
+                {filteredAnimals.map((option) => (
+                  <BigButton
+                    key={option.animalId}
+                    testID={`vaccinate-animal-${option.animalId}`}
+                    label={option.label}
+                    tone="neutral"
+                    onPress={() => {
+                      setAnimal(option);
+                      setStep(product ? 'confirm' : 'product');
+                    }}
+                  />
+                ))}
+              </ScrollView>
+            </>
           )
         ) : null}
 
@@ -207,24 +263,33 @@ export function VaccinateScreen({
               hint="Agregue vacunas desde el panel y sincronice."
             />
           ) : (
-            <ScrollView testID="vaccinate-product-list" contentContainerStyle={styles.list}>
-              {products.map((option) => (
-                <BigButton
-                  key={option.itemId}
-                  testID={`vaccinate-product-${option.itemId}`}
-                  label={option.name}
-                  tone="neutral"
-                  onPress={() => chooseProduct(option)}
+            <>
+              {products.length > 5 ? (
+                <TextField
+                  testID="vaccinate-product-search"
+                  label="Buscar vacuna"
+                  placeholder="Buscar por nombre..."
+                  value={productFilter}
+                  onChangeText={setProductFilter}
                 />
-              ))}
-            </ScrollView>
+              ) : null}
+              <ScrollView testID="vaccinate-product-list" contentContainerStyle={styles.list}>
+                {filteredProducts.map((option) => (
+                  <BigButton
+                    key={option.itemId}
+                    testID={`vaccinate-product-${option.itemId}`}
+                    label={option.name}
+                    tone="neutral"
+                    onPress={() => chooseProduct(option)}
+                  />
+                ))}
+              </ScrollView>
+            </>
           )
         ) : null}
 
         {step === 'confirm' && animal && product ? (
-          <Card>
-            <Body>{animal.label}</Body>
-
+          <Card testID="vaccinate-confirm-card">
             {isAnimalObsolete ? (
               <>
                 <Notice
@@ -243,6 +308,9 @@ export function VaccinateScreen({
                 />
               </>
             ) : null}
+
+            <Body>{animal.label}</Body>
+            <Body muted>{`${product.name} · ${product.dose}`}</Body>
 
             <Body muted>{`${product.name} · 1 ${product.unit} por cabeza`}</Body>
             <BigButton

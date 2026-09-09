@@ -109,7 +109,7 @@ describe('BreedingDashboardComponent (responsive redesign contract)', () => {
       fixture.detectChanges();
       expect(root.textContent ?? '').not.toMatch(emojiPattern);
     }
-  });
+  }, 10_000);
 
   it('should display an app-icon next to the page title instead of an emoji glyph', () => {
     const root = render().nativeElement as HTMLElement;

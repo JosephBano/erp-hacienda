@@ -81,18 +81,38 @@ gitflow:rama:
 
 gitflow:issue:
   resource_group: hato-ci
+  needs:
+    - job: gitflow:rama
+      artifacts: false
+      optional: true
 
 gitflow:metadatos:
   resource_group: hato-ci
+  needs:
+    - job: gitflow:issue
+      artifacts: false
+      optional: true
 
 gitflow:commits:
   resource_group: hato-ci
+  needs:
+    - job: gitflow:metadatos
+      artifacts: false
+      optional: true
 
 gitflow:plantilla:
   resource_group: hato-ci
+  needs:
+    - job: gitflow:commits
+      artifacts: false
+      optional: true
 
 gitflow:secretos:
   resource_group: hato-ci
+  needs:
+    - job: gitflow:plantilla
+      artifacts: false
+      optional: true
 
 # Construye las dos imágenes desplegables para comprobar sus Dockerfiles.
 #

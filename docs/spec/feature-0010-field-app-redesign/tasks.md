@@ -147,14 +147,20 @@
 
 ## Commit 5 — Lotes: grupos y ficha
 
-- [ ] **T5.1** Lista de grupos de animales con su modo de seguimiento.
-- [ ] **T5.2** **Distinguir identificación individual de conteo** con claridad.
-- [ ] **T5.3** Solo resúmenes **calculables**, declarando fecha o limitación de actualización.
-- [ ] **T5.4** Si un resumen requiere conexión, su indisponibilidad **no bloquea la captura local**.
-- [ ] **T5.5** **No se fabrican** pesos promedio, existencias, dosis ni indicadores que el
-      backend no proporciona. **Terminado:** revisado campo por campo.
-- [ ] **T5.6** Un grupo `Headcount` no muestra datos que implicarían identidad individual.
-- [ ] **T5.7** `npm test` completo en verde.
+- [x] **T5.1** Lista de grupos de animales con su modo de seguimiento.
+      **Terminado:** lista con modo de seguimiento visible (`[Por conteo]`, `[Individual]`) y tarjeta explicativa de modos en el selector.
+- [x] **T5.2** **Distinguir identificación individual de conteo** con claridad.
+      **Terminado:** `lot-detail-tracking-mode` y nota explicativa dedicada en la ficha diferenciando conteo colectivo de seguimiento individual por arete.
+- [x] **T5.3** Solo resúmenes **calculables**, declarando fecha o limitación de actualización.
+      **Terminado:** cabezas vivas, diagnósticos abiertos, fecha de última baja (`lastDisposalAt`), última vacunación y tratamiento, con declaración explícita de origen y limitación de actualización.
+- [x] **T5.4** Si un resumen requiere conexión, su indisponibilidad **no bloquea la captura local**.
+      **Terminado:** notice de advertencia sin bloqueo; las 6 actividades canónicas de lote y navegación siguen operativas y accesibles sin conexión.
+- [x] **T5.5** **No se fabrican** pesos promedio, existencias, dosis ni indicadores que el
+      backend no proporciona. **Terminado:** revisado campo por campo y verificado con pruebas unitarias que comprueban la ausencia de métricas sintéticas.
+- [x] **T5.6** Un grupo `Headcount` no muestra datos que implicarían identidad individual.
+      **Terminado:** grupos `Headcount` nunca renderizan tarjetas de miembros ni aretes individuales, incluso ante presencia de animales en memoria.
+- [x] **T5.7** `npm test` completo en verde.
+      **Terminado:** 67 suites y 490 pruebas pasando en verde sin regresiones.
 
 ---
 

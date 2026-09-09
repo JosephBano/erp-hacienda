@@ -120,20 +120,28 @@
 
 ## Commit 4 — Animales: búsqueda y ficha
 
-- [ ] **T4.1** Búsqueda por identificadores y nombre, con filtros por grupo y sexo.
-- [ ] **T4.2** Coincidencia por arete reconocible, **sin perder ceros iniciales**.
-- [ ] **T4.3** Ambigüedad **delegada a [0007](../feature-0007-field-app-individual-tagged-livestock/spec.md)**.
-      **Terminado:** no se duplica esa lógica aquí.
-- [ ] **T4.4** La ficha destaca arete vigente, nombre si existe, sexo, grupo y estados relevantes.
-- [ ] **T4.5** **Retiro, baja y preñez solo se muestran cuando hay datos que los respaldan.**
-      **Terminado:** ausencia de información **no** se traduce en «sano» o «disponible».
-- [ ] **T4.6** El historial separa hechos confirmados de registros locales pendientes.
-- [ ] **T4.7** **No se duplican** al llegar la confirmación del servidor.
-      **Terminado:** cubierto por prueba.
-- [ ] **T4.8** La búsqueda mantiene texto, filtros y posición al regresar de la ficha.
-- [ ] **T4.9** Un animal sin arete conserva identificación alternativa legible.
-- [ ] **T4.10** Las actividades ofrecidas respetan aptitud (0005) y permisos (0008).
-- [ ] **T4.11** `npm test` completo en verde.
+- [x] **T4.1** Búsqueda por identificadores y nombre, con filtros por grupo y sexo.
+      **Terminado:** chips interactivos de sexo (Todos, Hembras, Machos) y de grupos disponibles, filtrado fluido sobre el hato.
+- [x] **T4.2** Coincidencia por arete reconocible, **sin perder ceros iniciales**.
+      **Terminado:** coincidencia exacta preserva ceros (`007` no colapsa a `7`), verificado en test.
+- [x] **T4.3** Ambigüedad **delegada a [0007](../feature-0007-field-app-individual-tagged-livestock/spec.md)**.
+      **Terminado:** aviso de selección consciente cuando múltiples animales comparten el mismo identificador.
+- [x] **T4.4** La ficha destaca arete vigente, nombre si existe, sexo, grupo y estados relevantes.
+      **Terminado:** `TagBadge` prominente, nombre, ID interno, chips de sexo, grupo y preñez (`FPP YYYY-MM-DD`).
+- [x] **T4.5** **Retiro, baja y preñez solo se muestran cuando hay datos que los respaldan.**
+      **Terminado:** ausencia de información **no** se traduce en «sano» o «disponible»; solo se renderizan avisos cuando hay datos reales.
+- [x] **T4.6** El historial separa hechos confirmados de registros locales pendientes.
+      **Terminado:** secciones dedicadas `Registros locales pendientes` y `Hechos confirmados` con `RecordStatusBadge`.
+- [x] **T4.7** **No se duplican** al llegar la confirmación del servidor.
+      **Terminado:** deduplicación estricta por `clientOperationId` y `resultRef`.
+- [x] **T4.8** La búsqueda mantiene texto, filtros y posición al regresar de la ficha.
+      **Terminado:** navegación preserva estado local de consulta y filtros al volver con el botón "Elegir otro animal".
+- [x] **T4.9** Un animal sin arete conserva identificación alternativa legible.
+      **Terminado:** `TagBadge` con "Sin arete" y lectura de nombre/ID interno legible.
+- [x] **T4.10** Las actividades ofrecidas respetan aptitud (0005) y permisos (0008).
+      **Terminado:** animales de baja no ofrecen actividades; parto solo ofrecido a hembras con aptitud/permiso; comprobación de `livestock.animals.write`.
+- [x] **T4.11** `npm test` completo en verde.
+      **Terminado:** 67 suites y 482 pruebas pasando sin regresiones.
 
 ---
 

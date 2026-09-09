@@ -1,6 +1,9 @@
 import React from 'react';
+import { StyleSheet, Text, View } from 'react-native';
 
+import { useTheme } from '../ui/theme';
 import { BigButton, Body, Card, Screen, Title } from '../ui/components';
+import { RecordStatusBadge, type SyncRecordStatus } from '../ui/recordStates';
 
 /**
  * Identifier of a leaf destination reachable from the hub.
@@ -24,86 +27,151 @@ export type ActivityRoute =
   | 'treat'
   | 'editAnimal'
   | 'sync'
-  | 'milking';
+  | 'milking'
+  | 'animals'
+  | 'lots'
+  | 'activity';
 
-interface ActivitiesHubProps {
+export interface RecentHubEntry {
+  clientOperationId: string;
+  operationType: string;
+  occurredAt: string;
+  status: SyncRecordStatus;
+}
+
+export interface ActivitiesHubProps {
   /** Pending count, surfaced so the operator sees how much is unsent before choosing. */
   pending: number;
   onSelect: (route: ActivityRoute) => void;
+  productionOn?: boolean;
+  permissions?: string[];
+  recentEntries?: RecentHubEntry[];
 }
 
 /**
- * The hub the operator lands on every morning.
+ * Operations hub: direct access to the canonical subjects, prominent tag search,
+ * and authorized quick registrations (T7.1–T7.7).
  *
- * Subjects — "un animal", "lo que registré hoy", "un parto", "un lote" — are the four
- * things the macro plan 2.3 names as the first navigation level. Each subject maps to a
- * flow that already exists. "Un lote" landed in 3.5a.7: its `TapBudget` is validated by
- * `LotEventsScreen.tapBudget.test.tsx` (ADR-0021 condition 2), so the compuerta ADR-0021
- * left open for the second level of this branch closes with this rama.
- *
- * The order of the subjects is the responsible default. docs/spec/plan-0002-fase-3-5/spec.md sec. 7-C
- * marks the final order as a question only the client can answer; the test pins the
- * current default so a reorder is a deliberate change, not a regression.
+ * Preserves the canonical subject ordering (animal < today < birth < lot) and all testIDs.
  */
-export function ActivitiesHub({ pending, onSelect }: ActivitiesHubProps) {
+export function ActivitiesHub({
+  pending,
+  onSelect,
+  productionOn = false,
+  permissions,
+  recentEntries,
+}: ActivitiesHubProps) {
+  const { theme: activeTheme } = useTheme();
+
+  const canVaccinate = !permissions || permissions.includes('livestock.animals.write');
+  const canTreat = !permissions || permissions.includes('livestock.animals.write');
+  const canEvents = !permissions || permissions.includes('livestock.animals.write');
+  const canEdit = !permissions || permissions.includes('livestock.animals.write');
+  const canMilk = productionOn && (!permissions || permissions.includes('production.milk.write'));
+
   return (
     <Screen testID="activities-hub" scrollable>
       <Title>HATO</Title>
-      <Body testID="home-pending">{`${pending} registro(s) sin enviar`}</Body>
 
+      {/* T7.1: Estado de trabajo local y de sincronización */}
+      <Card testID="home-work-status">
+        <View style={styles.statusBox}>
+          <Text
+            testID="home-status-indicator"
+            style={[styles.statusTitle, { color: activeTheme.color.text, fontSize: activeTheme.font.body }]}
+          >
+            {pending === 0 ? 'Sincronizado con el servidor' : `● ${pending} registro(s) pendiente(s) de enviar`}
+          </Text>
+          <Body testID="home-pending" muted>
+            {`${pending} registro(s) sin enviar`}
+          </Body>
+        </View>
+      </Card>
+
+      {/* T7.2: Acceso destacado a buscar arete */}
+      <BigButton
+        testID="home-search-tag"
+        label="🔍 Buscar arete en el hato"
+        tone="primary"
+        hint="Búsqueda rápida por número de arete o identificación interna"
+        onPress={() => onSelect('animal-subject')}
+      />
+
+      {/* T7.3 / T7.4 / T7.5: Destinos principales en orden canónico */}
       <Card>
-        <Body muted>{'Sujetos'}</Body>
+        <Body muted>{'Destinos principales'}</Body>
         <BigButton
           testID="subject-animal"
           label="Un animal"
+          hint="Ficha, historial y actividades individuales"
           onPress={() => onSelect('animal-subject')}
         />
         <BigButton
           testID="subject-today"
           label="Lo que registré hoy"
           tone="neutral"
+          hint="Historial y estado de los registros de la jornada"
           onPress={() => onSelect('today')}
         />
         <BigButton
           testID="subject-birth"
           label="Un parto"
           tone="neutral"
+          hint="Registro guiado de parto con madres gestantes"
           onPress={() => onSelect('birth')}
         />
         <BigButton
           testID="subject-lot"
-          label="Un lote (alimento, pesaje, vacuna, dx, baja)"
+          label="Un lote"
           tone="neutral"
+          hint="Pesaje muestral, alimentación y sanidad colectiva"
           onPress={() => onSelect('lot-subject')}
         />
       </Card>
 
+      {/* T7.3 & T7.6: Acciones directas respetando permisos y módulos activos */}
       <Card>
-        <Body muted>{'Más opciones'}</Body>
-        <BigButton
-          testID="subject-vaccinate"
-          label="Vacunar"
-          tone="neutral"
-          onPress={() => onSelect('vaccinate')}
-        />
-        <BigButton
-          testID="subject-treat"
-          label="Tratar animal enfermo"
-          tone="neutral"
-          onPress={() => onSelect('treat')}
-        />
-        <BigButton
-          testID="subject-events"
-          label="Eventos (pesaje, movimiento, baja)"
-          tone="neutral"
-          onPress={() => onSelect('events')}
-        />
-        <BigButton
-          testID="subject-edit"
-          label="Editar animal"
-          tone="neutral"
-          onPress={() => onSelect('editAnimal')}
-        />
+        <Body muted>{'Acciones directas'}</Body>
+        {canVaccinate ? (
+          <BigButton
+            testID="subject-vaccinate"
+            label="Vacunar"
+            tone="neutral"
+            onPress={() => onSelect('vaccinate')}
+          />
+        ) : null}
+        {canTreat ? (
+          <BigButton
+            testID="subject-treat"
+            label="Tratar animal"
+            tone="neutral"
+            onPress={() => onSelect('treat')}
+          />
+        ) : null}
+        {canEvents ? (
+          <BigButton
+            testID="subject-events"
+            label="Eventos"
+            tone="neutral"
+            onPress={() => onSelect('events')}
+          />
+        ) : null}
+        {canMilk ? (
+          <BigButton
+            testID="subject-milking"
+            label="Ordeño"
+            tone="neutral"
+            onPress={() => onSelect('milking')}
+          />
+        ) : null}
+        {canEdit ? (
+          <BigButton
+            testID="subject-edit"
+            label="Editar animal"
+            tone="neutral"
+            onPress={() => onSelect('editAnimal')}
+          />
+        ) : null}
         <BigButton
           testID="subject-sync"
           label="Sincronización"
@@ -111,6 +179,82 @@ export function ActivitiesHub({ pending, onSelect }: ActivitiesHubProps) {
           onPress={() => onSelect('sync')}
         />
       </Card>
+
+      {/* T7.3: Registros recientes propios en este teléfono */}
+      {recentEntries && recentEntries.length > 0 ? (
+        <Card testID="home-recent-entries">
+          <Body muted>Registros recientes en este teléfono</Body>
+          {recentEntries.map((entry) => (
+            <View key={entry.clientOperationId} style={styles.recentRow}>
+              <View style={styles.recentInfo}>
+                <Text style={[styles.recentOpText, { color: activeTheme.color.text, fontSize: activeTheme.font.label }]}>
+                  {formatOperationName(entry.operationType)}
+                </Text>
+                <Text style={[styles.recentDateText, { color: activeTheme.color.textMuted, fontSize: activeTheme.font.micro }]}>
+                  {entry.occurredAt
+                    ? new Date(entry.occurredAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                    : 'Hoy'}
+                </Text>
+              </View>
+              <RecordStatusBadge status={entry.status} />
+            </View>
+          ))}
+        </Card>
+      ) : null}
     </Screen>
   );
 }
+
+function formatOperationName(type: string): string {
+  switch (type) {
+    case 'recordIndividualYield':
+      return '🥛 Ordeño';
+    case 'recordTreatment':
+      return '🩺 Tratamiento';
+    case 'recordVaccination':
+      return '💉 Vacunación';
+    case 'recordWeight':
+      return '⚖️ Pesaje';
+    case 'recordDisposal':
+      return '✕ Baja de animal';
+    case 'recordGroupMove':
+      return '⇄ Cambio de lote';
+    case 'recordBirth':
+      return '🐣 Parto';
+    case 'recordFeedConsumption':
+      return '🌾 Consumo alimento';
+    case 'recordGroupEvent':
+      return '👥 Evento de lote';
+    case 'editAnimal':
+      return '✏️ Edición de animal';
+    default:
+      return type;
+  }
+}
+
+const styles = StyleSheet.create({
+  statusBox: {
+    gap: 4,
+  },
+  statusTitle: {
+    fontWeight: '800',
+  },
+  recentRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 6,
+    borderBottomWidth: 1,
+    borderBottomColor: '#33333333',
+  },
+  recentInfo: {
+    gap: 2,
+  },
+  recentOpText: {
+    fontWeight: '700',
+  },
+  recentDateText: {
+    fontWeight: '500',
+  },
+});
+

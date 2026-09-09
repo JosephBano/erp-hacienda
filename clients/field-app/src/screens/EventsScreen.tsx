@@ -273,7 +273,14 @@ export function EventsScreen({
 
               {mode === 'weight' ? (
                 <>
-                  <NumberField label="Peso (kg)" testID="weight-input" value={weight} onChangeText={setWeight} />
+                  <NumberField
+                    label="Peso (kg)"
+                    testID="weight-input"
+                    value={weight}
+                    onChangeText={setWeight}
+                    unit="kg"
+                    hint="Ingrese el peso del animal en kilogramos"
+                  />
 
                   {weightPendingConfirmation !== null ? (
                     <>

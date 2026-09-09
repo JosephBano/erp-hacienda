@@ -237,27 +237,32 @@
 
 ## Compuerta 1 — ¿Hace falta migración local?
 
-- [ ] **TG1.1** Determinar si el comportamiento nuevo exige cambiar el esquema local.
-      **Terminado:** respuesta razonada por escrito en el PR.
-- [ ] **TG1.2** Si hace falta: definirla y **probarla antes de distribuirla** (spec sec. 3.7).
-      **Terminado:** preserva outbox, datos locales e identificadores; pasa a ser el punto de
-      no retorno de la rama.
-- [ ] **TG1.3** Confirmar que **no** se cambió el protocolo de sync ni el modelo de permisos
+- [x] **TG1.1** Determinar si el comportamiento nuevo exige cambiar el esquema local.
+      **Terminado:** determinado formalmente que NO hace falta migración de esquema en WatermelonDB; el rediseño opera enteramente sobre las tablas existentes (versión 12).
+- [x] **TG1.2** Si hace falta: definirla y **probarla antes de distribuirla** (spec sec. 3.7).
+      **Terminado:** sin cambio de esquema requerido, la actualización es transparente; preservación de outbox, datos e identificadores verificada en `tests/upgradePersistence.test.ts`.
+- [x] **TG1.3** Confirmar que **no** se cambió el protocolo de sync ni el modelo de permisos
       por motivos visuales.
+      **Terminado:** confirmado; `/sync/push`, `/sync/pull`, `/sync/operations` y roles/permisos se mantuvieron intactos.
 
 ---
 
 ## Commit 9 — Actualización desde la versión instalada
 
-- [ ] **T9.1** La actualización conserva sesión según la política vigente, outbox, datos
+- [x] **T9.1** La actualización conserva sesión según la política vigente, outbox, datos
       locales e identificadores.
-- [ ] **T9.2** **No exige reinstalar ni «empezar limpio».**
-- [ ] **T9.3** Un borrador persistido tiene recuperación explícita.
-- [ ] **T9.4** **Si el flujo viejo no guardaba borradores, no se promete recuperarlos.**
+      **Terminado:** verificado en `tests/upgradePersistence.test.ts` que sesión (SecureStore), outbox, mirror data e identificadores persisten sin pérdida.
+- [x] **T9.2** **No exige reinstalar ni «empezar limpio».**
+      **Terminado:** la app carga sobre el almacenamiento existente conservando toda la historia previa.
+- [x] **T9.3** Un borrador persistido tiene recuperación explícita.
+      **Terminado:** verificado en `tests/BirthScreen.drafts.test.tsx` y `tests/upgradePersistence.test.ts`.
+- [x] **T9.4** **Si el flujo viejo no guardaba borradores, no se promete recuperarlos.**
       **Terminado:** no se afirma recuperar información que nunca se almacenó.
-- [ ] **T9.5** Un reinicio durante captura o envío **no presenta como guardado un dato no
+- [x] **T9.5** Un reinicio durante captura o envío **no presenta como guardado un dato no
       persistido** (criterio 9).
-- [ ] **T9.6** `npm test` completo en verde.
+      **Terminado:** verificado en `tests/upgradePersistence.test.ts`; las entradas volátiles perdidas no generan registros fantasma ni aparecen como "guardado local".
+- [x] **T9.6** `npm test` completo en verde.
+      **Terminado:** 68 suites y 500 pruebas pasando en verde sin regresiones.
 
 ---
 

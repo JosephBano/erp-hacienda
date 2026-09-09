@@ -1,0 +1,43 @@
+# Configuración de gitleaks para HATO.
+#
+# El job gitflow:secretos del pipeline (heredado de istpet/plantillas) usa este
+# archivo si existe. Aquí se justifican los falsos positivos, uno por uno y por
+# escrito: una allowlist sin explicación es peor que no tenerla, porque nadie
+# sabe si sigue siendo válida.
+#
+# La sintaxis es la de gitleaks v8.18.4, que es la imagen que fija la plantilla
+# ($GITLEAKS_IMAGE). Esa versión solo admite UNA sección [allowlist] global:
+# las allowlists por regla ([[rules.allowlist]] con targetRules) llegaron
+# después y fallan aquí con "expected a map, got 'slice'".
+
+[extend]
+# Parte del conjunto de reglas por defecto en lugar de reinventarlo. Sin esto,
+# --config reemplazaría todas las reglas y el job pasaría sin analizar nada:
+# verde y completamente inútil.
+useDefault = true
+
+[allowlist]
+description = "Identificadores públicos y datos de prueba, sin valor como credencial"
+
+regexes = [
+  # UserSecretsId de Hato.Api, declarado en las cuatro DbContextFactory de
+  # diseño de EF Core. gitleaks lo marca como 'generic-api-key' por ser una
+  # constante hexadecimal larga, pero es la CLAVE DEL ALMACÉN, no su contenido:
+  # sirve para localizar los secretos que `dotnet user-secrets` guarda fuera
+  # del repo, en el perfil del desarrollador. .NET lo escribe en el propio
+  # .csproj, así que es público por diseño. Esas clases existen precisamente
+  # para no hardcodear la cadena de conexión.
+  '''44de5e62-c571-4b2e-89a6-be7abf5e3dee''',
+]
+
+paths = [
+  # JWT de fixture en la prueba que verifica que el logger REDACTA tokens
+  # (T8.5). El token tiene que estar en claro: es el dato de entrada de la
+  # prueba. No corresponde a ninguna cuenta, no está firmado con una clave
+  # real y su payload es el ejemplo canónico de jwt.io (sub 1234567890).
+  '''clients/field-app/tests/logger\.test\.ts''',
+]
+
+# Lo que NO se pone aquí nunca: rutas como 'appsettings.json', 'deploy/' o
+# '*.env'. Si un secreto real aparece en un commit, la solución es rotarlo y
+# limpiar el historial con git filter-repo, no silenciarlo.

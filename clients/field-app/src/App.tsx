@@ -397,16 +397,25 @@ function AppShell() {
 
           {tab === 'animal-subject' || tab === 'animals' ? (
             <AnimalSubjectScreen
-              animals={activeHerd.map((member) => ({
-                animalId: member.animalId,
-                label: member.label,
-                sex: member.sex,
-                groupName: member.groupName,
-                tag: member.tag,
-                activeIdentifiers: member.activeIdentifiers,
-                name: member.name,
-                hasPendingTag: member.hasPendingTag,
-              }))}
+              animals={herd.map((member) => {
+                const pregnant = pregnantDams.find((p) => p.animalId === member.animalId);
+                return {
+                  animalId: member.animalId,
+                  label: member.label,
+                  sex: member.sex,
+                  groupName: member.groupName,
+                  tag: member.tag,
+                  activeIdentifiers: member.activeIdentifiers,
+                  historicalIdentifiers: member.historicalIdentifiers,
+                  name: member.name,
+                  hasPendingTag: member.hasPendingTag,
+                  disposedAt: member.disposedAt,
+                  isWithheld: member.isWithheld,
+                  withheldUntil: member.withheldUntil,
+                  isPregnant: Boolean(pregnant),
+                  expectedBirthDate: pregnant?.expectedBirthDate,
+                };
+              })}
               recentIds={[]}
               selectedAnimalId={selectedAnimalId ?? undefined}
               onSelectAnimal={(animalId) => setSelectedAnimalId(animalId)}
@@ -417,10 +426,18 @@ function AppShell() {
                   setTab('treat');
                   return;
                 }
+                if (activity === 'birth') {
+                  setTab('birth');
+                  return;
+                }
                 setEventsInitialAnimalId(animalId);
-                setEventsInitialActivity(activity);
+                setEventsInitialActivity(activity as any);
                 setTab('events');
               }}
+              outbox={outbox}
+              database={database}
+              groups={groups}
+              permissions={auth.currentSession()?.permissions}
             />
           ) : null}
 

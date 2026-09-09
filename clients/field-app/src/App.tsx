@@ -459,6 +459,8 @@ function AppShell() {
                 setTab('lot-events');
               }}
               animalGroupsApi={animalGroupsApi}
+              animals={activeHerd}
+              permissions={auth.currentSession()?.permissions}
             />
           ) : null}
 

@@ -373,6 +373,8 @@ export function LotEventsScreen({
               <NumberField
                 testID="disposal-count-input"
                 label="Cabezas"
+                unit="cabezas"
+                hint="Cantidad de animales dados de baja"
                 value={disposalCount}
                 onChangeText={setDisposalCount}
               />
@@ -407,10 +409,12 @@ export function LotEventsScreen({
           ) : (
             <>
               <Body muted>{medication.name}</Body>
-              <TextField testID="lot-dose-input" label="Dosis" value={dose} onChangeText={setDose} />
+              <TextField testID="lot-dose-input" label="Dosis" hint="Ej. 2ml, 5cc" value={dose} onChangeText={setDose} />
               <NumberField
                 testID="lot-headcount-input"
                 label="Cabezas tratadas"
+                unit="cabezas"
+                hint="Total de animales tratados"
                 value={headCount}
                 onChangeText={setHeadCount}
               />
@@ -433,16 +437,19 @@ export function LotEventsScreen({
             <NumberField
               testID="diagnosis-count-input"
               label="Cabezas afectadas"
+              unit="cabezas"
+              hint="Número de animales observados con la condición"
               value={affectedCount}
               onChangeText={setAffectedCount}
             />
             <TextField
               testID="diagnosis-condition-input"
               label="Condición observada"
+              hint="Ej. Cojera, mastitis, decaimiento"
               value={condition}
               onChangeText={setCondition}
             />
-            <TextField testID="diagnosis-notes-input" label="Notas (opcional)" value={notes} onChangeText={setNotes} />
+            <TextField testID="diagnosis-notes-input" label="Notas (opcional)" optional value={notes} onChangeText={setNotes} />
             <BigButton
               testID="confirm-diagnosis"
               label="Registrar diagnóstico"
@@ -476,12 +483,14 @@ export function LotEventsScreen({
               <NumberField
                 testID="feed-quantity-input"
                 label="Cantidad"
+                unit={feedUnit.trim() || feedItem.unit || 'unidad'}
                 value={feedQuantity}
                 onChangeText={setFeedQuantity}
               />
               <TextField
                 testID="feed-unit-input"
                 label={`Unidad (opcional, ej. saco40kg; vacío = ${feedItem.unit})`}
+                optional
                 value={feedUnit}
                 onChangeText={setFeedUnit}
               />

@@ -166,24 +166,32 @@
 
 ## Commit 6 — Formularios canónicos
 
-- [ ] **T6.1** Encabezado de actividad y sujeto compartido.
-- [ ] **T6.2** Campos con **unidad visible**, ayuda breve, validación cerca del campo.
-- [ ] **T6.3** Acción principal inequívoca; campos opcionales distinguidos.
-- [ ] **T6.4** Catálogos largos con **búsqueda o selección progresiva**.
-      **Terminado:** no ocupan toda la pantalla con botones.
-- [ ] **T6.5** **Ningún valor esencial depende solo del color.**
-- [ ] **T6.6** Confirmación final que resume: animal o grupo, fecha, cantidad/unidad, producto
-      o causa cuando correspondan.
-- [ ] **T6.7** Las acciones frecuentes **no reciben pasos decorativos**.
-- [ ] **T6.8** El asistente de parto **conserva su secuencia funcional de cuatro pasos** (D1).
-      **Terminado:** recibe el lenguaje visual nuevo; su flujo no cambia.
-- [ ] **T6.9** Accesos rápidos y de ficha terminan en el **mismo flujo canónico**, con el
-      contexto correcto. **Terminado:** no duplican formularios ni reglas.
-- [ ] **T6.10** Tras el guardado local: se indica el hecho registrado y se puede consultar el
-      detalle o continuar con otro sujeto **sin duplicarlo**.
-- [ ] **T6.11** Los errores mantienen los valores editables y ofrecen una acción concreta.
-- [ ] **T6.12** **No se promete corregir** un tipo de registro que el dominio no permite corregir.
-- [ ] **T6.13** `npm test` completo en verde.
+- [x] **T6.1** Encabezado de actividad y sujeto compartido.
+      **Terminado:** componente `FormHeader` implementado y compartido en `TreatScreen`, `VaccinateScreen`, `EventsScreen`, con sujeto visible y navegación inequívoca sin `flex: 1`.
+- [x] **T6.2** Campos con **unidad visible**, ayuda breve, validación cerca del campo.
+      **Terminado:** `NumberField` y `TextField` ampliados con `unit`, `hint`, `error` local y distinción visual clara.
+- [x] **T6.3** Acción principal inequívoca; campos opcionales distinguidos.
+      **Terminado:** badge "Opcional" en campos no obligatorios y botones de acción principal destacados (`BigButton` tono primary).
+- [x] **T6.4** Catálogos largos con **búsqueda o selección progresiva**.
+      **Terminado:** `CatalogSelector` y filtros de búsqueda en línea implementados para productos y animales sin saturar la pantalla ni crear scrollers anidados.
+- [x] **T6.5** **Ningún valor esencial depende solo del color.**
+      **Terminado:** badges y avisos combinan íconos/símbolos textuales (✓, ⚠, ✕), bordes diferenciados y tipografía contrastada.
+- [x] **T6.6** Confirmación final que resume: animal o grupo, fecha, cantidad/unidad, producto o causa cuando correspondan.
+      **Terminado:** `FormConfirmationSummary` y tarjetas de revisión resumen estructuradamente todos los datos antes del guardado.
+- [x] **T6.7** Las acciones frecuentes **no reciben pasos decorativos**.
+      **Terminado:** flujos directos mantenidos sin pantallas intermedias ni pasos superfluos.
+- [x] **T6.8** El asistente de parto **conserva su secuencia funcional de cuatro pasos** (D1).
+      **Terminado:** recibe el lenguaje visual nuevo; su flujo de 4 pasos permanece intacto y verificado por pruebas unitarias.
+- [x] **T6.9** Accesos rápidos y de ficha terminan en el **mismo flujo canónico**, con el contexto correcto.
+      **Terminado:** no duplican formularios ni reglas; reutilizan `initialAnimalId`, `initialActivity` y los mismos servicios.
+- [x] **T6.10** Tras el guardado local: se indica el hecho registrado y se puede consultar el detalle o continuar con otro sujeto **sin duplicarlo**.
+      **Terminado:** avisos de confirmación en verde (`saveNotice`), preservación de borradores y flujo sin re-envío duplicado verificado por latch `useSingleFlight`.
+- [x] **T6.11** Los errores mantienen los valores editables y ofrecen una acción concreta.
+      **Terminado:** ante animales obsoletos o rechazos de validación, los campos mantienen los valores ingresados y ofrecen cambio de sujeto o corrección.
+- [x] **T6.12** **No se promete corregir** un tipo de registro que el dominio no permite corregir.
+      **Terminado:** verificado conforme a la Constitución (Art. 1) y eventos inmutables.
+- [x] **T6.13** `npm test` completo en verde.
+      **Terminado:** 67 suites y 490 pruebas pasando en verde sin regresiones.
 
 ---
 

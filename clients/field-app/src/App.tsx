@@ -377,6 +377,9 @@ function AppShell() {
           {tab === 'home' ? (
             <ActivitiesHub
               pending={pending}
+              productionOn={productionOn}
+              permissions={auth.currentSession()?.permissions}
+              recentEntries={todayEntries.slice(0, 5)}
               onSelect={(route) => {
                 setTab(route as Tab);
                 if (route !== 'animal-subject' && route !== 'animals') {

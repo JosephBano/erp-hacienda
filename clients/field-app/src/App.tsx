@@ -219,6 +219,7 @@ function AppShell() {
         occurredAt: entry.occurredAt,
         status: entry.status as 'pending' | 'synced' | 'rejected' | 'cancelled',
         resultRef: entry.resultRef,
+        errorDetails: entry.errorDetails,
       })),
     );
   }, [database, outbox, visibility]);

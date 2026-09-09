@@ -207,4 +207,67 @@ describe('TodayScreen', () => {
 
     expect(await screen.findByTestId('today-row-op-1-reason')).toBeTruthy();
   });
+
+  it('T8.2: displays plain language error explanation for rejected entries without technical jargon', async () => {
+    const entries = [
+      {
+        clientOperationId: 'op-rej-1',
+        operationType: 'recordAnimalEvent',
+        occurredAt: '2026-08-06T05:00:00.000Z',
+        status: 'rejected' as const,
+        errorDetails: 'Error: Male animal is incompatible with milking yield operation table animal_events cursor 1234',
+      },
+    ];
+
+    await render(
+      <TodayScreen
+        entries={entries}
+        outbox={noopOutbox()}
+        events={noopEvents()}
+        onChanged={() => undefined}
+      />,
+    );
+
+    // Rejection notice is displayed
+    const rejectionNotice = await screen.findByTestId('today-row-op-rej-1-rejection');
+    expect(rejectionNotice).toBeTruthy();
+    // Sanitized without UUID/table/cursor technical jargon
+    expect(screen.getByText(/no es apto para esta actividad/i)).toBeTruthy();
+  });
+
+  it('T8.5: renders status badges distinguishing local pending, synced, and rejected entries', async () => {
+    const entries = [
+      {
+        clientOperationId: 'op-1',
+        operationType: 'recordMilking',
+        occurredAt: '2026-08-06T05:00:00.000Z',
+        status: 'pending' as const,
+      },
+      {
+        clientOperationId: 'op-2',
+        operationType: 'recordMilking',
+        occurredAt: '2026-08-06T06:00:00.000Z',
+        status: 'synced' as const,
+      },
+      {
+        clientOperationId: 'op-3',
+        operationType: 'recordMilking',
+        occurredAt: '2026-08-06T07:00:00.000Z',
+        status: 'rejected' as const,
+      },
+    ];
+
+    await render(
+      <TodayScreen
+        entries={entries}
+        outbox={noopOutbox()}
+        events={noopEvents()}
+        onChanged={() => undefined}
+      />,
+    );
+
+    expect(await screen.findByText('Guardado local')).toBeTruthy();
+    expect(screen.getByText('Al día')).toBeTruthy();
+    expect(screen.getByText('Rechazado')).toBeTruthy();
+  });
 });

@@ -214,6 +214,224 @@ describe('LotSubjectScreen', () => {
     expect(await screen.findByText('Modo: Individual')).toBeTruthy();
     expect(screen.getByTestId('lot-detail-tracking-mode')).toBeTruthy();
   });
+
+  it('displays tracking mode guide in the picker (T5.1, T5.2)', async () => {
+    const mixedLots = [
+      { groupId: 'lot-hc', label: 'Engorde lote A', trackingMode: 'Headcount' },
+      { groupId: 'lot-ind', label: 'Vacas Lecheras', trackingMode: 'Individual' },
+    ];
+
+    await render(
+      <LotSubjectScreen lots={mixedLots} onSelectLot={noop} onActivity={noop} onClearSelection={noop} />,
+    );
+    expect(await screen.findByText('MODOS DE SEGUIMIENTO')).toBeTruthy();
+    expect(screen.getByText(/seguimiento colectivo de cabezas/i)).toBeTruthy();
+    expect(screen.getByText(/cada animal dispone de arete e historial propio/i)).toBeTruthy();
+  });
+
+  it('displays headcount mode explanation in detail view (T5.1, T5.2)', async () => {
+    const mixedLots = [
+      { groupId: 'lot-hc', label: 'Engorde lote A', trackingMode: 'Headcount' },
+    ];
+
+    await render(
+      <LotSubjectScreen
+        lots={mixedLots}
+        selectedGroupId="lot-hc"
+        onSelectLot={noop}
+        onActivity={noop}
+        onClearSelection={noop}
+      />,
+    );
+    expect(await screen.findByText(/Lote por conteo: el inventario y las actividades se gestionan por número de cabezas/i)).toBeTruthy();
+  });
+
+  it('displays individual mode explanation in detail view (T5.1, T5.2)', async () => {
+    const mixedLots = [
+      { groupId: 'lot-ind', label: 'Vacas Lecheras', trackingMode: 'Individual' },
+    ];
+
+    await render(
+      <LotSubjectScreen
+        lots={mixedLots}
+        selectedGroupId="lot-ind"
+        onSelectLot={noop}
+        onActivity={noop}
+        onClearSelection={noop}
+      />,
+    );
+    expect(await screen.findByText(/Grupo con identificación individual: cada animal conserva su arete/i)).toBeTruthy();
+  });
+
+  it('displays calculable event dates and update limitation declaration in summary card (T5.3)', async () => {
+    const summaryWithDates: AnimalGroupSummary = {
+      groupId: 'lot-1',
+      liveHeadCount: 25,
+      headsAffectedByDiagnosis: 2,
+      lastDisposalAt: '2026-08-09T14:30:00Z',
+      lastVaccinationAt: '2026-08-01T09:00:00Z',
+      lastTreatmentAt: '2026-08-05T16:00:00Z',
+    };
+    const api: AnimalGroupsApi = {
+      getSummary: jest.fn().mockResolvedValue(summaryWithDates),
+    };
+
+    await render(
+      <LotSubjectScreen
+        lots={lots}
+        selectedGroupId="lot-1"
+        onSelectLot={noop}
+        onActivity={noop}
+        onClearSelection={noop}
+        animalGroupsApi={api}
+      />,
+    );
+
+    expect(await screen.findByTestId('lot-summary-card')).toBeTruthy();
+    expect(screen.getByText('25 cabeza(s) viva(s)')).toBeTruthy();
+    expect(screen.getByText('2 cabeza(s) con diagnóstico abierto')).toBeTruthy();
+    expect(screen.getByText('Última baja: 2026-08-09')).toBeTruthy();
+    expect(screen.getByText('Última vacunación: 2026-08-01')).toBeTruthy();
+    expect(screen.getByText('Último tratamiento: 2026-08-05')).toBeTruthy();
+    expect(
+      screen.getByText(/Ficha calculada en el servidor\. Los registros locales pendientes se reflejarán tras sincronizar\./i),
+    ).toBeTruthy();
+  });
+
+  it('does NOT fabricate average weights, inventory stocks, dosages or unbacked indicators (T5.5)', async () => {
+    const summary: AnimalGroupSummary = {
+      groupId: 'lot-1',
+      liveHeadCount: 30,
+      headsAffectedByDiagnosis: 0,
+    };
+    const api: AnimalGroupsApi = {
+      getSummary: jest.fn().mockResolvedValue(summary),
+    };
+
+    await render(
+      <LotSubjectScreen
+        lots={lots}
+        selectedGroupId="lot-1"
+        onSelectLot={noop}
+        onActivity={noop}
+        onClearSelection={noop}
+        animalGroupsApi={api}
+      />,
+    );
+
+    await screen.findByTestId('lot-summary-card');
+
+    // T5.5: Verified field-by-field. No fabricated metrics.
+    expect(screen.queryByText(/peso promedio/i)).toBeNull();
+    expect(screen.queryByText(/existencia/i)).toBeNull();
+    expect(screen.queryByText(/dosis recomendada/i)).toBeNull();
+    expect(screen.queryByText(/ganancia diaria/i)).toBeNull();
+    expect(screen.queryByText(/consumo estimado/i)).toBeNull();
+  });
+
+  it('never displays individual identity or ear tags for a Headcount lot, even if animals are provided (T5.6)', async () => {
+    const headcountLots = [
+      { groupId: 'lot-hc', label: 'Engorde Lote A', trackingMode: 'Headcount' },
+    ];
+    const animals = [
+      {
+        animalId: 'anim-1',
+        label: 'Vaca 101',
+        tag: '101',
+        groupName: 'Engorde Lote A',
+      },
+      {
+        animalId: 'anim-2',
+        label: 'Vaca 102',
+        tag: '102',
+        groupName: 'Engorde Lote A',
+      },
+    ];
+
+    await render(
+      <LotSubjectScreen
+        lots={headcountLots}
+        selectedGroupId="lot-hc"
+        onSelectLot={noop}
+        onActivity={noop}
+        onClearSelection={noop}
+        animals={animals}
+      />,
+    );
+
+    // T5.6: A headcount group only tracks head counts; it MUST NOT show members card or individual tags
+    expect(screen.queryByTestId('lot-members-card')).toBeNull();
+    expect(screen.queryByText('Vaca 101')).toBeNull();
+    expect(screen.queryByText('101')).toBeNull();
+    expect(screen.queryByText('Vaca 102')).toBeNull();
+    expect(screen.queryByText(/Miembros conocidos/i)).toBeNull();
+    expect(screen.queryByText(/Animales identificados/i)).toBeNull();
+  });
+
+  it('displays known members with ear tags when an Individual lot is selected (spec 3.1)', async () => {
+    const individualLots = [
+      { groupId: 'lot-ind', label: 'Vacas Lecheras', trackingMode: 'Individual' },
+    ];
+    const animals = [
+      {
+        animalId: 'anim-10',
+        label: '0042',
+        tag: '0042',
+        name: 'Mariposa',
+        groupName: 'Vacas Lecheras',
+      },
+      {
+        animalId: 'anim-11',
+        label: '0043',
+        tag: '0043',
+        groupName: 'Vacas Lecheras',
+      },
+      {
+        animalId: 'anim-12',
+        label: '0099',
+        tag: '0099',
+        groupName: 'Otro Grupo',
+      },
+    ];
+
+    await render(
+      <LotSubjectScreen
+        lots={individualLots}
+        selectedGroupId="lot-ind"
+        onSelectLot={noop}
+        onActivity={noop}
+        onClearSelection={noop}
+        animals={animals}
+      />,
+    );
+
+    expect(await screen.findByTestId('lot-members-card')).toBeTruthy();
+    expect(screen.getByText('Animales identificados (2)')).toBeTruthy();
+    expect(screen.getByTestId('lot-member-anim-10')).toBeTruthy();
+    expect(screen.getByText('Mariposa (0042)')).toBeTruthy();
+    expect(screen.getByTestId('lot-member-anim-11')).toBeTruthy();
+    expect(screen.getAllByText('0043').length).toBeGreaterThanOrEqual(1);
+    // anim-12 belongs to another group, must not appear
+    expect(screen.queryByTestId('lot-member-anim-12')).toBeNull();
+  });
+
+  it('disables activity buttons and displays warning when user lacks livestock.animals.write permission (0008)', async () => {
+    await render(
+      <LotSubjectScreen
+        lots={lots}
+        selectedGroupId="lot-1"
+        onSelectLot={noop}
+        onActivity={noop}
+        onClearSelection={noop}
+        permissions={['reports.view']}
+      />,
+    );
+
+    expect(
+      await screen.findByText('No tiene permisos para registrar actividades sobre este lote.'),
+    ).toBeTruthy();
+    expect(screen.getByTestId('lot-activity-feed').props.accessibilityState.disabled).toBe(true);
+  });
 });
 
 /**

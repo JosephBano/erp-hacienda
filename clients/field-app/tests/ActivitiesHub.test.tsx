@@ -93,4 +93,76 @@ describe('ActivitiesHub', () => {
 
     expect(await screen.findByText(/3 registro\(s\) sin enviar/)).toBeTruthy();
   });
+
+  it('T7.1: indicates when local data is fully up to date with the server', async () => {
+    await render(<ActivitiesHub pending={0} onSelect={noop} />);
+
+    expect(await screen.findByText(/Sincronizado con el servidor/i)).toBeTruthy();
+  });
+
+  it('T7.2: provides prominent access to tag search', async () => {
+    const onSelect = jest.fn();
+    await render(<ActivitiesHub pending={0} onSelect={onSelect} />);
+
+    const searchBtn = await screen.findByTestId('home-search-tag');
+    expect(searchBtn).toBeTruthy();
+    fireEvent.press(searchBtn);
+    expect(onSelect).toHaveBeenCalledWith('animal-subject');
+  });
+
+  it('T7.3: renders recent records recorded on this phone when present', async () => {
+    const recent = [
+      {
+        clientOperationId: 'op-1',
+        operationType: 'recordTreatment',
+        occurredAt: '2026-09-08T10:00:00Z',
+        status: 'synced' as const,
+      },
+      {
+        clientOperationId: 'op-2',
+        operationType: 'recordWeight',
+        occurredAt: '2026-09-08T10:15:00Z',
+        status: 'pending' as const,
+      },
+    ];
+    await render(<ActivitiesHub pending={1} onSelect={noop} recentEntries={recent} />);
+
+    expect(await screen.findByTestId('home-recent-entries')).toBeTruthy();
+    expect(screen.getByText(/Tratamiento/)).toBeTruthy();
+    expect(screen.getByText(/Pesaje/)).toBeTruthy();
+  });
+
+  it('T7.6: hides disabled production modules and shows them only when active', async () => {
+    const { rerender } = await render(
+      <ActivitiesHub pending={0} onSelect={noop} productionOn={false} />,
+    );
+
+    // Milking is hidden when production module is off
+    expect(screen.queryByTestId('subject-milking')).toBeNull();
+
+    await rerender(
+      <ActivitiesHub pending={0} onSelect={noop} productionOn={true} />,
+    );
+
+    // Milking is available when production is active
+    expect(await screen.findByTestId('subject-milking')).toBeTruthy();
+  });
+
+  it('T7.6: respects permission gating for direct actions', async () => {
+    // Only milking permission, livestock write missing
+    await render(
+      <ActivitiesHub
+        pending={0}
+        onSelect={noop}
+        productionOn={true}
+        permissions={['production.milk.write']}
+      />,
+    );
+
+    expect(screen.queryByTestId('subject-vaccinate')).toBeNull();
+    expect(screen.queryByTestId('subject-treat')).toBeNull();
+    expect(screen.queryByTestId('subject-edit')).toBeNull();
+    expect(screen.getByTestId('subject-milking')).toBeTruthy();
+    expect(screen.getByTestId('subject-sync')).toBeTruthy();
+  });
 });

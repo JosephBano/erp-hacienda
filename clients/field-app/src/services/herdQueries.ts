@@ -37,6 +37,12 @@ export interface AnimalForSubject {
   matchedHistoricalTag?: string;
   name?: string;
   hasPendingTag?: boolean;
+  disposedAt?: string;
+  isWithheld?: boolean;
+  withheldUntil?: string;
+  isPregnant?: boolean;
+  expectedBirthDate?: string;
+  speciesIsMilkable?: boolean;
 }
 
 export interface AnimalSearchResults<T> {

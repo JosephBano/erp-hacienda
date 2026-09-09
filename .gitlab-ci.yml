@@ -15,6 +15,27 @@ default:
   tags:
     - k3s
 
+# Construye las dos imágenes desplegables para comprobar sus Dockerfiles. No
+# publica nada: el push a un registro requiere una decisión posterior sobre
+# credenciales, nombres y versionado.
+build:image:
+  stage: build
+  image: docker:27.5-cli
+  services:
+    - name: docker:27.5-dind
+      alias: docker
+  variables:
+    DOCKER_HOST: tcp://docker:2375
+    DOCKER_TLS_CERTDIR: ""
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - if: $CI_COMMIT_TAG
+  script:
+    - docker info
+    - docker build --tag "hato-api:$CI_COMMIT_SHA" --file src/Hato.Api/Dockerfile .
+    - docker build --tag "hato-admin-web:$CI_COMMIT_SHA" --file clients/admin-web/Dockerfile clients/admin-web
+
 # Compila y prueba toda la solución contra un PostgreSQL real. Cada fixture
 # crea su propia base en este servidor mediante Hato.TestSupport.TestDatabase.
 test:backend:
@@ -27,6 +48,10 @@ test:backend:
     POSTGRES_HOST_AUTH_METHOD: trust
     POSTGRES_DB: postgres
     HATO_TEST_POSTGRES: "Host=postgres;Port=5432;Database=postgres;Username=postgres"
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - if: $CI_COMMIT_TAG
   script:
     - dotnet restore
     - dotnet format --verify-no-changes
@@ -43,6 +68,10 @@ test:backend:
 test:field-app:
   stage: test
   image: node:20-alpine
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - if: $CI_COMMIT_TAG
   script:
     - cd clients/field-app
     - npm ci --legacy-peer-deps
@@ -54,6 +83,10 @@ test:field-app:
 test:admin-web:
   stage: test
   image: node:20-alpine
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - if: $CI_COMMIT_TAG
   script:
     - cd clients/admin-web
     - npm ci

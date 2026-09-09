@@ -3,6 +3,7 @@ import { ScrollView, StyleSheet, TextInput, View } from 'react-native';
 
 import { theme } from '../ui/theme';
 import { BigButton, Body, Card, EmptyState, Notice, Screen, Title } from '../ui/components';
+import { formatOperationError, RecordStatusBadge } from '../ui/recordStates';
 import type { Outbox } from '../services/outbox';
 import type { EventService } from '../services/eventService';
 
@@ -14,6 +15,7 @@ export interface TodayEntry {
   occurredAt: string;
   status: TodayEntryStatus;
   resultRef?: string;
+  errorDetails?: string;
 }
 
 interface TodayScreenProps {
@@ -212,12 +214,33 @@ export function TodayScreen({ entries, outbox, events, onChanged }: TodayScreenP
 
           return (
             <Card key={entry.clientOperationId} testID={`today-row-${entry.clientOperationId}`}>
-              <Body testID={`today-row-${entry.clientOperationId}-label`}>
-                {TYPE_LABELS[entry.operationType] ?? entry.operationType}
-              </Body>
+              <View style={styles.rowHeader}>
+                <Body testID={`today-row-${entry.clientOperationId}-label`}>
+                  {TYPE_LABELS[entry.operationType] ?? entry.operationType}
+                </Body>
+                <RecordStatusBadge
+                  status={
+                    entry.status === 'pending'
+                      ? 'local_pending'
+                      : entry.status === 'synced'
+                        ? 'synced'
+                        : entry.status === 'rejected'
+                          ? 'rejected'
+                          : 'cancelled'
+                  }
+                />
+              </View>
               <Body testID={`today-row-${entry.clientOperationId}-status-${entry.status}`} muted>
                 {new Date(entry.occurredAt).toLocaleString()} — {STATUS_LABELS[entry.status]}
               </Body>
+
+              {entry.status === 'rejected' && entry.errorDetails ? (
+                <Notice
+                  tone="danger"
+                  testID={`today-row-${entry.clientOperationId}-rejection`}
+                  text={formatOperationError(entry.errorDetails)}
+                />
+              ) : null}
 
               {canCancel ? (
                 <BigButton
@@ -296,6 +319,12 @@ const styles = StyleSheet.create({
   list: {
     gap: theme.space.sm,
     paddingBottom: theme.space.md,
+  },
+  rowHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: theme.space.xs,
   },
   input: {
     borderColor: theme.color.border,

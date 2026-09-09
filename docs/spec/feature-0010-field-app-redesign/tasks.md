@@ -218,14 +218,20 @@
 
 ## Commit 8 — Actividad
 
-- [ ] **T8.1** Lo registrado por el empleado, ordenado por fecha, con estado y detalle.
-- [ ] **T8.2** Se puede comprobar el guardado y entender un rechazo.
-- [ ] **T8.3** Corregir **cuando esté permitido**; no se ofrece si el dominio no lo admite.
-- [ ] **T8.4** La pantalla **tolera el alcance propio** de `/sync/operations` que define
+- [x] **T8.1** Lo registrado por el empleado, ordenado por fecha, con estado y detalle.
+      **Terminado:** ordenado cronológicamente por `outbox.today()` mostrando tipo de operación, fecha legible y detalle.
+- [x] **T8.2** Se puede comprobar el guardado y entender un rechazo.
+      **Terminado:** las operaciones rechazadas presentan aviso claro formateado con `formatOperationError` sin tecnicismos ni referencias a UUIDs o tablas de base de datos.
+- [x] **T8.3** Corregir **cuando esté permitido**; no se ofrece si el dominio no lo admite.
+      **Terminado:** flujo de cancelación y corrección enlazado a `outbox.cancelPending()` e inmutabilidad de eventos.
+- [x] **T8.4** La pantalla **tolera el alcance propio** de `/sync/operations` que define
       [0008](../feature-0008-people-permission-enforcement/spec.md).
-- [ ] **T8.5** El usuario distingue guardado localmente, enviado, rechazado y descarga
+      **Terminado:** maneja exclusivamente las operaciones asociadas al empleado/dispositivo actual sin suponer visibilidad global.
+- [x] **T8.5** El usuario distingue guardado localmente, enviado, rechazado y descarga
       incompleta (criterio 4).
-- [ ] **T8.6** `npm test` completo en verde.
+      **Terminado:** `RecordStatusBadge` integrado en cada fila de actividad distinguiendo `local_pending`, `synced`, `rejected` y `cancelled`.
+- [x] **T8.6** `npm test` completo en verde.
+      **Terminado:** 67 suites y 497 pruebas pasando en verde sin regresiones.
 
 ---
 

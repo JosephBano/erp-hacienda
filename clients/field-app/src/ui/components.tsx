@@ -291,13 +291,21 @@ export function Card({
  * A message the employee must be able to act on. Errors are never swallowed into a
  * console log: the person in the paddock is the only one who can fix most of them.
  */
-export function Notice({ text, tone = 'danger' }: { text: string; tone?: 'danger' | 'warning' }) {
+export function Notice({
+  text,
+  tone = 'danger',
+  testID,
+}: {
+  text: string;
+  tone?: 'danger' | 'warning';
+  testID?: string;
+}) {
   const { theme: activeTheme } = useTheme();
   const background = tone === 'danger' ? activeTheme.color.danger : activeTheme.color.warning;
   const color = tone === 'danger' ? activeTheme.color.dangerText : activeTheme.color.warningText;
 
   return (
-    <View accessibilityRole="alert" style={[styles.notice, { backgroundColor: background }]}>
+    <View testID={testID} accessibilityRole="alert" style={[styles.notice, { backgroundColor: background }]}>
       <Text style={[styles.noticeText, { color, fontSize: activeTheme.font.label }]}>{text}</Text>
     </View>
   );

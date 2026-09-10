@@ -41,15 +41,61 @@ default:
 # aquí: solo existían para imponerles 'resource_group', que era un parche
 # contra la cuota del runner de k3s. El runner local admite cuatro a la vez.
 
-# Construye las dos imágenes desplegables para comprobar sus Dockerfiles.
+# Comprueba, antes de gastar minutos construyendo, que la vía a Harbor está
+# abierta: que la integración entrega sus variables, que el certificado fijado
+# valida el TLS y que el robot tiene permiso de escritura sobre el proyecto.
+#
+# Es deliberadamente barato (alpine + curl, sin construir imagen) para poder
+# correrlo en cada merge request: si alguien desactiva la integración o rota la
+# credencial del robot, se ve aquí y no al mergear a main.
+harbor:credenciales:
+  stage: validar
+  image: alpine:3.20
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - if: $CI_COMMIT_TAG
+  script:
+    - apk add --no-cache curl >/dev/null
+    - |
+      for v in HARBOR_HOST HARBOR_PROJECT HARBOR_USERNAME HARBOR_PASSWORD; do
+        eval "val=\$$v"
+        if [ -z "$val" ]; then echo "$v: AUSENTE"; falta=1; else echo "$v: definida"; fi
+      done
+      [ -z "$falta" ] || { echo "Revisa Settings > Integrations > Harbor."; exit 1; }
+    # El /v2/ del registro responde 200 solo si el token del robot sirve. Se
+    # valida el TLS contra el certificado fijado: si eso falla, kaniko fallaría
+    # igual al publicar, y es mejor enterarse aquí.
+    - |
+      codigo=$(curl -s -o /dev/null -w '%{http_code}' --cacert "$HARBOR_CA" \
+        -u "$HARBOR_USERNAME:$HARBOR_PASSWORD" "https://$HARBOR_HOST/v2/")
+      echo "GET /v2/ -> $codigo"
+      [ "$codigo" = "200" ] || { echo "El robot no autentica contra Harbor."; exit 1; }
+    # Un push necesita 'push' sobre el proyecto, no solo poder entrar. El scope
+    # de escritura se comprueba pidiendo un upload y cancelandolo acto seguido.
+    - |
+      subida=$(curl -s -o /dev/null -w '%{http_code}' -X POST --cacert "$HARBOR_CA" \
+        -u "$HARBOR_USERNAME:$HARBOR_PASSWORD" \
+        "https://$HARBOR_HOST/v2/$HARBOR_PROJECT/hato-api/blobs/uploads/")
+      echo "POST blobs/uploads/ -> $subida"
+      case "$subida" in
+        202) echo "El robot puede publicar en $HARBOR_PROJECT." ;;
+        *)   echo "Sin permiso de push (esperado 202)."; exit 1 ;;
+      esac
+
+# Publicación de las dos imágenes desplegables en Harbor.
+#
+# El patrón (config.json de kaniko armado a mano, doble --destination sha +
+# móvil) es el de jorge.doicela/plantilla-dotnet-clean, para no inventar una
+# convención propia. Con una corrección: aquella usa $HARBOR_USER, que no
+# existe. La integración Harbor de GitLab publica $HARBOR_USERNAME, $HARBOR_HOST,
+# $HARBOR_PROJECT y $HARBOR_PASSWORD, y de ahí salen las credenciales sin que
+# haya que guardar ninguna a mano. (Aquel job lleva allow_failure: true, así
+# que su push fallido no se nota.)
 #
 # Con Kaniko y no con docker:dind: dind necesita un contenedor privilegiado, y
 # el runner local corre sin privilegios a propósito. Kaniko construye en
 # espacio de usuario y es lo que usa la plantilla oficial de istpet/plantillas.
-#
-# `--no-push` mantiene el contrato que ya tenía este job: solo valida que el
-# Dockerfile construya. Publicar en Harbor exige decidir credenciales, nombres
-# y versionado, y eso es una conversación aparte.
 #
 # Son dos jobs y no dos invocaciones seguidas en uno solo porque Kaniko extrae
 # las capas de la imagen base sobre su propio sistema de archivos: encadenar
@@ -59,27 +105,62 @@ default:
   image:
     name: gcr.io/kaniko-project/executor:debug
     entrypoint: [""]
-  # No se construye imagen en cada merge request: solo en la rama por defecto y
-  # en los tags, que es lo que de verdad se publica.
+  before_script:
+    # Sin credenciales el build entero es tiempo perdido: kaniko construiría las
+    # capas y solo fallaría al empujarlas. Mejor cortar aquí y decir qué falta.
+    - |
+      if [ -z "$HARBOR_USERNAME" ] || [ -z "$HARBOR_PASSWORD" ] || [ -z "$HARBOR_HOST" ]; then
+        echo "La integracion Harbor no esta entregando sus variables."
+        echo "Revisa Settings > Integrations > Harbor (debe estar Active)."
+        echo "  HARBOR_HOST     : ${HARBOR_HOST:-AUSENTE}"
+        echo "  HARBOR_PROJECT  : ${HARBOR_PROJECT:-AUSENTE}"
+        echo "  HARBOR_USERNAME : ${HARBOR_USERNAME:+definida}${HARBOR_USERNAME:-AUSENTE}"
+        echo "  HARBOR_PASSWORD : ${HARBOR_PASSWORD:+definida}${HARBOR_PASSWORD:-AUSENTE}"
+        exit 1
+      fi
+    - mkdir -p /kaniko/.docker /kaniko/ssl/certs
+    # El certificado de Harbor lo firma 'ISTPET Internal CA', que no está en el
+    # almacén de la imagen. Se ancla el propio certificado del servidor, que
+    # viaja en la variable de archivo HARBOR_CA. Kaniko es Go, y Go acepta como
+    # raíz una hoja presente en el pool: comprobado contra harbor antes de
+    # escribir esto. La plantilla de istpet resuelve lo mismo con
+    # --skip-tls-verify; esto valida a quién le entregamos la imagen.
+    - cp "$HARBOR_CA" /kaniko/ssl/certs/additional-ca-cert-bundle.crt
+    # printf y no echo: el JSON lleva comillas y una contraseña que no debe
+    # pasar por expansiones extra.
+    - |
+      printf '{"auths":{"%s":{"username":"%s","password":"%s"}}}' \
+        "$HARBOR_HOST" "$HARBOR_USERNAME" "$HARBOR_PASSWORD" > /kaniko/.docker/config.json
+  # No se publica desde un merge request: solo la rama por defecto y los tags,
+  # que es lo que de verdad se despliega.
   rules:
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
     - if: $CI_COMMIT_TAG
 
+# Cada imagen sale con dos etiquetas: el sha corto, que identifica sin ambigüedad
+# el commit que la produjo, y una etiqueta móvil — el nombre del tag de Git si
+# el pipeline viene de uno, y 'latest' si viene de la rama por defecto.
 build:image:api:
   extends: .kaniko
+  variables:
+    IMAGEN: "$HARBOR_HOST/$HARBOR_PROJECT/hato-api"
   script:
     - /kaniko/executor
       --context "$CI_PROJECT_DIR"
       --dockerfile "$CI_PROJECT_DIR/src/Hato.Api/Dockerfile"
-      --no-push
+      --destination "$IMAGEN:$CI_COMMIT_SHORT_SHA"
+      --destination "$IMAGEN:${CI_COMMIT_TAG:-latest}"
 
 build:image:admin-web:
   extends: .kaniko
+  variables:
+    IMAGEN: "$HARBOR_HOST/$HARBOR_PROJECT/hato-admin-web"
   script:
     - /kaniko/executor
       --context "$CI_PROJECT_DIR/clients/admin-web"
       --dockerfile "$CI_PROJECT_DIR/clients/admin-web/Dockerfile"
-      --no-push
+      --destination "$IMAGEN:$CI_COMMIT_SHORT_SHA"
+      --destination "$IMAGEN:${CI_COMMIT_TAG:-latest}"
 
 # Compila y prueba toda la solución contra un PostgreSQL real. Cada fixture
 # crea su propia base en este servidor mediante Hato.TestSupport.TestDatabase.

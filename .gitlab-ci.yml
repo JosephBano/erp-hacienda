@@ -88,6 +88,46 @@ harbor:credenciales:
         *)   echo "Sin permiso de push (esperado 202)."; exit 1 ;;
       esac
 
+# Copia las imágenes base de .NET al registro interno. Se ejecuta A MANO y una
+# sola vez (o cuando se cambie de versión de .NET), no en cada pipeline.
+#
+# Por qué existe: mcr.microsoft.com sirve a esta red a unos 50 KB/s — medido
+# contra registry.npmjs.org, que da 3,9 MB/s por el mismo enlace, así que no es
+# el enlace: es Microsoft. La capa grande del SDK son 178 MB, de modo que un
+# build normal se plantaba antes de la primera instrucción y agotaba el timeout
+# de una hora. Desde Harbor, por LAN, las mismas capas tardan segundos.
+#
+# Es el mismo camino que ya siguen istpet/nginx-ligero y
+# istpet/gitlab-runner-helper en ese registro.
+espejo:bases-dotnet:
+  stage: validar
+  image: alpine:3.20
+  # La descarga lenta es el motivo del job; una hora no alcanza.
+  timeout: 3h
+  variables:
+    GIT_STRATEGY: none
+  rules:
+    - when: manual
+  allow_failure: true
+  script:
+    - apk add --no-cache skopeo ca-certificates
+    # Harbor usa un certificado de la CA interna. Se añade al almacén del
+    # sistema para que skopeo lo acepte sin desactivar la verificación.
+    - cp "$HARBOR_CA" /usr/local/share/ca-certificates/harbor-istpet.crt
+    - update-ca-certificates
+    - |
+      set -e
+      copiar() {
+        echo "== mcr.microsoft.com/$1  ->  $HARBOR_HOST/$HARBOR_PROJECT/$2"
+        skopeo copy --retry-times 5 \
+          --dest-creds "$HARBOR_USERNAME:$HARBOR_PASSWORD" \
+          "docker://mcr.microsoft.com/$1" \
+          "docker://$HARBOR_HOST/$HARBOR_PROJECT/$2"
+      }
+      copiar dotnet/sdk:8.0    dotnet-sdk:8.0
+      copiar dotnet/aspnet:8.0 dotnet-aspnet:8.0
+      echo "Listo. build:image:api ya puede tirar de Harbor."
+
 # Publicación de las dos imágenes desplegables en Harbor.
 #
 # El patrón (config.json de kaniko armado a mano, doble --destination sha +
@@ -166,6 +206,10 @@ harbor:credenciales:
 # El nombre se arma en el shell y no en 'variables:' para no depender de que
 # GitLab sepa expandir variables que vienen de la integración Harbor dentro de
 # otra variable del YAML.
+# Las bases salen del espejo interno, no de mcr.microsoft.com: ver
+# espejo:bases-dotnet. Si ese job no se ha corrido nunca, este falla al
+# resolver la imagen base, y eso es lo que se quiere — mejor un error claro
+# que una hora de descarga a 50 KB/s.
 build:image:api:
   extends: .kaniko
   variables:
@@ -177,6 +221,8 @@ build:image:api:
       /kaniko/executor \
         --context "$CI_PROJECT_DIR" \
         --dockerfile "$CI_PROJECT_DIR/src/Hato.Api/Dockerfile" \
+        --build-arg "IMAGEN_SDK=$HARBOR_HOST/$HARBOR_PROJECT/dotnet-sdk:8.0" \
+        --build-arg "IMAGEN_RUNTIME=$HARBOR_HOST/$HARBOR_PROJECT/dotnet-aspnet:8.0" \
         --destination "$IMAGEN:$CI_COMMIT_SHORT_SHA" \
         --destination "$IMAGEN:$ETIQUETA_MOVIL"
 

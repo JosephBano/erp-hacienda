@@ -3,7 +3,14 @@
 # Build context is the repository root (compose sets `context: .`).
 # This file lives at src/Hato.Api/Dockerfile.
 
-FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+# Base images are parameterised so CI can pull them from the internal registry.
+# mcr.microsoft.com serves this network at about 50 KB/s, which puts a build
+# well past an hour; the same layers come off Harbor over the LAN in seconds.
+# The defaults keep `docker compose build` working unchanged off the network.
+ARG IMAGEN_SDK=mcr.microsoft.com/dotnet/sdk:8.0
+ARG IMAGEN_RUNTIME=mcr.microsoft.com/dotnet/aspnet:8.0
+
+FROM ${IMAGEN_SDK} AS build
 WORKDIR /src
 
 COPY . .
@@ -15,7 +22,7 @@ RUN dotnet publish src/Hato.Api/Hato.Api.csproj \
     --no-self-contained \
     /p:UseAppHost=false
 
-FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS runtime
+FROM ${IMAGEN_RUNTIME} AS runtime
 WORKDIR /app
 
 RUN groupadd --system --gid 1001 hato \

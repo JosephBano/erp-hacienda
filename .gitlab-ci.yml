@@ -13,10 +13,15 @@ include:
 # etapas, pero repetirlas aquí deja el orden a la vista: si algún día el
 # include cambiara, los jobs de este archivo seguirían apuntando a etapas
 # que existen en lugar de romper la creación del pipeline.
+#
+# 'test' va ANTES que 'build', al revés que en el include. Desde que las
+# imágenes se publican en Harbor el orden dejó de ser indiferente: construir
+# primero significaba subir ':latest' y solo después descubrir que los tests
+# fallaban. Ahora una imagen solo llega al registro si todo lo anterior pasó.
 stages:
   - validar
-  - build
   - test
+  - build
   - deploy
 
 # Runner propio (id 9, 'PC de Joseph'), de tipo proyecto y bloqueado a este
@@ -131,36 +136,63 @@ harbor:credenciales:
     - |
       printf '{"auths":{"%s":{"username":"%s","password":"%s"}}}' \
         "$HARBOR_HOST" "$HARBOR_USERNAME" "$HARBOR_PASSWORD" > /kaniko/.docker/config.json
-  # No se publica desde un merge request: solo la rama por defecto y los tags,
-  # que es lo que de verdad se despliega.
+    # Etiqueta móvil según el origen del pipeline. Fuera de la rama por defecto
+    # nunca es 'latest': una imagen salida de un merge request no puede quedarse
+    # con el nombre que otros despliegan.
+    - |
+      if [ -n "$CI_COMMIT_TAG" ]; then
+        ETIQUETA_MOVIL="$CI_COMMIT_TAG"
+      elif [ "$CI_COMMIT_BRANCH" = "$CI_DEFAULT_BRANCH" ]; then
+        ETIQUETA_MOVIL="latest"
+      else
+        ETIQUETA_MOVIL="mr-$CI_MERGE_REQUEST_IID"
+      fi
+      export ETIQUETA_MOVIL
+  # Dos builds de imagen a la vez no caben: 'ng build' y 'dotnet publish' piden
+  # mucha memoria y el runner vive en una máquina de trabajo con otras cosas
+  # encima. Al lanzarlos en paralelo, el de admin-web murió con
+  # 'signal: terminated' a mitad de 'ng build'. Se turnan.
+  resource_group: imagenes
+  # Se publica desde merge request, rama por defecto y tags. Las tres producen
+  # imágenes con nombres distintos, así que no se pisan entre sí.
   rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
     - if: $CI_COMMIT_TAG
 
 # Cada imagen sale con dos etiquetas: el sha corto, que identifica sin ambigüedad
-# el commit que la produjo, y una etiqueta móvil — el nombre del tag de Git si
-# el pipeline viene de uno, y 'latest' si viene de la rama por defecto.
+# el commit que la produjo, y la etiqueta móvil calculada arriba.
+#
+# El nombre se arma en el shell y no en 'variables:' para no depender de que
+# GitLab sepa expandir variables que vienen de la integración Harbor dentro de
+# otra variable del YAML.
 build:image:api:
   extends: .kaniko
   variables:
-    IMAGEN: "$HARBOR_HOST/$HARBOR_PROJECT/hato-api"
+    NOMBRE_IMAGEN: hato-api
   script:
-    - /kaniko/executor
-      --context "$CI_PROJECT_DIR"
-      --dockerfile "$CI_PROJECT_DIR/src/Hato.Api/Dockerfile"
-      --destination "$IMAGEN:$CI_COMMIT_SHORT_SHA"
-      --destination "$IMAGEN:${CI_COMMIT_TAG:-latest}"
+    - |
+      IMAGEN="$HARBOR_HOST/$HARBOR_PROJECT/$NOMBRE_IMAGEN"
+      echo "Publicando $IMAGEN con las etiquetas $CI_COMMIT_SHORT_SHA y $ETIQUETA_MOVIL"
+      /kaniko/executor \
+        --context "$CI_PROJECT_DIR" \
+        --dockerfile "$CI_PROJECT_DIR/src/Hato.Api/Dockerfile" \
+        --destination "$IMAGEN:$CI_COMMIT_SHORT_SHA" \
+        --destination "$IMAGEN:$ETIQUETA_MOVIL"
 
 build:image:admin-web:
   extends: .kaniko
   variables:
-    IMAGEN: "$HARBOR_HOST/$HARBOR_PROJECT/hato-admin-web"
+    NOMBRE_IMAGEN: hato-admin-web
   script:
-    - /kaniko/executor
-      --context "$CI_PROJECT_DIR/clients/admin-web"
-      --dockerfile "$CI_PROJECT_DIR/clients/admin-web/Dockerfile"
-      --destination "$IMAGEN:$CI_COMMIT_SHORT_SHA"
-      --destination "$IMAGEN:${CI_COMMIT_TAG:-latest}"
+    - |
+      IMAGEN="$HARBOR_HOST/$HARBOR_PROJECT/$NOMBRE_IMAGEN"
+      echo "Publicando $IMAGEN con las etiquetas $CI_COMMIT_SHORT_SHA y $ETIQUETA_MOVIL"
+      /kaniko/executor \
+        --context "$CI_PROJECT_DIR/clients/admin-web" \
+        --dockerfile "$CI_PROJECT_DIR/clients/admin-web/Dockerfile" \
+        --destination "$IMAGEN:$CI_COMMIT_SHORT_SHA" \
+        --destination "$IMAGEN:$ETIQUETA_MOVIL"
 
 # Compila y prueba toda la solución contra un PostgreSQL real. Cada fixture
 # crea su propia base en este servidor mediante Hato.TestSupport.TestDatabase.

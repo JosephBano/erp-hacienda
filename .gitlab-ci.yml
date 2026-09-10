@@ -19,16 +19,15 @@ stages:
   - test
   - deploy
 
-# El runner institucional no acepta jobs sin etiqueta. Este valor también se
-# aplica a los jobs heredados mediante los includes anteriores.
+# Runner propio (id 9, 'PC de Joseph'), de tipo proyecto y bloqueado a este
+# repositorio. Se dejó de usar la etiqueta 'k3s' porque la comparten los dos
+# runners de instancia y no permitía elegir cuál tomaba cada job; uno de ellos
+# es Windows con ejecutor shell y habría reventado con nuestras imágenes Linux.
 default:
   tags:
-    - k3s
-  # El rechazo por cuota es transitorio: el pod del job anterior sigue contando
-  # durante unos segundos después de terminar, y el siguiente job se lanza tres
-  # segundos más tarde. Reintentar le da al namespace el tiempo que le faltaba.
-  #
-  # Solo se reintentan los fallos de infraestructura. Un test que falla o un
+    - hato-local
+  # Solo se reintentan los fallos de infraestructura (una imagen que no se pudo
+  # descargar, el daemon de Docker ocupado). Un test que falla o un
   # `dotnet format` que encuentra diferencias siguen fallando a la primera:
   # reintentar un fallo real solo esconde el problema y triplica la espera.
   retry:
@@ -38,88 +37,15 @@ default:
       - scheduler_failure
       - unknown_failure
 
-variables:
-  # El namespace 'gitlab-runner' tiene una ResourceQuota de 3 CPU / 3 Gi, y el
-  # pod que arma el runner por defecto pide 1500m/1536Mi — sin importar que el
-  # script sea un `grep` sobre alpine. Con el runner manager ocupando ~500m,
-  # un solo job de esos deja la cuota sin margen y el siguiente muere con
-  # 'exceeded quota: ... is forbidden' antes de ejecutar una sola línea.
-  # Es exactamente lo que pasó en los pipelines #41 y #42.
-  #
-  # OJO: el runner solo respeta estas variables si su configuración define los
-  # correspondientes '*_overwrite_max_allowed'. Si no los tiene, GitLab las
-  # ignora en silencio y no hay arreglo posible desde este archivo: hay que
-  # pedir al administrador que suba la cuota o habilite el overwrite.
-  KUBERNETES_CPU_REQUEST: "100m"
-  KUBERNETES_CPU_LIMIT: "500m"
-  KUBERNETES_MEMORY_REQUEST: "256Mi"
-  KUBERNETES_MEMORY_LIMIT: "512Mi"
-  KUBERNETES_HELPER_CPU_REQUEST: "50m"
-  KUBERNETES_HELPER_CPU_LIMIT: "200m"
-  KUBERNETES_HELPER_MEMORY_REQUEST: "64Mi"
-  KUBERNETES_HELPER_MEMORY_LIMIT: "256Mi"
-
-# Los jobs que compilan .NET o Angular no caben en el tamaño de arriba. Se les
-# da lo mínimo con lo que terminan y se serializan entre sí: dentro de una
-# cuota de 3 CPU no pueden coincidir dos, y el pod del job anterior tarda unos
-# segundos en desaparecer del namespace (el runner registra
-# 'Error cleaning up pod'), así que sigue contando mientras el siguiente pide
-# su sitio.
-.pesado:
-  resource_group: hato-ci
-  variables:
-    KUBERNETES_CPU_REQUEST: "500m"
-    KUBERNETES_CPU_LIMIT: "1"
-    KUBERNETES_MEMORY_REQUEST: "1Gi"
-    KUBERNETES_MEMORY_LIMIT: "1536Mi"
-
-# Las validaciones de Git Flow son scripts de shell sobre alpine: les basta el
-# tamaño por defecto de arriba. Se serializan igual porque son seis y la cuota
-# no tolera que se solapen con la limpieza de pods pendiente.
-gitflow:rama:
-  resource_group: hato-ci
-
-gitflow:issue:
-  resource_group: hato-ci
-  needs:
-    - job: gitflow:rama
-      artifacts: false
-      optional: true
-
-gitflow:metadatos:
-  resource_group: hato-ci
-  needs:
-    - job: gitflow:issue
-      artifacts: false
-      optional: true
-
-gitflow:commits:
-  resource_group: hato-ci
-  needs:
-    - job: gitflow:metadatos
-      artifacts: false
-      optional: true
-
-gitflow:plantilla:
-  resource_group: hato-ci
-  needs:
-    - job: gitflow:commits
-      artifacts: false
-      optional: true
-
-gitflow:secretos:
-  resource_group: hato-ci
-  needs:
-    - job: gitflow:plantilla
-      artifacts: false
-      optional: true
+# Los seis jobs gitflow:* vienen completos del include y ya no se redeclaran
+# aquí: solo existían para imponerles 'resource_group', que era un parche
+# contra la cuota del runner de k3s. El runner local admite cuatro a la vez.
 
 # Construye las dos imágenes desplegables para comprobar sus Dockerfiles.
 #
-# Con Kaniko y no con docker:dind: dind necesita un contenedor privilegiado y
-# el runner de k3s no lo concede, así que el job moría en `docker info`. Kaniko
-# construye en espacio de usuario y es lo que usa la plantilla oficial de
-# istpet/plantillas.
+# Con Kaniko y no con docker:dind: dind necesita un contenedor privilegiado, y
+# el runner local corre sin privilegios a propósito. Kaniko construye en
+# espacio de usuario y es lo que usa la plantilla oficial de istpet/plantillas.
 #
 # `--no-push` mantiene el contrato que ya tenía este job: solo valida que el
 # Dockerfile construya. Publicar en Harbor exige decidir credenciales, nombres
@@ -129,14 +55,12 @@ gitflow:secretos:
 # las capas de la imagen base sobre su propio sistema de archivos: encadenar
 # dos builds en el mismo contenedor deja restos del primero en el segundo.
 .kaniko:
-  extends: .pesado
   stage: build
   image:
     name: gcr.io/kaniko-project/executor:debug
     entrypoint: [""]
-  # No se construye imagen en cada merge request. La plantilla oficial lo evita
-  # por la memoria del nodo, y aquí además cada build extra compite por la
-  # misma cuota que necesitan los tests.
+  # No se construye imagen en cada merge request: solo en la rama por defecto y
+  # en los tags, que es lo que de verdad se publica.
   rules:
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
     - if: $CI_COMMIT_TAG
@@ -160,7 +84,6 @@ build:image:admin-web:
 # Compila y prueba toda la solución contra un PostgreSQL real. Cada fixture
 # crea su propia base en este servidor mediante Hato.TestSupport.TestDatabase.
 test:backend:
-  extends: .pesado
   stage: test
   image: mcr.microsoft.com/dotnet/sdk:8.0
   services:
@@ -170,13 +93,6 @@ test:backend:
     POSTGRES_HOST_AUTH_METHOD: trust
     POSTGRES_DB: postgres
     HATO_TEST_POSTGRES: "Host=postgres;Port=5432;Database=postgres;Username=postgres"
-    # El contenedor de servicio tiene su propia reserva, aparte de la del job.
-    # Postgres arranca de sobra con esto y así no se come la cuota que necesita
-    # la compilación.
-    KUBERNETES_SERVICE_CPU_REQUEST: "100m"
-    KUBERNETES_SERVICE_CPU_LIMIT: "500m"
-    KUBERNETES_SERVICE_MEMORY_REQUEST: "128Mi"
-    KUBERNETES_SERVICE_MEMORY_LIMIT: "512Mi"
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
@@ -195,7 +111,6 @@ test:backend:
 # Verifica que la aplicación de campo compile a nivel de tipos y que sus
 # pruebas unitarias pasen. La opción legacy mantiene el contrato del CI actual.
 test:field-app:
-  extends: .pesado
   stage: test
   image: node:20-alpine
   rules:
@@ -217,7 +132,6 @@ test:field-app:
 # falla siempre con 'Failed to inline external stylesheet' y la solución es
 # auto-hospedar las fuentes en clients/admin-web/src, no tocar este archivo.
 test:admin-web:
-  extends: .pesado
   stage: test
   image: node:20-alpine
   rules:

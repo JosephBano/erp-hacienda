@@ -202,6 +202,14 @@ test:backend:
   services:
     - name: postgres:16-alpine
       alias: postgres
+      # 'dotnet test' corre los ensamblados en paralelo y cada fixture de
+      # integración abre su propia base con conexiones sin pool
+      # (Npgsql.UnpooledDataSource). Con las 100 conexiones por defecto, el
+      # runner local —16 núcleos, mucho más paralelismo que el pod de 1 CPU de
+      # k3s— agota el límite y los tests caen con
+      # '53300: sorry, too many clients already'. Falla de forma intermitente:
+      # depende de cuántos ensamblados coincidan.
+      command: ["postgres", "-c", "max_connections=300"]
   variables:
     POSTGRES_HOST_AUTH_METHOD: trust
     POSTGRES_DB: postgres

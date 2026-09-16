@@ -210,7 +210,7 @@ código relevante, evidencias).
 
 1. Conseguir el reglamento de titulación y ver qué modalidades admite.
 2. Averiguar cómo se asigna tutor y cuándo hay que presentar el tema.
-3. Correr `./scripts/tesis-init.sh` y empezar a llenar `01-TEMA.md` con los candidatos.
+3. Correr `./scripts/tesis-init.sh <nombre-del-trabajo>` y empezar a llenar `01-TEMA.md`.
 4. Abrir `BITACORA.md` y anotar hoy.
 
 Lo demás espera. Estas cuatro cosas desbloquean todo el resto.

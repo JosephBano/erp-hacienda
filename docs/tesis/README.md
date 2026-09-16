@@ -1,8 +1,11 @@
 # `docs/tesis/` — El andamiaje de la tesis
 
-> Este directorio responde **¿cómo se construye la tesis sobre este proyecto y dónde vive
-> cada parte?** No contiene la tesis. Contiene el método, las plantillas y las reglas de
-> privacidad que hacen posible escribirla sin filtrar datos de nadie.
+> Este directorio responde **¿cómo se construye un trabajo académico sobre este proyecto y
+> dónde vive cada parte?** No contiene ninguna tesis. Contiene el método, las plantillas y las
+> reglas de privacidad que hacen posible escribirlas sin filtrar datos de nadie.
+>
+> Admite **más de un trabajo**: el tema puede cambiar, y el andamiaje no tiene por qué
+> impedirlo. Cada trabajo es una carpeta bajo `privado/`, y todas comparten las plantillas.
 
 ## 1. La regla de oro de este directorio
 
@@ -12,19 +15,28 @@ clonarlo, y el historial de git no olvida.
 
 ```
 docs/tesis/
-├─ README.md            ← este archivo. Versionado.
-├─ plantillas/          ← semillas vacías. Versionado.
-└─ privado/             ← tu tesis. .gitignore lo excluye entero. Git no lo ve.
+├─ README.md                    ← este archivo. Versionado.
+├─ plantillas/                  ← semillas vacías, compartidas. Versionado.
+└─ privado/                     ← .gitignore lo excluye entero. Git no lo ve.
+    ├─ devops-guardrails/       ← un trabajo
+    └─ <otro-trabajo>/          ← otro, si hace falta
 ```
 
 ## 2. Cómo se trabaja
 
 ```bash
-./scripts/tesis-init.sh     # copia plantillas/ -> privado/, sin sobrescribir nada
+./scripts/tesis-init.sh devops-guardrails    # crea privado/devops-guardrails/
 ```
 
-Escribes en `docs/tesis/privado/`. Nunca en `plantillas/`, salvo que quieras mejorar la
-plantilla *para la próxima vez* — y entonces la mejora no puede llevar contenido tuyo.
+El nombre va en kebab-case y el script nunca sobrescribe: si la carpeta ya existe, salta los
+archivos que estén y crea los que falten.
+
+Escribes en `docs/tesis/privado/<trabajo>/`. Nunca en `plantillas/`, salvo que quieras mejorar
+la plantilla *para la próxima vez* — y entonces la mejora no puede llevar contenido tuyo.
+
+> **Una advertencia que no es técnica.** Que quepan varios trabajos no significa que se
+> escriban a la vez. Dos tesis en paralelo, para una persona, es la forma más fiable de no
+> terminar ninguna. Lo que compras aquí es opcionalidad barata, no permiso para dividirte.
 
 **Respaldo:** `docs/BACKUPS.md` cubre la base de datos de la finca, **no cubre esto**. Tu
 tesis necesita su propio respaldo (nube personal, disco externo, lo que sea) y necesita que
@@ -38,14 +50,14 @@ contenido no: eso es lo que protege tu respaldo.
 
 | Qué | Dónde va | Por qué |
 |---|---|---|
-| Tesis en redacción | `docs/tesis/privado/` (local, ignorado) | Contiene nombres y datos reales |
+| Trabajos en redacción | `docs/tesis/privado/<trabajo>/` (local, ignorado) | Contienen nombres y datos reales |
 | Cartas firmadas, consentimientos | Fuera del repo, en tu almacenamiento privado | Firmas y cédulas de personas |
 | Datos crudos del piloto | Fuera del repo | Datos de finca de un tercero |
 | Datos **anonimizados** para análisis | Fuera del repo mientras la tesis esté abierta | Anonimizar mal es fácil; revisarlo, caro |
 | Plantillas, método, instrumentos | Aquí, versionado | No identifican a nadie |
 
 `05-TRAMITES` lleva el **índice** de qué documentos firmados existen y dónde están. El
-índice sí puede vivir en privado/; los documentos, no en el repo en ninguna forma.
+índice sí puede vivir en `privado/`; los documentos, no en el repo en ninguna forma.
 
 ## 4. La red de seguridad
 
@@ -78,13 +90,13 @@ El markdown es el borrador de trabajo. La entrega al instituto será Word o PDF 
 formato obligatorio. La conversión se hace al final con Pandoc:
 
 ```bash
-pandoc docs/tesis/privado/01-TEMA.md -o /ruta/privada/tesis.docx
+pandoc docs/tesis/privado/<trabajo>/01-TEMA.md -o /ruta/privada/tesis.docx
 ```
 
 No construyas esa tubería ahora. Primero hay que tener qué convertir.
 
 ## 7. Al terminar
 
-Cuando la tesis esté defendida y aprobada: se borra `docs/tesis/` del árbol de trabajo en
-un commit normal. El historial de git queda intacto y **no hay nada que purgar**, porque
+Cuando el último trabajo esté defendido y aprobado: se borra `docs/tesis/` del árbol de
+trabajo en un commit normal. El historial de git queda intacto y **no hay nada que purgar**, porque
 las plantillas nunca tuvieron datos reales. Esa es exactamente la razón de la separación.

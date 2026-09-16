@@ -55,13 +55,37 @@ que mata una tesis es depender de datos que quizá nunca llegues a tener. La col
 - **Riesgo: BAJO.** El riesgo aquí es otro: sin usuarios, la evaluación de usabilidad de la
   25010 queda coja y hay que declararlo como limitación.
 
-### Recomendación de partida
+### Candidato D — Guardarraíles de entrega para desarrollo asistido por agentes ✅
 
-**B como núcleo, con A como ampliación si el cliente 2 se sostiene, y C como respaldo.**
+> *Guardarraíles de integración y despliegue continuo para el desarrollo asistido por agentes
+> de inteligencia artificial: diseño, implementación y evaluación sobre un sistema de
+> información agropecuario en desarrollo.*
 
-B y A no se estorban: el levantamiento de B ocurre en la misma visita en la que se toma la
-línea base de A. Si el cliente permanece, tienes tesis grande; si desaparece a los dos meses,
-B ya está completo y sigues teniendo tesis. C queda como red por si no hay cliente.
+- **Pregunta:** ¿qué guardarraíles de integración y despliegue continuo evitan que la
+  aceleración del desarrollo asistido por agentes de IA se pague en defectos que llegan a
+  producción?
+- **Qué exige:** solo el repositorio. El trabajo de ingeniería está especificado en
+  `docs/spec/feature-0011-devops-delivery-pipeline/spec.md`.
+- **A favor — y es el argumento decisivo:** es **trabajo que se va a hacer de todos modos**,
+  y la línea base ya existe y está fechada. Una fase cerrada en falso, tres defectos de
+  pérdida silenciosa de datos que una suite verde no atrapó, siete defectos más hallados tras
+  tres semanas de uso real, 97 PRs y 325 commits con fecha. Ninguna tesis consigue un "antes"
+  así; este se pagó por el camino doloroso.
+- **Instrumento de medición:** métricas **DORA** (frecuencia de integración, lead time de
+  cambio, tasa de fallo del cambio, tiempo de restauración), complementadas con ISO/IEC 25010
+  en fiabilidad y mantenibilidad.
+- **Riesgo: MUY BAJO.** Cero dependencia de terceros.
+- **Límite honesto:** dos de las cuatro métricas DORA solo son reconstruibles clasificando el
+  historial a mano, y eso se declara como limitación (`spec.md` sec. 9).
+
+### Recomendación
+
+**D como núcleo.** Es el único candidato que ningún tercero te puede quitar y el único cuyo
+avance de tesis y avance de proyecto son el mismo commit.
+
+B (el levantamiento con el cliente 2) deja de ser tesis y vuelve a ser lo que es: trabajo de
+producto que harás igual. A queda como ampliación si el cliente permanece. C y E se
+solapan con D y pueden ser capítulos suyos.
 
 **Decisión tomada:** _(escribe aquí el tema elegido y la fecha)_
 

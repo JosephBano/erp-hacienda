@@ -78,14 +78,105 @@ que mata una tesis es depender de datos que quizá nunca llegues a tener. La col
 - **Límite honesto:** dos de las cuatro métricas DORA solo son reconstruibles clasificando el
   historial a mano, y eso se declara como limitación (`spec.md` sec. 9).
 
+### Candidato E — Formalización del control de inventario y finanzas ✅
+
+> *Implementación de un sistema de información para el control de inventario y finanzas en
+> una explotación pecuaria: evaluación del cambio en la calidad de la información de gestión
+> frente al registro informal.*
+
+- **Pregunta:** ¿en qué medida cambia la calidad de la información de gestión —completitud,
+  exactitud, consistencia y actualidad— al sustituir el registro informal (papel, memoria o
+  nada) por un sistema de información, en una explotación pecuaria pequeña?
+- **Qué exige:** el levantamiento y la línea base con el cliente 2 **antes de instalar nada**,
+  y un período de uso real medido.
+- **A favor:** es un tema genérico, replicable y que un tribunal reconoce de inmediato. Y
+  coincide con lo que el cliente 2 pidió, así que el avance de producto y el de tesis son el
+  mismo trabajo.
+- **Riesgo: MEDIO.** Depende de que el cliente permanezca. Ver "El período" abajo.
+
+#### Lo que este tema NO puede demostrar, y hay que decirlo desde el título
+
+Con **una sola finca, sin grupo de control**, no se puede atribuir al sistema una mejora de
+rentabilidad: el margen depende del precio del cerdo, del clima y de la sanidad mucho más que
+del software. Prometerlo en el título es la forma más rápida de perder la defensa.
+
+Por eso el objeto de medición es la **calidad de la información**, no el rendimiento
+económico:
+
+| Indicador | ¿Atribuible al sistema? | Papel en la tesis |
+|---|---|---|
+| Completitud del registro (hechos anotados ÷ ocurridos) | **Sí** | Principal |
+| Discrepancia entre conteo físico y existencias registradas | **Sí** | Principal |
+| Tiempo en producir una cifra de gestión | **Sí** | Principal |
+| % de costos con respaldo documental | **Sí** | Principal |
+| Trazabilidad de una salida de inventario hasta su compra | **Sí** | Principal |
+| Margen, utilidad, rentabilidad | **No** | Secundario, **sin afirmar causalidad** |
+
+Los económicos se reportan porque interesan al dueño y porque el sistema los hace visibles
+por primera vez, pero se presentan como *lo que ahora se puede saber*, no como *lo que el
+sistema mejoró*.
+
+#### La norma: aquí no es la 25010
+
+El objeto de medición es el dato, no el producto:
+
+- **ISO/IEC 25012** — modelo de **calidad de datos**: exactitud, completitud, consistencia,
+  credibilidad, actualidad. Es el instrumento central: da las dimensiones ya nombradas sobre
+  las que se construyen los indicadores de la tabla anterior.
+- **ISO/IEC 25040** — **proceso de evaluación**, por etapas. Da estructura metodológica al
+  antes/después y evita que la evaluación sea "miré y me pareció mejor".
+- **ISO/IEC 25010** queda como secundaria, solo para la parte de producto.
+
+> ⚠️ Verifica la revisión vigente de cada una antes de citarla, y anótala en `02-MARCO-TEORICO`.
+
+#### La línea base puede no existir, y eso es el resultado del Capítulo I
+
+Si la información vive en la cabeza del dueño, no hay registros que medir. Entonces la línea
+base **se construye con instrumento**: entrevista estructurada, conteo físico de existencias,
+y reconstrucción desde facturas y comprobantes.
+
+**El grado de informalidad se vuelve una variable medible**, no un obstáculo. Que salga
+catastrófica —existencias sin cuadrar, costos sin respaldo, cifras imposibles de producir— no
+es un fracaso del trabajo: es su planteamiento del problema, con números en vez de
+adjetivos.
+
+#### "A medida" como hallazgo, no como limitación
+
+Que el sistema sea específico para esta finca es una debilidad académica **salvo que se
+convierta en pregunta**. El Art. 8 de la Constitución del proyecto dice *«lo específico es
+dato, no código»*, así que la pregunta es:
+
+> ¿Qué proporción de los requisitos del cliente se resolvió **configurando** el sistema
+> existente, y cuánta exigió **código nuevo**?
+
+Es medible con el historial de git, es original, y convierte lo hecho a medida en un
+resultado sobre extensibilidad en vez de en una excusa.
+
+#### El período
+
+**El diseño cierra a los 3–4 meses**, con el año como ampliación opcional si el cliente
+permanece. Un año de observación es una dependencia que el cliente 1 ya rompió sin avisar; el
+trabajo tiene que poder terminarse antes de que eso pueda volver a pasar. Ver
+`04-PLAN-DE-DATOS` sec. 5, "Plan B".
+
 ### Recomendación
 
-**D como núcleo.** Es el único candidato que ningún tercero te puede quitar y el único cuyo
-avance de tesis y avance de proyecto son el mismo commit.
+**Dos trabajos, y se eligieron a propósito por su riesgo, no por su atractivo:**
 
-B (el levantamiento con el cliente 2) deja de ser tesis y vuelve a ser lo que es: trabajo de
-producto que harás igual. A queda como ampliación si el cliente permanece. C y E se
-solapan con D y pueden ser capítulos suyos.
+- **D — Guardarraíles de entrega.** Riesgo muy bajo: no depende de nadie. Es el que garantiza
+  que hay título.
+- **E — Formalización del control de inventario y finanzas.** Riesgo medio: depende del
+  cliente 2. Es el que tiene alcance y utilidad para terceros.
+
+No compiten: D se apoya en el repositorio y E en la finca, y sus instrumentos son distintos
+(DORA e ISO/IEC 25010 contra ISO/IEC 25012 y 25040). Si el cliente 2 se desvincula como el 1,
+**D sigue en pie y hay tesis igual** — que es exactamente la razón de tener dos.
+
+**Pero se escriben uno a la vez.** Dos tesis en paralelo, para una persona, es la forma más
+fiable de no terminar ninguna (`docs/tesis/README.md` sec. 2).
+
+B (el levantamiento con el cliente 2) deja de ser tesis y pasa a ser el Capítulo IV de E. A y
+C se solapan con D y E y pueden ser capítulos suyos.
 
 **Decisión tomada:** _(escribe aquí el tema elegido y la fecha)_
 

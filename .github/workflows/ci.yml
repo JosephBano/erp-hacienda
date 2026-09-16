@@ -179,6 +179,12 @@ jobs:
       - name: Install dependencies
         run: npm ci --legacy-peer-deps || npm install --legacy-peer-deps
 
+      - name: Check formatting
+        run: npm run format:check
+
+      - name: Lint
+        run: npm run lint
+
       - name: Typecheck
         run: npm run typecheck
 
@@ -215,6 +221,12 @@ jobs:
 
       - name: Install dependencies
         run: npm ci || npm install
+
+      - name: Check formatting
+        run: npm run format:check
+
+      - name: Lint
+        run: npm run lint
 
       - name: Build (compile + typecheck + budget check)
         run: npx ng build --configuration production

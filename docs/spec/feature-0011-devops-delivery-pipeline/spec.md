@@ -19,7 +19,7 @@
 - **Fase del ROADMAP:** transversal. No abre ni cierra ninguna fase; habilita el criterio
   de salida "en producción real" (Art. 11) de todas las que vengan.
 - **ADRs vigentes que respalda o respeta:** ninguno cubre entrega ni despliegue. Este spec
-  **exige tres ADR nuevos antes de escribir código** (sec. 3, D0) — Art. 14.
+  **exige cuatro ADR nuevos antes de escribir código** (sec. 3, D0) — Art. 14.
 - **Reglas duras que gobiernan este trabajo:** `AGENTS.md` regla 4 (nada directo a `main`
   ni `develop`), regla 9 (un PR = un propósito), regla 2 (dependencia nueva = ADR primero).
   Constitución: **Art. 12** (CI en rojo bloquea el merge), Art. 13 (GitFlow), Art. 14 (ADR),
@@ -36,9 +36,10 @@
 5. [Diseño: protección de ramas y compuerta de CI](#5-diseño-protección-de-ramas-y-compuerta-de-ci)
 6. [Diseño: entornos y gestión de secretos](#6-diseño-entornos-y-gestión-de-secretos)
 7. [Diseño: despliegue a staging sobre Tailscale](#7-diseño-despliegue-a-staging-sobre-tailscale)
-8. [Diseño: línea base y métricas de entrega](#8-diseño-línea-base-y-métricas-de-entrega)
-9. [Riesgos y deuda](#9-riesgos-y-deuda)
-10. [Criterios de aceptación](#10-criterios-de-aceptación)
+8. [Diseño: versionado y trazabilidad del build](#8-diseño-versionado-y-trazabilidad-del-build)
+9. [Diseño: línea base y métricas de entrega](#9-diseño-línea-base-y-métricas-de-entrega)
+10. [Riesgos y deuda](#10-riesgos-y-deuda)
+11. [Criterios de aceptación](#11-criterios-de-aceptación)
 
 ---
 
@@ -215,15 +216,73 @@ $ git rev-list --count develop
 
 97 PRs mergeados y 325 commits, con fechas, más 27 ADR y las retrospectivas por fase del
 `ROADMAP.md`. Es material suficiente para reconstruir un "antes" de las métricas de entrega
-(sec. 8) sin instrumentación adicional.
+(sec. 9) sin instrumentación adicional.
+
+### 2.9 No existe ninguna versión declarada, y las que hay se contradicen
+
+```
+$ ls VERSION
+ls: cannot access 'VERSION': No such file or directory
+$ grep -n '"version"' clients/*/package.json
+clients/admin-web/package.json:3:  "version": "0.0.0"
+clients/field-app/package.json:3:  "version": "1.0.0"
+$ grep -rn "<Version>" Directory.Build.props src/
+(sin resultados)
+```
+
+Tres fuentes y ninguna concuerda: el panel dice `0.0.0`, el móvil dice `1.0.0`, y el backend
+no declara versión en absoluto. **Ninguna instancia desplegada puede decir qué es.**
+
+Esto no es higiene teórica. El "Paso 0 — Recolección de evidencia" de `docs/spec/README.md`
+declara que cuatro specs —0004, 0005, 0006 y 0007— quedaron bloqueados por la misma laguna:
+*«no se conocen build de los teléfonos, versión del backend, ni qué significó "eliminar"»*, y
+que media hora con el dueño y un teléfono los desbloqueaba. Ese costo se pagó por no poder
+preguntarle a lo desplegado qué versión era.
+
+### 2.10 No hay herramienta de formato ni de lint en los clientes
+
+```
+$ python3 -c "import json; d=json.load(open('clients/admin-web/package.json')); print(d['scripts'])"
+{'ng': 'ng', 'start': 'ng serve', 'build': 'ng build',
+ 'watch': 'ng build --watch --configuration development', 'test': 'ng test'}
+```
+
+| Cliente | `prettier` | `eslint` | Script que los ejecute |
+|---|---|---|---|
+| `admin-web` | `^3.8.1` declarado | ausente | **ninguno** |
+| `field-app` | ausente | ausente | **ninguno** |
+
+`prettier` está instalado en `admin-web` y **nada lo invoca**. En el backend la situación es
+la opuesta y ya está resuelta: `dotnet format --verify-no-changes` corre en el CI (sec. 2.3) y
+`Directory.Build.props` fija `TreatWarningsAsErrors: true`, que es una compuerta de calidad
+más severa que la mayoría.
+
+Consecuencia: **un check de formato en los clientes no es configuración, es una dependencia
+nueva** —`prettier` en `field-app`, `eslint` en ambos— y `AGENTS.md` regla 2 exige ADR antes.
+Ver D13.
+
+### 2.11 El CI institucional de GitLab y Harbor ya no existen
+
+Verificado: no hay `.gitlab-ci.yml`, ni `.gitleaks.toml`, ni `plantilla.version`, ni
+referencia a Harbor o GitLab en ningún `*.yml`, `*.toml` o `Dockerfile` del repositorio. Esa
+tubería fue una prueba y se retiró por completo el 2026-09-15, junto con el runner local de
+systemd y la URL de push a GitLab del remote `origin`.
+
+Se deja escrito aquí porque el dueño preguntó por Harbor al especificar este trabajo: **es
+historia, no una opción abierta**. D7 (construir en el servidor, sin registro) sigue siendo
+la decisión vigente, y sobre un i5 de dos núcleos un registro propio sería además
+desproporcionado.
 
 ## 3. Decisiones fijadas
 
-- **D0 — Tres ADR se escriben y se mergean antes que cualquier código de esta rama.**
+- **D0 — Cuatro ADR se escriben y se mergean antes que cualquier código de esta rama.**
   Art. 14 y `AGENTS.md` regla 2. Son decisiones transversales y ninguna está escrita:
-  1. *Estrategia de ramas, entornos y promoción* (respalda D1 y D2).
-  2. *Gestión de secretos y acceso de despliegue* (respalda D4, D5, D6).
+  1. *Estrategia de ramas, entornos, promoción y versionado* (respalda D1, D2 y D14).
+  2. *Gestión de secretos y acceso de despliegue* (respalda D4, D5, D6, y la credencial sin
+     permiso de administración de D12.2).
   3. *Servidor de staging: alcance, límites y por qué no es producción* (respalda D3).
+  4. *Formato y lint en los clientes* (respalda D13) — es el único que añade dependencias, y
+     por eso `AGENTS.md` regla 2 lo exige sin discusión.
 
   Pueden ir en su propia rama `docs/adr-00XX-*` para no bloquear, como permite
   `PROTOCOLO-DE-TRABAJO.md` paso 3.
@@ -236,9 +295,14 @@ $ git rev-list --count develop
   vigente. **Alternativa descartada:** `develop → staging → main`, que obliga a un merge de
   promoción que no aporta información que el tag de release no dé.
 
-- **D2 — Los tres jobs actuales de `ci.yml` se vuelven checks obligatorios en `develop` y en
-  `main`.** Es la única forma de que el Art. 12 sea verdad (sec. 2.1). Se conserva
+- **D2 — El catálogo de checks se fija en sec. 5.5, y no todos bloquean.** Los tres jobs
+  actuales de `ci.yml` se vuelven obligatorios —única forma de que el Art. 12 sea verdad
+  (sec. 2.1)— junto con un job nuevo de higiene de PR y la guarda de datos personales. **El
+  análisis de código arranca informativo y los metadatos no bloquean nunca.** Se conserva
   `enforce_admins: true`.
+  *(El dueño pidió ocho verificaciones separadas y preguntó si se sobrecargaba. Se
+  sobrecargaba: la mitad son pasos dentro de jobs que ya existen. El resultado es **un job
+  nuevo**, dos pasos añadidos y un análisis informativo.)*
 
 - **D3 — El servidor doméstico es el entorno de *staging*, y solo eso.** Un disco sin
   redundancia (sec. 2.7) es incompatible con el Art. 1 ("los datos jamás se destruyen") y con
@@ -279,8 +343,51 @@ $ git rev-list --count develop
   automáticos de versiones sería ruido que nadie puede mergear.
 
 - **D10 — La línea base de métricas de entrega se calcula y se archiva antes de activar la
-  compuerta.** Sec. 8. Una vez que los checks son obligatorios, el "antes" deja de ser
+  compuerta.** Sec. 9. Una vez que los checks son obligatorios, el "antes" deja de ser
   observable.
+
+- **D11 — La compuerta existe *porque* los agentes de IA usan la cuenta del dueño, no a
+  pesar de ello.** *(El dueño planteó lo contrario: «no sé si sean necesarios... los agentes
+  usan mi cuenta para los commits y por ende pueden llegar a hacer cosas que no deben».)* Un
+  actor que tiene la autoridad del dueño, trabaja más rápido de lo que el dueño puede
+  revisar, y ya cerró una fase con `clients/field-app/` sin una sola pantalla (sec. 1), es
+  exactamente el actor para el que una compuerta automática existe. Retirar el bloqueo porque
+  el que entra tiene llave es quitar la cerradura.
+
+- **D12 — Contra la deriva de la configuración se aplican tres capas, y ninguna finge ser un
+  candado.** **GitHub no permite bloquear los ajustes de un repositorio personal**: el dueño
+  siempre puede cambiarlos, y un agente con su credencial también. Lo que sí se hace,
+  en orden de costo:
+  1. `enforce_admins: true` (ya activo, sec. 2.1) y un **ruleset con lista de bypass vacía**,
+     como segunda cerradura independiente de la protección clásica.
+  2. **La credencial que usan los agentes no tiene permiso de administración del
+     repositorio.** Es la única barrera real: el agente no cambia lo que su token no alcanza.
+  3. **Check de deriva:** la configuración esperada vive versionada (sec. 5.3 y 5.6) y un job la
+     compara contra la real. No lo impide — **lo delata**, que es lo que sí se puede
+     garantizar.
+
+  **Alternativa evaluada y diferida:** mover el repositorio a una organización gratuita para
+  tener registro de auditoría y separar la cuenta dueña de la cuenta de trabajo. Es el arreglo
+  de fondo y queda fuera de esta rama (sec. 4).
+
+- **D13 — El formato y el lint de los clientes necesitan ADR previo, porque son dependencias
+  nuevas.** Sec. 2.10: `prettier` está instalado en `admin-web` y nada lo ejecuta, y
+  `field-app` no tiene ninguna de las dos herramientas. `AGENTS.md` regla 2 no admite "una
+  librería chiquita para esto". El ADR entra en el conjunto de D0 como cuarto.
+
+- **D14 — Existe un archivo `VERSION` en la raíz como fuente única, y lo desplegado sabe
+  decir qué versión es.** Sec. 8. Lo que resuelve el problema no es el archivo: es el
+  endpoint que responde. Sec. 2.9 muestra el costo ya pagado por no tenerlo.
+
+- **D15 — Los metadatos de gestión (hito, etiquetas) se señalan, nunca bloquean.** Un merge
+  detenido porque se olvidó poner un hito es fricción sin beneficio para un desarrollador
+  solo, y enseña a saltarse la compuerta — que es justo lo que este spec intenta impedir.
+
+- **D16 — El análisis estático de seguridad y calidad entra como CodeQL, informativo.**
+  Gratuito en repositorios públicos (sec. 2.2). Arranca sin bloquear: volverlo obligatorio el
+  primer día significa que un único hallazgo dudoso deja el repositorio sin poder mergear. Se
+  promueve a obligatorio cuando se conozca su comportamiento sobre *este* código, y esa
+  promoción se anota con fecha.
 
 ## 4. Alcance
 
@@ -298,8 +405,15 @@ $ git rev-list --count develop
   sin publicar puertos al host, servido por el Caddy que ya corre allí).
 - Clave SSH dedicada y usuario de despliegue restringido en el servidor.
 - `dependabot.yml` con el alcance de D9.
-- Cálculo y archivo de la línea base de métricas de entrega (sec. 8).
-- Los tres ADR de D0.
+- Job nuevo `pr-hygiene`: nombre de rama, formato de commits y título del PR (sec. 5.5).
+- Pasos de formato y lint dentro de los jobs de cliente que ya existen (sec. 5.5), con su ADR
+  previo (D13).
+- CodeQL como análisis informativo (D16).
+- Etiquetado automático por metadatos faltantes, sin bloquear (D15).
+- Ruleset con bypass vacío y check de deriva de configuración (D12).
+- Archivo `VERSION`, su estampado en los tres artefactos y el endpoint que lo expone (sec. 8).
+- Cálculo y archivo de la línea base de métricas de entrega (sec. 9).
+- Los **cuatro** ADR de D0 (los tres originales más el de formato/lint, D13).
 - Actualización de `docs/DOCUMENTACION.md`, `docs/SEGURIDAD.md` y `README.md` en lo que este
   trabajo cambie.
 
@@ -320,7 +434,18 @@ $ git rev-list --count develop
   puede reconstruir. El Art. 2 aplica a producción.
 - **Cualquier cambio de código de dominio, esquema o cliente.** Esta rama no toca `src/` ni
   `clients/` salvo archivos de configuración de despliegue.
-- **Registro de imágenes (GHCR).** Descartado por D7 hasta tener evidencia de que hace falta.
+- **Registro de imágenes (GHCR, Harbor o cualquier otro).** Descartado por D7 hasta tener
+  evidencia de que hace falta. Harbor en particular ya fue probado y retirado (sec. 2.11): no
+  es una opción abierta, es historia.
+- **Mover el repositorio a una organización.** Es el arreglo de fondo contra la deriva de
+  configuración (D12, alternativa diferida), pero cambia la identidad del repositorio y
+  merece su propia decisión. No entra aquí.
+- **Un tercer escáner de secretos.** El escaneo con protección de push ya está activo
+  (sec. 2.6) y GitGuardian ya atrapó una contraseña antes de `develop` en Fase 0
+  (`docs/ROADMAP.md`). Añadir `gitleaks` sería la tercera herramienta sobre la misma
+  superficie. Lo que sí se conserva es `tesis-privacy-guard`, porque ningún escáner de
+  secretos cubre nombres de personas.
+- **Rotar la versión de las dependencias.** D9 limita Dependabot a seguridad y acciones.
 
 ## 5. Diseño: protección de ramas y compuerta de CI
 
@@ -369,6 +494,51 @@ un job roto deja el repositorio sin poder mergear nada:
   `admin-web-ci` de la lista obligatoria y queda como deuda anotada con fecha, o (b) se
   arregla primero en su propia rama. **No se elige la tercera**, que es volverlo obligatorio
   y descubrir el bloqueo con el primer PR.
+
+### 5.5 Catálogo de checks: qué se verifica y qué bloquea
+
+El dueño pidió ocho verificaciones separadas. Cuatro de ellas ya existen o son pasos dentro
+de jobs existentes; convertirlas en jobs propios multiplicaría los nombres a registrar sin
+verificar nada nuevo.
+
+| Verificación | Dónde vive | ¿Bloquea? |
+|---|---|---|
+| Build y pruebas del backend | `backend-build-and-test` — **ya existe** | **sí** |
+| Formato del backend (`dotnet format`) | paso dentro de ese job — **ya existe** | **sí** |
+| Advertencias como errores | `Directory.Build.props` — **ya existe**, no es un job | **sí, en compilación** |
+| Typecheck y pruebas del móvil | `field-app-ci` — **ya existe** | **sí** |
+| Build y pruebas del panel | `admin-web-ci` — **ya existe** | **sí** (ver TG0.2) |
+| Formato y lint de clientes | **pasos nuevos** dentro de los dos jobs anteriores (D13) | **sí** |
+| Nombre de rama, commits y título de PR | **job nuevo** `pr-hygiene` | **sí** |
+| Datos personales de la tesis | `tesis-privacy-guard` — existe en `docs/tesis-framework` | **sí** |
+| Secretos y credenciales | escaneo de la plataforma con protección de push — **ya activo** | sí, antes del push |
+| Análisis de seguridad y calidad | CodeQL (D16) | **no al principio** |
+| Hito, etiquetas y metadatos | etiquetado automático (D15) | **nunca** |
+| Deriva de la configuración de ramas | job de D12.3 | **sí** |
+
+Balance: **un job nuevo obligatorio**, dos pasos añadidos a jobs existentes, un job de
+deriva, un análisis informativo y un etiquetador. No ocho jobs.
+
+`pr-hygiene` verifica tres cosas y ninguna necesita red ni dependencias pesadas:
+
+1. **Nombre de rama** contra `AGENTS.md` regla 4 y Art. 13:
+   `feature/*`, `release/*`, `hotfix/*`, `docs/*`.
+2. **Mensajes de commit** en Conventional Commits, con el ámbito igual al módulo (Art. 13,
+   `PROTOCOLO-DE-TRABAJO.md` paso 7).
+3. **Título del PR** en el mismo formato, porque es lo que termina en el historial al
+   mergear.
+
+### 5.6 Deriva de la configuración
+
+La configuración esperada de protección y de entornos se guarda versionada en `.github/` como
+un archivo declarativo, y el job de D12.3 la compara contra lo que devuelve la API. Si no
+coincide, falla y dice qué campo cambió.
+
+**Lo que este job no hace es impedir el cambio.** No existe forma de impedirlo en un
+repositorio personal, y escribir aquí que sí la hay sería mentir en el único documento que se
+va a leer cuando algo falle. Lo que garantiza es que un cambio silencioso —hecho por el dueño
+distraído o por un agente con su credencial— aparezca en rojo en el siguiente PR en lugar de
+descubrirse cuando algo ya llegó a producción.
 
 ## 6. Diseño: entornos y gestión de secretos
 
@@ -459,7 +629,42 @@ El servidor pasa a hospedar un stack más. Hay que declararlo en `home-server` �
 *«si no está en este repo, no debería estar en el servidor»*— y eso es un commit en **aquel**
 repositorio, no en este. Queda anotado como dependencia externa de esta rama.
 
-## 8. Diseño: línea base y métricas de entrega
+## 8. Diseño: versionado y trazabilidad del build
+
+### 8.1 Una fuente, tres artefactos
+
+Un archivo `VERSION` en la raíz del repositorio, con una sola línea en versionado semántico,
+es la fuente única. El CI la lee y la estampa:
+
+| Artefacto | Cómo recibe la versión |
+|---|---|
+| Backend .NET | `dotnet build -p:Version=$(cat VERSION)` — hoy no declara ninguna (sec. 2.9) |
+| `admin-web` | se escribe en `package.json` durante el build, no a mano |
+| `field-app` | ídem, y llega a la build del teléfono |
+
+Se estampan además el hash corto del commit y la fecha de build, que son lo que de verdad
+identifica un artefacto cuando dos builds comparten número de versión.
+
+### 8.2 Lo que resuelve el problema no es el archivo, es el endpoint
+
+La API expone la versión, el commit y la fecha de build en un endpoint de solo lectura, sin
+autenticación y sin datos de negocio. El móvil la muestra en su pantalla de diagnóstico, junto
+a la bitácora que `feature-0004` ya dejó implementada.
+
+Esto es lo que convierte a `VERSION` en algo más que higiene. Cuando llegó el reporte de tres
+semanas de fallos intermitentes desde la finca, **nadie podía decir qué versión corría en los
+teléfonos ni en el backend**, y cuatro specs quedaron bloqueados esperando media hora de
+evidencia que solo se podía obtener en persona (sec. 2.9). Con el endpoint, esa media hora es
+una petición.
+
+### 8.3 Cuándo sube la versión
+
+Lo decide el ADR de D0.1 junto con la estrategia de ramas, porque es la misma pregunta: qué
+significa un merge a `main`. Lo que este spec fija es solo que **la versión no se edita a
+mano en tres archivos distintos**, que es el estado de hoy y la razón de que los tres números
+no concuerden.
+
+## 9. Diseño: línea base y métricas de entrega
 
 La compuerta destruye la posibilidad de observar cómo se trabajaba sin ella. Por eso D10: la
 línea base se calcula **antes** de activarla, con lo que ya existe (sec. 2.8).
@@ -480,7 +685,7 @@ comparable. **Dónde vive ese documento es una pregunta abierta de `plan.md`**: 
 que alimenta la tesis del dueño (`docs/tesis/`), pero no contiene ningún dato personal, así
 que no está obligado a vivir en `privado/`.
 
-## 9. Riesgos y deuda
+## 10. Riesgos y deuda
 
 | Riesgo | Mitigación |
 |---|---|
@@ -491,12 +696,16 @@ que no está obligado a vivir en `privado/`.
 | El entorno `production` existe pero no despliega, y alguien lo toma por funcional | Declarado en sec. 4 y en el ADR de D0.3. El entorno se crea sin ningún workflow que lo referencie |
 | La acción de Tailscale es una dependencia externa nueva | `AGENTS.md` regla 2 → entra en el ADR de D0.2, con la alternativa (runner self-hosted) y por qué se descartó |
 | Se confía en staging como si fuera producción y se guardan datos reales allí | D3 lo prohíbe por escrito; el ADR de D0.3 existe precisamente para que quede citable |
+| Un agente con la credencial del dueño desactiva la protección y mergea algo roto | Tres capas de D12: `enforce_admins`, credencial sin permiso de administración, y check de deriva que lo delata en el siguiente PR. **Ninguna lo impide del todo**, y eso está declarado |
+| Demasiados checks obligatorios vuelven costoso cada PR y empujan a saltarse la compuerta | D2, D15 y D16: un solo job nuevo obligatorio, metadatos que nunca bloquean, análisis estático informativo al principio |
+| Añadir `prettier` y `eslint` reformatea medio repositorio en un PR gigante | El ADR de D13 decide el alcance del primer formateo; si es masivo, va en su propio commit separado del cambio funcional, y `AGENTS.md` regla 9 lo exige |
+| CodeQL se queda informativo para siempre y nadie lo mira | La promoción a obligatorio se anota con fecha en `docs/BACKLOG.md` al crearlo, no queda al criterio del momento |
 
 **Deuda declarada que esta rama crea:** ninguna intencionada. **Deuda ajena que toca y no
 arregla:** `ng test` de `admin-web` (sec. 5.4, TG0.2) y la rotación de `SERVER_PASSWORD` en
 `home-server` (sec. 4). Ambas quedan anotadas en `docs/BACKLOG.md` con fecha.
 
-## 10. Criterios de aceptación
+## 11. Criterios de aceptación
 
 1. `gh api repos/:owner/:repo/branches/develop/protection/required_status_checks` devuelve
    200 y lista los jobs decididos en sec. 5.4, con `strict: true`. Lo mismo para `main`.
@@ -517,6 +726,19 @@ arregla:** `ng test` de `admin-web` (sec. 5.4, TG0.2) y la rotación de `SERVER_
    de NuGet ni npm.
 10. El documento de línea base existe, con sus números, su script re-ejecutable, y las dos
     métricas de fiabilidad baja declaradas como tales.
-11. Los tres ADR de D0 están mergeados y este spec los cita por número.
+11. `pr-hygiene` rechaza un PR cuyo título no cumpla Conventional Commits, y lo acepta
+    cuando se corrige.
+12. Un cambio manual en la protección de `develop` hace fallar el job de deriva en el
+    siguiente PR, nombrando el campo que cambió.
+13. La credencial usada por los agentes no puede modificar la configuración del repositorio:
+    una llamada de administración con esa credencial es rechazada.
+14. `VERSION` existe en la raíz, y `curl` contra el endpoint de la API desplegada en staging
+    devuelve esa misma cadena junto al hash del commit.
+15. `admin-web` y `field-app` declaran la versión de `VERSION`, no `0.0.0` ni `1.0.0`
+    escritos a mano.
+16. CodeQL aparece en los checks del PR y **no** figura entre los obligatorios; su promoción
+    está anotada con fecha en `docs/BACKLOG.md`.
+17. Un PR sin hito recibe una señal automática y **se puede mergear igual**.
+18. Los **cuatro** ADR de D0 están mergeados y este spec los cita por número.
 12. `docs/DOCUMENTACION.md` tiene fila para cada documento nuevo, y `docs/SEGURIDAD.md`
     describe el modelo de acceso de despliegue.

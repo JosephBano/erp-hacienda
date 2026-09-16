@@ -119,7 +119,13 @@ describe('ModuleVisibility', () => {
     const outbox = new Outbox(database);
     const milking = new MilkingService(database);
 
-    await milking.recordIndividualYield('animal-species-bovino', 'Morning', 12.5, recordedBy, today);
+    await milking.recordIndividualYield(
+      'animal-species-bovino',
+      'Morning',
+      12.5,
+      recordedBy,
+      today,
+    );
 
     const pending = await outbox.pending();
     expect(pending).toHaveLength(1);

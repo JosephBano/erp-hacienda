@@ -75,7 +75,9 @@ describe('VaccinateScreen', () => {
   let outbox: Outbox;
   let service: EventService;
 
-  const animals = [{ animalId: 'pig-1', label: 'Cerdo 01', speciesId: 'species-1', categoryId: null }];
+  const animals = [
+    { animalId: 'pig-1', label: 'Cerdo 01', speciesId: 'species-1', categoryId: null },
+  ];
   const products = [{ itemId: 'item-1', name: 'Triple porcina', unit: 'dosis' }];
 
   beforeEach(async () => {
@@ -291,7 +293,9 @@ describe('VaccinateScreen', () => {
       // No inner list here, so the Screen takes the gesture — otherwise the
       // empty-state card plus "Cancelar" have nowhere to go on a short phone.
       expect(countScrollers(screen.toJSON())).toBe(1);
-      expect(flatten(screen.getByTestId('vaccinate-screen').props.contentContainerStyle).flexGrow).toBe(1);
+      expect(
+        flatten(screen.getByTestId('vaccinate-screen').props.contentContainerStyle).flexGrow,
+      ).toBe(1);
       expect(screen.getByTestId('vaccinate-cancel')).toBeTruthy();
     });
   });

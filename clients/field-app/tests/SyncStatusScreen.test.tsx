@@ -59,7 +59,13 @@ describe('SyncStatusScreen', () => {
     await outbox.enqueue('recordMilking', { totalLiters: 5 });
     await outbox.enqueue('recordMilking', { totalLiters: 7 });
 
-    await render(<SyncStatusScreen engine={new SyncEngine(database, api)} outbox={outbox} visibility={visibility} />);
+    await render(
+      <SyncStatusScreen
+        engine={new SyncEngine(database, api)}
+        outbox={outbox}
+        visibility={visibility}
+      />,
+    );
 
     await waitFor(() => {
       expect(screen.getByTestId('pending-count')).toHaveTextContent('2');
@@ -69,7 +75,13 @@ describe('SyncStatusScreen', () => {
   it('lists a refused record with the reason instead of dropping it', async () => {
     await outbox.enqueue('recordAnimalEvent', { animalId: 'ghost' });
 
-    await render(<SyncStatusScreen engine={new SyncEngine(database, api)} outbox={outbox} visibility={visibility} />);
+    await render(
+      <SyncStatusScreen
+        engine={new SyncEngine(database, api)}
+        outbox={outbox}
+        visibility={visibility}
+      />,
+    );
 
     fireEvent.press(screen.getByTestId('sync-now'));
 
@@ -97,15 +109,26 @@ describe('SyncStatusScreen', () => {
 
     for (const op of operationTypes) {
       const entry = await outbox.enqueue(op.type, { sample: true });
-      await outbox.markRejected(entry.clientOperationId, `Rechazo de prueba: falta de permiso para ${op.label}`);
+      await outbox.markRejected(
+        entry.clientOperationId,
+        `Rechazo de prueba: falta de permiso para ${op.label}`,
+      );
     }
 
-    await render(<SyncStatusScreen engine={new SyncEngine(database, api)} outbox={outbox} visibility={visibility} />);
+    await render(
+      <SyncStatusScreen
+        engine={new SyncEngine(database, api)}
+        outbox={outbox}
+        visibility={visibility}
+      />,
+    );
 
     await waitFor(() => {
       for (const op of operationTypes) {
         expect(screen.getByText(op.label)).toBeTruthy();
-        expect(screen.getByText(`Rechazo de prueba: falta de permiso para ${op.label}`)).toBeTruthy();
+        expect(
+          screen.getByText(`Rechazo de prueba: falta de permiso para ${op.label}`),
+        ).toBeTruthy();
       }
     });
   });
@@ -115,7 +138,13 @@ describe('SyncStatusScreen', () => {
     await outbox.enqueue('recordMilking', { totalLiters: 5 });
     (global as any).__setNetworkConnected(false);
 
-    await render(<SyncStatusScreen engine={new SyncEngine(database, api)} outbox={outbox} visibility={visibility} />);
+    await render(
+      <SyncStatusScreen
+        engine={new SyncEngine(database, api)}
+        outbox={outbox}
+        visibility={visibility}
+      />,
+    );
 
     fireEvent.press(screen.getByTestId('sync-now'));
 
@@ -200,7 +229,10 @@ describe('SyncStatusScreen', () => {
       if (!node || typeof node !== 'object') return 0;
       const element = node as { type?: string; children?: unknown[] };
       const self = element.type === 'RCTScrollView' || element.type === 'ScrollView' ? 1 : 0;
-      return (element.children ?? []).reduce<number>((acc, child) => acc + countScrollers(child), self);
+      return (element.children ?? []).reduce<number>(
+        (acc, child) => acc + countScrollers(child),
+        self,
+      );
     };
 
     const flatten = (style: unknown): Record<string, unknown> =>
@@ -209,7 +241,13 @@ describe('SyncStatusScreen', () => {
         : ((style ?? {}) as Record<string, unknown>);
 
     it('lets the screen grow past the window instead of clamping its tail off', async () => {
-      await render(<SyncStatusScreen engine={new SyncEngine(database, api)} outbox={outbox} visibility={visibility} />);
+      await render(
+        <SyncStatusScreen
+          engine={new SyncEngine(database, api)}
+          outbox={outbox}
+          visibility={visibility}
+        />,
+      );
 
       const content = flatten(screen.getByTestId('sync-status-screen').props.contentContainerStyle);
 
@@ -217,13 +255,21 @@ describe('SyncStatusScreen', () => {
       // module switches end up below the fold with no way to reach them.
       expect(content.flexGrow).toBe(1);
       expect(content.flex).toBeUndefined();
-      expect(screen.getByTestId('sync-status-screen').props.keyboardShouldPersistTaps).toBe('handled');
+      expect(screen.getByTestId('sync-status-screen').props.keyboardShouldPersistTaps).toBe(
+        'handled',
+      );
     });
 
     it('opens exactly one vertical scroller even with the problem tray on screen', async () => {
       await outbox.enqueue('recordAnimalEvent', { animalId: 'ghost' });
 
-      await render(<SyncStatusScreen engine={new SyncEngine(database, api)} outbox={outbox} visibility={visibility} />);
+      await render(
+        <SyncStatusScreen
+          engine={new SyncEngine(database, api)}
+          outbox={outbox}
+          visibility={visibility}
+        />,
+      );
 
       fireEvent.press(screen.getByTestId('sync-now'));
 
@@ -237,7 +283,13 @@ describe('SyncStatusScreen', () => {
     });
 
     it('keeps the last control of the screen in the tree and pressable', async () => {
-      await render(<SyncStatusScreen engine={new SyncEngine(database, api)} outbox={outbox} visibility={visibility} />);
+      await render(
+        <SyncStatusScreen
+          engine={new SyncEngine(database, api)}
+          outbox={outbox}
+          visibility={visibility}
+        />,
+      );
 
       // The module switch is the last thing on the screen — the part the employees could
       // not reach. Pressing it must still open the confirmation, tray or no tray.
@@ -320,7 +372,9 @@ describe('SyncStatusScreen', () => {
     fireEvent.press(screen.getByTestId('sync-now'));
 
     await waitFor(() => {
-      expect(screen.getByText(/la sesión caducó.*sus registros locales están a salvo/i)).toBeTruthy();
+      expect(
+        screen.getByText(/la sesión caducó.*sus registros locales están a salvo/i),
+      ).toBeTruthy();
       expect(screen.getByTestId('pending-count')).toHaveTextContent('1');
     });
 
@@ -375,7 +429,9 @@ describe('SyncStatusScreen', () => {
     const engine = new SyncEngine(database, api);
     engine.logger.logError('Fallo en sync', { failedStage: 'push', clientOperationId: 'op-test' });
 
-    const shareSpy = jest.spyOn(Share, 'share').mockResolvedValue({ action: 'sharedAction' } as any);
+    const shareSpy = jest
+      .spyOn(Share, 'share')
+      .mockResolvedValue({ action: 'sharedAction' } as any);
 
     await render(<SyncStatusScreen engine={engine} outbox={outbox} visibility={visibility} />);
 

@@ -10,7 +10,7 @@ import { IconComponent } from '../../shared/icon/icon.component';
   standalone: true,
   imports: [CommonModule, FormsModule, RouterModule, IconComponent],
   templateUrl: './animal-list.component.html',
-  styleUrls: ['./animal-list.component.css']
+  styleUrls: ['./animal-list.component.css'],
 })
 export class AnimalListComponent implements OnInit {
   private api = inject(ApiService);
@@ -37,18 +37,20 @@ export class AnimalListComponent implements OnInit {
         this.loadError = true;
         this.animals = [];
         this.applyFilter();
-      }
+      },
     });
   }
 
   applyFilter(): void {
-    this.filteredAnimals = this.animals.filter(a => {
-      const matchesSearch = !this.searchTerm || 
+    this.filteredAnimals = this.animals.filter((a) => {
+      const matchesSearch =
+        !this.searchTerm ||
         (a.farmTag && a.farmTag.toLowerCase().includes(this.searchTerm.toLowerCase())) ||
         (a.officialTag && a.officialTag.toLowerCase().includes(this.searchTerm.toLowerCase())) ||
         (a.name && a.name.toLowerCase().includes(this.searchTerm.toLowerCase()));
 
-      const matchesStatus = this.statusFilter === 'All' ||
+      const matchesStatus =
+        this.statusFilter === 'All' ||
         (this.statusFilter === 'Withdrawal' && a.isInWithdrawal) ||
         (this.statusFilter === 'Active' && !a.isInWithdrawal);
 

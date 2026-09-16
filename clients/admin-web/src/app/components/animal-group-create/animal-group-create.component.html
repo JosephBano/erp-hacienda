@@ -2,7 +2,9 @@
   <div class="page-header">
     <div>
       <h1 class="page-title">Nuevo lote</h1>
-      <p class="subtitle">Crea un grupo de manejo. Podrás agregar miembros y registrar eventos después.</p>
+      <p class="subtitle">
+        Crea un grupo de manejo. Podrás agregar miembros y registrar eventos después.
+      </p>
     </div>
   </div>
 
@@ -53,7 +55,8 @@
     <fieldset class="tracking-mode-fieldset">
       <legend class="form-label">Modo de seguimiento</legend>
       <p class="hint-text">
-        Elegí cómo el sistema va a tratar a los miembros de este lote. Esto define qué clase de eventos podés registrar y cómo se atribuyen.
+        Elegí cómo el sistema va a tratar a los miembros de este lote. Esto define qué clase de
+        eventos podés registrar y cómo se atribuyen.
       </p>
 
       <label class="radio-row">
@@ -66,7 +69,11 @@
         />
         <span class="radio-text">
           <strong>Individual</strong>
-          <span class="radio-sub">El sistema conoce a cada miembro por separado (arete, SIFAE, RFID). Usá este modo para ganado identificado: los eventos pueden ser por animal o por lote, y el linaje se mantiene.</span>
+          <span class="radio-sub"
+            >El sistema conoce a cada miembro por separado (arete, SIFAE, RFID). Usá este modo para
+            ganado identificado: los eventos pueden ser por animal o por lote, y el linaje se
+            mantiene.</span
+          >
         </span>
       </label>
 
@@ -80,20 +87,28 @@
         />
         <span class="radio-text">
           <strong>Por conteo (sin identificar)</strong>
-          <span class="radio-sub">El sistema solo sabe cuántas cabezas hay, no cuáles. Usá este modo para lotes sin identificación (lechones al destete, pollos de engorde, terneros sin arete). Los eventos se registran sobre el lote completo.</span>
+          <span class="radio-sub"
+            >El sistema solo sabe cuántas cabezas hay, no cuáles. Usá este modo para lotes sin
+            identificación (lechones al destete, pollos de engorde, terneros sin arete). Los eventos
+            se registran sobre el lote completo.</span
+          >
         </span>
       </label>
 
       <div class="warning-block">
         <app-icon name="alert" size="sm" ariaLabel="Advertencia"></app-icon>
         <span>
-          <strong>Atención:</strong> una vez que el grupo tenga miembros activos o eventos registrados, no se puede cambiar el modo. Si te equivocaste, desactivá este grupo y creá uno nuevo con el modo correcto.
+          <strong>Atención:</strong> una vez que el grupo tenga miembros activos o eventos
+          registrados, no se puede cambiar el modo. Si te equivocaste, desactivá este grupo y creá
+          uno nuevo con el modo correcto.
         </span>
       </div>
     </fieldset>
 
     <div class="form-actions">
-      <button type="button" class="btn-secondary" (click)="cancel()" data-testid="cancel-button">Cancelar</button>
+      <button type="button" class="btn-secondary" (click)="cancel()" data-testid="cancel-button">
+        Cancelar
+      </button>
       <button
         type="submit"
         class="btn-primary"
@@ -101,7 +116,13 @@
         data-testid="submit-button"
       >
         <app-icon name="plus" size="sm" ariaLabel="Crear"></app-icon>
-        <span>@if (submitting()) { Creando… } @else { Crear lote }</span>
+        <span>
+          @if (submitting()) {
+            Creando…
+          } @else {
+            Crear lote
+          }
+        </span>
       </button>
     </div>
   </form>

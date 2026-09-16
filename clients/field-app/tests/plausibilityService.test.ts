@@ -52,14 +52,22 @@ describe('evaluatePlausibility', () => {
   it('returns pass for a value inside plausible bounds', async () => {
     const database = makeDatabase([
       {
-        speciesId, categoryId, magnitude,
-        plausibleMin: 0.5, plausibleMax: 250,
-        absoluteMin: 0.1, absoluteMax: 500,
-        isActive: true, isDeleted: false,
+        speciesId,
+        categoryId,
+        magnitude,
+        plausibleMin: 0.5,
+        plausibleMax: 250,
+        absoluteMin: 0.1,
+        absoluteMax: 500,
+        isActive: true,
+        isDeleted: false,
       },
     ]);
     const verdict = await evaluatePlausibility(database, {
-      speciesId, categoryId, magnitude, value: 100,
+      speciesId,
+      categoryId,
+      magnitude,
+      value: 100,
     });
     expect(verdict).toBe<PlausibilityVerdict>('pass');
   });
@@ -67,14 +75,22 @@ describe('evaluatePlausibility', () => {
   it('returns confirm for a value outside plausibles but inside absolutes', async () => {
     const database = makeDatabase([
       {
-        speciesId, categoryId, magnitude,
-        plausibleMin: 0.5, plausibleMax: 250,
-        absoluteMin: 0.1, absoluteMax: 500,
-        isActive: true, isDeleted: false,
+        speciesId,
+        categoryId,
+        magnitude,
+        plausibleMin: 0.5,
+        plausibleMax: 250,
+        absoluteMin: 0.1,
+        absoluteMax: 500,
+        isActive: true,
+        isDeleted: false,
       },
     ]);
     const verdict = await evaluatePlausibility(database, {
-      speciesId, categoryId, magnitude, value: 350,
+      speciesId,
+      categoryId,
+      magnitude,
+      value: 350,
     });
     expect(verdict).toBe<PlausibilityVerdict>('confirm');
   });
@@ -82,14 +98,22 @@ describe('evaluatePlausibility', () => {
   it('returns block for a value outside absolutes', async () => {
     const database = makeDatabase([
       {
-        speciesId, categoryId, magnitude,
-        plausibleMin: 0.5, plausibleMax: 250,
-        absoluteMin: 0.1, absoluteMax: 500,
-        isActive: true, isDeleted: false,
+        speciesId,
+        categoryId,
+        magnitude,
+        plausibleMin: 0.5,
+        plausibleMax: 250,
+        absoluteMin: 0.1,
+        absoluteMax: 500,
+        isActive: true,
+        isDeleted: false,
       },
     ]);
     const verdict = await evaluatePlausibility(database, {
-      speciesId, categoryId, magnitude, value: 600,
+      speciesId,
+      categoryId,
+      magnitude,
+      value: 600,
     });
     expect(verdict).toBe<PlausibilityVerdict>('block');
   });
@@ -98,26 +122,42 @@ describe('evaluatePlausibility', () => {
     const database = makeDatabase([
       {
         // Species-wide: 0–80 plausible
-        speciesId, categoryId: undefined, magnitude,
-        plausibleMin: 0, plausibleMax: 80,
-        absoluteMin: 0, absoluteMax: 200,
-        isActive: true, isDeleted: false,
+        speciesId,
+        categoryId: undefined,
+        magnitude,
+        plausibleMin: 0,
+        plausibleMax: 80,
+        absoluteMin: 0,
+        absoluteMax: 200,
+        isActive: true,
+        isDeleted: false,
       },
       {
         // Category-specific: 30–50 plausible (so 25 is outside)
-        speciesId, categoryId, magnitude,
-        plausibleMin: 30, plausibleMax: 50,
-        absoluteMin: 0, absoluteMax: 200,
-        isActive: true, isDeleted: false,
+        speciesId,
+        categoryId,
+        magnitude,
+        plausibleMin: 30,
+        plausibleMax: 50,
+        absoluteMin: 0,
+        absoluteMax: 200,
+        isActive: true,
+        isDeleted: false,
       },
     ]);
     const withCategory = await evaluatePlausibility(database, {
-      speciesId, categoryId, magnitude, value: 25,
+      speciesId,
+      categoryId,
+      magnitude,
+      value: 25,
     });
     expect(withCategory).toBe<PlausibilityVerdict>('confirm');
 
     const withoutCategory = await evaluatePlausibility(database, {
-      speciesId, categoryId: null, magnitude, value: 25,
+      speciesId,
+      categoryId: null,
+      magnitude,
+      value: 25,
     });
     expect(withoutCategory).toBe<PlausibilityVerdict>('pass');
   });
@@ -125,14 +165,22 @@ describe('evaluatePlausibility', () => {
   it('returns pass for a soft-deleted range (fail-open)', async () => {
     const database = makeDatabase([
       {
-        speciesId, categoryId, magnitude,
-        plausibleMin: 0.5, plausibleMax: 250,
-        absoluteMin: 0.1, absoluteMax: 500,
-        isActive: true, isDeleted: true,
+        speciesId,
+        categoryId,
+        magnitude,
+        plausibleMin: 0.5,
+        plausibleMax: 250,
+        absoluteMin: 0.1,
+        absoluteMax: 500,
+        isActive: true,
+        isDeleted: true,
       },
     ]);
     const verdict = await evaluatePlausibility(database, {
-      speciesId, categoryId, magnitude, value: 1000,
+      speciesId,
+      categoryId,
+      magnitude,
+      value: 1000,
     });
     expect(verdict).toBe<PlausibilityVerdict>('pass');
   });
@@ -140,14 +188,22 @@ describe('evaluatePlausibility', () => {
   it('returns pass for an inactive range (fail-open)', async () => {
     const database = makeDatabase([
       {
-        speciesId, categoryId, magnitude,
-        plausibleMin: 0.5, plausibleMax: 250,
-        absoluteMin: 0.1, absoluteMax: 500,
-        isActive: false, isDeleted: false,
+        speciesId,
+        categoryId,
+        magnitude,
+        plausibleMin: 0.5,
+        plausibleMax: 250,
+        absoluteMin: 0.1,
+        absoluteMax: 500,
+        isActive: false,
+        isDeleted: false,
       },
     ]);
     const verdict = await evaluatePlausibility(database, {
-      speciesId, categoryId, magnitude, value: 1000,
+      speciesId,
+      categoryId,
+      magnitude,
+      value: 1000,
     });
     expect(verdict).toBe<PlausibilityVerdict>('pass');
   });

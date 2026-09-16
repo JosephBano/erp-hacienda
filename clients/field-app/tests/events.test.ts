@@ -59,7 +59,7 @@ describe('EventService', () => {
      * dawn and milks her at dusk with no signal in between: if the withdrawal only
      * appeared after a sync, that milk would be recorded as sellable.
      */
-    it('applies the withdrawal locally so the same day\'s milking is already blocked', async () => {
+    it("applies the withdrawal locally so the same day's milking is already blocked", async () => {
       await service.recordTreatment({
         animalId: 'cow-treated',
         medicationId: 'med-1',
@@ -132,7 +132,11 @@ describe('EventService', () => {
     });
 
     it('carries isPlausibilityConfirmed through to the outbox payload when set', async () => {
-      await service.recordWeight({ animalId: 'cow-1', weightKg: 420, isPlausibilityConfirmed: true });
+      await service.recordWeight({
+        animalId: 'cow-1',
+        weightKg: 420,
+        isPlausibilityConfirmed: true,
+      });
 
       const [entry] = await outbox.pending();
       const payload = JSON.parse((entry.payload as any).payloadJson);
@@ -163,7 +167,11 @@ describe('EventService', () => {
       });
 
       const [entry] = await outbox.pending();
-      expect(entry.payload).toMatchObject({ groupId: 'group-a', eventType: 'Disposal', affectedCount: 4 });
+      expect(entry.payload).toMatchObject({
+        groupId: 'group-a',
+        eventType: 'Disposal',
+        affectedCount: 4,
+      });
     });
 
     it('refuses a group disposal with no affected count', async () => {
@@ -194,15 +202,15 @@ describe('EventService', () => {
     });
 
     it('refuses a disposal with no cause', async () => {
-      await expect(
-        service.recordDisposal({ animalId: 'piglet-1', causeId: '' }),
-      ).rejects.toThrow(/causa/i);
+      await expect(service.recordDisposal({ animalId: 'piglet-1', causeId: '' })).rejects.toThrow(
+        /causa/i,
+      );
     });
 
     it('refuses a disposal with no animal', async () => {
-      await expect(
-        service.recordDisposal({ animalId: '', causeId: 'cause-1' }),
-      ).rejects.toThrow(/animal/i);
+      await expect(service.recordDisposal({ animalId: '', causeId: 'cause-1' })).rejects.toThrow(
+        /animal/i,
+      );
     });
   });
 
@@ -232,9 +240,9 @@ describe('EventService', () => {
     });
 
     it('refuses a move with no destination', async () => {
-      await expect(
-        service.recordGroupMove({ animalId: 'cow-1', toGroupId: '' }),
-      ).rejects.toThrow(/destino/i);
+      await expect(service.recordGroupMove({ animalId: 'cow-1', toGroupId: '' })).rejects.toThrow(
+        /destino/i,
+      );
     });
   });
 
@@ -301,9 +309,13 @@ describe('EventService', () => {
       });
 
       // Weigh male
-      await expect(service.recordWeight({ animalId: 'bull-active', weightKg: 650 })).resolves.toBeDefined();
+      await expect(
+        service.recordWeight({ animalId: 'bull-active', weightKg: 650 }),
+      ).resolves.toBeDefined();
       // Weigh female
-      await expect(service.recordWeight({ animalId: 'cow-active', weightKg: 450 })).resolves.toBeDefined();
+      await expect(
+        service.recordWeight({ animalId: 'cow-active', weightKg: 450 }),
+      ).resolves.toBeDefined();
 
       // Treat male
       await expect(

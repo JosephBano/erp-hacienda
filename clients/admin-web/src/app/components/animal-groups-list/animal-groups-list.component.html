@@ -2,7 +2,10 @@
   <div class="page-header">
     <div>
       <h1 class="page-title">Lotes y Grupos</h1>
-      <p class="subtitle">Conjuntos de manejo y costeo. Cada lote tiene un modo de seguimiento (Individual o Por conteo) y un conteo de cabezas vivas derivado de eventos.</p>
+      <p class="subtitle">
+        Conjuntos de manejo y costeo. Cada lote tiene un modo de seguimiento (Individual o Por
+        conteo) y un conteo de cabezas vivas derivado de eventos.
+      </p>
     </div>
     <button type="button" class="btn-primary" (click)="goNew()">
       <app-icon name="plus" size="sm" ariaLabel="Crear nuevo lote"></app-icon>
@@ -23,7 +26,12 @@
       />
       <span>Incluir lotes inactivos</span>
     </label>
-    <button type="button" class="btn-secondary btn-sm" (click)="loadGroups()" data-testid="reload-button">
+    <button
+      type="button"
+      class="btn-secondary btn-sm"
+      (click)="loadGroups()"
+      data-testid="reload-button"
+    >
       <app-icon name="search" size="sm" ariaLabel="Recargar"></app-icon>
       <span>Recargar</span>
     </button>
@@ -35,7 +43,8 @@
     [actions]="actions"
     [rowInactive]="isInactive"
     emptyMessage="No hay lotes registrados."
-    (action)="onAction($event)">
+    (action)="onAction($event)"
+  >
   </app-catalog-table>
 
   <!-- Two-step deactivate confirmation -->
@@ -45,11 +54,21 @@
       <span>¿Desactivar este lote? La operación es reversible con "Reactivar".</span>
     </div>
     <div class="confirm-actions">
-      <button type="button" class="btn-danger btn-sm" (click)="confirmDeactivate()" data-testid="confirm-deactivate">
+      <button
+        type="button"
+        class="btn-danger btn-sm"
+        (click)="confirmDeactivate()"
+        data-testid="confirm-deactivate"
+      >
         <app-icon name="close" size="sm" ariaLabel="Confirmar"></app-icon>
         <span>Confirmar desactivación</span>
       </button>
-      <button type="button" class="btn-secondary btn-sm" (click)="cancelDeactivate()" data-testid="cancel-deactivate">
+      <button
+        type="button"
+        class="btn-secondary btn-sm"
+        (click)="cancelDeactivate()"
+        data-testid="cancel-deactivate"
+      >
         Cancelar
       </button>
     </div>
@@ -62,11 +81,21 @@
       <span>¿Reactivar este lote?</span>
     </div>
     <div class="confirm-actions">
-      <button type="button" class="btn-primary btn-sm" (click)="confirmReactivate()" data-testid="confirm-reactivate">
+      <button
+        type="button"
+        class="btn-primary btn-sm"
+        (click)="confirmReactivate()"
+        data-testid="confirm-reactivate"
+      >
         <app-icon name="check" size="sm" ariaLabel="Confirmar"></app-icon>
         <span>Confirmar reactivación</span>
       </button>
-      <button type="button" class="btn-secondary btn-sm" (click)="cancelReactivate()" data-testid="cancel-reactivate">
+      <button
+        type="button"
+        class="btn-secondary btn-sm"
+        (click)="cancelReactivate()"
+        data-testid="cancel-reactivate"
+      >
         Cancelar
       </button>
     </div>

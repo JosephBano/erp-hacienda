@@ -51,9 +51,7 @@ jest.mock('../src/services/herdQueries', () => {
       },
     ],
     loadMilkingCandidates: async () => [],
-    loadGroups: async () => [
-      { groupId: 'lot-1', label: 'Engorde 1', trackingMode: 'headcount' },
-    ],
+    loadGroups: async () => [{ groupId: 'lot-1', label: 'Engorde 1', trackingMode: 'headcount' }],
     loadTreatmentProducts: async () => [],
     loadMedications: async () => [],
     loadMortalityCauses: async () => [],

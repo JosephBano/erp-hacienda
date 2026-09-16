@@ -19,11 +19,11 @@
     </div>
     <div class="filter-group">
       <label class="form-label" for="audit-from">Desde:</label>
-      <input id="audit-from" type="date" class="form-input" [(ngModel)]="fromFilter">
+      <input id="audit-from" type="date" class="form-input" [(ngModel)]="fromFilter" />
     </div>
     <div class="filter-group">
       <label class="form-label" for="audit-to">Hasta:</label>
-      <input id="audit-to" type="date" class="form-input" [(ngModel)]="toFilter">
+      <input id="audit-to" type="date" class="form-input" [(ngModel)]="toFilter" />
     </div>
     <button class="btn btn-primary filter-submit" (click)="page = 1; search()">
       <app-icon name="search" size="sm" />
@@ -50,12 +50,18 @@
         <tr *ngFor="let log of logs">
           <td data-label="Fecha">{{ log.timestamp | date: 'short' }}</td>
           <td data-label="Usuario">{{ log.userFullName || log.userEmail || 'Sistema' }}</td>
-          <td data-label="Acción"><span class="badge badge-info">{{ log.action }}</span></td>
+          <td data-label="Acción">
+            <span class="badge badge-info">{{ log.action }}</span>
+          </td>
           <td data-label="Módulo">{{ log.module }}</td>
-          <td data-label="Entidad">{{ log.entityName }} <span class="text-muted">#{{ log.entityId.slice(0, 8) }}</span></td>
+          <td data-label="Entidad">
+            {{ log.entityName }} <span class="text-muted">#{{ log.entityId.slice(0, 8) }}</span>
+          </td>
         </tr>
         <tr *ngIf="logs.length === 0" class="empty-row">
-          <td colspan="5" data-label="Estado" class="text-center py-4 text-muted">Sin registros para los filtros seleccionados.</td>
+          <td colspan="5" data-label="Estado" class="text-center py-4 text-muted">
+            Sin registros para los filtros seleccionados.
+          </td>
         </tr>
       </tbody>
     </table>
@@ -66,8 +72,14 @@
       <app-icon name="arrow-left" size="sm" />
       Anterior
     </button>
-    <span class="pagination-info">Página {{ page }} de {{ totalPages }} ({{ totalCount }} registros)</span>
-    <button class="btn btn-secondary btn-sm" [disabled]="page >= totalPages" (click)="goToPage(page + 1)">
+    <span class="pagination-info"
+      >Página {{ page }} de {{ totalPages }} ({{ totalCount }} registros)</span
+    >
+    <button
+      class="btn btn-secondary btn-sm"
+      [disabled]="page >= totalPages"
+      (click)="goToPage(page + 1)"
+    >
       Siguiente
       <app-icon class="icon-flip" name="arrow-left" size="sm" />
     </button>

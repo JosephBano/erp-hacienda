@@ -40,10 +40,7 @@ describe('AnimalGroupsListComponent', () => {
     };
     await TestBed.configureTestingModule({
       imports: [AnimalGroupsListComponent],
-      providers: [
-        provideRouter([]),
-        { provide: ApiService, useValue: apiStub },
-      ],
+      providers: [provideRouter([]), { provide: ApiService, useValue: apiStub }],
     }).compileComponents();
   });
 
@@ -83,9 +80,7 @@ describe('AnimalGroupsListComponent', () => {
     vi.spyOn(router, 'navigate');
 
     // Find the edit button on the first row (g1).
-    const editButtons = fixture.nativeElement.querySelectorAll(
-      '[data-action="Editar"]',
-    );
+    const editButtons = fixture.nativeElement.querySelectorAll('[data-action="Editar"]');
     (editButtons[0] as HTMLElement).click();
 
     expect(router.navigate).toHaveBeenCalledWith(['/animal-groups', 'g1']);
@@ -97,16 +92,12 @@ describe('AnimalGroupsListComponent', () => {
 
     vi.spyOn(apiStub, 'deactivateAnimalGroup');
 
-    const deactivateButtons = fixture.nativeElement.querySelectorAll(
-      '[data-action="Desactivar"]',
-    );
+    const deactivateButtons = fixture.nativeElement.querySelectorAll('[data-action="Desactivar"]');
     expect(deactivateButtons.length).toBe(1); // only the active group
     (deactivateButtons[0] as HTMLElement).click();
     fixture.detectChanges();
 
-    const confirmBar = fixture.nativeElement.querySelector(
-      '[data-testid="confirm-deactivate"]',
-    );
+    const confirmBar = fixture.nativeElement.querySelector('[data-testid="confirm-deactivate"]');
     expect(confirmBar).toBeTruthy();
 
     (confirmBar as HTMLElement).click();
@@ -117,9 +108,7 @@ describe('AnimalGroupsListComponent', () => {
     const fixture = TestBed.createComponent(AnimalGroupsListComponent);
     fixture.detectChanges();
 
-    const reactivateButtons = fixture.nativeElement.querySelectorAll(
-      '[data-action="Reactivar"]',
-    );
+    const reactivateButtons = fixture.nativeElement.querySelectorAll('[data-action="Reactivar"]');
     expect(reactivateButtons.length).toBe(1); // only g2 is inactive
   });
 

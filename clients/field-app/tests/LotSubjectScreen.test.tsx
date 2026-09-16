@@ -41,7 +41,12 @@ describe('LotSubjectScreen', () => {
   it('routes to lot selection when a lot is tapped', async () => {
     const onSelectLot = jest.fn();
     await render(
-      <LotSubjectScreen lots={lots} onSelectLot={onSelectLot} onActivity={noop} onClearSelection={noop} />,
+      <LotSubjectScreen
+        lots={lots}
+        onSelectLot={onSelectLot}
+        onActivity={noop}
+        onClearSelection={noop}
+      />,
     );
 
     fireEvent.press(await screen.findByTestId('lot-row-lot-1'));
@@ -167,7 +172,12 @@ describe('LotSubjectScreen', () => {
     ];
 
     await render(
-      <LotSubjectScreen lots={mixedLots} onSelectLot={noop} onActivity={noop} onClearSelection={noop} />,
+      <LotSubjectScreen
+        lots={mixedLots}
+        onSelectLot={noop}
+        onActivity={noop}
+        onClearSelection={noop}
+      />,
     );
 
     expect(await screen.findByText('Engorde lote A [Por conteo]')).toBeTruthy();
@@ -222,7 +232,12 @@ describe('LotSubjectScreen', () => {
     ];
 
     await render(
-      <LotSubjectScreen lots={mixedLots} onSelectLot={noop} onActivity={noop} onClearSelection={noop} />,
+      <LotSubjectScreen
+        lots={mixedLots}
+        onSelectLot={noop}
+        onActivity={noop}
+        onClearSelection={noop}
+      />,
     );
     expect(await screen.findByText('MODOS DE SEGUIMIENTO')).toBeTruthy();
     expect(screen.getByText(/seguimiento colectivo de cabezas/i)).toBeTruthy();
@@ -230,9 +245,7 @@ describe('LotSubjectScreen', () => {
   });
 
   it('displays headcount mode explanation in detail view (T5.1, T5.2)', async () => {
-    const mixedLots = [
-      { groupId: 'lot-hc', label: 'Engorde lote A', trackingMode: 'Headcount' },
-    ];
+    const mixedLots = [{ groupId: 'lot-hc', label: 'Engorde lote A', trackingMode: 'Headcount' }];
 
     await render(
       <LotSubjectScreen
@@ -243,13 +256,15 @@ describe('LotSubjectScreen', () => {
         onClearSelection={noop}
       />,
     );
-    expect(await screen.findByText(/Lote por conteo: el inventario y las actividades se gestionan por número de cabezas/i)).toBeTruthy();
+    expect(
+      await screen.findByText(
+        /Lote por conteo: el inventario y las actividades se gestionan por número de cabezas/i,
+      ),
+    ).toBeTruthy();
   });
 
   it('displays individual mode explanation in detail view (T5.1, T5.2)', async () => {
-    const mixedLots = [
-      { groupId: 'lot-ind', label: 'Vacas Lecheras', trackingMode: 'Individual' },
-    ];
+    const mixedLots = [{ groupId: 'lot-ind', label: 'Vacas Lecheras', trackingMode: 'Individual' }];
 
     await render(
       <LotSubjectScreen
@@ -260,7 +275,11 @@ describe('LotSubjectScreen', () => {
         onClearSelection={noop}
       />,
     );
-    expect(await screen.findByText(/Grupo con identificación individual: cada animal conserva su arete/i)).toBeTruthy();
+    expect(
+      await screen.findByText(
+        /Grupo con identificación individual: cada animal conserva su arete/i,
+      ),
+    ).toBeTruthy();
   });
 
   it('displays calculable event dates and update limitation declaration in summary card (T5.3)', async () => {
@@ -294,7 +313,9 @@ describe('LotSubjectScreen', () => {
     expect(screen.getByText('Última vacunación: 2026-08-01')).toBeTruthy();
     expect(screen.getByText('Último tratamiento: 2026-08-05')).toBeTruthy();
     expect(
-      screen.getByText(/Ficha calculada en el servidor\. Los registros locales pendientes se reflejarán tras sincronizar\./i),
+      screen.getByText(
+        /Ficha calculada en el servidor\. Los registros locales pendientes se reflejarán tras sincronizar\./i,
+      ),
     ).toBeTruthy();
   });
 

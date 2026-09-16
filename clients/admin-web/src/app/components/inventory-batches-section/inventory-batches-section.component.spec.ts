@@ -121,7 +121,8 @@ describe('InventoryBatchesSectionComponent', () => {
     fixture.detectChanges();
     component.create();
     expect(apiStub.recordInventoryReception).toHaveBeenCalledTimes(1);
-    const [itemIdArg, body] = (apiStub.recordInventoryReception as ReturnType<typeof vi.fn>).mock.calls[0];
+    const [itemIdArg, body] = (apiStub.recordInventoryReception as ReturnType<typeof vi.fn>).mock
+      .calls[0];
     expect(itemIdArg).toBe('i1');
     expect(body.BatchNumber).toBe('L-99');
     expect(body.Quantity).toBe(12);
@@ -160,9 +161,9 @@ describe('InventoryBatchesSectionComponent', () => {
       (): Observable<string> =>
         new Observable<string>((subscriber) => {
           queueMicrotask(() =>
-            subscriber.error({ error: { detail: 'No hay conversión definida para "qq" → "kg".' } })
+            subscriber.error({ error: { detail: 'No hay conversión definida para "qq" → "kg".' } }),
           );
-        })
+        }),
     );
     const fixture = createFixture([]);
     const component = fixture.componentInstance;
@@ -178,7 +179,9 @@ describe('InventoryBatchesSectionComponent', () => {
     await Promise.resolve();
     await Promise.resolve();
     fixture.detectChanges();
-    expect(fixture.nativeElement.textContent).toContain('No hay conversión definida para "qq" → "kg".');
+    expect(fixture.nativeElement.textContent).toContain(
+      'No hay conversión definida para "qq" → "kg".',
+    );
   });
 
   it('renders the ReceivedAt and SupplierLabel columns with Ecuador local time', () => {
@@ -213,6 +216,8 @@ describe('InventoryBatchesSectionComponent', () => {
 
   it('does not render emoji', () => {
     const fixture = createFixture([fullReception, legacyBatch]);
-    expect(/[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}]/u.test(fixture.nativeElement.textContent)).toBe(false);
+    expect(/[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}]/u.test(fixture.nativeElement.textContent)).toBe(
+      false,
+    );
   });
 });

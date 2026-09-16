@@ -11,7 +11,9 @@
 
   <div *ngIf="successMessage" class="alert alert-success">{{ successMessage }}</div>
   <div *ngIf="errorMessage" class="alert alert-danger">{{ errorMessage }}</div>
-  <div *ngIf="loadError" class="alert alert-danger">No se pudo cargar la información de roles/usuarios.</div>
+  <div *ngIf="loadError" class="alert alert-danger">
+    No se pudo cargar la información de roles/usuarios.
+  </div>
 
   <!-- Existing roles -->
   <div class="table-container glass-card">
@@ -27,15 +29,25 @@
       </thead>
       <tbody>
         <tr *ngFor="let role of roles">
-          <td data-label="Código"><strong>{{ role.code }}</strong></td>
+          <td data-label="Código">
+            <strong>{{ role.code }}</strong>
+          </td>
           <td data-label="Nombre">{{ role.name }}</td>
           <td data-label="Tipo">
-            <span class="badge" [class.badge-info]="role.isSystem" [class.badge-success]="!role.isSystem">
+            <span
+              class="badge"
+              [class.badge-info]="role.isSystem"
+              [class.badge-success]="!role.isSystem"
+            >
               {{ role.isSystem ? 'Sistema' : 'Personalizado' }}
             </span>
           </td>
           <td data-label="Permisos">
-            <span class="badge badge-info" *ngFor="let p of role.permissions" style="margin-right: 0.25rem;">
+            <span
+              class="badge badge-info"
+              *ngFor="let p of role.permissions"
+              style="margin-right: 0.25rem"
+            >
               {{ p.code }}
             </span>
             <span *ngIf="role.permissions.length === 0" class="text-muted">Sin permisos</span>
@@ -44,14 +56,17 @@
             <button
               class="btn btn-secondary btn-sm"
               *ngIf="!role.isSystem"
-              (click)="startEditingRole(role)">
+              (click)="startEditingRole(role)"
+            >
               Editar
             </button>
             <span *ngIf="role.isSystem" class="field-hint">— rol de sistema —</span>
           </td>
         </tr>
         <tr *ngIf="roles.length === 0" class="empty-row">
-          <td colspan="5" data-label="Estado" class="text-center py-4 text-muted">No hay roles todavía.</td>
+          <td colspan="5" data-label="Estado" class="text-center py-4 text-muted">
+            No hay roles todavía.
+          </td>
         </tr>
       </tbody>
     </table>
@@ -63,11 +78,11 @@
     <div class="form-grid mt-2">
       <div class="form-group">
         <label class="form-label">Nombre:</label>
-        <input type="text" class="form-input" [(ngModel)]="editRoleName">
+        <input type="text" class="form-input" [(ngModel)]="editRoleName" />
       </div>
       <div class="form-group">
         <label class="form-label">Descripción:</label>
-        <input type="text" class="form-input" [(ngModel)]="editRoleDescription">
+        <input type="text" class="form-input" [(ngModel)]="editRoleDescription" />
       </div>
     </div>
 
@@ -78,7 +93,8 @@
           <input
             type="checkbox"
             [checked]="editRolePermissionIds.has(p.id)"
-            (change)="toggleEditPermission(p.id)">
+            (change)="toggleEditPermission(p.id)"
+          />
           {{ p.name }}
           <span class="field-hint">({{ p.code }})</span>
         </label>
@@ -97,15 +113,25 @@
     <div class="form-grid mt-2">
       <div class="form-group">
         <label class="form-label">Código:</label>
-        <input type="text" class="form-input" placeholder="ordenador-campo" [(ngModel)]="newRoleCode">
+        <input
+          type="text"
+          class="form-input"
+          placeholder="ordenador-campo"
+          [(ngModel)]="newRoleCode"
+        />
       </div>
       <div class="form-group">
         <label class="form-label">Nombre:</label>
-        <input type="text" class="form-input" placeholder="Ordeñador de campo" [(ngModel)]="newRoleName">
+        <input
+          type="text"
+          class="form-input"
+          placeholder="Ordeñador de campo"
+          [(ngModel)]="newRoleName"
+        />
       </div>
       <div class="form-group">
         <label class="form-label">Descripción:</label>
-        <input type="text" class="form-input" [(ngModel)]="newRoleDescription">
+        <input type="text" class="form-input" [(ngModel)]="newRoleDescription" />
       </div>
     </div>
 
@@ -116,7 +142,8 @@
           <input
             type="checkbox"
             [checked]="newRolePermissionIds.has(p.id)"
-            (change)="togglePermission(p.id)">
+            (change)="togglePermission(p.id)"
+          />
           {{ p.name }}
           <span class="field-hint">({{ p.code }})</span>
         </label>

@@ -13,7 +13,7 @@ import { IconComponent } from '../../shared/icon/icon.component';
   standalone: true,
   imports: [CommonModule, FormsModule, IconComponent],
   templateUrl: './audit-log.component.html',
-  styleUrls: ['./audit-log.component.css']
+  styleUrls: ['./audit-log.component.css'],
 })
 export class AuditLogComponent implements OnInit {
   private api = inject(ApiService);
@@ -38,22 +38,24 @@ export class AuditLogComponent implements OnInit {
 
   search(): void {
     this.loadError = false;
-    this.api.getAuditLogs({
-      userId: this.userIdFilter || undefined,
-      from: this.fromFilter ? new Date(this.fromFilter).toISOString() : undefined,
-      to: this.toFilter ? new Date(this.toFilter).toISOString() : undefined,
-      page: this.page,
-      pageSize: this.pageSize
-    }).subscribe({
-      next: (result) => {
-        this.logs = result.items;
-        this.totalCount = result.totalCount;
-      },
-      error: () => {
-        this.loadError = true;
-        this.logs = [];
-      }
-    });
+    this.api
+      .getAuditLogs({
+        userId: this.userIdFilter || undefined,
+        from: this.fromFilter ? new Date(this.fromFilter).toISOString() : undefined,
+        to: this.toFilter ? new Date(this.toFilter).toISOString() : undefined,
+        page: this.page,
+        pageSize: this.pageSize,
+      })
+      .subscribe({
+        next: (result) => {
+          this.logs = result.items;
+          this.totalCount = result.totalCount;
+        },
+        error: () => {
+          this.loadError = true;
+          this.logs = [];
+        },
+      });
   }
 
   get totalPages(): number {

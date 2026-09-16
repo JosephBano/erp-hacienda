@@ -54,7 +54,8 @@
         [itemId]="current.id"
         [defaultUnit]="current.unit"
         [batches]="batches()"
-        (changed)="reload()">
+        (changed)="reload()"
+      >
       </app-inventory-batches-section>
     </section>
 
@@ -62,7 +63,8 @@
       <app-inventory-unit-conversions-section
         [itemId]="current.id"
         [conversions]="conversions()"
-        (changed)="reload()">
+        (changed)="reload()"
+      >
       </app-inventory-unit-conversions-section>
     </section>
 
@@ -71,7 +73,8 @@
         [itemId]="current.id"
         [stages]="feedStages()"
         [feedStageId]="current.feedStageId"
-        (changed)="reload()">
+        (changed)="reload()"
+      >
       </app-inventory-feed-stage-section>
     </section>
 
@@ -84,7 +87,8 @@
       <div class="card-header">
         <h2>Consumos registrados</h2>
         <span class="summary-pill" data-testid="consumptions-30d-kpi">
-          Consumido últimos 30 días: <strong>{{ consumptionLast30DaysKg() | number:'1.0-3' }} {{ current.unit }}</strong>
+          Consumido últimos 30 días:
+          <strong>{{ consumptionLast30DaysKg() | number: '1.0-3' }} {{ current.unit }}</strong>
         </span>
       </div>
       <div *ngIf="consumptions().length === 0" class="empty-state" data-testid="consumptions-empty">
@@ -104,15 +108,17 @@
           <tbody>
             <tr *ngFor="let row of consumptions()" data-testid="consumption-row">
               <td data-label="Fecha">{{ row.consumedAt }}</td>
-              <td data-label="Lote"><strong>{{ row.groupName }}</strong></td>
+              <td data-label="Lote">
+                <strong>{{ row.groupName }}</strong>
+              </td>
               <td data-label="Cantidad registrada">
-                {{ row.quantityRecorded | number:'1.0-3' }} {{ row.unitRecorded }}
+                {{ row.quantityRecorded | number: '1.0-3' }} {{ row.unitRecorded }}
                 <span *ngIf="row.appliedFactor !== 1" class="text-muted">
                   (factor {{ row.appliedFactor }})
                 </span>
               </td>
               <td data-label="En unidad base">
-                <strong>{{ row.quantityInBaseUnit | number:'1.0-3' }} {{ current.unit }}</strong>
+                <strong>{{ row.quantityInBaseUnit | number: '1.0-3' }} {{ current.unit }}</strong>
               </td>
               <td data-label="Registrado por">{{ row.recordedByLabel }}</td>
             </tr>

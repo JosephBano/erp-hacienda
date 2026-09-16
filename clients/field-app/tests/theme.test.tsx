@@ -111,46 +111,78 @@ describe('Visual System — Design tokens and ergonomics', () => {
 
     it('exceeds 4.5:1 contrast for all text combinations in Light Theme', () => {
       // Primary text on primary action (6.19:1)
-      expect(getContrastRatio(lightPalette.primaryText, lightPalette.primary)).toBeGreaterThanOrEqual(4.5);
+      expect(
+        getContrastRatio(lightPalette.primaryText, lightPalette.primary),
+      ).toBeGreaterThanOrEqual(4.5);
 
       // Warning text on warning badge/notice (5.60:1)
-      expect(getContrastRatio(lightPalette.warningText, lightPalette.warning)).toBeGreaterThanOrEqual(4.5);
+      expect(
+        getContrastRatio(lightPalette.warningText, lightPalette.warning),
+      ).toBeGreaterThanOrEqual(4.5);
 
       // Danger text on danger action/notice (4.85:1)
-      expect(getContrastRatio(lightPalette.dangerText, lightPalette.danger)).toBeGreaterThanOrEqual(4.5);
+      expect(getContrastRatio(lightPalette.dangerText, lightPalette.danger)).toBeGreaterThanOrEqual(
+        4.5,
+      );
 
       // Normal text on canvas and surfaces (> 14:1)
-      expect(getContrastRatio(lightPalette.text, lightPalette.background)).toBeGreaterThanOrEqual(4.5);
+      expect(getContrastRatio(lightPalette.text, lightPalette.background)).toBeGreaterThanOrEqual(
+        4.5,
+      );
       expect(getContrastRatio(lightPalette.text, lightPalette.surface)).toBeGreaterThanOrEqual(4.5);
-      expect(getContrastRatio(lightPalette.text, lightPalette.surfaceRaised)).toBeGreaterThanOrEqual(4.5);
+      expect(
+        getContrastRatio(lightPalette.text, lightPalette.surfaceRaised),
+      ).toBeGreaterThanOrEqual(4.5);
 
       // Muted metadata text on canvas and surface (>= 4.5:1)
-      expect(getContrastRatio(lightPalette.textMuted, lightPalette.background)).toBeGreaterThanOrEqual(4.5);
-      expect(getContrastRatio(lightPalette.textMuted, lightPalette.surface)).toBeGreaterThanOrEqual(4.5);
+      expect(
+        getContrastRatio(lightPalette.textMuted, lightPalette.background),
+      ).toBeGreaterThanOrEqual(4.5);
+      expect(getContrastRatio(lightPalette.textMuted, lightPalette.surface)).toBeGreaterThanOrEqual(
+        4.5,
+      );
     });
 
     it('exceeds WCAG AA contrast for text combinations in Dark Theme', () => {
       // Primary text on primary action (6.43:1)
-      expect(getContrastRatio(darkPalette.primaryText, darkPalette.primary)).toBeGreaterThanOrEqual(4.5);
+      expect(getContrastRatio(darkPalette.primaryText, darkPalette.primary)).toBeGreaterThanOrEqual(
+        4.5,
+      );
 
       // Warning text on warning badge/notice (8.46:1)
-      expect(getContrastRatio(darkPalette.warningText, darkPalette.warning)).toBeGreaterThanOrEqual(4.5);
+      expect(getContrastRatio(darkPalette.warningText, darkPalette.warning)).toBeGreaterThanOrEqual(
+        4.5,
+      );
 
       // Normal text on canvas and surfaces (> 13:1)
-      expect(getContrastRatio(darkPalette.text, darkPalette.background)).toBeGreaterThanOrEqual(4.5);
+      expect(getContrastRatio(darkPalette.text, darkPalette.background)).toBeGreaterThanOrEqual(
+        4.5,
+      );
       expect(getContrastRatio(darkPalette.text, darkPalette.surface)).toBeGreaterThanOrEqual(4.5);
-      expect(getContrastRatio(darkPalette.text, darkPalette.surfaceRaised)).toBeGreaterThanOrEqual(4.5);
+      expect(getContrastRatio(darkPalette.text, darkPalette.surfaceRaised)).toBeGreaterThanOrEqual(
+        4.5,
+      );
 
       // Muted metadata text on canvas and surfaces (> 7:1)
-      expect(getContrastRatio(darkPalette.textMuted, darkPalette.background)).toBeGreaterThanOrEqual(4.5);
-      expect(getContrastRatio(darkPalette.textMuted, darkPalette.surface)).toBeGreaterThanOrEqual(4.5);
-      expect(getContrastRatio(darkPalette.textMuted, darkPalette.surfaceRaised)).toBeGreaterThanOrEqual(4.5);
+      expect(
+        getContrastRatio(darkPalette.textMuted, darkPalette.background),
+      ).toBeGreaterThanOrEqual(4.5);
+      expect(getContrastRatio(darkPalette.textMuted, darkPalette.surface)).toBeGreaterThanOrEqual(
+        4.5,
+      );
+      expect(
+        getContrastRatio(darkPalette.textMuted, darkPalette.surfaceRaised),
+      ).toBeGreaterThanOrEqual(4.5);
 
       // Danger indicator against dark background (4.78:1)
-      expect(getContrastRatio(darkPalette.danger, darkPalette.background)).toBeGreaterThanOrEqual(4.5);
+      expect(getContrastRatio(darkPalette.danger, darkPalette.background)).toBeGreaterThanOrEqual(
+        4.5,
+      );
 
       // Danger button text (18pt bold large control, WCAG AA requirement >= 3.0:1, achieves 3.92:1)
-      expect(getContrastRatio(darkPalette.dangerText, darkPalette.danger)).toBeGreaterThanOrEqual(3.0);
+      expect(getContrastRatio(darkPalette.dangerText, darkPalette.danger)).toBeGreaterThanOrEqual(
+        3.0,
+      );
     });
   });
 
@@ -312,7 +344,12 @@ describe('Visual System — Design tokens and ergonomics', () => {
           <View>
             <BigButton testID="btn-action" label="Registrar" />
             <NumberField testID="field-qty" label="Litros" value="10" onChangeText={() => {}} />
-            <TextField testID="field-notes" label="Notas" value="Observación" onChangeText={() => {}} />
+            <TextField
+              testID="field-notes"
+              label="Notas"
+              value="Observación"
+              onChangeText={() => {}}
+            />
           </View>,
         );
 

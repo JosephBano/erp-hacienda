@@ -52,7 +52,12 @@ describe('HttpSyncApi', () => {
 
     const api = makeApi(true);
     const result = await api.push([
-      { clientOperationId: 'op-1', operationType: 'recordMilking', occurredAt: new Date().toISOString(), payload: {} },
+      {
+        clientOperationId: 'op-1',
+        operationType: 'recordMilking',
+        occurredAt: new Date().toISOString(),
+        payload: {},
+      },
     ]);
 
     expect(result.processedCount).toBe(1);
@@ -71,7 +76,14 @@ describe('HttpSyncApi', () => {
     const api = makeApi(true);
 
     await expect(
-      api.push([{ clientOperationId: 'op-1', operationType: 'recordMilking', occurredAt: new Date().toISOString(), payload: {} }])
+      api.push([
+        {
+          clientOperationId: 'op-1',
+          operationType: 'recordMilking',
+          occurredAt: new Date().toISOString(),
+          payload: {},
+        },
+      ]),
     ).rejects.toThrow(AuthenticationExpiredError);
 
     // One original attempt, one retry with the refreshed token — never an unbounded loop.
@@ -89,7 +101,14 @@ describe('HttpSyncApi', () => {
     const api = makeApi(false);
 
     await expect(
-      api.push([{ clientOperationId: 'op-1', operationType: 'recordMilking', occurredAt: new Date().toISOString(), payload: {} }])
+      api.push([
+        {
+          clientOperationId: 'op-1',
+          operationType: 'recordMilking',
+          occurredAt: new Date().toISOString(),
+          payload: {},
+        },
+      ]),
     ).rejects.toThrow(AuthenticationExpiredError);
 
     expect(refreshCalls).toBe(1);
@@ -106,12 +125,21 @@ describe('HttpSyncApi', () => {
         return { ok: false, status: 401, text: async () => 'expired' } as Response;
       }
 
-      return { ok: true, status: 200, json: async () => ({ processedCount: 1, results: [] }) } as Response;
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({ processedCount: 1, results: [] }),
+      } as Response;
     }) as unknown as typeof fetch;
 
     const api = makeApi(true);
     await api.push([
-      { clientOperationId: 'stable-op-id', operationType: 'recordMilking', occurredAt: '2026-08-03T06:00:00.000Z', payload: { liters: 10 } },
+      {
+        clientOperationId: 'stable-op-id',
+        operationType: 'recordMilking',
+        occurredAt: '2026-08-03T06:00:00.000Z',
+        payload: { liters: 10 },
+      },
     ]);
 
     expect(bodiesSeen[0]).toBe(bodiesSeen[1]);

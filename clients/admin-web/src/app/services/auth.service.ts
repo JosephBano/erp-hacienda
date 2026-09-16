@@ -24,7 +24,7 @@ const TOKEN_KEY = 'hato_token';
 const USER_KEY = 'hato_user';
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class AuthService {
   private http = inject(HttpClient);
@@ -38,7 +38,7 @@ export class AuthService {
         sessionStorage.setItem(TOKEN_KEY, result.token);
         sessionStorage.setItem(USER_KEY, JSON.stringify(result));
         this.currentUser.set(result);
-      })
+      }),
     );
   }
 

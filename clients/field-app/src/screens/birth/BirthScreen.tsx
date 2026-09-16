@@ -78,9 +78,7 @@ export function BirthScreen({ service, dams, onRecorded, onCancel }: BirthScreen
       return;
     }
     setError(null);
-    setOffspring((curr) =>
-      curr.map((c, i) => (i === index ? { ...c, birthWeightKg: parsed } : c)),
-    );
+    setOffspring((curr) => curr.map((c, i) => (i === index ? { ...c, birthWeightKg: parsed } : c)));
   };
 
   const isDamObsolete = Boolean(

@@ -78,9 +78,14 @@ export function ActivitiesHub({
         <View style={styles.statusBox}>
           <Text
             testID="home-status-indicator"
-            style={[styles.statusTitle, { color: activeTheme.color.text, fontSize: activeTheme.font.body }]}
+            style={[
+              styles.statusTitle,
+              { color: activeTheme.color.text, fontSize: activeTheme.font.body },
+            ]}
           >
-            {pending === 0 ? 'Sincronizado con el servidor' : `● ${pending} registro(s) pendiente(s) de enviar`}
+            {pending === 0
+              ? 'Sincronizado con el servidor'
+              : `● ${pending} registro(s) pendiente(s) de enviar`}
           </Text>
           <Body testID="home-pending" muted>
             {`${pending} registro(s) sin enviar`}
@@ -187,12 +192,25 @@ export function ActivitiesHub({
           {recentEntries.map((entry) => (
             <View key={entry.clientOperationId} style={styles.recentRow}>
               <View style={styles.recentInfo}>
-                <Text style={[styles.recentOpText, { color: activeTheme.color.text, fontSize: activeTheme.font.label }]}>
+                <Text
+                  style={[
+                    styles.recentOpText,
+                    { color: activeTheme.color.text, fontSize: activeTheme.font.label },
+                  ]}
+                >
                   {formatOperationName(entry.operationType)}
                 </Text>
-                <Text style={[styles.recentDateText, { color: activeTheme.color.textMuted, fontSize: activeTheme.font.micro }]}>
+                <Text
+                  style={[
+                    styles.recentDateText,
+                    { color: activeTheme.color.textMuted, fontSize: activeTheme.font.micro },
+                  ]}
+                >
                   {entry.occurredAt
-                    ? new Date(entry.occurredAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                    ? new Date(entry.occurredAt).toLocaleTimeString([], {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })
                     : 'Hoy'}
                 </Text>
               </View>
@@ -257,4 +275,3 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
 });
-

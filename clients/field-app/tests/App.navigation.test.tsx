@@ -103,7 +103,6 @@ const SALT = 'salt-for-the-test';
 const pinHash = () =>
   require('crypto').createHash('sha256').update(`${SALT}:${PIN}`).digest('hex') as string;
 
-
 /**
  * Captures the handler App registers, so a test can press back the way the OS
  * does. The return value matters as much as the side effect: `false` is how a
@@ -247,4 +246,3 @@ describe('App — hardware back', () => {
     await waitFor(() => expect(screen.getByTestId('activities-hub')).toBeTruthy());
   });
 });
-

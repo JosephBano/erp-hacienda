@@ -1,12 +1,41 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  OnInit,
+  computed,
+  inject,
+  signal,
+} from '@angular/core';
 import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
-import { ApiService, AdministrationRouteDto, AnimalCategoryDto, BreedDto, FarmModuleDto, InventoryItemDto, MortalityCauseDto, SpeciesDto, TreatmentReasonDto } from '../../services/api.service';
-import { CatalogTableComponent, CatalogColumn, CatalogAction } from '../../shared/catalog-table/catalog-table.component';
+import {
+  ApiService,
+  AdministrationRouteDto,
+  AnimalCategoryDto,
+  BreedDto,
+  FarmModuleDto,
+  InventoryItemDto,
+  MortalityCauseDto,
+  SpeciesDto,
+  TreatmentReasonDto,
+} from '../../services/api.service';
+import {
+  CatalogTableComponent,
+  CatalogColumn,
+  CatalogAction,
+} from '../../shared/catalog-table/catalog-table.component';
 import { IconComponent } from '../../shared/icon/icon.component';
 
-type TabKey = 'species' | 'breeds' | 'categories' | 'mortality' | 'routes' | 'reasons' | 'inventory' | 'modules';
+type TabKey =
+  | 'species'
+  | 'breeds'
+  | 'categories'
+  | 'mortality'
+  | 'routes'
+  | 'reasons'
+  | 'inventory'
+  | 'modules';
 
 interface Tab {
   key: TabKey;
@@ -101,13 +130,9 @@ export class CatalogsComponent implements OnInit {
     { key: 'isMilkable', label: 'Ordeñable', boolean: true },
   ]);
 
-  readonly breedColumns: CatalogColumn<BreedDto>[] = [
-    { key: 'name', label: 'Nombre' },
-  ];
+  readonly breedColumns: CatalogColumn<BreedDto>[] = [{ key: 'name', label: 'Nombre' }];
 
-  readonly categoryColumns: CatalogColumn<AnimalCategoryDto>[] = [
-    { key: 'name', label: 'Nombre' },
-  ];
+  readonly categoryColumns: CatalogColumn<AnimalCategoryDto>[] = [{ key: 'name', label: 'Nombre' }];
 
   readonly mortalityColumns: CatalogColumn<MortalityCauseDto>[] = [
     { key: 'name', label: 'Nombre' },
@@ -163,14 +188,30 @@ export class CatalogsComponent implements OnInit {
 
   private loadForTab(key: TabKey): void {
     switch (key) {
-      case 'species': this.loadSpecies(); break;
-      case 'breeds': this.loadBreeds(); break;
-      case 'categories': this.loadCategories(); break;
-      case 'mortality': this.loadMortalityCauses(); break;
-      case 'routes': this.loadAdminRoutes(); break;
-      case 'reasons': this.loadTreatmentReasons(); break;
-      case 'inventory': this.loadInventoryItems(); break;
-      case 'modules': this.loadFarmModules(); break;
+      case 'species':
+        this.loadSpecies();
+        break;
+      case 'breeds':
+        this.loadBreeds();
+        break;
+      case 'categories':
+        this.loadCategories();
+        break;
+      case 'mortality':
+        this.loadMortalityCauses();
+        break;
+      case 'routes':
+        this.loadAdminRoutes();
+        break;
+      case 'reasons':
+        this.loadTreatmentReasons();
+        break;
+      case 'inventory':
+        this.loadInventoryItems();
+        break;
+      case 'modules':
+        this.loadFarmModules();
+        break;
     }
   }
 
@@ -230,11 +271,17 @@ export class CatalogsComponent implements OnInit {
     });
   }
 
-  onInventoryAction(event: { action: CatalogAction<InventoryItemDto>; row: InventoryItemDto }): void {
+  onInventoryAction(event: {
+    action: CatalogAction<InventoryItemDto>;
+    row: InventoryItemDto;
+  }): void {
     if (event.action.label === 'Detalle') this.router.navigate(['/inventory/items', event.row.id]);
   }
 
-  onMortalityAction(event: { action: CatalogAction<MortalityCauseDto>; row: MortalityCauseDto }): void {
+  onMortalityAction(event: {
+    action: CatalogAction<MortalityCauseDto>;
+    row: MortalityCauseDto;
+  }): void {
     if (event.action.label === 'Desactivar') {
       this.api.deactivateMortalityCause(event.row.id).subscribe({
         next: () => {
@@ -246,7 +293,10 @@ export class CatalogsComponent implements OnInit {
     }
   }
 
-  onRouteAction(event: { action: CatalogAction<AdministrationRouteDto>; row: AdministrationRouteDto }): void {
+  onRouteAction(event: {
+    action: CatalogAction<AdministrationRouteDto>;
+    row: AdministrationRouteDto;
+  }): void {
     if (event.action.label === 'Desactivar') {
       this.api.deactivateAdministrationRoute(event.row.id).subscribe({
         next: () => {
@@ -266,7 +316,10 @@ export class CatalogsComponent implements OnInit {
     }
   }
 
-  onReasonAction(event: { action: CatalogAction<TreatmentReasonDto>; row: TreatmentReasonDto }): void {
+  onReasonAction(event: {
+    action: CatalogAction<TreatmentReasonDto>;
+    row: TreatmentReasonDto;
+  }): void {
     if (event.action.label === 'Desactivar') {
       this.api.deactivateTreatmentReason(event.row.id).subscribe({
         next: () => {
@@ -373,26 +426,28 @@ export class CatalogsComponent implements OnInit {
     const description = this.newItemDescription.trim() || undefined;
 
     this.submittingItem = true;
-    this.api.createInventoryItem({
-      name,
-      category: this.newItemCategory,
-      unit,
-      minStock,
-      description,
-    }).subscribe({
-      next: (response) => {
-        this.submittingItem = false;
-        this.successMessage = `Ítem "${name}" creado.`;
-        this.showItemForm = false;
-        this.resetItemForm();
-        this.loadInventoryItems();
-        // Optional: navegar al detalle del ítem recién creado para configurar conversión
-        // y registrar una primera recepción sin pasos extra. Lo dejamos como decisión
-        // del usuario — la tabla ya muestra el nuevo ítem.
-        void response;
-      },
-      error: (err: unknown) => this.handleError(err, 'crear el ítem'),
-    });
+    this.api
+      .createInventoryItem({
+        name,
+        category: this.newItemCategory,
+        unit,
+        minStock,
+        description,
+      })
+      .subscribe({
+        next: (response) => {
+          this.submittingItem = false;
+          this.successMessage = `Ítem "${name}" creado.`;
+          this.showItemForm = false;
+          this.resetItemForm();
+          this.loadInventoryItems();
+          // Optional: navegar al detalle del ítem recién creado para configurar conversión
+          // y registrar una primera recepción sin pasos extra. Lo dejamos como decisión
+          // del usuario — la tabla ya muestra el nuevo ítem.
+          void response;
+        },
+        error: (err: unknown) => this.handleError(err, 'crear el ítem'),
+      });
   }
 
   toggleFarmModule(module: FarmModuleDto): void {
@@ -428,9 +483,10 @@ export class CatalogsComponent implements OnInit {
   }
 
   private handleError(err: unknown, what: string): void {
-    const detail = (err as { error?: { detail?: string }; message?: string })?.error?.detail
-      ?? (err as { message?: string })?.message
-      ?? 'Error desconocido';
+    const detail =
+      (err as { error?: { detail?: string }; message?: string })?.error?.detail ??
+      (err as { message?: string })?.message ??
+      'Error desconocido';
     this.errorMessage = `No se pudo ${what}: ${detail}`;
   }
 }

@@ -162,7 +162,9 @@ export function VaccinateScreen({
       });
       const recordedLabel = animal.label;
       reset();
-      setSaveNotice(`Vacunación de ${recordedLabel} guardada en este teléfono. Pendiente de enviar.`);
+      setSaveNotice(
+        `Vacunación de ${recordedLabel} guardada en este teléfono. Pendiente de enviar.`,
+      );
       onRecorded?.();
     } catch (caught) {
       setError((caught as Error).message);
@@ -188,14 +190,21 @@ export function VaccinateScreen({
   // animal label, the catalog warning and the error notice it is what overflows
   // on a short screen, and "Confirmar" is the control that goes out of reach.
   const scrollable = !(
-    (step === 'animal' && animals.length > 0) || (step === 'product' && products.length > 0)
+    (step === 'animal' && animals.length > 0) ||
+    (step === 'product' && products.length > 0)
   );
 
   return (
     <Screen testID="vaccinate-screen" scrollable={scrollable}>
       <FormHeader
         title={step === 'animal' ? 'Vacunar animal' : 'Vacunación'}
-        subtitle={step === 'animal' ? 'Seleccione el animal a vacunar' : step === 'product' ? 'Seleccione la vacuna' : 'Revise y confirme el registro'}
+        subtitle={
+          step === 'animal'
+            ? 'Seleccione el animal a vacunar'
+            : step === 'product'
+              ? 'Seleccione la vacuna'
+              : 'Revise y confirme el registro'
+        }
         animalLabel={step !== 'confirm' ? animal?.label : undefined}
         onCancel={cancel}
         testID="vaccinate-header"

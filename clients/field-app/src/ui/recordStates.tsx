@@ -1,11 +1,5 @@
 import React from 'react';
-import {
-  ActivityIndicator,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { useTheme } from './theme';
 
@@ -35,24 +29,36 @@ export function formatOperationError(errorDetails?: string | null): string {
   }
 
   // Errores de red y conectividad
-  if (/network request failed|failed to fetch|econnrefused|sockettimeout|timed out|enotfound/i.test(raw)) {
+  if (
+    /network request failed|failed to fetch|econnrefused|sockettimeout|timed out|enotfound/i.test(
+      raw,
+    )
+  ) {
     return 'Sin conexión con el servidor. El registro está guardado en este teléfono y se enviará cuando haya señal.';
   }
 
   // Sesión y autenticación
-  if (/\b401\b|unauthorized|jwt expired|token expired|token inv[aá]lido|sesi[oó]n expirada|sesi[oó]n caduc/i.test(raw)) {
+  if (
+    /\b401\b|unauthorized|jwt expired|token expired|token inv[aá]lido|sesi[oó]n expirada|sesi[oó]n caduc/i.test(
+      raw,
+    )
+  ) {
     return 'La sesión caducó. Sus registros locales están a salvo. Inicie sesión para reanudar el envío.';
   }
 
   // Permisos y autorización
-  if (/\b403\b|permission denied|permissiondenied|lacks permission|forbidden|no tiene permiso|no autorizado|acceso denegado/i.test(raw)) {
+  if (
+    /\b403\b|permission denied|permissiondenied|lacks permission|forbidden|no tiene permiso|no autorizado|acceso denegado/i.test(
+      raw,
+    )
+  ) {
     return 'No tiene permisos para registrar esta actividad en el sistema.';
   }
 
   // Incompatibilidad por sexo o aptitud biológica
   if (
     /(male|macho).*(milking|ordeño)|(milking|ordeño).*(male|macho)|(male|macho).*(birth|parto)|(birth|parto).*(male|macho)|incompatible.*sex|no apto por sexo|sexo no compatible|parto solo aplica a hembras/i.test(
-      raw
+      raw,
     )
   ) {
     return 'El animal seleccionado no es apto para esta actividad (sexo o condición biológica no compatible).';
@@ -69,7 +75,11 @@ export function formatOperationError(errorDetails?: string | null): string {
   }
 
   // Duplicados o conflicto de clave única
-  if (/duplicate|already exists|unique constraint|ya existe|ya asignado|identificador duplicado|arete duplicado/i.test(raw)) {
+  if (
+    /duplicate|already exists|unique constraint|ya existe|ya asignado|identificador duplicado|arete duplicado/i.test(
+      raw,
+    )
+  ) {
     return 'El número de arete o identificador ya está asignado a otro animal.';
   }
 
@@ -84,7 +94,11 @@ export function formatOperationError(errorDetails?: string | null): string {
   }
 
   // Excepciones técnicas del servidor (stack traces, SQL, Npgsql, 500)
-  if (/Exception\b|PostgresException|Npgsql|SqlException|System\.|Error 500\b|Internal Server Error/i.test(raw)) {
+  if (
+    /Exception\b|PostgresException|Npgsql|SqlException|System\.|Error 500\b|Internal Server Error/i.test(
+      raw,
+    )
+  ) {
     return 'Ocurrió un error en el servidor al procesar la solicitud. El registro se conserva intacto en el teléfono.';
   }
 
@@ -99,15 +113,18 @@ export function formatOperationError(errorDetails?: string | null): string {
   // 2. Nombres de tablas de base de datos y preposiciones asociadas
   cleaned = cleaned.replace(
     /\b(en la tabla|en tabla|de la tabla|in table|in\s+|en\s+|table\s*)['"]?(sync_outbox|milk_yields|animal_events|birth_events|animals|animal_groups|treatments|medications)['"]?/gi,
-    ''
+    '',
   );
   cleaned = cleaned.replace(
     /\b(sync_outbox|milk_yields|animal_events|birth_events|animals|animal_groups|treatments|medications)\b/gi,
-    ''
+    '',
   );
 
   // 3. UUIDs crudos (formato 8-4-4-4-12)
-  cleaned = cleaned.replace(/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}/g, '');
+  cleaned = cleaned.replace(
+    /[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}/g,
+    '',
+  );
 
   // 4. Limpieza de puntuación y preposiciones huérfanas
   cleaned = cleaned.replace(/\s+/g, ' ');
@@ -188,7 +205,8 @@ export function RecordStatusBadge({
       case 'accepted_pull_pending':
         return {
           defaultLabel: 'Aceptado (descarga pendiente)',
-          defaultA11y: 'Ese registro llegó al servidor. Todavía faltan cambios por recibir en el teléfono.',
+          defaultA11y:
+            'Ese registro llegó al servidor. Todavía faltan cambios por recibir en el teléfono.',
           bg: activeTheme.color.surfaceRaised,
           textColor: activeTheme.color.text,
           borderColor: activeTheme.color.border,
@@ -262,13 +280,7 @@ export function RecordStatusBadge({
 // -----------------------------------------------------------------------------
 
 export type SyncState =
-  | 'offline_pending'
-  | 'pushing'
-  | 'pulling'
-  | 'syncing'
-  | 'auth_expired'
-  | 'error'
-  | 'synced';
+  'offline_pending' | 'pushing' | 'pulling' | 'syncing' | 'auth_expired' | 'error' | 'synced';
 
 export interface SyncStateNoticeProps {
   state: SyncState;
@@ -346,7 +358,8 @@ export function SyncStateNotice({
       case 'auth_expired':
         return {
           title: 'Sesión expirada',
-          message: 'Sesión expirada. Su trabajo está guardado localmente. Inicie sesión para reanudar el envío.',
+          message:
+            'Sesión expirada. Su trabajo está guardado localmente. Inicie sesión para reanudar el envío.',
           bg: activeTheme.color.surfaceRaised,
           borderColor: activeTheme.color.warning,
           textColor: activeTheme.color.text,
@@ -391,7 +404,12 @@ export function SyncStateNotice({
       ]}
     >
       <View style={styles.noticeHeader}>
-        <Text style={[styles.noticeTitle, { color: details.textColor, fontSize: activeTheme.font.body }]}>
+        <Text
+          style={[
+            styles.noticeTitle,
+            { color: details.textColor, fontSize: activeTheme.font.body },
+          ]}
+        >
           {details.title}
         </Text>
         {(state === 'pushing' || state === 'pulling' || state === 'syncing') && (
@@ -399,7 +417,12 @@ export function SyncStateNotice({
         )}
       </View>
 
-      <Text style={[styles.noticeBody, { color: activeTheme.color.textMuted, fontSize: activeTheme.font.label }]}>
+      <Text
+        style={[
+          styles.noticeBody,
+          { color: activeTheme.color.textMuted, fontSize: activeTheme.font.label },
+        ]}
+      >
         {details.message}
       </Text>
 
@@ -419,7 +442,12 @@ export function SyncStateNotice({
             },
           ]}
         >
-          <Text style={[styles.actionButtonText, { color: activeTheme.color.text, fontSize: activeTheme.font.body }]}>
+          <Text
+            style={[
+              styles.actionButtonText,
+              { color: activeTheme.color.text, fontSize: activeTheme.font.body },
+            ]}
+          >
             {actionLabel}
           </Text>
         </Pressable>
@@ -441,7 +469,12 @@ export function SyncStateNotice({
             },
           ]}
         >
-          <Text style={[styles.actionButtonText, { color: activeTheme.color.textMuted, fontSize: activeTheme.font.label }]}>
+          <Text
+            style={[
+              styles.actionButtonText,
+              { color: activeTheme.color.textMuted, fontSize: activeTheme.font.label },
+            ]}
+          >
             {diagnosticLabel}
           </Text>
         </Pressable>
@@ -782,7 +815,9 @@ export function RejectedOperationCard({
       </View>
 
       {/* Acciones disponibles con touchTarget >= 64 */}
-      <View style={[styles.actionsRow, { gap: activeTheme.space.sm, marginTop: activeTheme.space.xs }]}>
+      <View
+        style={[styles.actionsRow, { gap: activeTheme.space.sm, marginTop: activeTheme.space.xs }]}
+      >
         {onRetry ? (
           <Pressable
             testID="rejected-retry"
@@ -926,7 +961,8 @@ export function LocalStorageErrorNotice({
           { color: activeTheme.color.text, fontSize: activeTheme.font.body },
         ]}
       >
-        No se pudo guardar el registro en este teléfono. Conserve los datos en pantalla e intente guardar nuevamente. No cierre ni desinstale la aplicación para evitar perder su información.
+        No se pudo guardar el registro en este teléfono. Conserve los datos en pantalla e intente
+        guardar nuevamente. No cierre ni desinstale la aplicación para evitar perder su información.
       </Text>
 
       {errorMessage ? (
@@ -1024,7 +1060,8 @@ export function SessionExpiredNotice({
           { color: activeTheme.color.text, fontSize: activeTheme.font.body },
         ]}
       >
-        Sesión expirada. Su trabajo está guardado localmente en este teléfono. Inicie sesión para reanudar el envío al servidor.
+        Sesión expirada. Su trabajo está guardado localmente en este teléfono. Inicie sesión para
+        reanudar el envío al servidor.
       </Text>
 
       {onSignIn ? (

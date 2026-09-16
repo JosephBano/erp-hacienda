@@ -39,14 +39,7 @@ describe('EventsScreen', () => {
   // Treatment and vaccination moved to TreatScreen/VaccinateScreen (3.5a.2-C);
   // this menu now covers weighing, lot moves and disposal only.
   it('starts at the menu with the event options', async () => {
-    await render(
-      <EventsScreen
-        service={service}
-        database={database}
-        animals={[]}
-        groups={[]}
-      />,
-    );
+    await render(<EventsScreen service={service} database={database} animals={[]} groups={[]} />);
 
     expect(await screen.findByTestId('mode-weight')).toBeTruthy();
     expect(screen.getByTestId('mode-move')).toBeTruthy();

@@ -79,7 +79,11 @@ export class HttpSyncApi implements SyncApi {
     return this.request<PullResponse>(`/api/v1/sync/pull${suffix}`, { method: 'GET' });
   }
 
-  async setFarmModuleEnabled(key: string, enabled: boolean, disabledReason?: string): Promise<void> {
+  async setFarmModuleEnabled(
+    key: string,
+    enabled: boolean,
+    disabledReason?: string,
+  ): Promise<void> {
     await this.request<void>(`/api/v1/farm-modules/${encodeURIComponent(key)}`, {
       method: 'PATCH',
       body: JSON.stringify({ enabled, disabledReason: disabledReason ?? null }),

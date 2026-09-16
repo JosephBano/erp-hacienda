@@ -77,7 +77,9 @@ describe('TreatScreen', () => {
   let outbox: Outbox;
   let service: EventService;
 
-  const animals = [{ animalId: 'pig-1', label: 'Cerdo 01', speciesId: 'species-1', categoryId: null }];
+  const animals = [
+    { animalId: 'pig-1', label: 'Cerdo 01', speciesId: 'species-1', categoryId: null },
+  ];
   const products = [{ itemId: 'item-1', name: 'Antibiótico X', unit: 'ml' }];
 
   beforeEach(async () => {
@@ -296,7 +298,9 @@ describe('TreatScreen', () => {
 
       const confirmButton = await screen.findByTestId('treat-confirm');
       expect(countScrollers(screen.toJSON())).toBe(1);
-      expect(flatten(screen.getByTestId('treat-screen').props.contentContainerStyle).flexGrow).toBe(1);
+      expect(flatten(screen.getByTestId('treat-screen').props.contentContainerStyle).flexGrow).toBe(
+        1,
+      );
       expect(clampsInsideScreen('treat-screen', screen.toJSON())).not.toContain(1);
 
       // Same act()+microtask dance as VaccinateScreen.test.tsx: the press starts an

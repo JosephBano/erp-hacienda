@@ -22,8 +22,20 @@ describe('MilkingScreen: obsolete animal handling and draft preservation', () =>
 
   const speciesId = 'species-bovino';
   const candidates = [
-    { animalId: 'cow-1', label: 'La Pinta', isWithheld: false, speciesIsMilkable: true, sex: 'Female' },
-    { animalId: 'cow-2', label: 'La Negra', isWithheld: false, speciesIsMilkable: true, sex: 'Female' },
+    {
+      animalId: 'cow-1',
+      label: 'La Pinta',
+      isWithheld: false,
+      speciesIsMilkable: true,
+      sex: 'Female',
+    },
+    {
+      animalId: 'cow-2',
+      label: 'La Negra',
+      isWithheld: false,
+      speciesIsMilkable: true,
+      sex: 'Female',
+    },
   ];
 
   beforeEach(async () => {
@@ -83,7 +95,13 @@ describe('MilkingScreen: obsolete animal handling and draft preservation', () =>
 
     // Simulate sync updating candidates: cow-1 is no longer eligible (disposed or male)
     const updatedCandidates = [
-      { animalId: 'cow-2', label: 'La Negra', isWithheld: false, speciesIsMilkable: true, sex: 'Female' },
+      {
+        animalId: 'cow-2',
+        label: 'La Negra',
+        isWithheld: false,
+        speciesIsMilkable: true,
+        sex: 'Female',
+      },
     ];
     await rerender(
       <MilkingScreen

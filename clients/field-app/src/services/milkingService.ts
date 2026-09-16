@@ -277,7 +277,9 @@ export class MilkingService {
 
     const speciesId = animal.speciesId;
     if (!speciesId) {
-      throw new Error('El animal no tiene especie asociada. Sincronice para descargar el catálogo.');
+      throw new Error(
+        'El animal no tiene especie asociada. Sincronice para descargar el catálogo.',
+      );
     }
 
     let species: Species | undefined;

@@ -77,7 +77,12 @@ describe('MilkingScreen plausibility (ADR-0022): improbable value requires confi
 
   it('requires explicit confirmation for an improbable value and records it once confirmed', async () => {
     await render(
-      <MilkingScreen service={service} database={database} candidates={[candidate]} recordedBy="tester@hato" />,
+      <MilkingScreen
+        service={service}
+        database={database}
+        candidates={[candidate]}
+        recordedBy="tester@hato"
+      />,
     );
 
     const cowButton = await screen.findByTestId('cow-cow-1');

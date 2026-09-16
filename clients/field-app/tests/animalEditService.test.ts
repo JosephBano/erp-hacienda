@@ -43,7 +43,12 @@ describe('AnimalEditService', () => {
   });
 
   it('queues an updateAnimal operation with the requested fields', async () => {
-    await service.editAnimal({ animalId: 'animal-1', breedId: 'breed-1', categoryId: 'cat-1', birthDate: '2025-01-01' });
+    await service.editAnimal({
+      animalId: 'animal-1',
+      breedId: 'breed-1',
+      categoryId: 'cat-1',
+      birthDate: '2025-01-01',
+    });
 
     const [entry] = await outbox.pending();
     expect(entry.operationType).toBe('updateAnimal');
@@ -90,9 +95,9 @@ describe('AnimalEditService', () => {
   });
 
   it('refuses to edit an animal this device has never pulled', async () => {
-    await expect(service.editAnimal({ animalId: 'unknown-animal', breedId: 'breed-1' })).rejects.toThrow(
-      /no (se encontr|existe)/i,
-    );
+    await expect(
+      service.editAnimal({ animalId: 'unknown-animal', breedId: 'breed-1' }),
+    ).rejects.toThrow(/no (se encontr|existe)/i);
 
     expect(await outbox.pending()).toHaveLength(0);
   });

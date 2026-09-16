@@ -82,7 +82,9 @@ describe('draft guard', () => {
 
     expect(left).toEqual([]);
     // The dose is still there: saying "stay" must not cost the entry either.
-    expect((view.getByTestId('dose') as unknown as { props: { value: string } }).props.value).toBe('12');
+    expect((view.getByTestId('dose') as unknown as { props: { value: string } }).props.value).toBe(
+      '12',
+    );
   });
 
   it('leaves once, and only once, when they choose to discard', async () => {

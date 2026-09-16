@@ -180,7 +180,10 @@ describe('BirthScreen — borradores y regreso entre pasos', () => {
     await act(async () => {
       view.rerender(
         <DraftGuardProvider onDirtyChange={() => undefined}>
-          <BirthScreen service={service} dams={[{ ...damA }, { ...damB }, { ...damB, animalId: 'dam-3' }]} />
+          <BirthScreen
+            service={service}
+            dams={[{ ...damA }, { ...damB }, { ...damB, animalId: 'dam-3' }]}
+          />
         </DraftGuardProvider>,
       );
     });

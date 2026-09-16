@@ -174,15 +174,20 @@ describe('local schema', () => {
   });
 
   it('defines a migration from version 10 to 11 creating pregnancies and breeding_services (T4.14)', () => {
-    const allMigrations = (migrations as any).sortedMigrations ?? (migrations as any).migrations ?? [];
+    const allMigrations =
+      (migrations as any).sortedMigrations ?? (migrations as any).migrations ?? [];
     const v11Migration = allMigrations.find((m: any) => m.toVersion === 11);
     expect(v11Migration).toBeDefined();
 
     const tableNames = v11Migration?.steps.map((s: any) => s.schema?.name ?? s.name);
     expect(tableNames).toEqual(['pregnancies', 'breeding_services']);
 
-    const pregStep = v11Migration?.steps.find((s: any) => (s.schema?.name ?? s.name) === 'pregnancies') as any;
-    const servStep = v11Migration?.steps.find((s: any) => (s.schema?.name ?? s.name) === 'breeding_services') as any;
+    const pregStep = v11Migration?.steps.find(
+      (s: any) => (s.schema?.name ?? s.name) === 'pregnancies',
+    ) as any;
+    const servStep = v11Migration?.steps.find(
+      (s: any) => (s.schema?.name ?? s.name) === 'breeding_services',
+    ) as any;
 
     expect(pregStep.type).toBe('create_table');
     expect(servStep.type).toBe('create_table');
@@ -212,7 +217,8 @@ describe('local schema', () => {
   });
 
   it('defines a migration from version 11 to 12 adding disposed_at to animals (T1.4)', () => {
-    const allMigrations = (migrations as any).sortedMigrations ?? (migrations as any).migrations ?? [];
+    const allMigrations =
+      (migrations as any).sortedMigrations ?? (migrations as any).migrations ?? [];
     const v12Migration = allMigrations.find((m: any) => m.toVersion === 12);
     expect(v12Migration).toBeDefined();
 
@@ -220,9 +226,7 @@ describe('local schema', () => {
     const step = v12Migration?.steps[0];
     expect(step.type).toBe('add_columns');
     expect(step.table).toBe('animals');
-    expect(step.columns).toEqual([
-      { name: 'disposed_at', type: 'string', isOptional: true },
-    ]);
+    expect(step.columns).toEqual([{ name: 'disposed_at', type: 'string', isOptional: true }]);
   });
 
   it('preserves sync_outbox and existing animal data across migration to version 12 (T1.5, T1.6)', async () => {
@@ -267,6 +271,3 @@ describe('local schema', () => {
     expect(animal.disposedAt).toBe('2026-08-05T10:00:00Z');
   });
 });
-
-
-

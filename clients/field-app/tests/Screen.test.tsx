@@ -21,7 +21,10 @@ describe('Screen', () => {
     if (!node || typeof node !== 'object') return 0;
     const element = node as { type?: string; children?: unknown[] };
     const self = element.type === 'RCTScrollView' || element.type === 'ScrollView' ? 1 : 0;
-    return (element.children ?? []).reduce<number>((acc, child) => acc + countScrollers(child), self);
+    return (element.children ?? []).reduce<number>(
+      (acc, child) => acc + countScrollers(child),
+      self,
+    );
   };
 
   const flatten = (style: unknown): Record<string, unknown> =>
@@ -46,7 +49,12 @@ describe('Screen', () => {
     await render(
       <Screen testID="tall" scrollable>
         {Array.from({ length: 12 }, (_, index) => (
-          <BigButton key={index} testID={`row-${index}`} label={`Fila ${index}`} onPress={() => undefined} />
+          <BigButton
+            key={index}
+            testID={`row-${index}`}
+            label={`Fila ${index}`}
+            onPress={() => undefined}
+          />
         ))}
       </Screen>,
     );

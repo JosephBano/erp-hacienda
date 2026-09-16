@@ -38,7 +38,10 @@ describe('MilkingScreen scrolling', () => {
     if (!node || typeof node !== 'object') return 0;
     const element = node as { type?: string; children?: unknown[] };
     const self = element.type === 'RCTScrollView' || element.type === 'ScrollView' ? 1 : 0;
-    return (element.children ?? []).reduce<number>((acc, child) => acc + countScrollers(child), self);
+    return (element.children ?? []).reduce<number>(
+      (acc, child) => acc + countScrollers(child),
+      self,
+    );
   };
 
   const flatten = (style: unknown): Record<string, unknown> =>
@@ -81,7 +84,12 @@ describe('MilkingScreen scrolling', () => {
 
   it('keeps the picker on its own bounded list and does not open a second scroller', async () => {
     await render(
-      <MilkingScreen service={service} database={database} candidates={candidates} recordedBy="tester@hato" />,
+      <MilkingScreen
+        service={service}
+        database={database}
+        candidates={candidates}
+        recordedBy="tester@hato"
+      />,
     );
 
     expect(await screen.findByTestId('cow-list')).toBeTruthy();
@@ -92,7 +100,12 @@ describe('MilkingScreen scrolling', () => {
 
   it('scrolls the whole screen once a cow is selected, with nothing nested inside', async () => {
     await render(
-      <MilkingScreen service={service} database={database} candidates={candidates} recordedBy="tester@hato" />,
+      <MilkingScreen
+        service={service}
+        database={database}
+        candidates={candidates}
+        recordedBy="tester@hato"
+      />,
     );
 
     await act(async () => {
@@ -116,7 +129,12 @@ describe('MilkingScreen scrolling', () => {
 
   it('keeps the form tail reachable and pressable with the whole card rendered', async () => {
     await render(
-      <MilkingScreen service={service} database={database} candidates={candidates} recordedBy="tester@hato" />,
+      <MilkingScreen
+        service={service}
+        database={database}
+        candidates={candidates}
+        recordedBy="tester@hato"
+      />,
     );
 
     await act(async () => {

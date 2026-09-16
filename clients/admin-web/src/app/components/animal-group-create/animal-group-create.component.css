@@ -46,7 +46,7 @@
   border-color: var(--border-hover);
 }
 
-.radio-row input[type="radio"] {
+.radio-row input[type='radio'] {
   margin-top: 0.25rem;
   flex: 0 0 auto;
   accent-color: var(--brand-primary);

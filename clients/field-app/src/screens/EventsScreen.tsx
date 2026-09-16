@@ -195,8 +195,18 @@ export function EventsScreen({
         <Title>Registrar evento</Title>
         {confirmation ? <Body muted>{confirmation}</Body> : null}
         <BigButton testID="mode-weight" label="Pesaje" onPress={() => setMode('weight')} />
-        <BigButton testID="mode-move" label="Cambio de lote" tone="neutral" onPress={() => setMode('move')} />
-        <BigButton testID="mode-disposal" label="Baja con causa" tone="neutral" onPress={() => setMode('disposal')} />
+        <BigButton
+          testID="mode-move"
+          label="Cambio de lote"
+          tone="neutral"
+          onPress={() => setMode('move')}
+        />
+        <BigButton
+          testID="mode-disposal"
+          label="Baja con causa"
+          tone="neutral"
+          onPress={() => setMode('disposal')}
+        />
       </Screen>
     );
   }
@@ -369,7 +379,9 @@ export function EventsScreen({
                 <View style={styles.listInner}>
                   {animal.motherId ? (
                     <Body muted>
-                      Madre: {animals.find((a) => a.animalId === animal.motherId)?.label ?? animal.motherId}
+                      Madre:{' '}
+                      {animals.find((a) => a.animalId === animal.motherId)?.label ??
+                        animal.motherId}
                     </Body>
                   ) : null}
                   {!cause ? (

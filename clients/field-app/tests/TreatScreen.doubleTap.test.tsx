@@ -29,7 +29,9 @@ describe('TreatScreen — dos confirmaciones, una entrada (feature-0006 D2)', ()
   let outbox: Outbox;
   let service: EventService;
 
-  const animals = [{ animalId: 'pig-1', label: 'Cerdo 01', speciesId: 'species-1', categoryId: null }];
+  const animals = [
+    { animalId: 'pig-1', label: 'Cerdo 01', speciesId: 'species-1', categoryId: null },
+  ];
   const products = [{ itemId: 'item-1', name: 'Antibiótico X', unit: 'ml' }];
 
   beforeEach(async () => {

@@ -137,7 +137,7 @@ móvil, incluyendo días sin señal, sin pérdida ni duplicación de datos.
 > dispositivos simulados, y las pantallas de roles/permisos (con edición), auditoría y
 > sincronización en el panel. `docs/BACKLOG.md` recoge lo que se dejó fuera a propósito
 > (extender borrado lógico y LWW a otras entidades, resolución manual de operaciones
-> rechazadas, `ng test` roto en `admin-web`) y por qué. Sigue pendiente, heredado y sin
+> rechazadas) y por qué. Sigue pendiente, heredado y sin
 > relación con esta fase: la subida de fotos (Fase 4) y el ciclo de vida de `Lactation`
 > (Fase 2, nunca implementado).
 >

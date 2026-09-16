@@ -2,7 +2,17 @@ import React, { useEffect, useState } from 'react';
 import { Database } from '@nozbe/watermelondb';
 
 import { theme } from '../ui/theme';
-import { BigButton, Body, Card, EmptyState, Notice, NumberField, Screen, TextField, Title } from '../ui/components';
+import {
+  BigButton,
+  Body,
+  Card,
+  EmptyState,
+  Notice,
+  NumberField,
+  Screen,
+  TextField,
+  Title,
+} from '../ui/components';
 import type { EventService } from '../services/eventService';
 import type { FeedConsumptionService } from '../services/feedConsumptionService';
 import { evaluatePlausibility } from '../services/plausibilityService';
@@ -177,7 +187,9 @@ export function LotEventsScreen({
       });
 
       if (verdict === 'block') {
-        setError(`${avgKg} kg de promedio está fuera de lo posible para este lote. Verifica el dato.`);
+        setError(
+          `${avgKg} kg de promedio está fuera de lo posible para este lote. Verifica el dato.`,
+        );
         return;
       }
       if (verdict === 'confirm') {
@@ -232,7 +244,9 @@ export function LotEventsScreen({
           affectedCount: count,
           payload: { medicationId: medication.itemId, medicationName: medication.name, dose },
         }),
-      eventType === 'Vaccination' ? 'Vacunación de lote registrada.' : 'Tratamiento de lote registrado.',
+      eventType === 'Vaccination'
+        ? 'Vacunación de lote registrada.'
+        : 'Tratamiento de lote registrado.',
     );
   };
 
@@ -285,7 +299,10 @@ export function LotEventsScreen({
     return (
       <Screen testID="lot-events-screen">
         <Title>Un lote</Title>
-        <EmptyState testID="lot-events-missing" title="El lote seleccionado ya no está disponible." />
+        <EmptyState
+          testID="lot-events-missing"
+          title="El lote seleccionado ya no está disponible."
+        />
         <BigButton testID="lot-events-back" label="Volver" tone="neutral" onPress={onBack} />
       </Screen>
     );
@@ -353,8 +370,8 @@ export function LotEventsScreen({
           !cause ? (
             mortalityCauses.length === 0 ? (
               <Body muted>
-                No hay causas de mortalidad configuradas. Agréguelas desde el panel y
-                sincronice para poder registrar la baja.
+                No hay causas de mortalidad configuradas. Agréguelas desde el panel y sincronice
+                para poder registrar la baja.
               </Body>
             ) : (
               mortalityCauses.map((option) => (
@@ -392,8 +409,8 @@ export function LotEventsScreen({
           !medication ? (
             medications.length === 0 ? (
               <Body muted>
-                No hay medicamentos en el inventario. Agréguelos desde el panel y
-                sincronice para poder registrar {activity === 'vaccination' ? 'la vacunación' : 'el tratamiento'}.
+                No hay medicamentos en el inventario. Agréguelos desde el panel y sincronice para
+                poder registrar {activity === 'vaccination' ? 'la vacunación' : 'el tratamiento'}.
               </Body>
             ) : (
               medications.map((option) => (
@@ -409,7 +426,13 @@ export function LotEventsScreen({
           ) : (
             <>
               <Body muted>{medication.name}</Body>
-              <TextField testID="lot-dose-input" label="Dosis" hint="Ej. 2ml, 5cc" value={dose} onChangeText={setDose} />
+              <TextField
+                testID="lot-dose-input"
+                label="Dosis"
+                hint="Ej. 2ml, 5cc"
+                value={dose}
+                onChangeText={setDose}
+              />
               <NumberField
                 testID="lot-headcount-input"
                 label="Cabezas tratadas"
@@ -420,11 +443,15 @@ export function LotEventsScreen({
               />
               <BigButton
                 testID="confirm-lot-treatment"
-                label={activity === 'vaccination' ? 'Registrar vacunación' : 'Registrar tratamiento'}
+                label={
+                  activity === 'vaccination' ? 'Registrar vacunación' : 'Registrar tratamiento'
+                }
                 busy={busy}
                 onPress={() =>
                   void runOnce(() =>
-                    recordTreatmentOrVaccination(activity === 'vaccination' ? 'Vaccination' : 'Treatment'),
+                    recordTreatmentOrVaccination(
+                      activity === 'vaccination' ? 'Vaccination' : 'Treatment',
+                    ),
                   )
                 }
               />
@@ -449,7 +476,13 @@ export function LotEventsScreen({
               value={condition}
               onChangeText={setCondition}
             />
-            <TextField testID="diagnosis-notes-input" label="Notas (opcional)" optional value={notes} onChangeText={setNotes} />
+            <TextField
+              testID="diagnosis-notes-input"
+              label="Notas (opcional)"
+              optional
+              value={notes}
+              onChangeText={setNotes}
+            />
             <BigButton
               testID="confirm-diagnosis"
               label="Registrar diagnóstico"
@@ -463,8 +496,8 @@ export function LotEventsScreen({
           !feedItem ? (
             feedItems.length === 0 ? (
               <Body muted>
-                No hay alimentos en el inventario. Agréguelos desde el panel y sincronice
-                para poder registrar el consumo.
+                No hay alimentos en el inventario. Agréguelos desde el panel y sincronice para poder
+                registrar el consumo.
               </Body>
             ) : (
               feedItems.map((option) => (

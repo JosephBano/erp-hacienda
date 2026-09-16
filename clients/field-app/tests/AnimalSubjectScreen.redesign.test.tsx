@@ -1,7 +1,11 @@
 import React from 'react';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 
-import { AnimalSubjectScreen, type AnimalForSubject, type AnimalHistoryRecord } from '../src/screens/AnimalSubjectScreen';
+import {
+  AnimalSubjectScreen,
+  type AnimalForSubject,
+  type AnimalHistoryRecord,
+} from '../src/screens/AnimalSubjectScreen';
 import type { Outbox, OutboxEntry } from '../src/services/outbox';
 
 describe('AnimalSubjectScreen redesign (feature-0010 Commit 4)', () => {
@@ -432,7 +436,9 @@ describe('AnimalSubjectScreen redesign (feature-0010 Commit 4)', () => {
       );
 
       expect(await screen.findByTestId('animal-record-disposed-notice')).toBeTruthy();
-      expect(screen.getByText(/Animal dado de baja\. No hay actividades disponibles\./)).toBeTruthy();
+      expect(
+        screen.getByText(/Animal dado de baja\. No hay actividades disponibles\./),
+      ).toBeTruthy();
 
       // Ordinary activities must NOT be offered
       expect(screen.queryByTestId('activity-treatment')).toBeNull();
@@ -489,7 +495,9 @@ describe('AnimalSubjectScreen redesign (feature-0010 Commit 4)', () => {
         />,
       );
 
-      expect(await screen.findByText(/No tiene permisos para registrar actividades sobre este animal\./)).toBeTruthy();
+      expect(
+        await screen.findByText(/No tiene permisos para registrar actividades sobre este animal\./),
+      ).toBeTruthy();
       expect(screen.queryByTestId('activity-treatment')).toBeNull();
       expect(screen.queryByTestId('activity-weight')).toBeNull();
       expect(screen.queryByTestId('activity-move')).toBeNull();

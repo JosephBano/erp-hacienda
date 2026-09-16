@@ -77,7 +77,12 @@ describe('MilkingScreen plausibility (ADR-0022): operator can back out of confir
 
   it('lets the operator back out of the confirmation instead of forcing the record', async () => {
     await render(
-      <MilkingScreen service={service} database={database} candidates={[candidate]} recordedBy="tester@hato" />,
+      <MilkingScreen
+        service={service}
+        database={database}
+        candidates={[candidate]}
+        recordedBy="tester@hato"
+      />,
     );
 
     const cowButton = await screen.findByTestId('cow-cow-1');

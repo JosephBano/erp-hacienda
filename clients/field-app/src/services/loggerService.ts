@@ -125,7 +125,10 @@ export class LoggerService {
     }
     this.savePromise = (async () => {
       try {
-        if (typeof SecureStore !== 'undefined' && (await SecureStore.isAvailableAsync().catch(() => false))) {
+        if (
+          typeof SecureStore !== 'undefined' &&
+          (await SecureStore.isAvailableAsync().catch(() => false))
+        ) {
           await SecureStore.deleteItemAsync(LoggerService.LOGS_KEY);
         }
       } catch {}
@@ -190,7 +193,10 @@ export class LoggerService {
     const payload = JSON.stringify(this.logs);
     this.savePromise = (async () => {
       try {
-        if (typeof SecureStore !== 'undefined' && (await SecureStore.isAvailableAsync().catch(() => false))) {
+        if (
+          typeof SecureStore !== 'undefined' &&
+          (await SecureStore.isAvailableAsync().catch(() => false))
+        ) {
           await SecureStore.setItemAsync(LoggerService.LOGS_KEY, payload);
         }
       } catch {}
@@ -213,7 +219,10 @@ export class LoggerService {
 
   private async loadLogs(): Promise<void> {
     try {
-      if (typeof SecureStore !== 'undefined' && (await SecureStore.isAvailableAsync().catch(() => false))) {
+      if (
+        typeof SecureStore !== 'undefined' &&
+        (await SecureStore.isAvailableAsync().catch(() => false))
+      ) {
         const raw = await SecureStore.getItemAsync(LoggerService.LOGS_KEY);
         if (raw) {
           try {

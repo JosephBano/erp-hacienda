@@ -21,7 +21,13 @@ describe('MilkingScreen', () => {
 
   const candidates = [
     { animalId: 'cow-1', label: 'La Pinta', isWithheld: false, speciesIsMilkable: true },
-    { animalId: 'cow-2', label: 'La Negra', isWithheld: true, withheldUntil: '2999-12-31', speciesIsMilkable: true },
+    {
+      animalId: 'cow-2',
+      label: 'La Negra',
+      isWithheld: true,
+      withheldUntil: '2999-12-31',
+      speciesIsMilkable: true,
+    },
   ];
 
   beforeEach(async () => {
@@ -75,19 +81,53 @@ describe('MilkingScreen', () => {
    * to render a blank canvas here; now it shows the employee what to do next.
    */
   it('tells the employee to sync when there are no cows on file', async () => {
-    await render(<MilkingScreen service={service} database={database} candidates={[]} recordedBy="tester@hato" />);
+    await render(
+      <MilkingScreen
+        service={service}
+        database={database}
+        candidates={[]}
+        recordedBy="tester@hato"
+      />,
+    );
 
     expect(await screen.findByTestId('cow-list-empty')).toBeTruthy();
-    expect(screen.getByText('No hay hembras activas de especies ordeñables en el hato.')).toBeTruthy();
+    expect(
+      screen.getByText('No hay hembras activas de especies ordeñables en el hato.'),
+    ).toBeTruthy();
     expect(screen.queryByTestId('cow-cow-1')).toBeNull();
   });
 
   it('does not render male animals or non-eligible candidates', async () => {
     const mixedCandidates = [
-      { animalId: 'cow-1', label: 'La Pinta', isWithheld: false, speciesIsMilkable: true, sex: 'Female' },
-      { animalId: 'bull-1', label: 'El Toro', isWithheld: false, speciesIsMilkable: true, sex: 'Male' },
-      { animalId: 'pig-1', label: 'La Chancha', isWithheld: false, speciesIsMilkable: false, sex: 'Female' },
-      { animalId: 'cow-disposed', label: 'La Finada', isWithheld: false, speciesIsMilkable: true, sex: 'Female', disposedAt: '2026-09-01' },
+      {
+        animalId: 'cow-1',
+        label: 'La Pinta',
+        isWithheld: false,
+        speciesIsMilkable: true,
+        sex: 'Female',
+      },
+      {
+        animalId: 'bull-1',
+        label: 'El Toro',
+        isWithheld: false,
+        speciesIsMilkable: true,
+        sex: 'Male',
+      },
+      {
+        animalId: 'pig-1',
+        label: 'La Chancha',
+        isWithheld: false,
+        speciesIsMilkable: false,
+        sex: 'Female',
+      },
+      {
+        animalId: 'cow-disposed',
+        label: 'La Finada',
+        isWithheld: false,
+        speciesIsMilkable: true,
+        sex: 'Female',
+        disposedAt: '2026-09-01',
+      },
     ];
 
     await render(
@@ -107,7 +147,14 @@ describe('MilkingScreen', () => {
   });
 
   it('records a cow in three taps with no network', async () => {
-    await render(<MilkingScreen service={service} database={database} candidates={candidates} recordedBy="tester@hato" />);
+    await render(
+      <MilkingScreen
+        service={service}
+        database={database}
+        candidates={candidates}
+        recordedBy="tester@hato"
+      />,
+    );
 
     // 1 — choose the cow.
     fireEvent.press(screen.getByTestId('cow-cow-1'));
@@ -130,7 +177,10 @@ describe('MilkingScreen', () => {
     expect(entry.operationType).toBe('recordMilking');
     // The litres actually enqueued must be the ones the employee typed — not the
     // empty-string default that the previous test code was silently recording.
-    expect(entry.payload).toMatchObject({ totalLiters: 12.5, individualYields: [{ animalId: 'cow-1', liters: 12.5 }] });
+    expect(entry.payload).toMatchObject({
+      totalLiters: 12.5,
+      individualYields: [{ animalId: 'cow-1', liters: 12.5 }],
+    });
   });
 
   // TODO(field-app-tests): same root cause as the two tests below — passes when run
@@ -138,7 +188,14 @@ describe('MilkingScreen', () => {
   // test in the suite has rendered and torn down. Skipped for now; revisit alongside
   // the WatermelonDB / LokiJSAdapter cleanup-between-tests story for SDK 56.
   it.skip('marks a cow under withdrawal before she is even selected', async () => {
-    await render(<MilkingScreen service={service} database={database} candidates={candidates} recordedBy="tester@hato" />);
+    await render(
+      <MilkingScreen
+        service={service}
+        database={database}
+        candidates={candidates}
+        recordedBy="tester@hato"
+      />,
+    );
 
     expect(screen.getByTestId('cow-cow-2')).toHaveTextContent(/RETIRO/);
   });
@@ -156,7 +213,14 @@ describe('MilkingScreen', () => {
   // once the WatermelonDB / LokiJSAdapter cleanup-between-tests story is sorted out for
   // the SDK 56 stack.
   it.skip('shows the running total for the day', async () => {
-    await render(<MilkingScreen service={service} database={database} candidates={candidates} recordedBy="tester@hato" />);
+    await render(
+      <MilkingScreen
+        service={service}
+        database={database}
+        candidates={candidates}
+        recordedBy="tester@hato"
+      />,
+    );
 
     fireEvent.press(screen.getByTestId('cow-cow-1'));
     fireEvent.changeText(screen.getByTestId('liters-input'), '10');
@@ -180,7 +244,14 @@ describe('MilkingScreen', () => {
       });
     });
 
-    await render(<MilkingScreen service={service} database={database} candidates={candidates} recordedBy="tester@hato" />);
+    await render(
+      <MilkingScreen
+        service={service}
+        database={database}
+        candidates={candidates}
+        recordedBy="tester@hato"
+      />,
+    );
 
     fireEvent.press(screen.getByTestId('cow-cow-2'));
     fireEvent.changeText(screen.getByTestId('liters-input'), '9');

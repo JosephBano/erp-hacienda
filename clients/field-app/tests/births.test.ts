@@ -110,7 +110,7 @@ describe('BirthService', () => {
     const pending = await outbox.pending();
 
     expect(pending).toHaveLength(1);
-    expect((pending[0].payload.offspring as unknown[])).toHaveLength(9);
+    expect(pending[0].payload.offspring as unknown[]).toHaveLength(9);
     expect(pending[0].payload).toMatchObject({ bornAlive: 9 });
   });
 
@@ -239,4 +239,3 @@ describe('BirthService', () => {
     ).rejects.toThrow(/corresponde/i);
   });
 });
-

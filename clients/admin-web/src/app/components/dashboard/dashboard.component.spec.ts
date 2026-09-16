@@ -28,10 +28,7 @@ describe('DashboardComponent', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [DashboardComponent],
-      providers: [
-        provideRouter([]),
-        { provide: ApiService, useValue: apiStub },
-      ],
+      providers: [provideRouter([]), { provide: ApiService, useValue: apiStub }],
     }).compileComponents();
   });
 

@@ -86,7 +86,10 @@
   color: var(--text-muted);
   text-decoration: none;
   font-weight: 500;
-  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease,
+    border-color 0.2s ease;
 }
 
 .nav-item:hover {

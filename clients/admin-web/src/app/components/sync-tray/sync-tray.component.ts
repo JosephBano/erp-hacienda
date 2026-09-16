@@ -15,7 +15,7 @@ import { IconComponent } from '../../shared/icon/icon.component';
   standalone: true,
   imports: [CommonModule, FormsModule, IconComponent],
   templateUrl: './sync-tray.component.html',
-  styleUrls: ['./sync-tray.component.css']
+  styleUrls: ['./sync-tray.component.css'],
 })
 export class SyncTrayComponent implements OnInit {
   private api = inject(ApiService);
@@ -38,14 +38,14 @@ export class SyncTrayComponent implements OnInit {
     this.loadError = false;
     this.api.getSyncOperations(this.statusFilter || undefined).subscribe({
       next: (data) => (this.operations = data),
-      error: () => (this.loadError = true)
+      error: () => (this.loadError = true),
     });
   }
 
   loadConflicts(): void {
     this.api.getSyncConflicts().subscribe({
       next: (data) => (this.conflicts = data),
-      error: () => (this.loadError = true)
+      error: () => (this.loadError = true),
     });
   }
 }

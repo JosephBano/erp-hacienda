@@ -1,0 +1,13 @@
+# Regla sudoers para el usuario de despliegue `hato-deploy`.
+#
+# Instalar como /etc/sudoers.d/hato-deploy (root:root, 440).
+#
+# OBLIGATORIO: validar este archivo con `sudo visudo -cf ops/production/sudoers-hato`
+# ANTES de instalarlo. Un sudoers inválido puede romper sudo para todo el sistema.
+# Ver ops/production/bootstrap.md sección 6.
+#
+# hato-deploy puede ejecutar EXACTAMENTE un comando root-owned, sin contraseña,
+# por ruta absoluta exacta. Sin wildcards, sin ALL, sin argumentos libres.
+# No se otorga pertenencia al grupo docker ni acceso al socket Docker (spec.md D7):
+# esa pertenencia daría control root de facto sin pasar por deploy-root.
+hato-deploy ALL=(root) NOPASSWD: /usr/local/libexec/hato/deploy-root

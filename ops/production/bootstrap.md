@@ -99,6 +99,14 @@ sudo systemctl reload sshd
 
 ## 5. Instalar `deploy-entry` y `deploy-root`
 
+**Prerrequisito:** ambos scripts parsean la petición JSON con `jq`. Instalarlo antes de
+copiar los scripts; si falta, `deploy-entry`/`deploy-root` fallan de forma segura (no
+despliegan nada), pero conviene no depender de eso:
+
+```bash
+sudo apt install -y jq
+```
+
 ```bash
 sudo install -o root -g root -m 755 scripts/production-deploy-entry.sh \
     /usr/local/libexec/hato/deploy-entry

@@ -95,16 +95,15 @@ if [ ! -f "$COMPOSE_FILE" ]; then
     fail "no se encontró $COMPOSE_FILE (aún no provisto por la Entrega 3 de este plan)"
 fi
 
-# Exportar los digestos como variables de entorno para que compose los interpole por
-# referencia de archivo (docker compose --env-file / variables), nunca como
-# argumento de línea de comandos: un argumento de proceso es visible para cualquier
-# usuario con `ps`, y las cadenas de conexión a la base de datos nunca deben pasar
-# por ahí (spec.md §5).
-#
-# El compose real (Entrega 3) es responsable de mapear estas variables a los
-# servicios. Aquí solo se listan los pares imagen -> digesto ya validados, sin
-# construir ni interpolar comandos con `eval`.
-export_digest_env() {
+# Placeholder de logging hasta la Entrega 3 (compose.production.yml): esta función
+# TODAVÍA NO exporta nada al entorno ni interpola compose — solo deja constancia en
+# el log de qué pares imagen -> digesto ya validados se recibieron. La Entrega 3
+# define cómo estos digestos llegan realmente a compose (variables de entorno por
+# archivo, nunca como argumento de línea de comandos: un argumento de proceso es
+# visible para cualquier usuario con `ps`, y las cadenas de conexión a la base de
+# datos nunca deben pasar por ahí — spec.md §5). Sin `eval`, sin interpolación de
+# comandos.
+log_digest_manifest() {
     local entries
     entries="$(printf '%s' "$digests_json" | jq -r 'to_entries[] | "\(.key)=\(.value)"')"
     while IFS='=' read -r image digest; do
@@ -112,7 +111,7 @@ export_digest_env() {
         log "usando $image@$digest"
     done <<< "$entries"
 }
-export_digest_env
+log_digest_manifest
 
 # docker compose no recibe shell ni compose arbitrario del caller: siempre el mismo
 # archivo referenciado arriba, siempre el mismo proyecto fijo.

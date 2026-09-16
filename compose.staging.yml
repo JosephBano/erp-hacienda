@@ -12,6 +12,11 @@
 # 4. Ninguna imagen usa latest: versión fija postgres:16-alpine.
 # ==============================================================================
 
+# Nombre de proyecto fijo: si se derivara del directorio, mover o renombrar el
+# checkout cambiaria el nombre de la red y de los recursos, y compose dejaria
+# huerfanos los contenedores anteriores en vez de reemplazarlos.
+name: hato-staging
+
 services:
   postgres:
     image: postgres:16-alpine

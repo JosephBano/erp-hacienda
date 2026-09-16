@@ -66,6 +66,9 @@ services:
       HATO_VERSION: ${HATO_VERSION:-}
       HATO_COMMIT: ${HATO_COMMIT:-}
       HATO_BUILD_DATE: ${HATO_BUILD_DATE:-}
+      # Secreto del entorno staging (StagingAdminSeeder). Si no llega, el
+      # seed simplemente no corre: ver el comentario de esa clase.
+      HATO_STAGING_SEED_ADMIN_PASSWORD: ${HATO_STAGING_SEED_ADMIN_PASSWORD:-}
     depends_on:
       postgres:
         condition: service_healthy

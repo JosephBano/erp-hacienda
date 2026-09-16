@@ -17,19 +17,22 @@ namespace Hato.Api;
 /// GUARDADO POR ENTORNO A PROPOSITO. Esta clase solo actua si
 /// `ASPNETCORE_ENVIRONMENT=Staging` (compose.staging.yml lo fija de forma
 /// explicita para el servicio `api`). NUNCA debe correr en produccion: crearia
-/// una cuenta admin con una contrasena conocida y publica en el codigo fuente
-/// de un repositorio publico (ADR-0030). Si esto se ejecutara en produccion
-/// seria un backdoor, no una comodidad de pruebas.
+/// una cuenta admin en cuanto lo hiciera (ADR-0030).
+///
+/// SIN CONTRASENA POR DEFECTO EN EL CODIGO. La regla de este proyecto es que
+/// ningun secreto entra al repositorio en ninguna forma, ni de ejemplo — eso
+/// incluye una contrasena "solo para staging" escrita como literal: es
+/// exactamente el patron que un escaner de secretos existe para atrapar, y de
+/// hecho lo atrapo (GitGuardian, incidente sobre un intento anterior de esta
+/// misma clase). La contrasena viene de HATO_STAGING_SEED_ADMIN_PASSWORD,
+/// cargada como secreto del entorno `staging` en GitHub —igual que
+/// STAGING_POSTGRES_PASSWORD— y si no esta presente, el seed no corre: se
+/// prefiere no sembrar nada a sembrar con una contrasena que cualquiera puede
+/// leer en el historial de git.
 /// </summary>
 public static class StagingAdminSeeder
 {
     public const string DefaultEmail = "admin@hato-staging.local";
-
-    // Solo para staging, documentado a proposito: no protege nada real, ADR-0031
-    // dice explicitamente que staging no tiene datos que duela perder. Si algun
-    // dia hiciera falta rotarla sin tocar codigo, HATO_STAGING_SEED_ADMIN_PASSWORD
-    // la sobreescribe.
-    private const string DefaultPassword = "Admin123!";
 
     public static async Task SeedIfStagingAsync(WebApplication app)
     {
@@ -38,22 +41,27 @@ public static class StagingAdminSeeder
             return;
         }
 
+        var logger = app.Services.GetRequiredService<ILoggerFactory>()
+            .CreateLogger("StagingAdminSeeder");
+
+        var password = Environment.GetEnvironmentVariable("HATO_STAGING_SEED_ADMIN_PASSWORD");
+        if (string.IsNullOrWhiteSpace(password))
+        {
+            logger.LogWarning(
+                "HATO_STAGING_SEED_ADMIN_PASSWORD no esta definida: no se sembro ningun " +
+                "admin de staging. Cargala como secreto del entorno 'staging' en GitHub " +
+                "para que el proximo despliegue si lo haga.");
+            return;
+        }
+
         using var scope = app.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<IPeopleDbContext>();
         var sender = scope.ServiceProvider.GetRequiredService<ISender>();
-        var logger = scope.ServiceProvider.GetRequiredService<ILoggerFactory>()
-            .CreateLogger("StagingAdminSeeder");
 
         var alreadyExists = await db.Users.AnyAsync(u => u.Email == DefaultEmail);
         if (alreadyExists)
         {
             return;
-        }
-
-        var password = Environment.GetEnvironmentVariable("HATO_STAGING_SEED_ADMIN_PASSWORD");
-        if (string.IsNullOrWhiteSpace(password))
-        {
-            password = DefaultPassword;
         }
 
         await sender.Send(new RegisterUserCommand("Administrador (staging)", DefaultEmail, password, Role: "admin"));

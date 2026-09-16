@@ -740,5 +740,5 @@ arregla:** `ng test` de `admin-web` (sec. 5.4, TG0.2) y la rotación de `SERVER_
     está anotada con fecha en `docs/BACKLOG.md`.
 17. Un PR sin hito recibe una señal automática y **se puede mergear igual**.
 18. Los **cuatro** ADR de D0 están mergeados y este spec los cita por número.
-12. `docs/DOCUMENTACION.md` tiene fila para cada documento nuevo, y `docs/SEGURIDAD.md`
+19. `docs/DOCUMENTACION.md` tiene fila para cada documento nuevo, y `docs/SEGURIDAD.md`
     describe el modelo de acceso de despliegue.

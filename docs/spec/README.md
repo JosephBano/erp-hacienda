@@ -71,11 +71,19 @@ lógico, desactivación o SQL manual). Media hora con el dueño y un teléfono d
 |---|---|---|
 | 0011 | [`devops-delivery-pipeline`](./feature-0011-devops-delivery-pipeline/spec.md) | Que el Art. 12 sea una compuerta y no una intención: checks obligatorios, entornos, secretos y despliegue automático a staging. |
 
-No pertenece a ninguna fase y no depende de la serie 0004–0010: la habilita. Tiene solo
-`spec.md`; `plan.md`, `tasks.md` y `test-e2e.md` se escriben al abrir la rama. **Arranca con
-tres ADR** (sec. 3, D0) y con una compuerta TG0 que verifica que los jobs pasan hoy antes de
-volverlos obligatorios — activarlos con un job roto deja el repositorio sin poder mergear
-nada.
+No pertenece a ninguna fase y no depende de la serie 0004–0010: la habilita. Tiene los cuatro
+documentos de la convención. **Arranca con cuatro ADR** —
+[0029](../adr/0029-ramas-entornos-y-versionado.md),
+[0030](../adr/0030-secretos-y-acceso-de-despliegue.md),
+[0031](../adr/0031-servidor-domestico-es-staging.md) y
+[0032](../adr/0032-formato-y-lint-en-clientes.md) (sec. 3, D0)— y con **dos compuertas**: TG0
+verifica que los jobs pasan hoy antes de volverlos obligatorios, porque activarlos con un job
+roto deja el repositorio sin poder mergear nada; TG1 exige que la credencial nueva de los
+agentes esté probada antes de reducir la vieja, o el siguiente trabajo empieza sin poder
+empujar.
+
+El paso operativo **O1 —calcular la línea base de métricas— es lo único irreversible**: una
+vez activada la compuerta, el "antes" deja de ser observable.
 
 ## Trabajos anteriores
 

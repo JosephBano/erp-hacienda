@@ -1,0 +1,69 @@
+name: Deploy to Staging
+
+on:
+  push:
+    branches:
+      - develop
+
+concurrency:
+  group: deploy-staging
+  cancel-in-progress: false
+
+jobs:
+  deploy-staging:
+    name: Deploy Staging Stack over Tailscale
+    runs-on: ubuntu-latest
+    environment: staging
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Connect to Tailscale (ephemeral node)
+        uses: tailscale/github-action@v3
+        with:
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+          tags: tag:ci
+
+      - name: Configure SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -H "${{ secrets.DEPLOY_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null || true
+
+      - name: Deploy staging stack via SSH
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          STAGING_POSTGRES_PASSWORD: ${{ secrets.STAGING_POSTGRES_PASSWORD }}
+        run: |
+          # Principio 3 de home-server: la configuración se versiona.
+          # Despliegue con docker compose y credencial restringida en .env.staging
+          ssh -o StrictHostKeyChecking=accept-new "${DEPLOY_USER}@${DEPLOY_HOST}" "
+            set -euo pipefail
+            mkdir -p /srv/hato-staging
+            cd /srv/hato-staging
+            if [ ! -d .git ]; then
+              git clone https://github.com/JosephBano/erp-hacienda.git .
+            fi
+            git fetch origin develop
+            git checkout develop
+            git pull origin develop
+            echo 'STAGING_POSTGRES_PASSWORD=${STAGING_POSTGRES_PASSWORD}' > .env.staging
+            chmod 600 .env.staging
+            docker compose --env-file .env.staging -f compose.staging.yml up -d --build
+          "
+
+      - name: Verify deployment with Smoke Test (D8)
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+        run: |
+          # D8: El despliegue se verifica solo, y si no responde, falla.
+          # Caddy enruta la API en el puerto 8448 sobre HTTPS en el tailnet,
+          # o directamente al puerto 8080 si estuviera configurado.
+          # El smoke test golpea /health y /version.
+          ./scripts/smoke-api-container.sh "https://${DEPLOY_HOST}:8448/health" || \
+          ./scripts/smoke-api-container.sh "http://${DEPLOY_HOST}:8080/health"

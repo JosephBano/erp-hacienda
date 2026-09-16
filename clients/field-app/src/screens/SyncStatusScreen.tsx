@@ -8,6 +8,7 @@ import type { Outbox, OutboxEntry, OutboxStats } from '../services/outbox';
 import type { SyncEngine, SyncResult } from '../services/syncEngine';
 import type { ModuleKey, ModuleVisibility } from '../services/moduleVisibility';
 import { ModuleToggle } from './ModuleToggle';
+import { APP_VERSION } from '../version';
 
 /**
  * Sync status written for the person carrying the phone, not for the developer.
@@ -172,6 +173,9 @@ export function SyncStatusScreen({
           });
         }}
       />
+      <Body muted testID="app-version-info">
+        {`Versión ${APP_VERSION.version}${APP_VERSION.commit ? ` · ${APP_VERSION.commit}` : ''}`}
+      </Body>
 
       {showRedownloadConfirm ? (
         <Card>

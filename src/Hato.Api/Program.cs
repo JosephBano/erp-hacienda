@@ -45,6 +45,7 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapGet("/health", () => Results.Ok(new { status = "ok" })).AllowAnonymous();
+app.MapVersionEndpoints();
 
 app.MapSpeciesEndpoints();
 app.MapBreedsEndpoints();

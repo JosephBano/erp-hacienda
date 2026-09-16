@@ -11,6 +11,10 @@ jobs:
   pr-hygiene:
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request'
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
     steps:
       - uses: actions/checkout@v4
         with:
@@ -69,6 +73,23 @@ jobs:
             exit 1
           fi
           echo "Higiene de PR verificada con éxito."
+
+      - name: Check and signal missing PR metadata (D15)
+        if: always() && github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          MILESTONE: ${{ github.event.pull_request.milestone.title }}
+        run: |
+          # Señala, no bloquea (D15 / spec.md sec. 3). Nunca debe hacer fallar el job.
+          if [ -z "$MILESTONE" ]; then
+            echo "::warning::El PR #$PR_NUMBER no tiene hito asignado. Señalando con etiqueta 'needs-milestone'..."
+            gh label create "needs-milestone" --color "FBCA04" --description "PR sin hito asignado" 2>/dev/null || true
+            gh pr edit "$PR_NUMBER" --add-label "needs-milestone" 2>/dev/null || true
+          else
+            echo "OK: PR #$PR_NUMBER tiene asignado el hito '$MILESTONE'."
+            gh pr edit "$PR_NUMBER" --remove-label "needs-milestone" 2>/dev/null || true
+          fi
 
   backend-build-and-test:
     runs-on: ubuntu-latest

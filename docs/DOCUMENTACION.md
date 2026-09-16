@@ -34,6 +34,9 @@ documento.
 | `GLOSSARY.md` | ¿Cómo se llama esto en español y en código? | Aparece un término de dominio nuevo. |
 | `LEGAL-ECUADOR.md` | ¿Qué exige la ley ecuatoriana? | Cambia la norma. |
 | `BACKUPS.md` | ¿Cómo se respalda y se restaura? | Cambia la estrategia. |
+| `POLITICAS-OPERACION.md` | ¿Qué políticas de alojamiento, credenciales y releases guían la implementación? | Se decide o revisa una política operativa. |
+| `PREFLIGHT-PRODUCCION.md` | ¿Cómo inventariar apps/datos y realizar altas asistidas antes del corte? | Cambia la preparación o se verifica un nuevo origen. |
+| `GUIA-CAMPO-ANDROID.md` | ¿Cómo accede, instala y actualiza HATO un empleado? | Cambia el flujo del teléfono o la distribución. |
 | `METRICAS-ENTREGA.md` | ¿Cuál es la velocidad y estabilidad de la entrega (DORA) y su línea base histórica? | Se recalculan métricas de entrega o se cierra una fase. |
 | `docs/BACKLOG.md` | ¿Qué sabemos que falta y decidimos no hacer ahora? | Continuamente. |
 | `adr/NNNN-*.md` | ¿Por qué se decidió esto y qué se descartó? | Nunca: un ADR se reemplaza, no se edita. |
@@ -45,7 +48,7 @@ documento.
 | `tesis/README.md` | ¿Cómo se construye la tesis sobre este proyecto y dónde vive cada parte? | Cambia la separación público/privado o el flujo de trabajo de la tesis. |
 | `tesis/plantillas/*.md` | ¿Qué debe contener cada pieza de la tesis? | Mejora la plantilla — nunca con contenido real. |
 
-Son 23 entradas y cubren, sin resto, todo `.md` de la raíz del repositorio y de la raíz de
+Estas entradas cubren los documentos de la raíz del repositorio y de la raíz de
 `docs/` (`AGENTS.md`, `README.md`; `ARCHITECTURE.md`, `docs/BACKLOG.md`, `BACKUPS.md`,
 `CONSTITUTION.md`, `DATA-MODEL.md`, `GLOSSARY.md`, `LEGAL-ECUADOR.md`, `METRICAS-ENTREGA.md`, `ROADMAP.md`,
 `SOUL.md`), más las filas de patrón que cubren carpetas (`adr/`, `spec/<x>/`,

@@ -275,3 +275,24 @@ jobs:
             exit 1
           fi
           echo "OK: docs/tesis/privado/ no está rastreado."
+
+  # Vigilancia de deriva de la configuración esperada (D12 / ADR-0030 sec. 3):
+  # Compara la protección de ramas y entornos en GitHub API contra
+  # .github/branch-protection.expected.json.
+  # NOTA: En repositorios personales de GitHub no es posible bloquear la configuración
+  # perimetralmente; este job NO afirma impedir el cambio, sino detectarlo y delatarlo
+  # inmediatamente en rojo en el siguiente PR antes de que llegue a producción.
+  branch-protection-drift:
+    name: Check branch protection drift
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify configuration drift
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: ./scripts/check-config-drift.sh
+

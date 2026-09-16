@@ -1,0 +1,65 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "version": "1.0",
+  "repository": "JosephBano/erp-hacienda",
+  "description": "Configuracion declarada esperada de proteccion de ramas y entornos para Hato ERP (feature-0011 / ADR-0029 / ADR-0030)",
+  "branches": {
+    "develop": {
+      "enforce_admins": true,
+      "required_conversation_resolution": true,
+      "required_linear_history": false,
+      "allow_force_pushes": false,
+      "allow_deletions": false,
+      "required_approving_review_count": 0,
+      "required_status_checks": {
+        "strict": true,
+        "contexts": [
+          "backend-build-and-test",
+          "field-app-ci",
+          "admin-web-ci",
+          "pr-hygiene",
+          "tesis-privacy-guard"
+        ]
+      }
+    },
+    "main": {
+      "enforce_admins": true,
+      "required_conversation_resolution": true,
+      "required_linear_history": true,
+      "allow_force_pushes": false,
+      "allow_deletions": false,
+      "required_approving_review_count": 0,
+      "required_status_checks": {
+        "strict": true,
+        "contexts": [
+          "backend-build-and-test",
+          "field-app-ci",
+          "admin-web-ci",
+          "pr-hygiene",
+          "tesis-privacy-guard"
+        ]
+      }
+    }
+  },
+  "environments": {
+    "staging": {
+      "required_reviewers": false,
+      "custom_branch_policy": true,
+      "allowed_branches": [
+        "develop"
+      ]
+    },
+    "production": {
+      "required_reviewers": true,
+      "custom_branch_policy": true,
+      "allowed_branches": [
+        "main"
+      ]
+    }
+  },
+  "advisory_checks": [
+    "CodeQL",
+    "Analyze (csharp)",
+    "Analyze (javascript-typescript)"
+  ]
+}

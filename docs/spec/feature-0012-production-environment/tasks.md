@@ -45,6 +45,17 @@
 - [ ] **T3.4** Construir imágenes ARM64 por digest en runner y documentar custodia GHCR.
   **Terminado:** evidencia reproducible de la acción y resultado esperado del spec archivada
   en el PR o inventario privado; los escenarios E2E relacionados pasan sin secretos en logs.
+- [ ] **T3.5** Eliminar el paso de la cadena de conexión como argumento `--connection` en
+  `src/Hato.Api/migrate.Dockerfile` (visible hoy en `ps aux` del contenedor `migrate`) antes
+  de abrir producción a datos reales. Requiere que los seis `IDesignTimeDbContextFactory`
+  de los módulos (`src/Modules/*/Hato.Modules.*.Infrastructure/Persistence/*DbContextFactory.cs`,
+  p. ej. `InventoryDbContextFactory.cs`) lean la cadena de conexión también desde variables
+  de entorno (`.AddEnvironmentVariables()` o lectura explícita de
+  `ConnectionStrings__HatoDb`/`CONNECTION_STRING`), no solo desde `dotnet user-secrets`, para
+  que `dotnet ef database update` pueda resolverla sin `--connection`. Bloqueador documentado
+  en Entrega 3 (compose.production.yml / feature-0012-production-environment task-3-report.md).
+  **Terminado:** evidencia reproducible de la acción y resultado esperado del spec archivada
+  en el PR o inventario privado; los escenarios E2E relacionados pasan sin secretos en logs.
 
 ## Bloque 4 — Release y apertura
 

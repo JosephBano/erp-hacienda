@@ -40,10 +40,14 @@
 #    Core idempotente (p. ej. en el módulo que posea el esquema base) o como
 #    script de inicialización versionado en `ops/production/`, ejecutado por el
 #    servicio `migrate` o por un paso explícito de bootstrap — no lo asumas
-#    provisto por este compose. Hasta entonces, `api` seguirá usando el mismo
-#    rol que `migrate` si las variables runtime no se completan, lo cual NO
-#    cumple el requisito de mínimo privilegio y debe cerrarse antes de abrir
-#    producción a datos reales (spec sec. 4, D6).
+#    provisto por este compose. `PRODUCTION_POSTGRES_RUNTIME_*` usa `:?`, así
+#    que el stack simplemente NO arranca si esas variables faltan — no hay
+#    fallback automático al rol owner. El riesgo real es humano: mientras el
+#    mecanismo de creación de roles no exista, un operador podría verse
+#    tentado a copiar a mano las credenciales owner/migrador en las variables
+#    runtime solo para que el stack levante, lo cual rompería el mínimo
+#    privilegio en silencio (el compose no lo detectaría). Ese mecanismo debe
+#    cerrarse antes de abrir producción a datos reales (spec sec. 4, D6).
 # 7. Secretos: todas las contraseñas y la clave de firma JWT llegan por
 #    variables de entorno con `:?` (falla si falta, como
 #    STAGING_POSTGRES_PASSWORD en compose.staging.yml). Se investigó soporte

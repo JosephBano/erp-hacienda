@@ -67,6 +67,8 @@ app.MapTasksEndpoints();
 app.MapFarmModulesEndpoints();
 app.MapSyncEndpoints();
 
+await StagingAdminSeeder.SeedIfStagingAsync(app);
+
 app.Run();
 
 public partial class Program;

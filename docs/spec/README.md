@@ -65,6 +65,18 @@ lógico, desactivación o SQL manual). Media hora con el dueño y un teléfono d
   el alimento. El desglose por partida de inventario pasó de límite explícito a capacidad
   requerida.
 
+## Trabajo transversal de entrega (2026-09-15)
+
+| # | Carpeta | Propósito |
+|---|---|---|
+| 0011 | [`devops-delivery-pipeline`](./feature-0011-devops-delivery-pipeline/spec.md) | Que el Art. 12 sea una compuerta y no una intención: checks obligatorios, entornos, secretos y despliegue automático a staging. |
+
+No pertenece a ninguna fase y no depende de la serie 0004–0010: la habilita. Tiene solo
+`spec.md`; `plan.md`, `tasks.md` y `test-e2e.md` se escriben al abrir la rama. **Arranca con
+tres ADR** (sec. 3, D0) y con una compuerta TG0 que verifica que los jobs pasan hoy antes de
+volverlos obligatorios — activarlos con un job roto deja el repositorio sin poder mergear
+nada.
+
 ## Trabajos anteriores
 
 | # | Carpeta | Estado |

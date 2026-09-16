@@ -66,14 +66,13 @@ sec. 5.4, ampliada con los ADR.
    ellos, este trabajo añade dependencias y cambia protocolo sin decisión escrita.
 2. **Los tres jobs actuales pasan hoy en `develop`.** Si alguno está en rojo, arreglarlo es
    el trabajo previo y no parte de esta rama.
-3. **Estado real de `ng test` en `admin-web` decidido explícitamente.** `docs/BACKLOG.md` lo
-   declara roto. Salidas admitidas: (a) `admin-web-ci` se excluye de la lista obligatoria y
-   queda como deuda anotada con fecha, o (b) se arregla primero en su propia rama. **No se
-   admite** volverlo obligatorio y descubrir el bloqueo con el primer PR.
+3. **Estado real de `ng test` en `admin-web` verificado. Ya está: pasa** — 17 archivos y 102
+   pruebas en verde el 2026-09-15. La deuda que el `ROADMAP.md` aún menciona se resolvió el
+   2026-08-11 y `docs/BACKLOG.md` la registra tachada. `admin-web-ci` entra en la lista
+   obligatoria sin reservas.
 
-> **Si TG0.3 resulta ser (b)**, esta rama se detiene hasta que aquella mergee. Es una
-> detención legítima, no un retraso: activar una compuerta rota deja el repositorio sin poder
-> mergear nada.
+> La compuerta se conserva escrita aunque ya esté cerrada: si mañana ese job vuelve a
+> romperse, activar la exigencia sin comprobarlo deja el repositorio sin poder mergear nada.
 
 ---
 

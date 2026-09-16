@@ -18,12 +18,13 @@
 - [ ] **TG0.2** Verificar que los tres jobs actuales pasan hoy en `develop`.
       **Terminado:** `gh run list --branch develop --workflow ci.yml --limit 1 --json conclusion`
       devuelve `success`.
-- [ ] **TG0.3** Decidir explícitamente el estado de `ng test` en `admin-web` y anotarlo.
-      **Terminado:** `cd clients/admin-web && npx ng test --watch=false` corre y se registra su
-      resultado en este archivo, junto a la salida elegida: **(a)** `admin-web-ci` queda fuera
-      de la lista obligatoria con la deuda anotada con fecha en `docs/BACKLOG.md`, o **(b)** se
-      abre rama aparte para arreglarlo y **esta rama se detiene**.
-      **Decisión tomada:** ______ (fecha: ______)
+- [x] **TG0.3** Verificar el estado real de `ng test` en `admin-web`.
+      **Terminado:** `cd clients/admin-web && npx ng test --watch=false` →
+      `Test Files 17 passed (17) · Tests 102 passed (102)`, el **2026-09-15**.
+      **Resultado:** está en verde. La deuda que el `ROADMAP.md` aún menciona se resolvió el
+      2026-08-11 y `docs/BACKLOG.md:602-608` ya la registra tachada. **`admin-web-ci` entra en
+      la lista obligatoria sin reservas**; no hay que excluirlo ni abrir rama para arreglarlo.
+      Queda como tarea corregir la línea del `ROADMAP.md` (T11.7).
 
 ---
 
@@ -237,8 +238,11 @@
 - [ ] **T11.4** Describir el modelo de acceso de despliegue en `docs/SEGURIDAD.md`.
       **Terminado:** `grep -n "despliegue" docs/SEGURIDAD.md` lo encuentra.
 - [ ] **T11.5** Anotar en `docs/BACKLOG.md` la deuda ajena tocada y no arreglada.
-      **Terminado:** figuran `ng test` de `admin-web` y la rotación de `SERVER_PASSWORD`, con
-      fecha.
+      **Terminado:** figura la rotación de `SERVER_PASSWORD` de `home-server`, con fecha.
+- [ ] **T11.7** Corregir la línea obsoleta de `docs/ROADMAP.md` que declara roto `ng test` de
+      `admin-web`.
+      **Terminado:** `grep -n "ng test" docs/ROADMAP.md` ya no lo lista como deuda abierta; el
+      `BACKLOG.md` lo daba por resuelto desde el 2026-08-11 y la suite pasa (TG0.3).
 - [ ] **T11.6** Actualizar `README.md` con los entornos y cómo se despliega.
       **Terminado:** `grep -n "staging" README.md` lo encuentra.
 
@@ -250,7 +254,8 @@
       **Terminado:** la última ejecución de CI de la rama es `success`.
 - [ ] **TG1.2** La decisión de TG0.3 sobre `admin-web-ci` está aplicada en la configuración
       declarada de T9.1.
-      **Terminado:** se lee en el archivo declarativo, no en la memoria de nadie.
+      **Terminado:** el archivo declarativo incluye `admin-web-ci` entre los obligatorios,
+      conforme al resultado de TG0.3.
 - [ ] **TG1.3** La credencial nueva de los agentes está creada y **probada** antes de reducir
       la vieja.
       **Terminado:** con la credencial nueva se puede clonar, ramificar y empujar. Al revés,

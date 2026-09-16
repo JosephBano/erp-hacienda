@@ -137,8 +137,19 @@ Se dispara en `pull_request` hacia `develop` y `main`, y en `push` a esas ramas.
 es buena; el problema es sec. 2.1: **ninguno de estos tres nombres está registrado como check
 obligatorio**, así que su resultado es informativo.
 
-> Nota heredada de `docs/BACKLOG.md`: `ng test` en `admin-web` está declarado como roto. Si
-> sigue roto, volverlo obligatorio bloquea todo merge. Es la compuerta TG0.2 de sec. 5.4.
+> **`ng test` de `admin-web` no está roto**, contra lo que sugiere `docs/ROADMAP.md` al
+> listar *«`ng test` roto en `admin-web`»* entre la deuda de Fase 3. Verificado el 2026-09-15:
+>
+> ```
+> $ cd clients/admin-web && npx ng test --watch=false
+> Test Files  17 passed (17)
+>      Tests  102 passed (102)
+> ```
+>
+> `docs/BACKLOG.md:602-608` ya lo registra **tachado y resuelto el 2026-08-11** por
+> `feature/admin-web-inventory-detail`. La línea obsoleta es la del `ROADMAP.md`, y se corrige
+> en el commit 11. Consecuencia para este trabajo: `admin-web-ci` **puede ser obligatorio sin
+> reservas**, y la compuerta TG0.2 de sec. 5.4 queda cerrada antes de empezar.
 
 ### 2.4 No hay entornos ni despliegue
 
@@ -427,9 +438,9 @@ desproporcionado.
   modelo (`.env` + `scripts/sync-env.sh`), y funciona. Este spec solo añade lo que el
   despliegue de HATO necesita. Rotar `SERVER_PASSWORD` es trabajo de aquel repositorio, y se
   anota allí.
-- **Arreglar `ng test` de `admin-web`.** Está en `docs/BACKLOG.md` como deuda declarada. Este
-  spec solo decide qué pasa con él en la compuerta (sec. 5.4); arreglarlo es otra rama,
-  por `AGENTS.md` regla 9.
+- **Arreglar `ng test` de `admin-web`.** No hace falta: ya está en verde (sec. 2.3). Lo que
+  sí entra es corregir la línea obsoleta del `ROADMAP.md` que aún lo declara roto, en el
+  commit 11 junto al resto de la documentación.
 - **Backups del entorno de staging.** Staging no guarda datos que importen; por definición se
   puede reconstruir. El Art. 2 aplica a producción.
 - **Cualquier cambio de código de dominio, esquema o cliente.** Esta rama no toca `src/` ni
@@ -484,16 +495,15 @@ principio 3 de `home-server`: *«La configuración se versiona, no se hace clic�
 
 ### 5.4 Compuerta TG0 — antes de activar nada
 
-Dos cosas se comprueban **antes** de volver obligatorios los checks, porque activarlos con
-un job roto deja el repositorio sin poder mergear nada:
+Activar los checks con un job roto deja el repositorio sin poder mergear nada, así que se
+comprueba antes:
 
 - **TG0.1 — Los tres jobs pasan hoy en `develop`.** Se verifica con la última ejecución del
-  workflow. Si alguno está en rojo, arreglarlo es el trabajo previo.
-- **TG0.2 — El estado real de `ng test` en `admin-web`.** `docs/BACKLOG.md` lo declara roto
-  (sec. 2.3). Si lo está, hay dos salidas y hay que elegir una explícitamente: (a) se excluye
-  `admin-web-ci` de la lista obligatoria y queda como deuda anotada con fecha, o (b) se
-  arregla primero en su propia rama. **No se elige la tercera**, que es volverlo obligatorio
-  y descubrir el bloqueo con el primer PR.
+  workflow. Si alguno está en rojo, arreglarlo es el trabajo previo y no parte de esta rama.
+- **TG0.2 — `ng test` de `admin-web`. CERRADA el 2026-09-15**: 17 archivos y 102 pruebas en
+  verde (sec. 2.3). La deuda que el `ROADMAP.md` todavía menciona se había resuelto el
+  2026-08-11 y el `BACKLOG.md` ya lo registra. **`admin-web-ci` entra en la lista obligatoria
+  sin reservas**, y no hace falta elegir entre excluirlo o arreglarlo primero.
 
 ### 5.5 Catálogo de checks: qué se verifica y qué bloquea
 
@@ -689,7 +699,7 @@ que no está obligado a vivir en `privado/`.
 
 | Riesgo | Mitigación |
 |---|---|
-| Volver obligatorio un job que hoy está roto deja el repo sin poder mergear nada | Compuerta TG0 (sec. 5.4): se verifica el verde antes de activar, y `ng test` tiene una decisión explícita |
+| Volver obligatorio un job que hoy está roto deja el repo sin poder mergear nada | Compuerta TG0 (sec. 5.4): se verifica el verde de los tres jobs antes de activar. TG0.2 ya está cerrada |
 | La credencial de despliegue da acceso al servidor que hospeda Firefly, Portainer y el tailnet | Clave dedicada, usuario restringido al stack de staging, sin sudo, y nunca disparada desde `pull_request` (D5, D6, sec. 6.2) |
 | Construir en un i5 de 2 núcleos hace el despliegue lento | Aceptado a propósito (D7). Si molesta, se mide y se decide GHCR con un ADR, no con un parche |
 | El WiFi del servidor se cae y el despliegue falla de forma intermitente | Es staging: un fallo de despliegue no afecta a nadie. Si se vuelve frecuente, el job se marca `continue-on-error` y se investiga, no se ignora |
@@ -702,8 +712,8 @@ que no está obligado a vivir en `privado/`.
 | CodeQL se queda informativo para siempre y nadie lo mira | La promoción a obligatorio se anota con fecha en `docs/BACKLOG.md` al crearlo, no queda al criterio del momento |
 
 **Deuda declarada que esta rama crea:** ninguna intencionada. **Deuda ajena que toca y no
-arregla:** `ng test` de `admin-web` (sec. 5.4, TG0.2) y la rotación de `SERVER_PASSWORD` en
-`home-server` (sec. 4). Ambas quedan anotadas en `docs/BACKLOG.md` con fecha.
+arregla:** la rotación de `SERVER_PASSWORD` en `home-server` (sec. 4), que queda anotada en
+`docs/BACKLOG.md` con fecha.
 
 ## 11. Criterios de aceptación
 

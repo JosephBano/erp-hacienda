@@ -102,3 +102,12 @@ las familias definitivas en `public/fonts/` con `@font-face`, se elimina el
 `@import`, y este ADR queda reemplazado. También se reabre antes si se confirma
 que el despliegue será en intranet sin salida a internet, porque entonces el
 coste de no auto-hospedar deja de ser teórico.
+
+## Nota de seguimiento (2026-09-15)
+
+El pipeline institucional de GitLab que motivó este ADR se retiró del proyecto
+ese día: fue una prueba y no continúa. La decisión **no se revierte**, porque no
+dependía de aquel runner: que compilar necesite internet es un defecto por sí
+mismo, y el fallo intermitente se reprodujo también en local con red disponible.
+Lo único que caduca es el contexto —ya no hay un runner k3s del campus— y la
+alternativa descartada de replicar las fuentes en Harbor, que deja de existir.

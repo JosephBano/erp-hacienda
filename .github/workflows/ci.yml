@@ -52,7 +52,14 @@ jobs:
         run: dotnet format --verify-no-changes
 
       - name: Build
-        run: dotnet build --no-restore --configuration Release
+        run: |
+          VERSION=$(cat VERSION)
+          COMMIT=$(git rev-parse --short HEAD)
+          BUILD_DATE=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          dotnet build --no-restore --configuration Release \
+            -p:Version="$VERSION" \
+            -p:SourceRevisionId="$COMMIT" \
+            -p:InformationalVersion="$VERSION+$COMMIT.$BUILD_DATE"
 
       - name: Test
         run: dotnet test --no-build --configuration Release --logger "trx" --results-directory TestResults
@@ -78,6 +85,28 @@ jobs:
           node-version: 20
           cache: 'npm'
           cache-dependency-path: clients/field-app/package.json
+
+      - name: Stamp version
+        run: |
+          VERSION=$(cat ../../VERSION)
+          COMMIT=$(git rev-parse --short HEAD)
+          BUILD_DATE=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          node -e "
+            const fs = require('fs');
+            const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+            pkg.version = '$VERSION';
+            pkg.buildMetadata = { commit: '$COMMIT', buildDate: '$BUILD_DATE' };
+            fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
+            const appPath = 'app.json';
+            if (fs.existsSync(appPath)) {
+              const app = JSON.parse(fs.readFileSync(appPath, 'utf8'));
+              if (app.expo) {
+                app.expo.version = '$VERSION';
+                app.expo.extra = { ...(app.expo.extra || {}), commit: '$COMMIT', buildDate: '$BUILD_DATE' };
+                fs.writeFileSync(appPath, JSON.stringify(app, null, 2) + '\n');
+              }
+            }
+          "
 
       # --legacy-peer-deps is required because @nozbe/with-observables@1.6.0 still
       # declares peer @types/react ^16||^17||^18 — the project is on React 19 since the
@@ -107,6 +136,19 @@ jobs:
           node-version: 20
           cache: 'npm'
           cache-dependency-path: clients/admin-web/package-lock.json
+
+      - name: Stamp version
+        run: |
+          VERSION=$(cat ../../VERSION)
+          COMMIT=$(git rev-parse --short HEAD)
+          BUILD_DATE=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          node -e "
+            const fs = require('fs');
+            const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+            pkg.version = '$VERSION';
+            pkg.buildMetadata = { commit: '$COMMIT', buildDate: '$BUILD_DATE' };
+            fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
+          "
 
       - name: Install dependencies
         run: npm ci || npm install

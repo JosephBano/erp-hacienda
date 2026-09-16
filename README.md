@@ -49,6 +49,7 @@ para la app de campo (Fase 3). Detalles y justificación en
 ```
 .
 ├─ AGENTS.md                  # protocolo para agentes de IA (los lee automáticamente)
+├─ VERSION                    # fuente única de versión del build (ADR-0029, no editar a mano)
 ├─ Hato.sln
 ├─ Directory.Build.props      # net8.0, nullable, warnings como errores
 ├─ docker-compose.yml         # PostgreSQL 16 local
@@ -66,6 +67,8 @@ para la app de campo (Fase 3). Detalles y justificación en
    ├─ admin-web/              # Angular          (llega en Fase 1)
    └─ field-app/              # React Native     (llega en Fase 3)
 ```
+
+La versión del proyecto vive exclusivamente en el archivo `VERSION` en la raíz (ADR-0029). No se edita a mano en `package.json` ni en proyectos de .NET: el pipeline de build la lee y la estampa automáticamente en los tres artefactos.
 
 Los módulos restantes (Breeding, Health, Production, Inventory, Sales, Accounting,
 People…) nacen bajo `src/Modules/` con la misma forma, cada uno cuando su fase lo pida.

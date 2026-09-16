@@ -10,7 +10,7 @@ import { IconComponent } from './shared/icon/icon.component';
   standalone: true,
   imports: [CommonModule, RouterModule, IconComponent],
   templateUrl: './app.component.html',
-  styleUrls: ['./app.component.css']
+  styleUrls: ['./app.component.css'],
 })
 export class AppComponent {
   private router = inject(Router);
@@ -21,10 +21,12 @@ export class AppComponent {
   drawerOpen = signal(false);
 
   constructor() {
-    this.router.events.pipe(filter((event) => event instanceof NavigationEnd)).subscribe((event) => {
-      this.isLoginPage.set(event.urlAfterRedirects.startsWith('/login'));
-      this.closeDrawer();
-    });
+    this.router.events
+      .pipe(filter((event) => event instanceof NavigationEnd))
+      .subscribe((event) => {
+        this.isLoginPage.set(event.urlAfterRedirects.startsWith('/login'));
+        this.closeDrawer();
+      });
   }
 
   toggleDrawer(): void {

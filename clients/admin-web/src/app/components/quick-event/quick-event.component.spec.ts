@@ -65,10 +65,7 @@ describe('QuickEventComponent (responsive redesign contract)', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [QuickEventComponent],
-      providers: [
-        provideRouter([]),
-        { provide: ApiService, useValue: happyStub },
-      ],
+      providers: [provideRouter([]), { provide: ApiService, useValue: happyStub }],
     }).compileComponents();
   });
 
@@ -96,8 +93,8 @@ describe('QuickEventComponent (responsive redesign contract)', () => {
 
   it('should display an app-icon next to the save button instead of an emoji glyph', () => {
     const root = render();
-    const saveButton = [...root.querySelectorAll('button')].find(
-      (btn) => btn.classList.contains('btn-primary'),
+    const saveButton = [...root.querySelectorAll('button')].find((btn) =>
+      btn.classList.contains('btn-primary'),
     );
 
     expect(saveButton, 'expected a primary save button').toBeDefined();
@@ -115,16 +112,11 @@ describe('QuickEventComponent (responsive redesign contract)', () => {
     });
 
     for (const { value, option } of eventOptions) {
-      expect(
-        option,
-        `expected an <option value="${value}"> to be present`,
-      ).toBeDefined();
+      expect(option, `expected an <option value="${value}"> to be present`).toBeDefined();
       expect(option!.textContent ?? '').not.toMatch(emojiPattern);
     }
 
-    const optionTexts = eventOptions.map(({ option }) =>
-      (option!.textContent ?? '').toLowerCase(),
-    );
+    const optionTexts = eventOptions.map(({ option }) => (option!.textContent ?? '').toLowerCase());
 
     expect(
       optionTexts.some((t) => t.includes('tratamiento')),

@@ -7,10 +7,25 @@
     </div>
 
     <label for="email">Correo electrónico</label>
-    <input id="email" name="email" type="email" [(ngModel)]="email" required autocomplete="username" inputmode="email" />
+    <input
+      id="email"
+      name="email"
+      type="email"
+      [(ngModel)]="email"
+      required
+      autocomplete="username"
+      inputmode="email"
+    />
 
     <label for="password">Contraseña</label>
-    <input id="password" name="password" type="password" [(ngModel)]="password" required autocomplete="current-password" />
+    <input
+      id="password"
+      name="password"
+      type="password"
+      [(ngModel)]="password"
+      required
+      autocomplete="current-password"
+    />
 
     <p class="error-message" role="alert" *ngIf="errorMessage">{{ errorMessage }}</p>
 

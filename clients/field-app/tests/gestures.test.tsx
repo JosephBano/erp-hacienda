@@ -40,7 +40,12 @@ describe('gestures record nothing', () => {
 
   beforeEach(() => {
     database = new Database({
-      adapter: new LokiJSAdapter({ schema, migrations, useWebWorker: false, useIncrementalIndexedDB: false }),
+      adapter: new LokiJSAdapter({
+        schema,
+        migrations,
+        useWebWorker: false,
+        useIncrementalIndexedDB: false,
+      }),
       modelClasses,
     });
     outbox = new Outbox(database);

@@ -1,4 +1,4 @@
-<div class="glass-card alert-danger" style="padding: 1rem; margin: 1rem 0;" *ngIf="loadError">
+<div class="glass-card alert-danger" style="padding: 1rem; margin: 1rem 0" *ngIf="loadError">
   No se pudo cargar la ficha de este animal desde el servidor. Intente de nuevo más tarde.
 </div>
 
@@ -47,7 +47,9 @@
     </div>
     <div class="glass-card info-card" *ngIf="animal.birthWeightKg != null">
       <span class="info-label">Peso al nacer</span>
-      <span class="info-value"><strong>{{ animal.birthWeightKg | number:'1.2-3' }}</strong> kg</span>
+      <span class="info-value"
+        ><strong>{{ animal.birthWeightKg | number: '1.2-3' }}</strong> kg</span
+      >
     </div>
   </div>
 
@@ -113,12 +115,18 @@
         <tbody>
           <tr *ngFor="let ev of animal.events">
             <td data-label="Fecha">{{ ev.eventDate }}</td>
-            <td data-label="Tipo de Evento"><span class="badge badge-info">{{ ev.eventType }}</span></td>
-            <td data-label="Detalles"><code>{{ ev.detailsJson }}</code></td>
+            <td data-label="Tipo de Evento">
+              <span class="badge badge-info">{{ ev.eventType }}</span>
+            </td>
+            <td data-label="Detalles">
+              <code>{{ ev.detailsJson }}</code>
+            </td>
             <td data-label="Registrado por">{{ ev.recordedBy }}</td>
           </tr>
           <tr *ngIf="animal.events.length === 0" class="empty-row">
-            <td colspan="4" data-label="Estado" class="text-muted text-center py-3">No hay eventos registrados aún.</td>
+            <td colspan="4" data-label="Estado" class="text-muted text-center py-3">
+              No hay eventos registrados aún.
+            </td>
           </tr>
         </tbody>
       </table>
@@ -139,11 +147,17 @@
         <tbody>
           <tr *ngFor="let m of animal.milkYields">
             <td data-label="Fecha">{{ m.date }}</td>
-            <td data-label="Sesión">{{ m.session === 'Morning' ? 'Matutino (AM)' : 'Vespertino (PM)' }}</td>
-            <td data-label="Litros Obtenidos"><strong>{{ m.liters }} L</strong></td>
+            <td data-label="Sesión">
+              {{ m.session === 'Morning' ? 'Matutino (AM)' : 'Vespertino (PM)' }}
+            </td>
+            <td data-label="Litros Obtenidos">
+              <strong>{{ m.liters }} L</strong>
+            </td>
           </tr>
           <tr *ngIf="animal.milkYields.length === 0" class="empty-row">
-            <td colspan="3" data-label="Estado" class="text-muted text-center py-3">Sin registros de producción de leche.</td>
+            <td colspan="3" data-label="Estado" class="text-muted text-center py-3">
+              Sin registros de producción de leche.
+            </td>
           </tr>
         </tbody>
       </table>
@@ -156,11 +170,17 @@
     <div class="info-grid mt-3" *ngIf="damKpis">
       <div class="glass-card info-card">
         <span class="info-label">Intervalo entre partos (promedio)</span>
-        <span class="info-value">{{ damKpis.averageCalvingIntervalDays ? damKpis.averageCalvingIntervalDays + ' días' : 'Sin partos múltiples' }}</span>
+        <span class="info-value">{{
+          damKpis.averageCalvingIntervalDays
+            ? damKpis.averageCalvingIntervalDays + ' días'
+            : 'Sin partos múltiples'
+        }}</span>
       </div>
       <div class="glass-card info-card">
         <span class="info-label">Días abiertos</span>
-        <span class="info-value">{{ damKpis.daysOpen !== null ? damKpis.daysOpen + ' días' : '-' }}</span>
+        <span class="info-value">{{
+          damKpis.daysOpen !== null ? damKpis.daysOpen + ' días' : '-'
+        }}</span>
       </div>
       <div class="glass-card info-card">
         <span class="info-label">Servicios / concepción</span>
@@ -186,14 +206,31 @@
         </thead>
         <tbody>
           <tr *ngFor="let a of pedigree?.ancestors">
-            <td data-label="Generación"><strong>Gen {{ a.generationLevel }}</strong></td>
-            <td data-label="Rol"><span class="badge" [class.badge-info]="a.role === 'Mother'" [class.badge-success]="a.role === 'Father'">{{ a.role === 'Mother' ? 'Madre' : 'Padre' }}</span></td>
+            <td data-label="Generación">
+              <strong>Gen {{ a.generationLevel }}</strong>
+            </td>
+            <td data-label="Rol">
+              <span
+                class="badge"
+                [class.badge-info]="a.role === 'Mother'"
+                [class.badge-success]="a.role === 'Father'"
+                >{{ a.role === 'Mother' ? 'Madre' : 'Padre' }}</span
+              >
+            </td>
             <td data-label="ID Ancestro">{{ a.animalId }}</td>
             <td data-label="Arete Finca">{{ a.farmTag || '-' }}</td>
-            <td data-label="Padre (Semen/Animal)">{{ a.fatherStrawBullName ? 'Pajuela: ' + a.fatherStrawBullName : (a.fatherAnimalId || '-') }}</td>
+            <td data-label="Padre (Semen/Animal)">
+              {{
+                a.fatherStrawBullName
+                  ? 'Pajuela: ' + a.fatherStrawBullName
+                  : a.fatherAnimalId || '-'
+              }}
+            </td>
           </tr>
           <tr *ngIf="!pedigree?.ancestors || pedigree?.ancestors?.length === 0" class="empty-row">
-            <td colspan="5" data-label="Estado" class="text-muted text-center py-3">No hay ancestros registrados para este animal.</td>
+            <td colspan="5" data-label="Estado" class="text-muted text-center py-3">
+              No hay ancestros registrados para este animal.
+            </td>
           </tr>
         </tbody>
       </table>
@@ -204,11 +241,19 @@
     <h3>Control de períodos de retiro</h3>
     <div *ngIf="animal.isInWithdrawal" class="withdrawal-alert alert-danger">
       <h4><app-icon name="alert" size="sm" /> ANIMAL BAJO TRATAMIENTO</h4>
-      <p>La producción o venta afectada por este período está <strong>estrictamente bloqueada</strong> hasta el <strong>{{ animal.withdrawalUntil }}</strong>, conforme al Artículo 19 de la Constitución del proyecto.</p>
+      <p>
+        La producción o venta afectada por este período está
+        <strong>estrictamente bloqueada</strong> hasta el
+        <strong>{{ animal.withdrawalUntil }}</strong
+        >, conforme al Artículo 19 de la Constitución del proyecto.
+      </p>
     </div>
     <div *ngIf="!animal.isInWithdrawal" class="withdrawal-alert alert-success">
       <h4><app-icon name="check" size="sm" /> ANIMAL APTO</h4>
-      <p>No registra ningún período de retiro sanitario activo. Producción libre para comercialización.</p>
+      <p>
+        No registra ningún período de retiro sanitario activo. Producción libre para
+        comercialización.
+      </p>
     </div>
   </div>
 </div>

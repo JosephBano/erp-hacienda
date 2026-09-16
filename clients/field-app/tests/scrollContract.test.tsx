@@ -311,7 +311,10 @@ describe('ActivitiesHub — the home screen', () => {
 });
 
 describe('LotEventsScreen — the lot form', () => {
-  const renderDiagnosis = async (recordGroupEvent = jest.fn().mockResolvedValue({}), onBack = jest.fn()) => {
+  const renderDiagnosis = async (
+    recordGroupEvent = jest.fn().mockResolvedValue({}),
+    onBack = jest.fn(),
+  ) => {
     await render(
       <LotEventsScreen
         service={{ recordGroupEvent } as unknown as EventService}

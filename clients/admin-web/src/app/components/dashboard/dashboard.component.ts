@@ -10,7 +10,7 @@ import { IconComponent } from '../../shared/icon/icon.component';
   standalone: true,
   imports: [CommonModule, RouterModule, IconComponent],
   templateUrl: './dashboard.component.html',
-  styleUrls: ['./dashboard.component.css']
+  styleUrls: ['./dashboard.component.css'],
 })
 export class DashboardComponent implements OnInit {
   private api = inject(ApiService);
@@ -30,7 +30,7 @@ export class DashboardComponent implements OnInit {
     // /milking and /animals would show if you navigated there yourself.
     forkJoin({
       animals: this.api.getAnimals(),
-      sessions: this.api.getMilkingSessions()
+      sessions: this.api.getMilkingSessions(),
     }).subscribe({
       next: ({ animals, sessions }) => {
         this.animalsCount = animals.length;
@@ -38,7 +38,8 @@ export class DashboardComponent implements OnInit {
         this.recentAnimals = animals.slice(0, 5);
 
         this.todaySessionsCount = sessions.length;
-        this.todayMilkLiters = Math.round(sessions.reduce((sum, s) => sum + s.totalLiters, 0) * 10) / 10;
+        this.todayMilkLiters =
+          Math.round(sessions.reduce((sum, s) => sum + s.totalLiters, 0) * 10) / 10;
       },
       error: () => {
         // No fallback to invented numbers: a real outage must look like an outage,
@@ -49,7 +50,7 @@ export class DashboardComponent implements OnInit {
         this.todayMilkLiters = 0;
         this.todaySessionsCount = 0;
         this.recentAnimals = [];
-      }
+      },
     });
   }
 }

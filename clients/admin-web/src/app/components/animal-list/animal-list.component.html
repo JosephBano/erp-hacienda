@@ -20,7 +20,7 @@
         placeholder="Buscar por arete, identificación o nombre"
         [(ngModel)]="searchTerm"
         (ngModelChange)="applyFilter()"
-      >
+      />
     </div>
 
     <div class="filter-group">
@@ -38,7 +38,7 @@
     </div>
   </div>
 
-  <div *ngIf="loadError" class="glass-card alert-danger" style="padding: 1rem; margin-bottom: 1rem;">
+  <div *ngIf="loadError" class="glass-card alert-danger" style="padding: 1rem; margin-bottom: 1rem">
     No se pudo cargar el listado de animales desde el servidor. Intente de nuevo más tarde.
   </div>
 
@@ -58,7 +58,9 @@
       </thead>
       <tbody>
         <tr *ngFor="let animal of filteredAnimals">
-          <td data-label="Arete Finca"><strong>{{ animal.farmTag || 'Sin arete' }}</strong></td>
+          <td data-label="Arete Finca">
+            <strong>{{ animal.farmTag || 'Sin arete' }}</strong>
+          </td>
           <td data-label="Arete SIFAE">{{ animal.officialTag || 'N/A' }}</td>
           <td data-label="Nombre">{{ animal.name || 'Sin nombre' }}</td>
           <td data-label="Género">{{ animal.gender === 'Female' ? 'Hembra' : 'Macho' }}</td>
@@ -75,7 +77,9 @@
             </span>
           </td>
           <td data-label="Acción">
-            <a [routerLink]="['/animals', animal.id]" class="btn btn-secondary btn-sm">Ficha completa</a>
+            <a [routerLink]="['/animals', animal.id]" class="btn btn-secondary btn-sm"
+              >Ficha completa</a
+            >
           </td>
         </tr>
         <tr *ngIf="filteredAnimals.length === 0" class="empty-row">

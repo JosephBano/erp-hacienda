@@ -26,14 +26,20 @@
   flex-wrap: wrap;
 }
 
-.mt-3 { margin-top: 1rem; }
+.mt-3 {
+  margin-top: 1rem;
+}
 
 .alert {
   padding: 1rem 1.5rem;
   border-radius: var(--radius-md);
   font-weight: 600;
 }
-.alert-danger { background: rgba(239, 68, 68, 0.2); border: 1px solid rgba(239, 68, 68, 0.4); color: #f87171; }
+.alert-danger {
+  background: rgba(239, 68, 68, 0.2);
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  color: #f87171;
+}
 
 .page-title {
   display: flex;

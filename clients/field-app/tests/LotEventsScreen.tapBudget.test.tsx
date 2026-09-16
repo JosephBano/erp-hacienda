@@ -60,7 +60,9 @@ describe('LotEventsScreen TapBudget (ADR-0021 condition 2)', () => {
     }) as unknown as typeof fetch;
   });
 
-  function renderScreen(activity: 'weighing' | 'disposal' | 'vaccination' | 'treatment' | 'diagnosis' | 'feed') {
+  function renderScreen(
+    activity: 'weighing' | 'disposal' | 'vaccination' | 'treatment' | 'diagnosis' | 'feed',
+  ) {
     return render(
       <LotEventsScreen
         service={service}

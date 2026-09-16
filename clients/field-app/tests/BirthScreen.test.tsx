@@ -187,22 +187,30 @@ describe('BirthScreen — Wizard flow and Calf management', () => {
     await act(async () => {
       fireEvent.changeText(screen.getByTestId('offspring-weight-0'), '0');
     });
-    expect(screen.getByText('El peso al nacer debe ser un valor positivo (en kilogramos).')).toBeTruthy();
+    expect(
+      screen.getByText('El peso al nacer debe ser un valor positivo (en kilogramos).'),
+    ).toBeTruthy();
 
     await act(async () => {
       fireEvent.changeText(screen.getByTestId('offspring-weight-0'), '-1.5');
     });
-    expect(screen.getByText('El peso al nacer debe ser un valor positivo (en kilogramos).')).toBeTruthy();
+    expect(
+      screen.getByText('El peso al nacer debe ser un valor positivo (en kilogramos).'),
+    ).toBeTruthy();
 
     await act(async () => {
       fireEvent.changeText(screen.getByTestId('offspring-weight-0'), 'abc');
     });
-    expect(screen.getByText('El peso al nacer debe ser un valor positivo (en kilogramos).')).toBeTruthy();
+    expect(
+      screen.getByText('El peso al nacer debe ser un valor positivo (en kilogramos).'),
+    ).toBeTruthy();
 
     await act(async () => {
       fireEvent.changeText(screen.getByTestId('offspring-weight-0'), '2.3');
     });
-    expect(screen.queryByText('El peso al nacer debe ser un valor positivo (en kilogramos).')).toBeNull();
+    expect(
+      screen.queryByText('El peso al nacer debe ser un valor positivo (en kilogramos).'),
+    ).toBeNull();
   });
 
   it('T5.16: going back and forth between steps preserves offspring and inputs', async () => {

@@ -65,7 +65,8 @@ describe('LoggerService LOPDP Local Log Tests', () => {
   });
 
   test('redacts JWT, passwords, secrets, and full payloads from log entries (T8.5)', () => {
-    const rawJwt = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.dozjgNryP4J3jVmNHpm_BvW9m_pQ';
+    const rawJwt =
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.dozjgNryP4J3jVmNHpm_BvW9m_pQ';
     loggerService.logError('Error con datos sensibles', {
       password: 'super-secret-password',
       token: 'secret-token-123',

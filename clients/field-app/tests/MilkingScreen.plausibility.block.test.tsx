@@ -78,7 +78,12 @@ describe('MilkingScreen plausibility (ADR-0022): impossible value is blocked', (
 
   it('blocks a value outside the absolute range and never enqueues it', async () => {
     await render(
-      <MilkingScreen service={service} database={database} candidates={[candidate]} recordedBy="tester@hato" />,
+      <MilkingScreen
+        service={service}
+        database={database}
+        candidates={[candidate]}
+        recordedBy="tester@hato"
+      />,
     );
 
     const cowButton = await screen.findByTestId('cow-cow-1');

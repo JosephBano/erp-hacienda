@@ -20,7 +20,12 @@ describe('ModuleToggle', () => {
 
   it('renders the module label and its current state', async () => {
     await render(
-      <ModuleToggle moduleKey="production" label="Ordeño" enabled={true} onChange={() => undefined} />,
+      <ModuleToggle
+        moduleKey="production"
+        label="Ordeño"
+        enabled={true}
+        onChange={() => undefined}
+      />,
     );
 
     expect(await screen.findByText(/Ordeño/)).toBeTruthy();
@@ -30,7 +35,12 @@ describe('ModuleToggle', () => {
 
   it('renders the disabled state when the flag is off', async () => {
     await render(
-      <ModuleToggle moduleKey="production" label="Ordeño" enabled={false} onChange={() => undefined} />,
+      <ModuleToggle
+        moduleKey="production"
+        label="Ordeño"
+        enabled={false}
+        onChange={() => undefined}
+      />,
     );
 
     expect(await screen.findByTestId('module-toggle-production-off')).toBeTruthy();

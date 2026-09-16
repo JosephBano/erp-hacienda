@@ -21,7 +21,7 @@ jest.mock(
       },
     },
   }),
-  { virtual: true }
+  { virtual: true },
 );
 
 global.__setAppState = (state) => {
@@ -37,4 +37,3 @@ global.__resetNativeMocks = () => {
   mockAppState.currentState = 'active';
   mockAppState.listeners.clear();
 };
-

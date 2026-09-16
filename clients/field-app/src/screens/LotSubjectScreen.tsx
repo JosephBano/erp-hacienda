@@ -16,12 +16,7 @@ import type { AnimalGroupsApi, AnimalGroupSummary } from '../services/animalGrou
 import type { AnimalForSubject } from '../services/herdQueries';
 
 export type LotActivity =
-  | 'feed'
-  | 'weighing'
-  | 'vaccination'
-  | 'treatment'
-  | 'diagnosis'
-  | 'disposal';
+  'feed' | 'weighing' | 'vaccination' | 'treatment' | 'diagnosis' | 'disposal';
 
 export interface LotForSubject {
   groupId: string;
@@ -47,7 +42,8 @@ export function getTrackingModeInfo(trackingMode?: string): TrackingModeInfo | n
       label: 'Modo: Por conteo',
       isHeadcount: true,
       isIndividual: false,
-      description: 'Lote por conteo: el inventario y las actividades se gestionan por número de cabezas, sin aretes individuales.',
+      description:
+        'Lote por conteo: el inventario y las actividades se gestionan por número de cabezas, sin aretes individuales.',
     };
   }
   if (normalized === 'individual') {
@@ -56,7 +52,8 @@ export function getTrackingModeInfo(trackingMode?: string): TrackingModeInfo | n
       label: 'Modo: Individual',
       isHeadcount: false,
       isIndividual: true,
-      description: 'Grupo con identificación individual: cada animal conserva su arete e historial propio.',
+      description:
+        'Grupo con identificación individual: cada animal conserva su arete e historial propio.',
     };
   }
   return null;
@@ -229,7 +226,8 @@ export function LotSubjectScreen({
 
             {/* T5.3: Declaración expresa de limitación de actualización */}
             <Body muted testID="lot-summary-disclaimer" style={styles.summaryDisclaimer}>
-              Ficha calculada en el servidor. Los registros locales pendientes se reflejarán tras sincronizar.
+              Ficha calculada en el servidor. Los registros locales pendientes se reflejarán tras
+              sincronizar.
             </Body>
           </Card>
         ) : summaryError ? (
@@ -355,10 +353,12 @@ export function LotSubjectScreen({
           MODOS DE SEGUIMIENTO
         </Text>
         <Text style={[styles.guideText, { color: activeTheme.color.textMuted }]}>
-          • <Text style={{ fontWeight: '700', color: activeTheme.color.text }}>[Por conteo]</Text>: seguimiento colectivo de cabezas (sin aretes individuales).
+          • <Text style={{ fontWeight: '700', color: activeTheme.color.text }}>[Por conteo]</Text>:
+          seguimiento colectivo de cabezas (sin aretes individuales).
         </Text>
         <Text style={[styles.guideText, { color: activeTheme.color.textMuted }]}>
-          • <Text style={{ fontWeight: '700', color: activeTheme.color.text }}>[Individual]</Text>: cada animal dispone de arete e historial propio.
+          • <Text style={{ fontWeight: '700', color: activeTheme.color.text }}>[Individual]</Text>:
+          cada animal dispone de arete e historial propio.
         </Text>
       </Card>
 

@@ -1,7 +1,15 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnInit, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { AlertDto, Animal, ApiService, BirthingListItem, BirthingListOffspring, PregnancyDto, SemenStraw } from '../../services/api.service';
+import {
+  AlertDto,
+  Animal,
+  ApiService,
+  BirthingListItem,
+  BirthingListOffspring,
+  PregnancyDto,
+  SemenStraw,
+} from '../../services/api.service';
 import { IconComponent } from '../../shared/icon/icon.component';
 
 export interface OffspringFormItem {
@@ -30,7 +38,7 @@ function safeRandomUuid(): string {
   standalone: true,
   imports: [CommonModule, FormsModule, IconComponent],
   templateUrl: './breeding-dashboard.component.html',
-  styleUrls: ['./breeding-dashboard.component.css']
+  styleUrls: ['./breeding-dashboard.component.css'],
 })
 export class BreedingDashboardComponent implements OnInit {
   private api = inject(ApiService);
@@ -62,7 +70,7 @@ export class BreedingDashboardComponent implements OnInit {
     strawId: '',
     technician: '',
     notes: '',
-    bodyConditionScore: 3.0
+    bodyConditionScore: 3.0,
   };
 
   // Pregnancy check form
@@ -74,7 +82,7 @@ export class BreedingDashboardComponent implements OnInit {
     method: 'Palpation', // 'Palpation' | 'Ultrasound' | 'NonReturn'
     result: 'Positive', // 'Positive' | 'Negative' | 'Doubtful'
     checkedBy: '',
-    notes: ''
+    notes: '',
   };
 
   // Birthing form
@@ -98,7 +106,7 @@ export class BreedingDashboardComponent implements OnInit {
       this._offspringList.push({
         farmTag: '',
         sex: 'F',
-        birthWeightKg: null
+        birthWeightKg: null,
       });
     }
     if (this._offspringList.length > alive) {
@@ -115,7 +123,7 @@ export class BreedingDashboardComponent implements OnInit {
     breedId: '00000000-0000-0000-0000-000000000000',
     supplierName: '',
     quantity: 10,
-    notes: ''
+    notes: '',
   };
 
   ngOnInit(): void {
@@ -154,17 +162,17 @@ export class BreedingDashboardComponent implements OnInit {
     this.loading = true;
     this.api.getAlerts().subscribe({
       next: (data) => (this.alerts = data),
-      error: (err) => console.error(err)
+      error: (err) => console.error(err),
     });
 
     this.api.getActivePregnancies().subscribe({
       next: (data) => (this.pregnancies = data),
-      error: (err) => console.error(err)
+      error: (err) => console.error(err),
     });
 
     this.api.getSemenStraws().subscribe({
       next: (data) => (this.straws = data),
-      error: (err) => console.error(err)
+      error: (err) => console.error(err),
     });
 
     this.api.getAnimals().subscribe({
@@ -172,12 +180,12 @@ export class BreedingDashboardComponent implements OnInit {
         this.animals = data;
         this.loading = false;
       },
-      error: () => (this.loading = false)
+      error: () => (this.loading = false),
     });
 
     this.api.getBirthings().subscribe({
       next: (data) => (this.birthings = data),
-      error: (err) => console.error(err)
+      error: (err) => console.error(err),
     });
   }
 
@@ -203,7 +211,7 @@ export class BreedingDashboardComponent implements OnInit {
       error: (err) => {
         this.errorMessage = 'Error generando alertas.';
         this.loading = false;
-      }
+      },
     });
   }
 
@@ -211,7 +219,7 @@ export class BreedingDashboardComponent implements OnInit {
     this.api.dismissAlert(id).subscribe({
       next: () => {
         this.alerts = this.alerts.filter((a) => a.id !== id);
-      }
+      },
     });
   }
 
@@ -226,7 +234,7 @@ export class BreedingDashboardComponent implements OnInit {
       serviceDate: this.serviceForm.serviceDate,
       technician: this.serviceForm.technician?.trim() || null,
       notes: this.serviceForm.notes?.trim() || null,
-      bodyConditionScore: this.serviceForm.bodyConditionScore
+      bodyConditionScore: this.serviceForm.bodyConditionScore,
     };
 
     if (this.serviceForm.serviceType === 'ArtificialInsemination') {
@@ -248,7 +256,7 @@ export class BreedingDashboardComponent implements OnInit {
       error: (err) => {
         this.loading = false;
         this.errorMessage = err.error?.detail || 'Error al registrar servicio.';
-      }
+      },
     });
   }
 
@@ -266,7 +274,7 @@ export class BreedingDashboardComponent implements OnInit {
       error: (err) => {
         this.loading = false;
         this.errorMessage = err.error?.detail || 'Error al guardar pajuelas.';
-      }
+      },
     });
   }
 
@@ -298,7 +306,7 @@ export class BreedingDashboardComponent implements OnInit {
         difficulty: this.birthingForm.difficulty || 'Normal',
         bornAlive,
         bornDead,
-        mummified
+        mummified,
       };
 
       if (this.birthingForm.pregnancyId && this.birthingForm.pregnancyId.trim() !== '') {
@@ -314,19 +322,17 @@ export class BreedingDashboardComponent implements OnInit {
       }
 
       if (bornAlive > 0 && this.offspringList.length > 0) {
-        payload.offspring = this.offspringList
-          .slice(0, bornAlive)
-          .map((o) => ({
-            childId: safeRandomUuid(),
-            farmTag: o.farmTag && o.farmTag.trim() !== '' ? o.farmTag.trim() : null,
-            sex: o.sex || 'F',
-            birthWeightKg:
-              o.birthWeightKg != null &&
-              o.birthWeightKg !== ('' as any) &&
-              Number(o.birthWeightKg) > 0
-                ? Number(o.birthWeightKg)
-                : null
-          }));
+        payload.offspring = this.offspringList.slice(0, bornAlive).map((o) => ({
+          childId: safeRandomUuid(),
+          farmTag: o.farmTag && o.farmTag.trim() !== '' ? o.farmTag.trim() : null,
+          sex: o.sex || 'F',
+          birthWeightKg:
+            o.birthWeightKg != null &&
+            o.birthWeightKg !== ('' as any) &&
+            Number(o.birthWeightKg) > 0
+              ? Number(o.birthWeightKg)
+              : null,
+        }));
       }
 
       this.api.recordBirthing(payload).subscribe({
@@ -339,7 +345,7 @@ export class BreedingDashboardComponent implements OnInit {
         error: (err) => {
           this.loading = false;
           this.errorMessage = err.error?.detail || err.message || 'Error al registrar parto.';
-        }
+        },
       });
     } catch (err: any) {
       this.loading = false;

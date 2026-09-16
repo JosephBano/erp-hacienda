@@ -38,10 +38,7 @@ export async function evaluatePlausibility(
   database: Database,
   input: PlausibilityInput,
 ): Promise<PlausibilityVerdict> {
-  const rows = await database
-    .get<PlausibilityRange>('plausibility_ranges')
-    .query()
-    .fetch();
+  const rows = await database.get<PlausibilityRange>('plausibility_ranges').query().fetch();
 
   const candidates = rows.filter(
     (r) =>

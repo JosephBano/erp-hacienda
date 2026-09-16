@@ -1,11 +1,7 @@
 <router-outlet *ngIf="isLoginPage()"></router-outlet>
 
 <div class="app-layout" *ngIf="!isLoginPage()">
-  <aside
-    class="sidebar"
-    [class.is-open]="drawerOpen()"
-    aria-label="Navegación principal"
-  >
+  <aside class="sidebar" [class.is-open]="drawerOpen()" aria-label="Navegación principal">
     <div class="sidebar-brand">
       <span class="brand-logo" aria-hidden="true">
         <app-icon name="pig" size="xl" />
@@ -90,7 +86,11 @@
 
       <div
         class="nav-section-label"
-        *ngIf="auth.hasPermission('people.roles.manage') || auth.hasPermission('people.users.manage') || auth.hasPermission('livestock.animals.write')"
+        *ngIf="
+          auth.hasPermission('people.roles.manage') ||
+          auth.hasPermission('people.users.manage') ||
+          auth.hasPermission('livestock.animals.write')
+        "
       >
         Administración
       </div>

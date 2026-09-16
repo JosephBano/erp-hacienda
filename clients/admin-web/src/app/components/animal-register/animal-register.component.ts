@@ -17,7 +17,7 @@ import { IconComponent } from '../../shared/icon/icon.component';
   standalone: true,
   imports: [CommonModule, FormsModule, IconComponent],
   templateUrl: './animal-register.component.html',
-  styleUrls: ['./animal-register.component.css']
+  styleUrls: ['./animal-register.component.css'],
 })
 export class AnimalRegisterComponent implements OnInit {
   private api = inject(ApiService);
@@ -69,7 +69,7 @@ export class AnimalRegisterComponent implements OnInit {
       },
       error: () => {
         this.errorMessage = 'No se pudo cargar el catálogo de especies.';
-      }
+      },
     });
   }
 
@@ -82,7 +82,9 @@ export class AnimalRegisterComponent implements OnInit {
     if (!this.selectedSpeciesId) return;
 
     this.api.getBreeds(this.selectedSpeciesId).subscribe({ next: (data) => (this.breeds = data) });
-    this.api.getAnimalCategories(this.selectedSpeciesId).subscribe({ next: (data) => (this.categories = data) });
+    this.api
+      .getAnimalCategories(this.selectedSpeciesId)
+      .subscribe({ next: (data) => (this.categories = data) });
   }
 
   saveNewSpecies(): void {
@@ -91,69 +93,78 @@ export class AnimalRegisterComponent implements OnInit {
       return;
     }
 
-    this.api.createSpecies({
-      name: this.newSpeciesName.trim(),
-      gestationDays: this.newSpeciesGestationDays ?? undefined,
-      isMilkable: this.newSpeciesIsMilkable
-    }).subscribe({
-      next: (result) => {
-        this.newSpeciesName = '';
-        this.newSpeciesGestationDays = null;
-        this.newSpeciesIsMilkable = false;
-        this.showNewSpeciesForm = false;
-        this.errorMessage = '';
-        this.api.getSpecies().subscribe({
-          next: (data) => {
-            this.species = data;
-            this.selectedSpeciesId = result.id;
-            this.onSpeciesChange();
-          }
-        });
-      },
-      error: (err) => {
-        this.errorMessage = err?.error?.detail || 'No se pudo crear la especie.';
-      }
-    });
+    this.api
+      .createSpecies({
+        name: this.newSpeciesName.trim(),
+        gestationDays: this.newSpeciesGestationDays ?? undefined,
+        isMilkable: this.newSpeciesIsMilkable,
+      })
+      .subscribe({
+        next: (result) => {
+          this.newSpeciesName = '';
+          this.newSpeciesGestationDays = null;
+          this.newSpeciesIsMilkable = false;
+          this.showNewSpeciesForm = false;
+          this.errorMessage = '';
+          this.api.getSpecies().subscribe({
+            next: (data) => {
+              this.species = data;
+              this.selectedSpeciesId = result.id;
+              this.onSpeciesChange();
+            },
+          });
+        },
+        error: (err) => {
+          this.errorMessage = err?.error?.detail || 'No se pudo crear la especie.';
+        },
+      });
   }
 
   saveNewBreed(): void {
     if (!this.newBreedName.trim() || !this.selectedSpeciesId) return;
 
-    this.api.createBreed({ speciesId: this.selectedSpeciesId, name: this.newBreedName.trim() }).subscribe({
-      next: (result) => {
-        this.newBreedName = '';
-        this.showNewBreedForm = false;
-        this.api.getBreeds(this.selectedSpeciesId).subscribe({
-          next: (data) => {
-            this.breeds = data;
-            this.selectedBreedId = result.id;
-          }
-        });
-      },
-      error: (err) => {
-        this.errorMessage = err?.error?.detail || 'No se pudo crear la raza.';
-      }
-    });
+    this.api
+      .createBreed({ speciesId: this.selectedSpeciesId, name: this.newBreedName.trim() })
+      .subscribe({
+        next: (result) => {
+          this.newBreedName = '';
+          this.showNewBreedForm = false;
+          this.api.getBreeds(this.selectedSpeciesId).subscribe({
+            next: (data) => {
+              this.breeds = data;
+              this.selectedBreedId = result.id;
+            },
+          });
+        },
+        error: (err) => {
+          this.errorMessage = err?.error?.detail || 'No se pudo crear la raza.';
+        },
+      });
   }
 
   saveNewCategory(): void {
     if (!this.newCategoryName.trim() || !this.selectedSpeciesId) return;
 
-    this.api.createAnimalCategory({ speciesId: this.selectedSpeciesId, name: this.newCategoryName.trim() }).subscribe({
-      next: (result) => {
-        this.newCategoryName = '';
-        this.showNewCategoryForm = false;
-        this.api.getAnimalCategories(this.selectedSpeciesId).subscribe({
-          next: (data) => {
-            this.categories = data;
-            this.selectedCategoryId = result.id;
-          }
-        });
-      },
-      error: (err) => {
-        this.errorMessage = err?.error?.detail || 'No se pudo crear la categoría.';
-      }
-    });
+    this.api
+      .createAnimalCategory({
+        speciesId: this.selectedSpeciesId,
+        name: this.newCategoryName.trim(),
+      })
+      .subscribe({
+        next: (result) => {
+          this.newCategoryName = '';
+          this.showNewCategoryForm = false;
+          this.api.getAnimalCategories(this.selectedSpeciesId).subscribe({
+            next: (data) => {
+              this.categories = data;
+              this.selectedCategoryId = result.id;
+            },
+          });
+        },
+        error: (err) => {
+          this.errorMessage = err?.error?.detail || 'No se pudo crear la categoría.';
+        },
+      });
   }
 
   registerAnimal(): void {
@@ -167,31 +178,35 @@ export class AnimalRegisterComponent implements OnInit {
 
     this.busy = true;
 
-    this.api.registerAnimal({
-      speciesId: this.selectedSpeciesId,
-      sex: this.sex,
-      breedId: this.selectedBreedId || undefined,
-      categoryId: this.selectedCategoryId || undefined,
-      birthDate: this.birthDate || undefined
-    }).subscribe({
-      next: (result) => {
-        if (this.farmTag.trim()) {
-          this.api.assignAnimalIdentifier(result.id, {
-            type: 'FarmTag',
-            value: this.farmTag.trim(),
-            validFrom: this.birthDate || new Date().toISOString().split('T')[0]
-          }).subscribe({
-            complete: () => this.finishRegistration(result.id)
-          });
-        } else {
-          this.finishRegistration(result.id);
-        }
-      },
-      error: (err) => {
-        this.busy = false;
-        this.errorMessage = err?.error?.detail || 'No se pudo registrar el animal.';
-      }
-    });
+    this.api
+      .registerAnimal({
+        speciesId: this.selectedSpeciesId,
+        sex: this.sex,
+        breedId: this.selectedBreedId || undefined,
+        categoryId: this.selectedCategoryId || undefined,
+        birthDate: this.birthDate || undefined,
+      })
+      .subscribe({
+        next: (result) => {
+          if (this.farmTag.trim()) {
+            this.api
+              .assignAnimalIdentifier(result.id, {
+                type: 'FarmTag',
+                value: this.farmTag.trim(),
+                validFrom: this.birthDate || new Date().toISOString().split('T')[0],
+              })
+              .subscribe({
+                complete: () => this.finishRegistration(result.id),
+              });
+          } else {
+            this.finishRegistration(result.id);
+          }
+        },
+        error: (err) => {
+          this.busy = false;
+          this.errorMessage = err?.error?.detail || 'No se pudo registrar el animal.';
+        },
+      });
   }
 
   private finishRegistration(animalId: string): void {

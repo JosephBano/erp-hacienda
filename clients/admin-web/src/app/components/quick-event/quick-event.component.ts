@@ -10,7 +10,7 @@ import { IconComponent } from '../../shared/icon/icon.component';
   standalone: true,
   imports: [CommonModule, FormsModule, IconComponent],
   templateUrl: './quick-event.component.html',
-  styleUrls: ['./quick-event.component.css']
+  styleUrls: ['./quick-event.component.css'],
 })
 export class QuickEventComponent implements OnInit {
   private api = inject(ApiService);
@@ -46,7 +46,7 @@ export class QuickEventComponent implements OnInit {
         this.animals = [];
         this.selectedAnimalId = '';
         this.errorMessage = 'No se pudo cargar el listado de animales. Intente nuevamente.';
-      }
+      },
     });
   }
 
@@ -64,26 +64,34 @@ export class QuickEventComponent implements OnInit {
     if (this.eventType === 'Weighing') {
       detailsPayload = { WeightKg: this.weightKg, Notes: this.notes };
     } else if (this.eventType === 'Treatment') {
-      detailsPayload = { MedicationName: this.medicationName, Dosage: this.dosage, WithdrawalDays: this.withdrawalDays, Notes: this.notes };
+      detailsPayload = {
+        MedicationName: this.medicationName,
+        Dosage: this.dosage,
+        WithdrawalDays: this.withdrawalDays,
+        Notes: this.notes,
+      };
       milkWithdrawalDays = this.withdrawalDays;
     } else if (this.eventType === 'Diagnosis') {
       detailsPayload = { Disease: this.diseaseDiagnosis, Notes: this.notes };
     }
 
-    this.api.recordAnimalEvent(this.selectedAnimalId, {
-      eventType: this.eventType,
-      eventDate: this.eventDate,
-      details: detailsPayload,
-      recordedBy: this.recordedBy,
-      milkWithdrawalDays
-    }).subscribe({
-      next: () => {
-        this.successMessage = 'Evento inmutable registrado correctamente.';
-        setTimeout(() => this.router.navigate(['/animals', this.selectedAnimalId]), 1500);
-      },
-      error: () => {
-        this.errorMessage = 'No se pudo registrar el evento. Revise la conexión e intente nuevamente.';
-      }
-    });
+    this.api
+      .recordAnimalEvent(this.selectedAnimalId, {
+        eventType: this.eventType,
+        eventDate: this.eventDate,
+        details: detailsPayload,
+        recordedBy: this.recordedBy,
+        milkWithdrawalDays,
+      })
+      .subscribe({
+        next: () => {
+          this.successMessage = 'Evento inmutable registrado correctamente.';
+          setTimeout(() => this.router.navigate(['/animals', this.selectedAnimalId]), 1500);
+        },
+        error: () => {
+          this.errorMessage =
+            'No se pudo registrar el evento. Revise la conexión e intente nuevamente.';
+        },
+      });
   }
 }

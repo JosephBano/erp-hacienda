@@ -48,10 +48,7 @@ export class IdentifierService {
     await this.database.write(async () => {
       const existingRows = await this.database
         .get<AnimalIdentifier>('animal_identifiers')
-        .query(
-          Q.where('animal_id', input.animalId),
-          Q.where('is_active', true),
-        )
+        .query(Q.where('animal_id', input.animalId), Q.where('is_active', true))
         .fetch();
 
       for (const row of existingRows) {

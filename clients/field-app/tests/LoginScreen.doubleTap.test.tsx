@@ -57,9 +57,7 @@ describe('LoginScreen — double tap (feature-0006 T4.2)', () => {
     });
     const auth = { unlockWithPin } as unknown as AuthService;
 
-    await render(
-      <LoginScreen auth={auth} hasCachedSession onAuthenticated={() => undefined} />,
-    );
+    await render(<LoginScreen auth={auth} hasCachedSession onAuthenticated={() => undefined} />);
 
     const button = await screen.findByTestId('unlock-with-pin');
     await act(async () => {

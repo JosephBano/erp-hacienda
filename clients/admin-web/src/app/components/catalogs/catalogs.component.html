@@ -1,7 +1,10 @@
 <div class="page-header">
   <div>
     <h2>Catálogos</h2>
-    <p class="text-muted">Listas de referencia que el sistema consulta en tiempo de captura. Cada cambio entra en vigor sin redeploy.</p>
+    <p class="text-muted">
+      Listas de referencia que el sistema consulta en tiempo de captura. Cada cambio entra en vigor
+      sin redeploy.
+    </p>
   </div>
 </div>
 
@@ -14,7 +17,8 @@
       [class.active]="activeTab() === tab.key"
       [attr.aria-selected]="activeTab() === tab.key"
       [attr.data-tab]="tab.key"
-      (click)="setActiveTab(tab.key)">
+      (click)="setActiveTab(tab.key)"
+    >
       {{ tab.label }}
     </button>
   }
@@ -30,11 +34,15 @@
 <section class="tab-panel" role="tabpanel">
   @if (isSpecies()) {
     <div class="card glass-card">
-      <p class="section-intro">La gestión de especies (incluyendo el perfil de lactancia) vive en la pantalla dedicada. Esta pestaña muestra el catálogo de referencia.</p>
+      <p class="section-intro">
+        La gestión de especies (incluyendo el perfil de lactancia) vive en la pantalla dedicada.
+        Esta pestaña muestra el catálogo de referencia.
+      </p>
       <app-catalog-table
         [rows]="species()"
         [columns]="speciesColumns()"
-        emptyMessage="No hay especies registradas.">
+        emptyMessage="No hay especies registradas."
+      >
       </app-catalog-table>
     </div>
   }
@@ -49,12 +57,14 @@
           class="form-input"
           [(ngModel)]="breedsSpeciesFilter"
           (ngModelChange)="onBreedsFilterChange()"
-          placeholder="UUID de especie">
+          placeholder="UUID de especie"
+        />
       </div>
       <app-catalog-table
         [rows]="breeds()"
         [columns]="breedColumns"
-        emptyMessage="No hay razas registradas.">
+        emptyMessage="No hay razas registradas."
+      >
       </app-catalog-table>
     </div>
   }
@@ -69,12 +79,14 @@
           class="form-input"
           [(ngModel)]="categoriesSpeciesFilter"
           (ngModelChange)="onCategoriesFilterChange()"
-          placeholder="UUID de especie">
+          placeholder="UUID de especie"
+        />
       </div>
       <app-catalog-table
         [rows]="categories()"
         [columns]="categoryColumns"
-        emptyMessage="No hay categorías registradas.">
+        emptyMessage="No hay categorías registradas."
+      >
       </app-catalog-table>
     </div>
   }
@@ -92,14 +104,16 @@
               class="form-input"
               [(ngModel)]="newMortalityCauseName"
               placeholder="Aplastamiento, diarrea, desconocida…"
-              data-testid="mortality-name-input">
+              data-testid="mortality-name-input"
+            />
           </div>
           <div class="form-inline-action">
             <button
               type="button"
               class="btn-primary"
               (click)="addMortalityCause()"
-              data-testid="mortality-add-button">
+              data-testid="mortality-add-button"
+            >
               <app-icon name="plus" size="sm" ariaLabel="Agregar"></app-icon>
               <span>Agregar</span>
             </button>
@@ -112,7 +126,8 @@
         [actions]="mortalityActions"
         [rowInactive]="isInactive"
         (action)="onMortalityAction($event)"
-        emptyMessage="No hay causas registradas.">
+        emptyMessage="No hay causas registradas."
+      >
       </app-catalog-table>
     </div>
   }
@@ -129,7 +144,8 @@
             class="form-input"
             [(ngModel)]="newAdminRouteKey"
             placeholder="intramuscular"
-            data-testid="route-key-input">
+            data-testid="route-key-input"
+          />
           <label class="form-label" for="new-route-label">Etiqueta</label>
           <input
             id="new-route-label"
@@ -137,14 +153,16 @@
             class="form-input"
             [(ngModel)]="newAdminRouteLabel"
             placeholder="Intramuscular"
-            data-testid="route-label-input">
+            data-testid="route-label-input"
+          />
         </div>
         <div class="form-actions">
           <button
             type="button"
             class="btn-primary"
             (click)="addAdminRoute()"
-            data-testid="route-add-button">
+            data-testid="route-add-button"
+          >
             <app-icon name="plus" size="sm" ariaLabel="Agregar"></app-icon>
             <span>Agregar</span>
           </button>
@@ -156,7 +174,8 @@
         [actions]="routeActions"
         [rowInactive]="isInactive"
         (action)="onRouteAction($event)"
-        emptyMessage="No hay vías registradas.">
+        emptyMessage="No hay vías registradas."
+      >
       </app-catalog-table>
     </div>
   }
@@ -173,7 +192,8 @@
             class="form-input"
             [(ngModel)]="newTreatmentReasonKey"
             placeholder="scheduled"
-            data-testid="reason-key-input">
+            data-testid="reason-key-input"
+          />
           <label class="form-label" for="new-reason-label">Etiqueta</label>
           <input
             id="new-reason-label"
@@ -181,14 +201,16 @@
             class="form-input"
             [(ngModel)]="newTreatmentReasonLabel"
             placeholder="Programado"
-            data-testid="reason-label-input">
+            data-testid="reason-label-input"
+          />
         </div>
         <div class="form-actions">
           <button
             type="button"
             class="btn-primary"
             (click)="addTreatmentReason()"
-            data-testid="reason-add-button">
+            data-testid="reason-add-button"
+          >
             <app-icon name="plus" size="sm" ariaLabel="Agregar"></app-icon>
             <span>Agregar</span>
           </button>
@@ -200,7 +222,8 @@
         [actions]="reasonActions"
         [rowInactive]="isInactive"
         (action)="onReasonAction($event)"
-        emptyMessage="No hay motivos registrados.">
+        emptyMessage="No hay motivos registrados."
+      >
       </app-catalog-table>
     </div>
   }
@@ -225,7 +248,8 @@
             name="newItemName"
             maxlength="200"
             placeholder="Ej: Balanceado Cerdos Engorde"
-            required>
+            required
+          />
 
           <label class="form-label" for="new-item-category">Categoría</label>
           <select
@@ -233,7 +257,8 @@
             class="form-select"
             [(ngModel)]="newItemCategory"
             name="newItemCategory"
-            required>
+            required
+          >
             <option value="Feed">Alimento</option>
             <option value="Medicine">Medicamento</option>
             <option value="Supply">Insumo</option>
@@ -248,7 +273,8 @@
             name="newItemUnit"
             maxlength="20"
             placeholder="kg, litro, unidad, dosis…"
-            required>
+            required
+          />
 
           <label class="form-label" for="new-item-min-stock">Stock mínimo (opcional)</label>
           <input
@@ -260,7 +286,8 @@
             min="0"
             max="1000000"
             step="0.001"
-            placeholder="Avisa cuando el stock baje de este valor">
+            placeholder="Avisa cuando el stock baje de este valor"
+          />
 
           <label class="form-label" for="new-item-description">Descripción (opcional)</label>
           <textarea
@@ -269,11 +296,17 @@
             rows="2"
             [(ngModel)]="newItemDescription"
             name="newItemDescription"
-            maxlength="500"></textarea>
+            maxlength="500"
+          ></textarea>
         </div>
         <div class="form-actions">
           <button type="button" class="btn-secondary" (click)="toggleItemForm()">Cancelar</button>
-          <button type="button" class="btn-primary" (click)="createInventoryItem()" [disabled]="submittingItem">
+          <button
+            type="button"
+            class="btn-primary"
+            (click)="createInventoryItem()"
+            [disabled]="submittingItem"
+          >
             <app-icon name="check" size="sm" ariaLabel="Crear"></app-icon>
             <span>{{ submittingItem ? 'Creando…' : 'Crear ítem' }}</span>
           </button>
@@ -285,7 +318,8 @@
           id="inventory-category-filter"
           class="form-select"
           [(ngModel)]="inventoryCategoryFilter"
-          (ngModelChange)="onInventoryFilterChange()">
+          (ngModelChange)="onInventoryFilterChange()"
+        >
           <option value="">Todas</option>
           <option value="Medicine">Medicamento</option>
           <option value="Feed">Alimento</option>
@@ -298,7 +332,8 @@
         [columns]="inventoryColumns"
         [actions]="inventoryActions"
         (action)="onInventoryAction($event)"
-        emptyMessage="No hay ítems registrados.">
+        emptyMessage="No hay ítems registrados."
+      >
       </app-catalog-table>
     </div>
   }
@@ -308,15 +343,26 @@
       <div class="card-header">
         <div>
           <h3>Módulos de la finca</h3>
-          <p class="text-muted">Interruptor explícito por módulo (ADR-0019). Apagar un módulo oculta su entrada en la app móvil, pero el código y los datos siguen intactos.</p>
+          <p class="text-muted">
+            Interruptor explícito por módulo (ADR-0019). Apagar un módulo oculta su entrada en la
+            app móvil, pero el código y los datos siguen intactos.
+          </p>
         </div>
       </div>
       <div class="modules-grid">
         @for (module of farmModules(); track module.key) {
-          <div class="module-card" [class.disabled]="!module.enabled" [attr.data-module]="module.key">
+          <div
+            class="module-card"
+            [class.disabled]="!module.enabled"
+            [attr.data-module]="module.key"
+          >
             <div class="module-header">
               <span class="module-key">{{ module.key }}</span>
-              <span class="badge" [class.badge-success]="module.enabled" [class.badge-secondary]="!module.enabled">
+              <span
+                class="badge"
+                [class.badge-success]="module.enabled"
+                [class.badge-secondary]="!module.enabled"
+              >
                 {{ module.enabled ? 'Activo' : 'Inactivo' }}
               </span>
             </div>
@@ -328,8 +374,13 @@
                 type="button"
                 [class]="module.enabled ? 'btn-secondary btn-sm' : 'btn-primary btn-sm'"
                 (click)="toggleFarmModule(module)"
-                [attr.data-toggle]="module.key">
-                <app-icon [name]="module.enabled ? 'close' : 'check'" size="sm" [ariaLabel]="module.enabled ? 'Desactivar' : 'Activar'"></app-icon>
+                [attr.data-toggle]="module.key"
+              >
+                <app-icon
+                  [name]="module.enabled ? 'close' : 'check'"
+                  size="sm"
+                  [ariaLabel]="module.enabled ? 'Desactivar' : 'Activar'"
+                ></app-icon>
                 <span>{{ module.enabled ? 'Desactivar' : 'Activar' }}</span>
               </button>
             </div>

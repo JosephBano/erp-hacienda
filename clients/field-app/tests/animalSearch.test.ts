@@ -192,4 +192,3 @@ describe('searchAnimals helper (feature-0007 Commit 1 & 2)', () => {
     expect(matched.hasPendingTag).toBe(true);
   });
 });
-

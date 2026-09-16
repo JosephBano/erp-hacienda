@@ -1,8 +1,22 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  OnInit,
+  computed,
+  inject,
+  signal,
+} from '@angular/core';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { forkJoin } from 'rxjs';
-import { ApiService, FeedStageDto, InventoryBatchDto, InventoryConsumptionListItem, InventoryItemDetailDto, InventoryUnitConversionDto } from '../../services/api.service';
+import {
+  ApiService,
+  FeedStageDto,
+  InventoryBatchDto,
+  InventoryConsumptionListItem,
+  InventoryItemDetailDto,
+  InventoryUnitConversionDto,
+} from '../../services/api.service';
 import { IconComponent } from '../../shared/icon/icon.component';
 import { InventoryBatchesSectionComponent } from '../inventory-batches-section/inventory-batches-section.component';
 import { InventoryUnitConversionsSectionComponent } from '../inventory-unit-conversions-section/inventory-unit-conversions-section.component';
@@ -11,7 +25,14 @@ import { InventoryFeedStageSectionComponent } from '../inventory-feed-stage-sect
 @Component({
   selector: 'app-inventory-item-detail',
   standalone: true,
-  imports: [CommonModule, RouterModule, IconComponent, InventoryBatchesSectionComponent, InventoryUnitConversionsSectionComponent, InventoryFeedStageSectionComponent],
+  imports: [
+    CommonModule,
+    RouterModule,
+    IconComponent,
+    InventoryBatchesSectionComponent,
+    InventoryUnitConversionsSectionComponent,
+    InventoryFeedStageSectionComponent,
+  ],
   templateUrl: './inventory-item-detail.component.html',
   styleUrls: ['./inventory-item-detail.component.css'],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -96,11 +117,15 @@ export class InventoryItemDetailComponent implements OnInit {
   }
 
   categoryLabel(value: string): string {
-    return ({
-      Medicine: 'Medicamento',
-      Feed: 'Alimento',
-      Supply: 'Insumo',
-      Product: 'Producto',
-    } as Record<string, string>)[value] ?? value;
+    return (
+      (
+        {
+          Medicine: 'Medicamento',
+          Feed: 'Alimento',
+          Supply: 'Insumo',
+          Product: 'Producto',
+        } as Record<string, string>
+      )[value] ?? value
+    );
   }
 }

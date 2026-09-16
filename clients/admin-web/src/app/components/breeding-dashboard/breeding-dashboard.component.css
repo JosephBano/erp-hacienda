@@ -51,7 +51,9 @@
   padding: 0.6rem 1.2rem;
   border-radius: 8px;
   cursor: pointer;
-  transition: background-color 0.2s ease, color 0.2s ease;
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease;
 }
 
 .tab-btn:hover {
@@ -140,14 +142,16 @@
   gap: 1rem;
 }
 
-.form-card, .table-card {
+.form-card,
+.table-card {
   background: #1e293b;
   border: 1px solid #334155;
   border-radius: 12px;
   padding: 1.5rem;
 }
 
-.form-card h2, .table-card h2 {
+.form-card h2,
+.table-card h2 {
   display: flex;
   align-items: center;
   gap: 0.5rem;

@@ -82,10 +82,7 @@ describe('BreedingDashboardComponent (responsive redesign contract)', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [BreedingDashboardComponent],
-      providers: [
-        provideRouter([]),
-        { provide: ApiService, useValue: emptyApiStub },
-      ],
+      providers: [provideRouter([]), { provide: ApiService, useValue: emptyApiStub }],
       schemas: [NO_ERRORS_SCHEMA],
     }).compileComponents();
   });
@@ -151,19 +148,15 @@ describe('BreedingDashboardComponent (responsive redesign contract)', () => {
     const root = fixture.nativeElement as HTMLElement;
     tabs(root)[2].click();
     fixture.detectChanges();
-    const labels = [...root.querySelectorAll('label')].map(
-      (l) => l.textContent?.trim() ?? '',
+    const labels = [...root.querySelectorAll('label')].map((l) => l.textContent?.trim() ?? '');
+
+    expect(labels, 'expected a <label> reading exactly "Animal / Madre (Dam)"').toContain(
+      'Animal / Madre (Dam)',
     );
 
-    expect(
-      labels,
-      'expected a <label> reading exactly "Animal / Madre (Dam)"',
-    ).toContain('Animal / Madre (Dam)');
-
-    expect(
-      labels,
-      'the old "Vaca / Madre (Dam)" label must be replaced',
-    ).not.toContain('Vaca / Madre (Dam)');
+    expect(labels, 'the old "Vaca / Madre (Dam)" label must be replaced').not.toContain(
+      'Vaca / Madre (Dam)',
+    );
 
     expect(
       labels.some((l) => /(^|\s)Vaca(\s|\/|$)/.test(l)),
@@ -192,9 +185,7 @@ describe('BreedingDashboardComponent (responsive redesign contract)', () => {
 
     expect(tablist, 'expected a [role="tablist"] container').not.toBeNull();
 
-    const tabButtons = [
-      ...tablist!.querySelectorAll<HTMLButtonElement>('[role="tab"]'),
-    ];
+    const tabButtons = [...tablist!.querySelectorAll<HTMLButtonElement>('[role="tab"]')];
     expect(tabButtons.length).toBeGreaterThanOrEqual(4);
 
     expect(
@@ -202,13 +193,8 @@ describe('BreedingDashboardComponent (responsive redesign contract)', () => {
       'every tab button must expose aria-selected',
     ).toBe(true);
 
-    const selected = tabButtons.filter(
-      (tab) => tab.getAttribute('aria-selected') === 'true',
-    );
-    expect(
-      selected.length,
-      'exactly one tab must be aria-selected="true"',
-    ).toBe(1);
+    const selected = tabButtons.filter((tab) => tab.getAttribute('aria-selected') === 'true');
+    expect(selected.length, 'exactly one tab must be aria-selected="true"').toBe(1);
 
     expect(tabButtons[0].getAttribute('aria-selected')).toBe('true');
   });
@@ -231,10 +217,7 @@ describe('BreedingDashboardComponent (responsive redesign contract)', () => {
     TestBed.resetTestingModule();
     await TestBed.configureTestingModule({
       imports: [BreedingDashboardComponent],
-      providers: [
-        provideRouter([]),
-        { provide: ApiService, useValue: dataApiStub },
-      ],
+      providers: [provideRouter([]), { provide: ApiService, useValue: dataApiStub }],
       schemas: [NO_ERRORS_SCHEMA],
     }).compileComponents();
 
@@ -245,20 +228,13 @@ describe('BreedingDashboardComponent (responsive redesign contract)', () => {
     const tabButtons = tabs(root);
 
     // --- Pregnancies tab -----------------------------------------------------
-    const pregTab = tabButtons.find((t) =>
-      /Gestaciones Activas/i.test(t.textContent ?? ''),
-    );
+    const pregTab = tabButtons.find((t) => /Gestaciones Activas/i.test(t.textContent ?? ''));
     expect(pregTab, 'expected the Gestaciones Activas tab').toBeDefined();
     pregTab!.click();
     fixture.detectChanges();
 
-    const pregCells = [
-      ...root.querySelectorAll<HTMLTableCellElement>('table tbody tr td'),
-    ];
-    expect(
-      pregCells.length,
-      'expected at least one dynamic pregnancy row',
-    ).toBeGreaterThan(0);
+    const pregCells = [...root.querySelectorAll<HTMLTableCellElement>('table tbody tr td')];
+    expect(pregCells.length, 'expected at least one dynamic pregnancy row').toBeGreaterThan(0);
     expect(
       pregCells.every((c) => (c.getAttribute('data-label') ?? '').trim().length > 0),
       'every dynamic pregnancy <td> must carry a non-empty data-label',
@@ -270,28 +246,21 @@ describe('BreedingDashboardComponent (responsive redesign contract)', () => {
     expect(pregCells.map((c) => c.getAttribute('data-label'))).toEqual(pregHeaders);
 
     // --- Straws tab ----------------------------------------------------------
-    const strawTab = tabButtons.find((t) =>
-      /Catálogo de Pajuelas/i.test(t.textContent ?? ''),
-    );
+    const strawTab = tabButtons.find((t) => /Catálogo de Pajuelas/i.test(t.textContent ?? ''));
     expect(strawTab, 'expected the Catálogo de Pajuelas tab').toBeDefined();
     strawTab!.click();
     fixture.detectChanges();
 
-    const strawCells = [
-      ...root.querySelectorAll<HTMLTableCellElement>('table tbody tr td'),
-    ];
-    expect(
-      strawCells.length,
-      'expected at least one dynamic straw row',
-    ).toBeGreaterThan(0);
+    const strawCells = [...root.querySelectorAll<HTMLTableCellElement>('table tbody tr td')];
+    expect(strawCells.length, 'expected at least one dynamic straw row').toBeGreaterThan(0);
     expect(
       strawCells.every((c) => (c.getAttribute('data-label') ?? '').trim().length > 0),
       'every dynamic straw <td> must carry a non-empty data-label',
     ).toBe(true);
 
-    const strawHeaders = [
-      ...root.querySelectorAll<HTMLTableCellElement>('table thead th'),
-    ].map((h) => (h.textContent ?? '').trim());
+    const strawHeaders = [...root.querySelectorAll<HTMLTableCellElement>('table thead th')].map(
+      (h) => (h.textContent ?? '').trim(),
+    );
     expect(strawCells.map((c) => c.getAttribute('data-label'))).toEqual(strawHeaders);
   });
 
@@ -349,7 +318,9 @@ describe('BreedingDashboardComponent (responsive redesign contract)', () => {
       status: 'Active',
       isInWithdrawal: false,
     };
-    expect(component.getAnimalDisplayName(animalWithIdOnly)).toBe('3f2b4c1a-8888-4444-9999-000000000000');
+    expect(component.getAnimalDisplayName(animalWithIdOnly)).toBe(
+      '3f2b4c1a-8888-4444-9999-000000000000',
+    );
   });
 
   it('should dynamically generate 10 offspring rows when bornAlive is 10 and format payload cleanly on submit', () => {
@@ -366,10 +337,7 @@ describe('BreedingDashboardComponent (responsive redesign contract)', () => {
     TestBed.resetTestingModule();
     TestBed.configureTestingModule({
       imports: [BreedingDashboardComponent],
-      providers: [
-        provideRouter([]),
-        { provide: ApiService, useValue: apiStub },
-      ],
+      providers: [provideRouter([]), { provide: ApiService, useValue: apiStub }],
       schemas: [NO_ERRORS_SCHEMA],
     });
 
@@ -389,7 +357,7 @@ describe('BreedingDashboardComponent (responsive redesign contract)', () => {
     component.offspringList[0].birthWeightKg = 1.45;
     component.offspringList[1].farmTag = 'LECHON-02';
     component.offspringList[1].sex = 'M';
-    component.offspringList[1].birthWeightKg = 1.60;
+    component.offspringList[1].birthWeightKg = 1.6;
 
     component.submitBirthing();
 
@@ -404,7 +372,7 @@ describe('BreedingDashboardComponent (responsive redesign contract)', () => {
     expect(payload.offspring[0].birthWeightKg).toBe(1.45);
     expect(payload.offspring[1].farmTag).toBe('LECHON-02');
     expect(payload.offspring[1].sex).toBe('M');
-    expect(payload.offspring[1].birthWeightKg).toBe(1.60);
+    expect(payload.offspring[1].birthWeightKg).toBe(1.6);
     expect(payload.offspring[2].farmTag).toBeNull();
     expect(payload.offspring[2].birthWeightKg).toBeNull();
   });
@@ -444,7 +412,7 @@ describe('BreedingDashboardComponent — Partos tab (read-side of the birthings 
       weanedCount: null,
       offspring: [
         { animalId: 'cria-1', farmTag: null, sex: 'Female', birthWeightKg: 1.42 },
-        { animalId: 'cria-2', farmTag: null, sex: 'Male',   birthWeightKg: 1.68 },
+        { animalId: 'cria-2', farmTag: null, sex: 'Male', birthWeightKg: 1.68 },
         { animalId: 'cria-3', farmTag: null, sex: 'Female', birthWeightKg: null },
       ],
     },
@@ -462,10 +430,7 @@ describe('BreedingDashboardComponent — Partos tab (read-side of the birthings 
     TestBed.resetTestingModule();
     TestBed.configureTestingModule({
       imports: [BreedingDashboardComponent],
-      providers: [
-        provideRouter([]),
-        { provide: ApiService, useValue: apiStub },
-      ],
+      providers: [provideRouter([]), { provide: ApiService, useValue: apiStub }],
       schemas: [NO_ERRORS_SCHEMA],
     });
 
@@ -488,9 +453,7 @@ describe('BreedingDashboardComponent — Partos tab (read-side of the birthings 
     const fixture = renderWithBirthings();
     const root = openPartosTab(fixture);
 
-    const cells = [
-      ...root.querySelectorAll<HTMLTableCellElement>('table tbody tr td'),
-    ];
+    const cells = [...root.querySelectorAll<HTMLTableCellElement>('table tbody tr td')];
     expect(
       cells.length,
       'expected the partos table to render one row (5 cells per row)',
@@ -506,8 +469,9 @@ describe('BreedingDashboardComponent — Partos tab (read-side of the birthings 
     const root = openPartosTab(fixture);
 
     // Each row carries an "expand" control; clicking it reveals the offspring table.
-    const expandButton = [...root.querySelectorAll<HTMLButtonElement>('button')]
-      .find((b) => /ver|detalle|cri[í]a|expand/i.test(b.textContent ?? ''));
+    const expandButton = [...root.querySelectorAll<HTMLButtonElement>('button')].find((b) =>
+      /ver|detalle|cri[í]a|expand/i.test(b.textContent ?? ''),
+    );
     if (expandButton) {
       expandButton.click();
       fixture.detectChanges();

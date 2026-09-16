@@ -68,7 +68,9 @@ function AnimalCardRow({
 }) {
   const isUntagged = Boolean(
     animal.hasPendingTag ||
-      (!animal.tag && (!animal.activeIdentifiers || animal.activeIdentifiers.length === 0) && (!animal.label || animal.label.includes('Sin arete') || !animal.tag))
+    (!animal.tag &&
+      (!animal.activeIdentifiers || animal.activeIdentifiers.length === 0) &&
+      (!animal.label || animal.label.includes('Sin arete') || !animal.tag)),
   );
 
   const readableSnippet =
@@ -128,7 +130,9 @@ function AnimalCardRow({
       </View>
 
       <Text style={styles.animalTitle}>
-        {animal.name && animal.name !== animal.tag ? `${animal.name} (${animal.label})` : animal.label}
+        {animal.name && animal.name !== animal.tag
+          ? `${animal.name} (${animal.label})`
+          : animal.label}
         {animal.matchedHistoricalTag ? ` (Arete anterior: ${animal.matchedHistoricalTag})` : ''}
       </Text>
 
@@ -424,7 +428,7 @@ export function AnimalSubjectScreen({
       for (const rec of historyRecords) {
         if (rec.status === 'pending') {
           const isAlreadyConfirmed = confirmedEvents.some(
-            (c) => c.id === rec.id || (rec.clientOperationId && c.id === rec.clientOperationId)
+            (c) => c.id === rec.id || (rec.clientOperationId && c.id === rec.clientOperationId),
           );
           if (!isAlreadyConfirmed && !seenIds.has(rec.id)) {
             seenIds.add(rec.id);
@@ -444,7 +448,7 @@ export function AnimalSubjectScreen({
     for (const entry of outboxEntries) {
       if (entry.status === 'pending') {
         const isAlreadyConfirmed = confirmedEvents.some(
-          (c) => c.id === entry.clientOperationId || (entry.resultRef && c.id === entry.resultRef)
+          (c) => c.id === entry.clientOperationId || (entry.resultRef && c.id === entry.resultRef),
         );
         if (!isAlreadyConfirmed && !seenIds.has(entry.clientOperationId)) {
           seenIds.add(entry.clientOperationId);
@@ -472,13 +476,19 @@ export function AnimalSubjectScreen({
             tone="warning"
             text="El animal seleccionado ya no existe en el sistema (fue eliminado o dado de baja en el servidor)."
           />
-          <BigButton testID="back-to-animal-picker" label="Elegir otro animal" tone="neutral" onPress={onClearSelection} />
+          <BigButton
+            testID="back-to-animal-picker"
+            label="Elegir otro animal"
+            tone="neutral"
+            onPress={onClearSelection}
+          />
         </Screen>
       );
     }
 
     const isDisposed = Boolean(animal.disposedAt);
-    const isFemale = animal.sex?.toLowerCase() === 'female' || animal.sex?.toLowerCase() === 'hembra';
+    const isFemale =
+      animal.sex?.toLowerCase() === 'female' || animal.sex?.toLowerCase() === 'hembra';
     const readableSnippet =
       animal.animalId && animal.animalId.length >= 6 ? animal.animalId.slice(-6) : animal.animalId;
     const sexText = animal.sex
@@ -490,8 +500,10 @@ export function AnimalSubjectScreen({
       : null;
 
     // Permissions (0008)
-    const canWriteLivestock = !permissions || permissions.includes('livestock.animals.write') || permissions.includes('*');
-    const canRecordBreeding = !permissions || permissions.includes('breeding.events.record') || permissions.includes('*');
+    const canWriteLivestock =
+      !permissions || permissions.includes('livestock.animals.write') || permissions.includes('*');
+    const canRecordBreeding =
+      !permissions || permissions.includes('breeding.events.record') || permissions.includes('*');
 
     // Aptitude (0005)
     const canCalve = !isDisposed && isFemale && canRecordBreeding;
@@ -543,7 +555,10 @@ export function AnimalSubjectScreen({
             ) : null}
             {/* T4.5: Preñez SOLO cuando hay datos que la respaldan */}
             {animal.isPregnant || animal.expectedBirthDate ? (
-              <View testID="animal-record-pregnancy-badge" style={[styles.recordChip, styles.recordChipHighlight]}>
+              <View
+                testID="animal-record-pregnancy-badge"
+                style={[styles.recordChip, styles.recordChipHighlight]}
+              >
                 <Text style={styles.recordChipTextHighlight}>
                   Gestante{animal.expectedBirthDate ? `: FPP ${animal.expectedBirthDate}` : ''}
                 </Text>
@@ -556,7 +571,8 @@ export function AnimalSubjectScreen({
         {animal.isWithheld || animal.withheldUntil ? (
           <View testID="animal-record-withdrawal-notice" style={styles.withdrawalCard}>
             <Text style={styles.withdrawalTitle}>
-              [!] PERÍODO DE RETIRO ACTIVO{animal.withheldUntil ? ` HASTA ${animal.withheldUntil}` : ''}
+              [!] PERÍODO DE RETIRO ACTIVO
+              {animal.withheldUntil ? ` HASTA ${animal.withheldUntil}` : ''}
             </Text>
             <Text style={styles.withdrawalSubtitle}>
               Leche y carne no aptas para entrega ni consumo durante el retiro.
@@ -579,10 +595,7 @@ export function AnimalSubjectScreen({
         <Card>
           <Title>Acciones sobre este animal</Title>
           {isDisposed ? (
-            <Notice
-              tone="warning"
-              text="Animal dado de baja. No hay actividades disponibles."
-            />
+            <Notice tone="warning" text="Animal dado de baja. No hay actividades disponibles." />
           ) : (
             <>
               {permissions && !canWriteLivestock && !canCalve ? (

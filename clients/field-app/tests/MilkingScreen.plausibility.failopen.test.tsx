@@ -71,7 +71,12 @@ describe('MilkingScreen plausibility (ADR-0022): no range configured is fail-ope
 
   it('does not block an outlandish value when no range is configured (fail-open)', async () => {
     await render(
-      <MilkingScreen service={service} database={database} candidates={[candidate]} recordedBy="tester@hato" />,
+      <MilkingScreen
+        service={service}
+        database={database}
+        candidates={[candidate]}
+        recordedBy="tester@hato"
+      />,
     );
 
     const cowButton = await screen.findByTestId('cow-cow-1');

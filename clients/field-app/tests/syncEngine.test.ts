@@ -128,7 +128,9 @@ describe('SyncEngine', () => {
       expect(rejected).toHaveLength(1);
       expect(rejected[0].clientOperationId).toBe(entry.clientOperationId);
       expect(rejected[0].status).toBe('rejected');
-      expect(rejected[0].errorDetails).toBe('La operación fue rechazada previamente en el servidor.');
+      expect(rejected[0].errorDetails).toBe(
+        'La operación fue rechazada previamente en el servidor.',
+      );
     });
 
     /** A refused record is a problem to show a human, never a record to drop. */
@@ -255,7 +257,10 @@ describe('SyncEngine', () => {
       expect(await outbox.pending()).toHaveLength(0);
       expect(await outbox.stats()).toMatchObject({ pending: 0, synced: 7, rejected: 0 });
 
-      const idsSentDuringRetry = api.pushCalls.slice(2).flat().map((op) => op.clientOperationId);
+      const idsSentDuringRetry = api.pushCalls
+        .slice(2)
+        .flat()
+        .map((op) => op.clientOperationId);
       expect(idsSentDuringRetry.some((id) => landedIds.has(id))).toBe(false);
     });
 
@@ -555,7 +560,11 @@ describe('SyncEngine', () => {
           return { cursor: 'c1', hasMore: true, collections: { animals: [row] } };
         }
         if (step === 2) {
-          return { cursor: 'c2', hasMore: true, collections: { animals: [{ ...row, isDeleted: true }] } };
+          return {
+            cursor: 'c2',
+            hasMore: true,
+            collections: { animals: [{ ...row, isDeleted: true }] },
+          };
         }
         throw new Error('Network interruption before c3');
       };
@@ -1277,7 +1286,8 @@ describe('SyncEngine', () => {
           clientOperationId: o.clientOperationId,
           status: 'Duplicate' as const,
           resultRef: null,
-          errorDetails: 'Operación denegada previamente por falta de permisos (livestock.animals.write).',
+          errorDetails:
+            'Operación denegada previamente por falta de permisos (livestock.animals.write).',
         })),
       });
 
@@ -1302,4 +1312,3 @@ describe('SyncEngine', () => {
     });
   });
 });
-

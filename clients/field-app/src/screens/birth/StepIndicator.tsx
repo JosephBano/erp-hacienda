@@ -17,19 +17,13 @@ export function StepIndicator({ currentStep }: { currentStep: number }) {
           <View key={stepNum} style={styles.stepItem}>
             <View
               testID={`step-dot-${stepNum}`}
-              style={[
-                styles.dot,
-                isActive && styles.dotActive,
-                isDone && styles.dotDone,
-              ]}
+              style={[styles.dot, isActive && styles.dotActive, isDone && styles.dotDone]}
             >
               <Text style={[styles.dotText, (isActive || isDone) && styles.dotTextActive]}>
                 {stepNum}
               </Text>
             </View>
-            <Text style={[styles.label, isActive && styles.labelActive]}>
-              {label}
-            </Text>
+            <Text style={[styles.label, isActive && styles.labelActive]}>{label}</Text>
           </View>
         );
       })}

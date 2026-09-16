@@ -64,10 +64,7 @@ describe('QuickMilkingComponent (responsive redesign contract)', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [QuickMilkingComponent],
-      providers: [
-        provideRouter([]),
-        { provide: ApiService, useValue: happyStub },
-      ],
+      providers: [provideRouter([]), { provide: ApiService, useValue: happyStub }],
     }).compileComponents();
   });
 
@@ -94,8 +91,8 @@ describe('QuickMilkingComponent (responsive redesign contract)', () => {
 
   it('should display an app-icon next to the save button instead of an emoji glyph', () => {
     const root = render();
-    const saveButton = [...root.querySelectorAll('button')].find(
-      (btn) => btn.classList.contains('btn-primary'),
+    const saveButton = [...root.querySelectorAll('button')].find((btn) =>
+      btn.classList.contains('btn-primary'),
     );
 
     expect(saveButton, 'expected a primary save button').toBeDefined();

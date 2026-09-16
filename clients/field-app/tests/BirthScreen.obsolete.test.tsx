@@ -65,9 +65,7 @@ describe('BirthScreen — obsolete dam handling and draft preservation (T6.1, T6
     expect(screen.getByText('Crías: 1')).toBeTruthy();
 
     // Now simulate sync: dam-1 is removed from active pregnant dams
-    await rerender(
-      <BirthScreen service={service} dams={[sampleDam2]} />,
-    );
+    await rerender(<BirthScreen service={service} dams={[sampleDam2]} />);
 
     // Obsolete notice is displayed
     expect(await screen.findByText(/ya no existe en el sistema/i)).toBeTruthy();

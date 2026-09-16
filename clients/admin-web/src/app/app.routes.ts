@@ -30,42 +30,42 @@ export const routes: Routes = [
   {
     path: 'animal-groups',
     component: AnimalGroupsListComponent,
-    canActivate: [authGuard, permissionGuard('livestock.animals.write')]
+    canActivate: [authGuard, permissionGuard('livestock.animals.write')],
   },
   {
     path: 'animal-groups/new',
     component: AnimalGroupCreateComponent,
-    canActivate: [authGuard, permissionGuard('livestock.animals.write')]
+    canActivate: [authGuard, permissionGuard('livestock.animals.write')],
   },
   {
     path: 'animal-groups/:id',
     component: AnimalGroupDetailComponent,
-    canActivate: [authGuard, permissionGuard('livestock.animals.write')]
+    canActivate: [authGuard, permissionGuard('livestock.animals.write')],
   },
   {
     path: 'inventory/items/:id',
     component: InventoryItemDetailComponent,
-    canActivate: [authGuard, permissionGuard('inventory.items.manage')]
+    canActivate: [authGuard, permissionGuard('inventory.items.manage')],
   },
   {
     path: 'roles',
     component: RolesManagementComponent,
-    canActivate: [authGuard, permissionGuard('people.roles.manage')]
+    canActivate: [authGuard, permissionGuard('people.roles.manage')],
   },
   {
     path: 'audit',
     component: AuditLogComponent,
-    canActivate: [authGuard, permissionGuard('people.users.manage')]
+    canActivate: [authGuard, permissionGuard('people.users.manage')],
   },
   {
     path: 'sync',
     component: SyncTrayComponent,
-    canActivate: [authGuard, permissionGuard('people.users.manage')]
+    canActivate: [authGuard, permissionGuard('people.users.manage')],
   },
   {
     path: 'catalogs',
     component: CatalogsComponent,
-    canActivate: [authGuard, permissionGuard('livestock.species.manage')]
+    canActivate: [authGuard, permissionGuard('livestock.species.manage')],
   },
-  { path: '**', redirectTo: '' }
+  { path: '**', redirectTo: '' },
 ];

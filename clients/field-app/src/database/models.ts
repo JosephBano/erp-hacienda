@@ -303,4 +303,3 @@ export const modelClasses = [
   Pregnancy,
   BreedingService,
 ];
-

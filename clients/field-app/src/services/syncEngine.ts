@@ -300,13 +300,16 @@ export class SyncEngine {
           // on the server. Replaying it must preserve the rejection rather than whitewashing it.
           rejected += 1;
           const matching = batch.find((b) => b.clientOperationId === result.clientOperationId);
-          this._logger.logWarn(`Operación duplicada rechazada por el servidor: ${result.clientOperationId}`, {
-            failedStage: 'push',
-            attemptId,
-            clientOperationId: result.clientOperationId,
-            operationType: matching?.operationType,
-            errorDetails: result.errorDetails,
-          });
+          this._logger.logWarn(
+            `Operación duplicada rechazada por el servidor: ${result.clientOperationId}`,
+            {
+              failedStage: 'push',
+              attemptId,
+              clientOperationId: result.clientOperationId,
+              operationType: matching?.operationType,
+              errorDetails: result.errorDetails,
+            },
+          );
           await this.outbox.markRejected(result.clientOperationId, result.errorDetails);
           if (matching?.operationType === 'recordBirth') {
             rejected += await this.cascadeBirthRejection(
@@ -496,7 +499,10 @@ export class SyncEngine {
       }
 
       const ids = rows.map((row) => String(row.id));
-      const existing = await this.database.get(table).query(Q.where('id', Q.oneOf(ids))).fetch();
+      const existing = await this.database
+        .get(table)
+        .query(Q.where('id', Q.oneOf(ids)))
+        .fetch();
       const byId = new Map(existing.map((record) => [record.id, record]));
 
       const operations = rows.map((row) => {
@@ -626,7 +632,12 @@ export function applyRow(record: any, row: Record<string, unknown>): void {
       // Server dates arrive as ISO strings; WatermelonDB number columns need epoch ms.
       // lastEditedAt keeps its own name (unlike created/updatedAt) because there is no
       // WatermelonDB-reserved field it collides with.
-      const target = key === 'createdAt' ? 'serverCreatedAt' : key === 'updatedAt' ? 'serverUpdatedAt' : 'lastEditedAt';
+      const target =
+        key === 'createdAt'
+          ? 'serverCreatedAt'
+          : key === 'updatedAt'
+            ? 'serverUpdatedAt'
+            : 'lastEditedAt';
       if (target in record) {
         record[target] = value ? Date.parse(String(value)) : undefined;
       }

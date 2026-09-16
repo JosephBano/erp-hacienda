@@ -109,7 +109,10 @@ export async function loadHerd(database: Database, date = todayIso()): Promise<H
   for (const membership of memberships) {
     if (membership.isDeleted || !membership.isActive) continue;
     const existing = activeMembershipByAnimal.get(membership.animalId);
-    if (!existing || (membership.joinedAt && (!existing.joinedAt || membership.joinedAt > existing.joinedAt))) {
+    if (
+      !existing ||
+      (membership.joinedAt && (!existing.joinedAt || membership.joinedAt > existing.joinedAt))
+    ) {
       activeMembershipByAnimal.set(membership.animalId, {
         groupId: membership.groupId,
         joinedAt: membership.joinedAt,
@@ -233,7 +236,9 @@ export function searchAnimals<T extends AnimalForSubject>(
 ): AnimalSearchResults<T> {
   const query = rawQuery.trim();
   if (!query) {
-    const cleaned = animals.map((a) => (a.matchedHistoricalTag ? { ...a, matchedHistoricalTag: undefined } : a));
+    const cleaned = animals.map((a) =>
+      a.matchedHistoricalTag ? { ...a, matchedHistoricalTag: undefined } : a,
+    );
     return {
       exactMatches: [],
       partialMatches: cleaned,
@@ -272,7 +277,10 @@ export function searchAnimals<T extends AnimalForSubject>(
     if (!isExact) {
       if (animal.animalId.toLowerCase() === needle) {
         isExact = true;
-      } else if (animal.animalId.length >= 6 && animal.animalId.slice(-6).toLowerCase() === needle) {
+      } else if (
+        animal.animalId.length >= 6 &&
+        animal.animalId.slice(-6).toLowerCase() === needle
+      ) {
         isExact = true;
       }
     }
@@ -290,7 +298,9 @@ export function searchAnimals<T extends AnimalForSubject>(
     }
 
     if (isExact) {
-      exactMatches.push(animal.matchedHistoricalTag ? { ...animal, matchedHistoricalTag: undefined } : animal);
+      exactMatches.push(
+        animal.matchedHistoricalTag ? { ...animal, matchedHistoricalTag: undefined } : animal,
+      );
       continue;
     }
 
@@ -342,7 +352,9 @@ export function searchAnimals<T extends AnimalForSubject>(
     }
 
     if (isPartial) {
-      partialMatches.push(animal.matchedHistoricalTag ? { ...animal, matchedHistoricalTag: undefined } : animal);
+      partialMatches.push(
+        animal.matchedHistoricalTag ? { ...animal, matchedHistoricalTag: undefined } : animal,
+      );
       continue;
     }
 
@@ -380,7 +392,10 @@ export function searchAnimals<T extends AnimalForSubject>(
  * - Species is flagged is_milkable
  * - Not disposed on or before date
  */
-export async function loadMilkingCandidates(database: Database, date = todayIso()): Promise<HerdMember[]> {
+export async function loadMilkingCandidates(
+  database: Database,
+  date = todayIso(),
+): Promise<HerdMember[]> {
   const herd = await loadHerd(database, date);
   return herd.filter((member) => {
     if (member.sex?.toLowerCase() !== 'female') return false;
@@ -488,7 +503,6 @@ export async function loadPregnantDams(database: Database): Promise<PregnantDam[
   });
 }
 
-
 export async function loadGroups(database: Database) {
   const groups = await database.get<AnimalGroup>('animal_groups').query().fetch();
 
@@ -521,7 +535,10 @@ export async function loadFeedItems(database: Database) {
 }
 
 export async function loadBreeds(database: Database, speciesId: string) {
-  const breeds = await database.get<Breed>('breeds').query(Q.where('species_id', speciesId)).fetch();
+  const breeds = await database
+    .get<Breed>('breeds')
+    .query(Q.where('species_id', speciesId))
+    .fetch();
 
   return breeds
     .filter((breed) => !breed.isDeleted)
@@ -544,13 +561,15 @@ export async function loadCategories(database: Database, speciesId: string) {
 export async function loadMedications(database: Database) {
   const items = await database.get<InventoryItem>('inventory_items').query().fetch();
 
-  return items
-    .filter((item) => !item.isDeleted && /medic/i.test(item.category))
-    // `unit` rides along so VaccinateScreen/TreatScreen (3.5a.2-C) can build a
-    // structured dose without asking the operator to type a unit the product
-    // already declares (the "unidad es del producto, no del operario" rule).
-    .map((item) => ({ itemId: item.id, name: item.name, unit: item.unit }))
-    .sort((a, b) => a.name.localeCompare(b.name));
+  return (
+    items
+      .filter((item) => !item.isDeleted && /medic/i.test(item.category))
+      // `unit` rides along so VaccinateScreen/TreatScreen (3.5a.2-C) can build a
+      // structured dose without asking the operator to type a unit the product
+      // already declares (the "unidad es del producto, no del operario" rule).
+      .map((item) => ({ itemId: item.id, name: item.name, unit: item.unit }))
+      .sort((a, b) => a.name.localeCompare(b.name))
+  );
 }
 
 /**

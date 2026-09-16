@@ -1,7 +1,18 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output, inject } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  EventEmitter,
+  Input,
+  Output,
+  inject,
+} from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { ApiService, InventoryBatchDto, RecordInventoryReceptionRequest } from '../../services/api.service';
+import {
+  ApiService,
+  InventoryBatchDto,
+  RecordInventoryReceptionRequest,
+} from '../../services/api.service';
 import { AuthService } from '../../services/auth.service';
 import { IconComponent } from '../../shared/icon/icon.component';
 
@@ -22,7 +33,8 @@ import { IconComponent } from '../../shared/icon/icon.component';
     <div class="deprecation-banner" role="status">
       <app-icon name="alert" size="sm" ariaLabel="Aviso"></app-icon>
       <div>
-        <strong>Cuando llegue Purchasing (Fase 4),</strong> este flujo se reemplazará por "Recibir orden de compra". Por ahora, registra aquí las entradas de alimento al inventario.
+        <strong>Cuando llegue Purchasing (Fase 4),</strong> este flujo se reemplazará por "Recibir
+        orden de compra". Por ahora, registra aquí las entradas de alimento al inventario.
       </div>
     </div>
     <div class="card-header">
@@ -35,34 +47,113 @@ import { IconComponent } from '../../shared/icon/icon.component';
     <div *ngIf="showForm" class="inline-form mini-form">
       <div class="form-grid">
         <label class="form-label" for="reception-batch-number">Número de lote</label>
-        <input id="reception-batch-number" class="form-input" [(ngModel)]="batchNumber" name="batchNumber" maxlength="50" placeholder="Ej: L-2026-08" required>
+        <input
+          id="reception-batch-number"
+          class="form-input"
+          [(ngModel)]="batchNumber"
+          name="batchNumber"
+          maxlength="50"
+          placeholder="Ej: L-2026-08"
+          required
+        />
 
         <label class="form-label" for="reception-quantity">Cantidad</label>
-        <input id="reception-quantity" class="form-input" type="number" [(ngModel)]="quantity" name="quantity" min="0.001" step="0.001" placeholder="Ej: 500" required>
+        <input
+          id="reception-quantity"
+          class="form-input"
+          type="number"
+          [(ngModel)]="quantity"
+          name="quantity"
+          min="0.001"
+          step="0.001"
+          placeholder="Ej: 500"
+          required
+        />
 
         <label class="form-label" for="reception-unit">Unidad</label>
-        <input id="reception-unit" class="form-input" [(ngModel)]="unit" name="unit" maxlength="20" placeholder="kg, saco, qq…" required>
+        <input
+          id="reception-unit"
+          class="form-input"
+          [(ngModel)]="unit"
+          name="unit"
+          maxlength="20"
+          placeholder="kg, saco, qq…"
+          required
+        />
 
         <label class="form-label" for="reception-cost">Costo por unidad</label>
-        <input id="reception-cost" class="form-input" type="number" [(ngModel)]="costPerUnit" name="costPerUnit" min="0" step="0.01" placeholder="Ej: 0.45" required>
+        <input
+          id="reception-cost"
+          class="form-input"
+          type="number"
+          [(ngModel)]="costPerUnit"
+          name="costPerUnit"
+          min="0"
+          step="0.01"
+          placeholder="Ej: 0.45"
+          required
+        />
 
         <label class="form-label" for="reception-expiration">Fecha de expiración (opcional)</label>
-        <input id="reception-expiration" class="form-input" type="date" [(ngModel)]="expirationDate" name="expirationDate">
+        <input
+          id="reception-expiration"
+          class="form-input"
+          type="date"
+          [(ngModel)]="expirationDate"
+          name="expirationDate"
+        />
 
         <label class="form-label" for="reception-received-at">Fecha de recepción</label>
-        <input id="reception-received-at" class="form-input" type="datetime-local" [(ngModel)]="receivedAtLocal" name="receivedAtLocal" min="2020-01-01T00:00" required>
+        <input
+          id="reception-received-at"
+          class="form-input"
+          type="datetime-local"
+          [(ngModel)]="receivedAtLocal"
+          name="receivedAtLocal"
+          min="2020-01-01T00:00"
+          required
+        />
 
         <label class="form-label" for="reception-supplier">Proveedor (texto libre)</label>
-        <input id="reception-supplier" class="form-input" [(ngModel)]="supplierLabel" name="supplierLabel" maxlength="200" placeholder="Ej: Agropecuaria XYZ S.A.">
+        <input
+          id="reception-supplier"
+          class="form-input"
+          [(ngModel)]="supplierLabel"
+          name="supplierLabel"
+          maxlength="200"
+          placeholder="Ej: Agropecuaria XYZ S.A."
+        />
 
         <label class="form-label" for="reception-invoice">Factura / Guía (opcional)</label>
-        <input id="reception-invoice" class="form-input" [(ngModel)]="invoiceReference" name="invoiceReference" maxlength="100" placeholder="Ej: FAC-001-002-12345">
+        <input
+          id="reception-invoice"
+          class="form-input"
+          [(ngModel)]="invoiceReference"
+          name="invoiceReference"
+          maxlength="100"
+          placeholder="Ej: FAC-001-002-12345"
+        />
 
         <label class="form-label" for="reception-recorded-by">Quién registra</label>
-        <input id="reception-recorded-by" class="form-input" [(ngModel)]="recordedByLabel" name="recordedByLabel" maxlength="200" placeholder="Nombre del operario">
+        <input
+          id="reception-recorded-by"
+          class="form-input"
+          [(ngModel)]="recordedByLabel"
+          name="recordedByLabel"
+          maxlength="200"
+          placeholder="Nombre del operario"
+        />
 
         <label class="form-label" for="reception-notes">Notas (opcional)</label>
-        <textarea id="reception-notes" class="form-textarea" rows="2" [(ngModel)]="notes" name="notes" maxlength="500" placeholder="Observaciones de la recepción"></textarea>
+        <textarea
+          id="reception-notes"
+          class="form-textarea"
+          rows="2"
+          [(ngModel)]="notes"
+          name="notes"
+          maxlength="500"
+          placeholder="Observaciones de la recepción"
+        ></textarea>
       </div>
       <div class="form-actions">
         <button type="button" class="btn-secondary" (click)="toggleForm()">Cancelar</button>
@@ -94,7 +185,11 @@ import { IconComponent } from '../../shared/icon/icon.component';
             <td data-label="Expiración">{{ formatDateOnly(row.expirationDate) }}</td>
             <td data-label="Recibido">
               <div>{{ formatReceivedAt(row.receivedAt) }}</div>
-              <span *ngIf="isIncompleteReception(row)" class="badge badge-warning reception-flag" title="Creado por la ruta legacy /batches — sin trazabilidad de proveedor/factura/autor">
+              <span
+                *ngIf="isIncompleteReception(row)"
+                class="badge badge-warning reception-flag"
+                title="Creado por la ruta legacy /batches — sin trazabilidad de proveedor/factura/autor"
+              >
                 Sin declaración completa
               </span>
             </td>
@@ -158,7 +253,8 @@ export class InventoryBatchesSectionComponent {
       this.costPerUnit < 0 ||
       !this.receivedAtLocal
     ) {
-      this.errorMessage = 'Completa los campos obligatorios (lote, cantidad, unidad, costo, fecha de recepción).';
+      this.errorMessage =
+        'Completa los campos obligatorios (lote, cantidad, unidad, costo, fecha de recepción).';
       return;
     }
 
@@ -222,11 +318,7 @@ export class InventoryBatchesSectionComponent {
   // pero los metadatos quedan null, así que la heurística es 100% precisa para detectar
   // lotes creados por el flujo viejo (post-ADR-0026 los nuevos siempre pasan por aquí).
   isIncompleteReception(row: InventoryBatchDto): boolean {
-    return (
-      row.supplierLabel == null &&
-      row.invoiceReference == null &&
-      row.recordedByLabel == null
-    );
+    return row.supplierLabel == null && row.invoiceReference == null && row.recordedByLabel == null;
   }
 
   formatDateOnly(value?: string | null): string {

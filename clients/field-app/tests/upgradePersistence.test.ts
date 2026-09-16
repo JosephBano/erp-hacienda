@@ -111,10 +111,7 @@ describe('Commit 9 — Preservación de trabajo pendiente y actualización desde
     expect(animal).toBeDefined();
     expect(animal.sex).toBe('Female');
 
-    const identifiers = await dbPre
-      .get('animal_identifiers')
-      .query()
-      .fetch();
+    const identifiers = await dbPre.get('animal_identifiers').query().fetch();
     expect(identifiers).toHaveLength(1);
     expect((identifiers[0] as any).value).toBe('0405');
 

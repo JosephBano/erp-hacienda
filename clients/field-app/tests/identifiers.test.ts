@@ -10,9 +10,7 @@ describe('newUuid', () => {
   it('produces a syntactically valid RFC 4122 version 4 identifier', () => {
     const id = newUuid();
 
-    expect(id).toMatch(
-      /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
-    );
+    expect(id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
   });
 
   it('does not repeat across a large burst', () => {

@@ -16,7 +16,7 @@
     </div>
   </div>
 
-  <div *ngIf="loadError" class="glass-card alert-danger" style="padding: 1rem; margin-bottom: 1rem;">
+  <div *ngIf="loadError" class="glass-card alert-danger" style="padding: 1rem; margin-bottom: 1rem">
     No se pudo cargar el panel desde el servidor. Intente de nuevo más tarde.
   </div>
 
@@ -79,7 +79,9 @@
         </thead>
         <tbody>
           <tr *ngFor="let animal of recentAnimals">
-            <td data-label="Arete Finca"><strong>{{ animal.farmTag || 'S/A' }}</strong></td>
+            <td data-label="Arete Finca">
+              <strong>{{ animal.farmTag || 'S/A' }}</strong>
+            </td>
             <td data-label="Arete Oficial SIFAE">{{ animal.officialTag || 'N/A' }}</td>
             <td data-label="Nombre">{{ animal.name || 'Sin nombre' }}</td>
             <td data-label="Raza / Especie">{{ animal.breedName }} ({{ animal.speciesName }})</td>
@@ -95,7 +97,9 @@
               </span>
             </td>
             <td data-label="Acciones">
-              <a [routerLink]="['/animals', animal.id]" class="btn btn-secondary btn-sm">Ver ficha</a>
+              <a [routerLink]="['/animals', animal.id]" class="btn btn-secondary btn-sm"
+                >Ver ficha</a
+              >
             </td>
           </tr>
         </tbody>

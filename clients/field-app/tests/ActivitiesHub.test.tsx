@@ -140,9 +140,7 @@ describe('ActivitiesHub', () => {
     // Milking is hidden when production module is off
     expect(screen.queryByTestId('subject-milking')).toBeNull();
 
-    await rerender(
-      <ActivitiesHub pending={0} onSelect={noop} productionOn={true} />,
-    );
+    await rerender(<ActivitiesHub pending={0} onSelect={noop} productionOn={true} />);
 
     // Milking is available when production is active
     expect(await screen.findByTestId('subject-milking')).toBeTruthy();

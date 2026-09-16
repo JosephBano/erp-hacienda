@@ -18,7 +18,11 @@ import {
 } from '../ui/components';
 import type { EventService } from '../services/eventService';
 import { evaluatePlausibility } from '../services/plausibilityService';
-import { loadAdministrationRoutes, loadDoseKinds, loadTreatmentReasons } from '../services/herdQueries';
+import {
+  loadAdministrationRoutes,
+  loadDoseKinds,
+  loadTreatmentReasons,
+} from '../services/herdQueries';
 import { useDraftFlag } from '../ui/draftGuard';
 import { useSingleFlight } from '../ui/useSingleFlight';
 
@@ -228,7 +232,9 @@ export function TreatScreen({
       });
       const recordedLabel = animal.label;
       reset();
-      setSaveNotice(`Tratamiento de ${recordedLabel} guardado en este teléfono. Pendiente de enviar.`);
+      setSaveNotice(
+        `Tratamiento de ${recordedLabel} guardado en este teléfono. Pendiente de enviar.`,
+      );
       onRecorded?.();
     } catch (caught) {
       setError((caught as Error).message);
@@ -259,7 +265,9 @@ export function TreatScreen({
     <Screen testID="treat-screen" scrollable={scrollable}>
       <FormHeader
         title={step === 'animal' ? 'Tratar animal enfermo' : 'Tratamiento'}
-        subtitle={product ? `${product.name}${dose ? ` · ${dose} ${product.unit}` : ''}` : undefined}
+        subtitle={
+          product ? `${product.name}${dose ? ` · ${dose} ${product.unit}` : ''}` : undefined
+        }
         animalLabel={animal?.label}
         onCancel={cancel}
         testID="treat-header"
@@ -402,11 +410,7 @@ export function TreatScreen({
 
             {formError ? <Notice text={formError} /> : null}
 
-            <BigButton
-              testID="treat-continue"
-              label="Continuar"
-              onPress={continueToConfirm}
-            />
+            <BigButton testID="treat-continue" label="Continuar" onPress={continueToConfirm} />
           </Card>
         ) : null}
 
@@ -418,9 +422,21 @@ export function TreatScreen({
               subjectLabel={animal.label}
               date={new Date().toISOString().slice(0, 10)}
               fields={[
-                { label: 'Producto', value: product ? product.name : 'Sin producto de inventario', symbol: '💊' },
-                { label: 'Vía', value: routes.find((r) => r.routeId === routeId)?.labelEs ?? '—', symbol: '📋' },
-                { label: 'Motivo', value: reasons.find((r) => r.key === reasonKey)?.labelEs ?? reasonKey, symbol: '❓' },
+                {
+                  label: 'Producto',
+                  value: product ? product.name : 'Sin producto de inventario',
+                  symbol: '💊',
+                },
+                {
+                  label: 'Vía',
+                  value: routes.find((r) => r.routeId === routeId)?.labelEs ?? '—',
+                  symbol: '📋',
+                },
+                {
+                  label: 'Motivo',
+                  value: reasons.find((r) => r.key === reasonKey)?.labelEs ?? reasonKey,
+                  symbol: '❓',
+                },
                 {
                   label: 'Dosis',
                   value: dose.trim() ? dose : 'Sin dosis numérica',
@@ -454,7 +470,9 @@ export function TreatScreen({
             ) : null}
 
             <Body muted>
-              {dose.trim() ? `Dosis: ${dose}${product ? ` ${product.unit}` : ''}` : 'Sin dosis numérica'}
+              {dose.trim()
+                ? `Dosis: ${dose}${product ? ` ${product.unit}` : ''}`
+                : 'Sin dosis numérica'}
             </Body>
 
             {pendingPlausibility !== null ? (

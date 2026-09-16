@@ -56,12 +56,15 @@ describe('AnimalSubjectScreen', () => {
       />,
     );
 
-    const recentOrder = screen
-      .getAllByTestId(/^animal-row-/)
-      .map((node) => node.props.testID);
+    const recentOrder = screen.getAllByTestId(/^animal-row-/).map((node) => node.props.testID);
 
     // Recent a-4 and a-1 lead, then a-2 and a-3 (the non-recent ones).
-    expect(recentOrder).toEqual(['animal-row-a-4', 'animal-row-a-1', 'animal-row-a-2', 'animal-row-a-3']);
+    expect(recentOrder).toEqual([
+      'animal-row-a-4',
+      'animal-row-a-1',
+      'animal-row-a-2',
+      'animal-row-a-3',
+    ]);
   });
 
   it('filters the herd by the typed query', async () => {
@@ -223,7 +226,9 @@ describe('AnimalSubjectScreen reachability', () => {
       />,
     );
 
-    const content = flatten(screen.getByTestId('animal-subject-detail').props.contentContainerStyle);
+    const content = flatten(
+      screen.getByTestId('animal-subject-detail').props.contentContainerStyle,
+    );
     expect(content.flexGrow).toBe(1);
     expect(content.flex).toBeUndefined();
     expect(countScrollers(screen.toJSON())).toBe(1);
@@ -263,7 +268,9 @@ describe('AnimalSubjectScreen reachability', () => {
     expect(countScrollers(screen.toJSON())).toBe(1);
     expect(screen.getByTestId('animal-list').props.contentContainerStyle).toBeUndefined();
 
-    const content = flatten(screen.getByTestId('animal-subject-screen').props.contentContainerStyle);
+    const content = flatten(
+      screen.getByTestId('animal-subject-screen').props.contentContainerStyle,
+    );
     expect(content.flexGrow).toBe(1);
     expect(content.flex).toBeUndefined();
   });
@@ -364,7 +371,9 @@ describe('AnimalSubjectScreen feature-0007 Commit 1 and 2', () => {
       />,
     );
 
-    expect(await screen.findByTestId('pending-tag-badge-00000000-0000-0000-0000-000000654321')).toBeTruthy();
+    expect(
+      await screen.findByTestId('pending-tag-badge-00000000-0000-0000-0000-000000654321'),
+    ).toBeTruthy();
     expect(screen.getByText('Sin arete')).toBeTruthy();
     expect(screen.getByText('Macho')).toBeTruthy();
 
@@ -498,4 +507,3 @@ describe('AnimalSubjectScreen feature-0007 Commit 1 and 2', () => {
     expect(screen.getByText('Arete: TAG-CURR')).toBeTruthy();
   });
 });
-

@@ -87,10 +87,7 @@ export class Outbox {
     // cancel and push is a real one. The conditional update in markCancelled is
     // the only place the status can change, and that change is what this filter
     // is reading.
-    const clauses: Q.Clause[] = [
-      Q.where('status', 'pending'),
-      Q.sortBy('queued_at', Q.asc),
-    ];
+    const clauses: Q.Clause[] = [Q.where('status', 'pending'), Q.sortBy('queued_at', Q.asc)];
     if (limit !== undefined) {
       clauses.push(Q.take(limit));
     }
@@ -218,7 +215,11 @@ export class Outbox {
 
     await this.database.write(async () => {
       await this.database.batch(
-        ...rows.map((row) => row.prepareUpdate((entry) => { entry.attempts += 1; })),
+        ...rows.map((row) =>
+          row.prepareUpdate((entry) => {
+            entry.attempts += 1;
+          }),
+        ),
       );
     });
   }

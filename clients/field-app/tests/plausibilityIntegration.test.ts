@@ -13,26 +13,34 @@ describe('plausibility integration smoke', () => {
     const database = {
       get: (_table: string) => ({
         query: () => ({
-          fetch: async () => [{
-            speciesId: 's1',
-            categoryId: 'c1',
-            magnitude: 'dose_ml',
-            plausibleMin: 1,
-            plausibleMax: 100,
-            absoluteMin: 0.1,
-            absoluteMax: 200,
-            isActive: true,
-            isDeleted: false,
-          }],
+          fetch: async () => [
+            {
+              speciesId: 's1',
+              categoryId: 'c1',
+              magnitude: 'dose_ml',
+              plausibleMin: 1,
+              plausibleMax: 100,
+              absoluteMin: 0.1,
+              absoluteMax: 200,
+              isActive: true,
+              isDeleted: false,
+            },
+          ],
         }),
       }),
     } as unknown as Parameters<typeof evaluatePlausibility>[0];
 
     const first = await evaluatePlausibility(database, {
-      speciesId: 's1', categoryId: 'c1', magnitude: 'dose_ml', value: 50,
+      speciesId: 's1',
+      categoryId: 'c1',
+      magnitude: 'dose_ml',
+      value: 50,
     });
     const second = await evaluatePlausibility(database, {
-      speciesId: 's1', categoryId: 'c1', magnitude: 'dose_ml', value: 50,
+      speciesId: 's1',
+      categoryId: 'c1',
+      magnitude: 'dose_ml',
+      value: 50,
     });
     expect(first).toBe(second);
     expect(first).toBe<PlausibilityVerdict>('pass');

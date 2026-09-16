@@ -26,7 +26,10 @@ describe('LoginScreen', () => {
     if (!node || typeof node !== 'object') return 0;
     const element = node as { type?: string; children?: unknown[] };
     const self = element.type === 'RCTScrollView' || element.type === 'ScrollView' ? 1 : 0;
-    return (element.children ?? []).reduce<number>((acc, child) => acc + countScrollers(child), self);
+    return (element.children ?? []).reduce<number>(
+      (acc, child) => acc + countScrollers(child),
+      self,
+    );
   };
 
   /**
@@ -42,7 +45,9 @@ describe('LoginScreen', () => {
     }) as unknown as AuthService;
 
   it('scrolls, so the sign-in button is reachable with the keyboard open', async () => {
-    await render(<LoginScreen auth={authStub()} hasCachedSession onAuthenticated={() => undefined} />);
+    await render(
+      <LoginScreen auth={authStub()} hasCachedSession onAuthenticated={() => undefined} />,
+    );
 
     const scroller = screen.getByTestId('login-screen');
     expect(countScrollers(screen.toJSON())).toBe(1);

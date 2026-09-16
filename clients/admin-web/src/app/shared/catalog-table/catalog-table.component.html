@@ -40,12 +40,21 @@
                     type="button"
                     class="icon-button action-btn"
                     [class.action-btn-danger]="action.label === 'Desactivar'"
-                    [class.action-btn-success]="action.label === 'Activar' || action.label === 'Reactivar'"
-                    [class.action-btn-primary]="action.label === 'Detalle' || action.label === 'Editar'"
+                    [class.action-btn-success]="
+                      action.label === 'Activar' || action.label === 'Reactivar'
+                    "
+                    [class.action-btn-primary]="
+                      action.label === 'Detalle' || action.label === 'Editar'
+                    "
                     [attr.aria-label]="action.label"
                     [attr.data-action]="action.label"
-                    (click)="onActionClick(action, row)">
-                    <app-icon [name]="action.iconName" size="sm" [ariaLabel]="action.label"></app-icon>
+                    (click)="onActionClick(action, row)"
+                  >
+                    <app-icon
+                      [name]="action.iconName"
+                      size="sm"
+                      [ariaLabel]="action.label"
+                    ></app-icon>
                     <span class="action-btn-label">{{ action.label }}</span>
                   </button>
                 }
@@ -56,7 +65,10 @@
       }
       @if (rows.length === 0) {
         <tr class="empty-row">
-          <td [attr.colspan]="columns.length + (hasActions() ? 1 : 0)" class="text-center py-4 text-muted">
+          <td
+            [attr.colspan]="columns.length + (hasActions() ? 1 : 0)"
+            class="text-center py-4 text-muted"
+          >
             {{ emptyMessage }}
           </td>
         </tr>

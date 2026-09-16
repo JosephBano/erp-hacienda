@@ -3,7 +3,15 @@ import { Share, StyleSheet, Text, View } from 'react-native';
 import NetInfo from '@react-native-community/netinfo';
 
 import { theme } from '../ui/theme';
-import { BigButton, Body, Card, Notice, Screen, Title, formatOperationError } from '../ui/components';
+import {
+  BigButton,
+  Body,
+  Card,
+  Notice,
+  Screen,
+  Title,
+  formatOperationError,
+} from '../ui/components';
 import type { Outbox, OutboxEntry, OutboxStats } from '../services/outbox';
 import type { SyncEngine, SyncResult } from '../services/syncEngine';
 import type { ModuleKey, ModuleVisibility } from '../services/moduleVisibility';
@@ -40,7 +48,10 @@ export function SyncStatusScreen({
     tasks: true,
     people: true,
   });
-  const [pendingConfirm, setPendingConfirm] = useState<{ key: ModuleKey; wasEnabled: boolean } | null>(null);
+  const [pendingConfirm, setPendingConfirm] = useState<{
+    key: ModuleKey;
+    wasEnabled: boolean;
+  } | null>(null);
   const [moduleError, setModuleError] = useState<string | null>(null);
   const [showRedownloadConfirm, setShowRedownloadConfirm] = useState(false);
 
@@ -180,7 +191,9 @@ export function SyncStatusScreen({
       {showRedownloadConfirm ? (
         <Card>
           <Body>
-            Se volverán a descargar los datos del servidor (el hato, lotes y catálogos). Lo que registraste hoy y aún no se ha enviado se conserva en el teléfono. Requiere conexión a internet. ¿Continuar?
+            Se volverán a descargar los datos del servidor (el hato, lotes y catálogos). Lo que
+            registraste hoy y aún no se ha enviado se conserva en el teléfono. Requiere conexión a
+            internet. ¿Continuar?
           </Body>
           <BigButton
             testID="confirm-redownload"
@@ -213,7 +226,9 @@ export function SyncStatusScreen({
         />
       ) : null}
 
-      {result?.ok ? <Body muted>{`Enviados ${result.pushed} · recibidos ${result.pulled}`}</Body> : null}
+      {result?.ok ? (
+        <Body muted>{`Enviados ${result.pushed} · recibidos ${result.pulled}`}</Body>
+      ) : null}
 
       <Title>Registros con problema</Title>
       {rejected.length === 0 ? (
@@ -229,9 +244,7 @@ export function SyncStatusScreen({
               <Body>{LABELS[entry.operationType] ?? entry.operationType}</Body>
               <Body muted>{new Date(entry.occurredAt).toLocaleString()}</Body>
               <View style={styles.reason}>
-                <Text style={styles.reasonText}>
-                  {formatOperationError(entry.errorDetails)}
-                </Text>
+                <Text style={styles.reasonText}>{formatOperationError(entry.errorDetails)}</Text>
               </View>
             </Card>
           ))}
@@ -253,8 +266,18 @@ export function SyncStatusScreen({
           <Body>
             Apagar Ordeño en el teléfono solo se puede revertir desde el panel admin. ¿Continuar?
           </Body>
-          <BigButton testID="confirm-disable-production" label="Sí, apagar" tone="danger" onPress={confirmDisable} />
-          <BigButton testID="cancel-disable-production" label="Cancelar" tone="neutral" onPress={() => setPendingConfirm(null)} />
+          <BigButton
+            testID="confirm-disable-production"
+            label="Sí, apagar"
+            tone="danger"
+            onPress={confirmDisable}
+          />
+          <BigButton
+            testID="cancel-disable-production"
+            label="Cancelar"
+            tone="neutral"
+            onPress={() => setPendingConfirm(null)}
+          />
         </Card>
       ) : null}
     </Screen>

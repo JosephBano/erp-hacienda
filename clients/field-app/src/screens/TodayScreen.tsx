@@ -87,11 +87,17 @@ export function TodayScreen({ entries, outbox, events, onChanged }: TodayScreenP
   const inFlight = useRef<Set<string>>(new Set());
   const [reasonFor, setReasonFor] = useState<string | null>(null);
   const [reasonText, setReasonText] = useState('');
-  const [outcome, setOutcome] = useState<{ entryId: string; outcome: CorrectionOutcome; message?: string } | null>(null);
+  const [outcome, setOutcome] = useState<{
+    entryId: string;
+    outcome: CorrectionOutcome;
+    message?: string;
+  } | null>(null);
 
   const ordered = useMemo(
     () =>
-      [...entries].sort((a, b) => (a.occurredAt < b.occurredAt ? 1 : a.occurredAt > b.occurredAt ? -1 : 0)),
+      [...entries].sort((a, b) =>
+        a.occurredAt < b.occurredAt ? 1 : a.occurredAt > b.occurredAt ? -1 : 0,
+      ),
     [entries],
   );
 
@@ -207,7 +213,10 @@ export function TodayScreen({ entries, outbox, events, onChanged }: TodayScreenP
           // cross-module subject lookup); the rest must go through the admin panel.
           const correctableFromPhone = entry.operationType === 'recordAnimalEvent';
           const canCorrect =
-            entry.status === 'synced' && !isCorrection && correctableFromPhone && Boolean(entry.resultRef);
+            entry.status === 'synced' &&
+            !isCorrection &&
+            correctableFromPhone &&
+            Boolean(entry.resultRef);
           const isBusy = busyId === entry.clientOperationId;
           const showingReason = reasonFor === entry.clientOperationId;
           const outcomeForEntry = outcome?.entryId === entry.clientOperationId ? outcome : null;
@@ -303,7 +312,7 @@ export function TodayScreen({ entries, outbox, events, onChanged }: TodayScreenP
                       ? 'Cancelado. No se envió nada al servidor.'
                       : outcomeForEntry.outcome === 'server-correction'
                         ? 'Corrección en cola. Se enviará en el próximo sync.'
-                        : outcomeForEntry.message ?? 'No se pudo corregir.'
+                        : (outcomeForEntry.message ?? 'No se pudo corregir.')
                   }
                 />
               ) : null}

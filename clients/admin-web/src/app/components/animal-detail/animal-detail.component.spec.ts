@@ -163,21 +163,16 @@ describe('AnimalDetailComponent', () => {
     expect(tabLabels.join(' ')).not.toMatch(/capacidad/i);
   });
 
-  it('should surface the birth weight recorded at the animal\'s registration', () => {
+  it("should surface the birth weight recorded at the animal's registration", () => {
     // Pin the readout that the user asked for: a criar pesó N kg al nacer, the panel
     // must show it on the detail card so the gilt-selection sort key is reachable
     // from a single click (docs/spec/plan-0002-fase-3-5/spec-3.5a.md sec.3.5a.4 task 3).
     const fixture = renderAnimalDetail();
     const root = fixture.nativeElement as HTMLElement;
     const cards = [...root.querySelectorAll<HTMLElement>('.info-card')];
-    const birthWeightCard = cards.find((c) =>
-      /peso al nacer/i.test(c.textContent ?? ''),
-    );
+    const birthWeightCard = cards.find((c) => /peso al nacer/i.test(c.textContent ?? ''));
 
-    expect(
-      birthWeightCard,
-      'expected an info card labelled "Peso al nacer"',
-    ).not.toBeUndefined();
+    expect(birthWeightCard, 'expected an info card labelled "Peso al nacer"').not.toBeUndefined();
     expect(birthWeightCard!.textContent ?? '').toContain('1.45');
     expect(birthWeightCard!.textContent ?? '').toContain('kg');
   });

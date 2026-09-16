@@ -72,8 +72,16 @@ describe('Outbox', () => {
   it('today() newest first', async () => {
     const outbox = new Outbox(database);
 
-    await outbox.enqueue('recordMilking', { totalLiters: 5 }, new Date('2026-08-06T05:00:00.000Z').toISOString());
-    await outbox.enqueue('recordMilking', { totalLiters: 7 }, new Date('2026-08-06T15:00:00.000Z').toISOString());
+    await outbox.enqueue(
+      'recordMilking',
+      { totalLiters: 5 },
+      new Date('2026-08-06T05:00:00.000Z').toISOString(),
+    );
+    await outbox.enqueue(
+      'recordMilking',
+      { totalLiters: 7 },
+      new Date('2026-08-06T15:00:00.000Z').toISOString(),
+    );
 
     const result = await outbox.today();
 

@@ -234,7 +234,12 @@ export function AnimalEditScreen({
               busy={busy}
               onPress={() => void submit()}
             />
-            <BigButton testID="cancel-edit-animal" label="Cancelar" tone="neutral" onPress={reset} />
+            <BigButton
+              testID="cancel-edit-animal"
+              label="Cancelar"
+              tone="neutral"
+              onPress={reset}
+            />
           </Card>
         </ScrollView>
       </View>

@@ -184,9 +184,9 @@ describe('MilkingService', () => {
   it('blocks milk from a cow under an active withdrawal period', async () => {
     await giveWithdrawal('cow-treated', 'Milk', '2000-01-01', '2999-12-31');
 
-    await expect(service.recordIndividualYield('cow-treated', 'Morning', 10, recordedBy)).rejects.toThrow(
-      /retiro/i,
-    );
+    await expect(
+      service.recordIndividualYield('cow-treated', 'Morning', 10, recordedBy),
+    ).rejects.toThrow(/retiro/i);
 
     expect(await outbox.pending()).toHaveLength(0);
   });
@@ -259,9 +259,9 @@ describe('MilkingService', () => {
       });
     });
 
-    await expect(service.recordIndividualYield('bull-1', 'Morning', 10, recordedBy)).rejects.toThrow(
-      'Solo se pueden ordeñar animales de sexo hembra.',
-    );
+    await expect(
+      service.recordIndividualYield('bull-1', 'Morning', 10, recordedBy),
+    ).rejects.toThrow('Solo se pueden ordeñar animales de sexo hembra.');
     expect(await outbox.pending()).toHaveLength(0);
   });
 
@@ -294,9 +294,9 @@ describe('MilkingService', () => {
       });
     });
 
-    await expect(service.recordIndividualYield('cow-deleted', 'Morning', 10, recordedBy)).rejects.toThrow(
-      'No se encontró el animal en este dispositivo.',
-    );
+    await expect(
+      service.recordIndividualYield('cow-deleted', 'Morning', 10, recordedBy),
+    ).rejects.toThrow('No se encontró el animal en este dispositivo.');
     expect(await outbox.pending()).toHaveLength(0);
   });
 });

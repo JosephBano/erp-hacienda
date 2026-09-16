@@ -172,9 +172,7 @@ export function MilkingScreen({
       });
 
       if (verdict === 'block') {
-        setError(
-          `${value} L está fuera de lo posible para este animal. Verifica el dato.`,
-        );
+        setError(`${value} L está fuera de lo posible para este animal. Verifica el dato.`);
         return;
       }
       if (verdict === 'confirm') {

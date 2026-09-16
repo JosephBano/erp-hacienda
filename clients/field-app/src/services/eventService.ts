@@ -169,7 +169,12 @@ export class EventService {
       occurredAt,
     );
 
-    await this.applyLocalWithdrawal(input.animalId, occurredAt, milkWithdrawalDays, meatWithdrawalDays);
+    await this.applyLocalWithdrawal(
+      input.animalId,
+      occurredAt,
+      milkWithdrawalDays,
+      meatWithdrawalDays,
+    );
 
     return { clientOperationId: entry.clientOperationId };
   }

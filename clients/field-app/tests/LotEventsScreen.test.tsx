@@ -49,7 +49,9 @@ describe('LotEventsScreen (3.5a.7 tasks 1–5)', () => {
     }) as unknown as typeof fetch;
   });
 
-  function renderScreen(activity: 'weighing' | 'disposal' | 'vaccination' | 'treatment' | 'diagnosis' | 'feed') {
+  function renderScreen(
+    activity: 'weighing' | 'disposal' | 'vaccination' | 'treatment' | 'diagnosis' | 'feed',
+  ) {
     return render(
       <LotEventsScreen
         service={service}
@@ -96,7 +98,8 @@ describe('LotEventsScreen (3.5a.7 tasks 1–5)', () => {
     // The average sent is exactly the average this screen computed from the raw
     // weights array carried in the same payload — the app calculates it, the
     // operator never types it (docs/spec/plan-0002-fase-3-5/spec-3.5a.md sec.3.5a.7 task 1).
-    const rawAverage = payload.weights.reduce((sum: number, w: number) => sum + w, 0) / payload.weights.length;
+    const rawAverage =
+      payload.weights.reduce((sum: number, w: number) => sum + w, 0) / payload.weights.length;
     expect(payload.avgKg).toBe(Math.round(rawAverage * 100) / 100);
   });
 
@@ -213,7 +216,11 @@ describe('LotEventsScreen (3.5a.7 tasks 1–5)', () => {
       expect(await outbox.pending()).toHaveLength(1);
     });
     const [entry] = await outbox.pending();
-    expect(entry.payload).toMatchObject({ groupId: lot.groupId, eventType: 'Diagnosis', affectedCount: 1 });
+    expect(entry.payload).toMatchObject({
+      groupId: lot.groupId,
+      eventType: 'Diagnosis',
+      affectedCount: 1,
+    });
     // No animalId anywhere in the payload — the screen never offers an animal picker
     // for this activity (ADR-0015: "no sé cuál").
     expect(entry.payload).not.toHaveProperty('animalId');

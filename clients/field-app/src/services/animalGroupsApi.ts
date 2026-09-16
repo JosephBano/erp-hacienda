@@ -32,11 +32,14 @@ export class HttpAnimalGroupsApi implements AnimalGroupsApi {
   constructor(private readonly options: HttpAnimalGroupsApiOptions) {}
 
   async getSummary(groupId: string): Promise<AnimalGroupSummary> {
-    const response = await fetch(`${this.options.baseUrl}/api/v1/animal-groups/${groupId}/summary`, {
-      headers: {
-        Authorization: `Bearer ${this.options.getToken() ?? ''}`,
+    const response = await fetch(
+      `${this.options.baseUrl}/api/v1/animal-groups/${groupId}/summary`,
+      {
+        headers: {
+          Authorization: `Bearer ${this.options.getToken() ?? ''}`,
+        },
       },
-    });
+    );
 
     if (!response.ok) {
       throw new Error(`No se pudo obtener la ficha del lote (${response.status}).`);

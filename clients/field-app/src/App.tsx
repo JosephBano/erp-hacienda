@@ -112,17 +112,25 @@ function AppShell() {
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [herd, setHerd] = useState<Awaited<ReturnType<typeof loadHerd>>>([]);
   const [activeHerd, setActiveHerd] = useState<Awaited<ReturnType<typeof loadActiveHerd>>>([]);
-  const [milkingCandidates, setMilkingCandidates] = useState<Awaited<ReturnType<typeof loadMilkingCandidates>>>([]);
+  const [milkingCandidates, setMilkingCandidates] = useState<
+    Awaited<ReturnType<typeof loadMilkingCandidates>>
+  >([]);
   const [groups, setGroups] = useState<Awaited<ReturnType<typeof loadGroups>>>([]);
-  const [treatmentProducts, setTreatmentProducts] = useState<Awaited<ReturnType<typeof loadTreatmentProducts>>>([]);
+  const [treatmentProducts, setTreatmentProducts] = useState<
+    Awaited<ReturnType<typeof loadTreatmentProducts>>
+  >([]);
   const [medications, setMedications] = useState<Awaited<ReturnType<typeof loadMedications>>>([]);
-  const [mortalityCauses, setMortalityCauses] = useState<Awaited<ReturnType<typeof loadMortalityCauses>>>([]);
+  const [mortalityCauses, setMortalityCauses] = useState<
+    Awaited<ReturnType<typeof loadMortalityCauses>>
+  >([]);
   const [feedItems, setFeedItems] = useState<Awaited<ReturnType<typeof loadFeedItems>>>([]);
   const [pregnantDams, setPregnantDams] = useState<PregnantDam[]>([]);
   const [productionOn, setProductionOn] = useState(true);
   const [selectedAnimalId, setSelectedAnimalId] = useState<string | null>(null);
   const [eventsInitialAnimalId, setEventsInitialAnimalId] = useState<string | undefined>(undefined);
-  const [eventsInitialActivity, setEventsInitialActivity] = useState<'weight' | 'move' | 'disposal' | undefined>(undefined);
+  const [eventsInitialActivity, setEventsInitialActivity] = useState<
+    'weight' | 'move' | 'disposal' | undefined
+  >(undefined);
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
   const [lotEventsGroupId, setLotEventsGroupId] = useState<string | undefined>(undefined);
   const [lotEventsActivity, setLotEventsActivity] = useState<LotActivity | undefined>(undefined);
@@ -280,8 +288,15 @@ function AppShell() {
 
   if (!ready) {
     return (
-      <SafeAreaView testID="app-root" style={[styles.root, { backgroundColor: activeTheme.color.background }]}>
-        <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={activeTheme.color.background} translucent={false} />
+      <SafeAreaView
+        testID="app-root"
+        style={[styles.root, { backgroundColor: activeTheme.color.background }]}
+      >
+        <StatusBar
+          barStyle={isDark ? 'light-content' : 'dark-content'}
+          backgroundColor={activeTheme.color.background}
+          translucent={false}
+        />
         <Screen>
           <Title>HATO</Title>
           <Body muted>Abriendo la base local…</Body>
@@ -292,8 +307,15 @@ function AppShell() {
 
   if (!authenticated) {
     return (
-      <SafeAreaView testID="app-root" style={[styles.root, { backgroundColor: activeTheme.color.background }]}>
-        <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={activeTheme.color.background} translucent={false} />
+      <SafeAreaView
+        testID="app-root"
+        style={[styles.root, { backgroundColor: activeTheme.color.background }]}
+      >
+        <StatusBar
+          barStyle={isDark ? 'light-content' : 'dark-content'}
+          backgroundColor={activeTheme.color.background}
+          translucent={false}
+        />
         <LoginScreen
           auth={auth}
           hasCachedSession={hasCachedSession}
@@ -306,8 +328,15 @@ function AppShell() {
   const activeCanonicalTab = resolveCanonicalTab(tab);
 
   return (
-    <SafeAreaView testID="app-root" style={[styles.root, { backgroundColor: activeTheme.color.background }]}>
-      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={activeTheme.color.background} translucent={false} />
+    <SafeAreaView
+      testID="app-root"
+      style={[styles.root, { backgroundColor: activeTheme.color.background }]}
+    >
+      <StatusBar
+        barStyle={isDark ? 'light-content' : 'dark-content'}
+        backgroundColor={activeTheme.color.background}
+        translucent={false}
+      />
 
       {/* Global Header — always accessible sync state & secondary settings */}
       <View
@@ -332,7 +361,8 @@ function AppShell() {
             style={[
               styles.syncPill,
               {
-                backgroundColor: pending > 0 ? activeTheme.color.warning : activeTheme.color.surfaceRaised,
+                backgroundColor:
+                  pending > 0 ? activeTheme.color.warning : activeTheme.color.surfaceRaised,
                 borderColor: pending > 0 ? activeTheme.color.warning : activeTheme.color.primary,
               },
             ]}
@@ -555,7 +585,12 @@ function AppShell() {
           ) : null}
 
           {tab === 'editAnimal' ? (
-            <AnimalEditScreen database={database} service={animalEdits} animals={herd} onQueued={refresh} />
+            <AnimalEditScreen
+              database={database}
+              service={animalEdits}
+              animals={herd}
+              onQueued={refresh}
+            />
           ) : null}
 
           {tab === 'sync' ? (
@@ -574,11 +609,7 @@ function AppShell() {
         <View testID="app-discard-prompt" style={styles.footer}>
           <Card>
             <Notice tone="warning" text="Hay datos escritos sin registrar en esta pantalla." />
-            <BigButton
-              testID="keep-editing"
-              label="Seguir aquí"
-              onPress={gate.keep}
-            />
+            <BigButton testID="keep-editing" label="Seguir aquí" onPress={gate.keep} />
             <BigButton
               testID="discard-draft"
               label="Salir y descartar"
@@ -664,7 +695,11 @@ function AppShell() {
 
             <View testID="settings-user-info" style={styles.settingsSection}>
               <Body muted>Operador activo</Body>
-              <Body>{auth.currentSession()?.fullName ?? auth.currentSession()?.email ?? 'Operador de campo'}</Body>
+              <Body>
+                {auth.currentSession()?.fullName ??
+                  auth.currentSession()?.email ??
+                  'Operador de campo'}
+              </Body>
               {auth.currentSession()?.email ? (
                 <Body muted>{auth.currentSession()?.email}</Body>
               ) : null}
@@ -680,7 +715,10 @@ function AppShell() {
                     styles.themeOptionButton,
                     {
                       borderColor: activeTheme.color.border,
-                      backgroundColor: themeMode === 'system' ? activeTheme.color.primary : activeTheme.color.surfaceRaised,
+                      backgroundColor:
+                        themeMode === 'system'
+                          ? activeTheme.color.primary
+                          : activeTheme.color.surfaceRaised,
                     },
                   ]}
                   onPress={() => void setThemeMode('system')}
@@ -688,7 +726,12 @@ function AppShell() {
                   <Text
                     style={[
                       styles.themeOptionText,
-                      { color: themeMode === 'system' ? activeTheme.color.primaryText : activeTheme.color.text },
+                      {
+                        color:
+                          themeMode === 'system'
+                            ? activeTheme.color.primaryText
+                            : activeTheme.color.text,
+                      },
                     ]}
                   >
                     Automático
@@ -702,7 +745,10 @@ function AppShell() {
                     styles.themeOptionButton,
                     {
                       borderColor: activeTheme.color.border,
-                      backgroundColor: themeMode === 'light' ? activeTheme.color.primary : activeTheme.color.surfaceRaised,
+                      backgroundColor:
+                        themeMode === 'light'
+                          ? activeTheme.color.primary
+                          : activeTheme.color.surfaceRaised,
                     },
                   ]}
                   onPress={() => void setThemeMode('light')}
@@ -710,7 +756,12 @@ function AppShell() {
                   <Text
                     style={[
                       styles.themeOptionText,
-                      { color: themeMode === 'light' ? activeTheme.color.primaryText : activeTheme.color.text },
+                      {
+                        color:
+                          themeMode === 'light'
+                            ? activeTheme.color.primaryText
+                            : activeTheme.color.text,
+                      },
                     ]}
                   >
                     Claro
@@ -724,7 +775,10 @@ function AppShell() {
                     styles.themeOptionButton,
                     {
                       borderColor: activeTheme.color.border,
-                      backgroundColor: themeMode === 'dark' ? activeTheme.color.primary : activeTheme.color.surfaceRaised,
+                      backgroundColor:
+                        themeMode === 'dark'
+                          ? activeTheme.color.primary
+                          : activeTheme.color.surfaceRaised,
                     },
                   ]}
                   onPress={() => void setThemeMode('dark')}
@@ -732,7 +786,12 @@ function AppShell() {
                   <Text
                     style={[
                       styles.themeOptionText,
-                      { color: themeMode === 'dark' ? activeTheme.color.primaryText : activeTheme.color.text },
+                      {
+                        color:
+                          themeMode === 'dark'
+                            ? activeTheme.color.primaryText
+                            : activeTheme.color.text,
+                      },
                     ]}
                   >
                     Oscuro

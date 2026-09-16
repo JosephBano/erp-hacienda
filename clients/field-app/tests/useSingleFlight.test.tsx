@@ -110,7 +110,13 @@ describe('useSingleFlight', () => {
 
   it('lets the employee record again once the first save has finished', async () => {
     const written: string[] = [];
-    const view = await render(<ConfirmButton record={async () => { written.push('entry'); }} />);
+    const view = await render(
+      <ConfirmButton
+        record={async () => {
+          written.push('entry');
+        }}
+      />,
+    );
 
     const confirm = view.getByTestId('confirm');
     await act(async () => {

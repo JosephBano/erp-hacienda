@@ -2,7 +2,15 @@ import { CommonModule, DatePipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
-import { ApiService, AnimalGroupDto, AnimalGroupSummaryDto, ChangeTrackingModeRequest, GroupMembershipDto, SpeciesDto, UpdateAnimalGroupRequest } from '../../services/api.service';
+import {
+  ApiService,
+  AnimalGroupDto,
+  AnimalGroupSummaryDto,
+  ChangeTrackingModeRequest,
+  GroupMembershipDto,
+  SpeciesDto,
+  UpdateAnimalGroupRequest,
+} from '../../services/api.service';
 import { forkJoin } from 'rxjs';
 import { IconComponent } from '../../shared/icon/icon.component';
 
@@ -47,7 +55,9 @@ export class AnimalGroupDetailComponent implements OnInit {
   readonly editErrorMessage = signal<string>('');
 
   // --- Cambio de TrackingMode ---
-  readonly requestingTrackingModeChange = signal<{ newMode: 'Individual' | 'Headcount' } | null>(null);
+  readonly requestingTrackingModeChange = signal<{ newMode: 'Individual' | 'Headcount' } | null>(
+    null,
+  );
   readonly changingTrackingMode = signal<boolean>(false);
 
   // --- Desactivar / Reactivar ---
@@ -141,7 +151,9 @@ export class AnimalGroupDetailComponent implements OnInit {
       error: (err: unknown) => {
         this.editSubmitting.set(false);
         const e = err as { error?: { detail?: string }; message?: string };
-        this.editErrorMessage.set(e?.error?.detail ?? e?.message ?? 'No se pudo actualizar el lote.');
+        this.editErrorMessage.set(
+          e?.error?.detail ?? e?.message ?? 'No se pudo actualizar el lote.',
+        );
       },
     });
   }
@@ -182,8 +194,12 @@ export class AnimalGroupDetailComponent implements OnInit {
 
   // --- Desactivar / Reactivar ---
 
-  startDeactivate(): void { this.confirmingDeactivate.set(true); }
-  cancelDeactivate(): void { this.confirmingDeactivate.set(false); }
+  startDeactivate(): void {
+    this.confirmingDeactivate.set(true);
+  }
+  cancelDeactivate(): void {
+    this.confirmingDeactivate.set(false);
+  }
   confirmDeactivate(): void {
     const g = this.group();
     if (!g) return;
@@ -197,8 +213,12 @@ export class AnimalGroupDetailComponent implements OnInit {
     });
   }
 
-  startReactivate(): void { this.confirmingReactivate.set(true); }
-  cancelReactivate(): void { this.confirmingReactivate.set(false); }
+  startReactivate(): void {
+    this.confirmingReactivate.set(true);
+  }
+  cancelReactivate(): void {
+    this.confirmingReactivate.set(false);
+  }
   confirmReactivate(): void {
     const g = this.group();
     if (!g) return;

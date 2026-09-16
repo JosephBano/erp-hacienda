@@ -80,7 +80,9 @@ export function BigButton({
       {busy ? (
         <ActivityIndicator color={color} />
       ) : (
-        <Text style={[styles.buttonLabel, { color, fontSize: activeTheme.font.body }]}>{label}</Text>
+        <Text style={[styles.buttonLabel, { color, fontSize: activeTheme.font.body }]}>
+          {label}
+        </Text>
       )}
     </Pressable>
   );
@@ -128,7 +130,10 @@ export function Screen({
 
   if (!scrollable) {
     return (
-      <View testID={testID} style={[styles.screen, { backgroundColor: activeTheme.color.background }]}>
+      <View
+        testID={testID}
+        style={[styles.screen, { backgroundColor: activeTheme.color.background }]}
+      >
         {children}
       </View>
     );
@@ -182,11 +187,21 @@ export function EmptyState({
         },
       ]}
     >
-      <Text style={[styles.emptyTitle, { color: activeTheme.color.text, fontSize: activeTheme.font.body }]}>
+      <Text
+        style={[
+          styles.emptyTitle,
+          { color: activeTheme.color.text, fontSize: activeTheme.font.body },
+        ]}
+      >
         {title}
       </Text>
       {hint ? (
-        <Text style={[styles.emptyHint, { color: activeTheme.color.textMuted, fontSize: activeTheme.font.label }]}>
+        <Text
+          style={[
+            styles.emptyHint,
+            { color: activeTheme.color.textMuted, fontSize: activeTheme.font.label },
+          ]}
+        >
           {hint}
         </Text>
       ) : null}
@@ -204,7 +219,12 @@ export function EmptyState({
             },
           ]}
         >
-          <Text style={[styles.emptyActionLabel, { color: activeTheme.color.text, fontSize: activeTheme.font.body }]}>
+          <Text
+            style={[
+              styles.emptyActionLabel,
+              { color: activeTheme.color.text, fontSize: activeTheme.font.body },
+            ]}
+          >
             {action.label}
           </Text>
         </Pressable>
@@ -216,7 +236,10 @@ export function EmptyState({
 export function Title({ children, testID }: { children: React.ReactNode; testID?: string }) {
   const { theme: activeTheme } = useTheme();
   return (
-    <Text testID={testID} style={[styles.title, { color: activeTheme.color.text, fontSize: activeTheme.font.title }]}>
+    <Text
+      testID={testID}
+      style={[styles.title, { color: activeTheme.color.text, fontSize: activeTheme.font.title }]}
+    >
       {children}
     </Text>
   );
@@ -289,7 +312,11 @@ export function Card({
       </Pressable>
     );
   }
-  return <View testID={testID} style={cardStyle}>{children}</View>;
+  return (
+    <View testID={testID} style={cardStyle}>
+      {children}
+    </View>
+  );
 }
 
 /**
@@ -310,7 +337,11 @@ export function Notice({
   const color = tone === 'danger' ? activeTheme.color.dangerText : activeTheme.color.warningText;
 
   return (
-    <View testID={testID} accessibilityRole="alert" style={[styles.notice, { backgroundColor: background }]}>
+    <View
+      testID={testID}
+      accessibilityRole="alert"
+      style={[styles.notice, { backgroundColor: background }]}
+    >
       <Text style={[styles.noticeText, { color, fontSize: activeTheme.font.label }]}>{text}</Text>
     </View>
   );
@@ -342,7 +373,12 @@ export function NumberField({
   return (
     <View style={styles.field}>
       <View style={styles.fieldLabelRow}>
-        <Text style={[styles.fieldLabel, { color: activeTheme.color.textMuted, fontSize: activeTheme.font.label }]}>
+        <Text
+          style={[
+            styles.fieldLabel,
+            { color: activeTheme.color.textMuted, fontSize: activeTheme.font.label },
+          ]}
+        >
           {label}
         </Text>
         {optional ? (
@@ -350,7 +386,10 @@ export function NumberField({
             testID={testID ? `${testID}-optional` : undefined}
             style={[
               styles.optionalBadge,
-              { backgroundColor: activeTheme.color.surfaceRaised, borderColor: activeTheme.color.border },
+              {
+                backgroundColor: activeTheme.color.surfaceRaised,
+                borderColor: activeTheme.color.border,
+              },
             ]}
           >
             <Text
@@ -469,7 +508,12 @@ export function TextField({
   return (
     <View style={styles.field}>
       <View style={styles.fieldLabelRow}>
-        <Text style={[styles.fieldLabel, { color: activeTheme.color.textMuted, fontSize: activeTheme.font.label }]}>
+        <Text
+          style={[
+            styles.fieldLabel,
+            { color: activeTheme.color.textMuted, fontSize: activeTheme.font.label },
+          ]}
+        >
           {label}
         </Text>
         {optional ? (
@@ -477,7 +521,10 @@ export function TextField({
             testID={testID ? `${testID}-optional` : undefined}
             style={[
               styles.optionalBadge,
-              { backgroundColor: activeTheme.color.surfaceRaised, borderColor: activeTheme.color.border },
+              {
+                backgroundColor: activeTheme.color.surfaceRaised,
+                borderColor: activeTheme.color.border,
+              },
             ]}
           >
             <Text
@@ -597,10 +644,7 @@ export function TagBadge({
         ? activeTheme.color.surfaceRaised
         : activeTheme.color.surface;
 
-  const borderColor =
-    tone === 'accent'
-      ? activeTheme.color.primary
-      : activeTheme.color.border;
+  const borderColor = tone === 'accent' ? activeTheme.color.primary : activeTheme.color.border;
 
   const textColor =
     tone === 'accent'
@@ -742,7 +786,9 @@ export function StatusBadge({
         },
       ]}
     >
-      <Text style={[styles.statusBadgeText, { color: textColor, fontSize: activeTheme.font.micro }]}>
+      <Text
+        style={[styles.statusBadgeText, { color: textColor, fontSize: activeTheme.font.micro }]}
+      >
         {label}
       </Text>
     </View>
@@ -775,12 +821,22 @@ export function ListSection({
         <View style={styles.listSectionHeader}>
           <View style={styles.listSectionTitleGroup}>
             {title ? (
-              <Text style={[styles.listSectionTitle, { color: activeTheme.color.text, fontSize: activeTheme.font.subtitle }]}>
+              <Text
+                style={[
+                  styles.listSectionTitle,
+                  { color: activeTheme.color.text, fontSize: activeTheme.font.subtitle },
+                ]}
+              >
                 {title}
               </Text>
             ) : null}
             {subtitle ? (
-              <Text style={[styles.listSectionSubtitle, { color: activeTheme.color.textMuted, fontSize: activeTheme.font.label }]}>
+              <Text
+                style={[
+                  styles.listSectionSubtitle,
+                  { color: activeTheme.color.textMuted, fontSize: activeTheme.font.label },
+                ]}
+              >
                 {subtitle}
               </Text>
             ) : null}
@@ -792,7 +848,12 @@ export function ListSection({
               onPress={action.onPress}
               style={({ pressed }) => [styles.listSectionAction, { opacity: pressed ? 0.7 : 1 }]}
             >
-              <Text style={[styles.listSectionActionText, { color: activeTheme.color.primary, fontSize: activeTheme.font.label }]}>
+              <Text
+                style={[
+                  styles.listSectionActionText,
+                  { color: activeTheme.color.primary, fontSize: activeTheme.font.label },
+                ]}
+              >
                 {action.label}
               </Text>
             </Pressable>
@@ -847,14 +908,20 @@ export function FormHeader({
         <View style={styles.formHeaderTitleGroup}>
           <Text
             testID={`${testID}-title`}
-            style={[styles.formHeaderTitle, { color: activeTheme.color.text, fontSize: activeTheme.font.title }]}
+            style={[
+              styles.formHeaderTitle,
+              { color: activeTheme.color.text, fontSize: activeTheme.font.title },
+            ]}
           >
             {title}
           </Text>
           {subtitle ? (
             <Text
               testID={`${testID}-subtitle`}
-              style={[styles.formHeaderSubtitle, { color: activeTheme.color.textMuted, fontSize: activeTheme.font.label }]}
+              style={[
+                styles.formHeaderSubtitle,
+                { color: activeTheme.color.textMuted, fontSize: activeTheme.font.label },
+              ]}
             >
               {subtitle}
             </Text>
@@ -877,7 +944,12 @@ export function FormHeader({
               },
             ]}
           >
-            <Text style={[styles.formHeaderNavText, { color: activeTheme.color.text, fontSize: activeTheme.font.body }]}>
+            <Text
+              style={[
+                styles.formHeaderNavText,
+                { color: activeTheme.color.text, fontSize: activeTheme.font.body },
+              ]}
+            >
               {onBack ? '← Volver' : '✕ Cancelar'}
             </Text>
           </Pressable>
@@ -891,10 +963,18 @@ export function FormHeader({
               testID={`${testID}-group`}
               style={[
                 styles.formHeaderGroupBadge,
-                { backgroundColor: activeTheme.color.surface, borderColor: activeTheme.color.border },
+                {
+                  backgroundColor: activeTheme.color.surface,
+                  borderColor: activeTheme.color.border,
+                },
               ]}
             >
-              <Text style={[styles.formHeaderGroupText, { color: activeTheme.color.text, fontSize: activeTheme.font.body }]}>
+              <Text
+                style={[
+                  styles.formHeaderGroupText,
+                  { color: activeTheme.color.text, fontSize: activeTheme.font.body },
+                ]}
+              >
                 {`👥 Lote: ${groupName}`}
               </Text>
             </View>
@@ -903,7 +983,10 @@ export function FormHeader({
               <TagBadge tag={animalTag} label={animalLabel} size="normal" tone="default" />
               {animalLabel && animalLabel !== animalTag ? (
                 <Text
-                  style={[styles.formHeaderAnimalName, { color: activeTheme.color.text, fontSize: activeTheme.font.body }]}
+                  style={[
+                    styles.formHeaderAnimalName,
+                    { color: activeTheme.color.text, fontSize: activeTheme.font.body },
+                  ]}
                   numberOfLines={1}
                 >
                   {animalLabel}
@@ -953,21 +1036,36 @@ export function FormConfirmationSummary({
   return (
     <Card testID={testID} style={styles.confirmationCard}>
       <View style={styles.confirmationTitleRow}>
-        <Text style={[styles.confirmationTitle, { color: activeTheme.color.text, fontSize: activeTheme.font.subtitle }]}>
+        <Text
+          style={[
+            styles.confirmationTitle,
+            { color: activeTheme.color.text, fontSize: activeTheme.font.subtitle },
+          ]}
+        >
           {`✓ ${title}`}
         </Text>
       </View>
 
       {/* Sujeto */}
       <View style={styles.confirmationRow}>
-        <Text style={[styles.confirmationRowLabel, { color: activeTheme.color.textMuted, fontSize: activeTheme.font.label }]}>
+        <Text
+          style={[
+            styles.confirmationRowLabel,
+            { color: activeTheme.color.textMuted, fontSize: activeTheme.font.label },
+          ]}
+        >
           {subjectType === 'lot' ? '👥 Lote:' : '🐄 Sujeto:'}
         </Text>
         <View style={styles.confirmationSubjectContent}>
           {subjectType === 'animal' ? (
             <TagBadge tag={subjectTag} label={subjectLabel} size="normal" />
           ) : null}
-          <Text style={[styles.confirmationSubjectText, { color: activeTheme.color.text, fontSize: activeTheme.font.body }]}>
+          <Text
+            style={[
+              styles.confirmationSubjectText,
+              { color: activeTheme.color.text, fontSize: activeTheme.font.body },
+            ]}
+          >
             {subjectLabel}
           </Text>
         </View>
@@ -976,10 +1074,20 @@ export function FormConfirmationSummary({
       {/* Fecha */}
       {date ? (
         <View style={styles.confirmationRow}>
-          <Text style={[styles.confirmationRowLabel, { color: activeTheme.color.textMuted, fontSize: activeTheme.font.label }]}>
+          <Text
+            style={[
+              styles.confirmationRowLabel,
+              { color: activeTheme.color.textMuted, fontSize: activeTheme.font.label },
+            ]}
+          >
             📅 Fecha:
           </Text>
-          <Text style={[styles.confirmationValueText, { color: activeTheme.color.text, fontSize: activeTheme.font.body }]}>
+          <Text
+            style={[
+              styles.confirmationValueText,
+              { color: activeTheme.color.text, fontSize: activeTheme.font.body },
+            ]}
+          >
             {date}
           </Text>
         </View>
@@ -988,15 +1096,30 @@ export function FormConfirmationSummary({
       {/* Campos con etiquetas, valores, unidades y símbolos */}
       {fields.map((f, idx) => (
         <View key={`${f.label}-${idx}`} style={styles.confirmationRow}>
-          <Text style={[styles.confirmationRowLabel, { color: activeTheme.color.textMuted, fontSize: activeTheme.font.label }]}>
+          <Text
+            style={[
+              styles.confirmationRowLabel,
+              { color: activeTheme.color.textMuted, fontSize: activeTheme.font.label },
+            ]}
+          >
             {f.symbol ? `${f.symbol} ${f.label}:` : `${f.label}:`}
           </Text>
           <View style={styles.confirmationValueWithUnit}>
-            <Text style={[styles.confirmationValueHighlight, { color: activeTheme.color.text, fontSize: activeTheme.font.body }]}>
+            <Text
+              style={[
+                styles.confirmationValueHighlight,
+                { color: activeTheme.color.text, fontSize: activeTheme.font.body },
+              ]}
+            >
               {String(f.value)}
             </Text>
             {f.unit ? (
-              <Text style={[styles.confirmationUnitText, { color: activeTheme.color.textMuted, fontSize: activeTheme.font.body }]}>
+              <Text
+                style={[
+                  styles.confirmationUnitText,
+                  { color: activeTheme.color.textMuted, fontSize: activeTheme.font.body },
+                ]}
+              >
                 {` ${f.unit}`}
               </Text>
             ) : null}
@@ -1007,10 +1130,20 @@ export function FormConfirmationSummary({
       {/* Notas opcionales */}
       {notes ? (
         <View style={styles.confirmationRow}>
-          <Text style={[styles.confirmationRowLabel, { color: activeTheme.color.textMuted, fontSize: activeTheme.font.label }]}>
+          <Text
+            style={[
+              styles.confirmationRowLabel,
+              { color: activeTheme.color.textMuted, fontSize: activeTheme.font.label },
+            ]}
+          >
             📝 Notas:
           </Text>
-          <Text style={[styles.confirmationNotesText, { color: activeTheme.color.text, fontSize: activeTheme.font.label }]}>
+          <Text
+            style={[
+              styles.confirmationNotesText,
+              { color: activeTheme.color.text, fontSize: activeTheme.font.label },
+            ]}
+          >
             {notes}
           </Text>
         </View>
@@ -1023,7 +1156,17 @@ export function FormConfirmationSummary({
  * Selector de catálogos con búsqueda integrada y selección progresiva (T6.4).
  * Evita inundar la pantalla de botones cuando las listas son extensas.
  */
-export function CatalogSelector<T extends { id?: string; itemId?: string; animalId?: string; groupId?: string; label?: string; name?: string; tag?: string | null }>({
+export function CatalogSelector<
+  T extends {
+    id?: string;
+    itemId?: string;
+    animalId?: string;
+    groupId?: string;
+    label?: string;
+    name?: string;
+    tag?: string | null;
+  },
+>({
   items,
   selectedId,
   onSelect,
@@ -1046,7 +1189,8 @@ export function CatalogSelector<T extends { id?: string; itemId?: string; animal
 }) {
   const [query, setQuery] = useState('');
 
-  const getItemId = (item: T): string => item.id ?? item.itemId ?? item.animalId ?? item.groupId ?? '';
+  const getItemId = (item: T): string =>
+    item.id ?? item.itemId ?? item.animalId ?? item.groupId ?? '';
   const getItemLabel = (item: T): string => item.label ?? item.name ?? '';
 
   const filteredItems = useMemo(() => {
@@ -1076,10 +1220,7 @@ export function CatalogSelector<T extends { id?: string; itemId?: string; animal
         />
       ) : null}
 
-      <View
-        testID={`${testID}-list`}
-        style={styles.catalogList}
-      >
+      <View testID={`${testID}-list`} style={styles.catalogList}>
         {filteredItems.length === 0 ? (
           <EmptyState
             testID={`${testID}-no-matches`}
@@ -1091,11 +1232,7 @@ export function CatalogSelector<T extends { id?: string; itemId?: string; animal
             const id = getItemId(item);
             const isSelected = selectedId === id;
             if (renderItem) {
-              return (
-                <View key={id}>
-                  {renderItem(item, isSelected)}
-                </View>
-              );
+              return <View key={id}>{renderItem(item, isSelected)}</View>;
             }
             return (
               <BigButton

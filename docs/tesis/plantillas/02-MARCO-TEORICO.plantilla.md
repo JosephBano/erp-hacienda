@@ -40,6 +40,11 @@ Solo los conceptos que vas a usar. Guía de contenido según el tema elegido en 
 - **Calidad de producto software**: el modelo de ISO/IEC 25010.
 - **Dominio pecuario**: hato, lote, categoría, evento sanitario, período de retiro,
   conversión alimenticia. → Fuente interna: `docs/GLOSSARY.md`.
+- **Solo para el tema E** — control de inventario (existencias, lotes, kardex, discrepancia
+  de conteo), costos por centro, y **formalización de la información en la pequeña
+  explotación agropecuaria**: por qué el registro informal persiste y qué se pierde con él.
+  Aquí es donde vive el hueco del tema: la literatura de sistemas de gestión agropecuaria
+  suele partir de una explotación que **ya lleva registros**, no de una que arranca de cero.
 
 > **Cómo usar el repositorio como fuente sin hacer trampa.** Los ADR y los documentos de
 > `docs/` son *fuentes primarias de tu propio proyecto*: sirven para el Capítulo IV
@@ -51,22 +56,36 @@ Solo los conceptos que vas a usar. Guía de contenido según el tema elegido en 
 
 ### 3.1 Normas técnicas
 
-| Norma | Para qué la usas | Dónde aparece después |
-|---|---|---|
-| **ISO/IEC 25010** — modelo de calidad de producto | Instrumento de evaluación del sistema | Cap. III (instrumento), Cap. V (resultados) |
-| **ISO/IEC/IEEE 29148** — ingeniería de requisitos | Estructura del levantamiento y de la especificación | Cap. III (método), Cap. IV (requisitos) |
-| _(opcional)_ ISO/IEC/IEEE 42010 — descripción de arquitectura | Justifica el uso de ADRs | Cap. IV |
+**La norma central depende del tema elegido en `01-TEMA`**, porque el objeto de medición
+cambia. No arrastres la tabla entera: quédate con las filas de tu tema.
+
+| Norma | Para qué la usas | Tema | Dónde aparece después |
+|---|---|---|---|
+| **ISO/IEC 25010** — calidad de **producto** | Evaluar el sistema como artefacto | D (central), E (secundaria) | Cap. III (instrumento), Cap. V |
+| **ISO/IEC 25012** — calidad de **datos** | Evaluar exactitud, completitud, consistencia, credibilidad y actualidad de la información | **E (central)** | Cap. III (instrumento), Cap. V |
+| **ISO/IEC 25040** — **proceso** de evaluación | Dar estructura por etapas al antes/después | E | Cap. III (método) |
+| **ISO/IEC/IEEE 29148** — ingeniería de requisitos | Estructura del levantamiento y de la especificación | D, E | Cap. III (método), Cap. IV |
+| _(opcional)_ ISO/IEC/IEEE 42010 — descripción de arquitectura | Justifica el uso de ADRs | D | Cap. IV |
+| _(no es ISO)_ **DORA** — métricas de entrega | Frecuencia, lead time, tasa de fallo, restauración | **D (central)** | Cap. III, Cap. V |
+
+> **25010 y 25012 no son intercambiables y confundirlas se nota.** La primera mide si el
+> *software* es bueno; la segunda, si el *dato* que contiene lo es. Un sistema impecable
+> lleno de existencias que no cuadran puntúa alto en 25010 y bajo en 25012 — y en una finca
+> que venía de anotar en un cuaderno, lo que importa es la segunda.
 
 > ⚠️ **Verifica la revisión vigente de cada norma antes de citarla** (las ISO se revisan y el
 > año forma parte de la cita). Anota aquí la revisión que usaste y la fecha en que lo
 > comprobaste. Citar un año equivocado en la carátula es un error caro y evitable.
 >
 > - ISO/IEC 25010, revisión usada: ______ · verificado el: ______
+> - ISO/IEC 25012, revisión usada: ______ · verificado el: ______
+> - ISO/IEC 25040, revisión usada: ______ · verificado el: ______
 > - ISO/IEC/IEEE 29148, revisión usada: ______ · verificado el: ______
 
-**Sobre ISO/IEC 25010 en concreto.** Define características de calidad (adecuación
-funcional, eficiencia de desempeño, compatibilidad, usabilidad, fiabilidad, seguridad,
-mantenibilidad, portabilidad) con sus subcaracterísticas. **No las uses todas.** Elige las
+**Sobre ISO/IEC 25010 en concreto** (tema D, o la parte de producto del tema E). Define
+características de calidad (adecuación funcional, eficiencia de desempeño, compatibilidad,
+usabilidad, fiabilidad, seguridad, mantenibilidad, portabilidad) con sus subcaracterísticas.
+**No las uses todas.** Elige las
 3–5 que tu sistema realmente pone en juego y justifica la selección; evaluar las ocho a
 fondo es una tesis entera por sí sola. Candidatas naturales aquí: **fiabilidad** (el sync no
 puede perder datos), **adecuación funcional**, **usabilidad** (el empleado a las 5 AM) y

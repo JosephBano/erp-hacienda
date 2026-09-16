@@ -2,11 +2,74 @@ name: CI
 
 on:
   pull_request:
+    types: [opened, synchronize, reopened, edited]
     branches: [develop, main]
   push:
     branches: [develop, main]
 
 jobs:
+  pr-hygiene:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Validate branch name, commit messages, and PR title
+        run: |
+          set -e
+          FAILED=0
+          CONVENTIONAL_REGEX="^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)(\([a-zA-Z0-9_./-]+\))?(!)?: .+$"
+          BRANCH_REGEX="^(feature|release|hotfix|docs)/[a-zA-Z0-9_./-]+$"
+
+          # 1. Validate Branch Name
+          BRANCH_NAME="${{ github.head_ref }}"
+          if [ -n "$BRANCH_NAME" ]; then
+            if ! echo "$BRANCH_NAME" | grep -Eq "$BRANCH_REGEX"; then
+              echo "::error::Nombre de rama inválido: '$BRANCH_NAME'. Debe comenzar con feature/, release/, hotfix/ o docs/ (AGENTS.md regla 4, Art. 13)."
+              FAILED=1
+            else
+              echo "OK: Rama '$BRANCH_NAME' cumple la convención."
+            fi
+          fi
+
+          # 2. Validate PR Title
+          PR_TITLE="${{ github.event.pull_request.title }}"
+          if [ -n "$PR_TITLE" ]; then
+            if ! echo "$PR_TITLE" | grep -Eq "$CONVENTIONAL_REGEX"; then
+              echo "::error::Título del PR inválido: '$PR_TITLE'. Debe cumplir Conventional Commits (ej. 'feat(modulo): descripcion' o 'chore: descripcion')."
+              FAILED=1
+            else
+              echo "OK: Título del PR '$PR_TITLE' cumple Conventional Commits."
+            fi
+          fi
+
+          # 3. Validate Commits in PR
+          BASE_REF="${{ github.base_ref }}"
+          if [ -n "$BASE_REF" ]; then
+            echo "Validando commits contra origin/$BASE_REF..."
+            COMMITS=$(git log "origin/$BASE_REF..HEAD" --format="%s" || true)
+            while IFS= read -r msg; do
+              [ -z "$msg" ] && continue
+              if echo "$msg" | grep -Eq "^Merge "; then
+                continue
+              fi
+              if ! echo "$msg" | grep -Eq "$CONVENTIONAL_REGEX"; then
+                echo "::error::Mensaje de commit inválido: '$msg'. Debe cumplir Conventional Commits (ej. 'feat(modulo): descripcion')."
+                FAILED=1
+              else
+                echo "OK: Commit '$msg' cumple Conventional Commits."
+              fi
+            done <<< "$COMMITS"
+          fi
+
+          if [ "$FAILED" -ne 0 ]; then
+            echo "Fallo en la verificación de higiene de PR."
+            exit 1
+          fi
+          echo "Higiene de PR verificada con éxito."
+
   backend-build-and-test:
     runs-on: ubuntu-latest
 

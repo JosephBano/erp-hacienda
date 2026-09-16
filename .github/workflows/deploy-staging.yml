@@ -77,8 +77,13 @@ jobs:
           # Nada mas debe consumir stdin a partir de aqui.
           exec < /dev/null
 
-          mkdir -p /srv/hato-staging
-          cd /srv/hato-staging
+          # El checkout va en un subdirectorio, NO en la raiz del stack: el
+          # contexto de build de compose es este directorio, y `pgdata` —que
+          # crea PostgreSQL como root— quedaria dentro. Docker no puede leerlo
+          # y el build falla con "permission denied", pero solo a partir del
+          # SEGUNDO despliegue, cuando el volumen ya existe.
+          mkdir -p /srv/hato-staging/repo
+          cd /srv/hato-staging/repo
           if [ ! -d .git ]; then
             git clone https://github.com/JosephBano/erp-hacienda.git .
           fi

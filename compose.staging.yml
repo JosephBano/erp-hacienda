@@ -5,7 +5,10 @@
 # Principios aplicados:
 # 1. ASPNETCORE_ENVIRONMENT: Staging (no Development ni Production).
 # 2. No se publican puertos al host: Caddy (red proxy) enruta dentro de Tailscale.
-# 3. Datos fuera de la raíz: volumen bajo /srv/hato-staging/pgdata.
+# 3. Datos fuera de la raíz: volumen bajo /srv/hato-staging/pgdata, que queda
+#    FUERA del contexto de build (el checkout vive en /srv/hato-staging/repo).
+#    Si los datos cayeran dentro del contexto, el build fallaria al no poder
+#    leer un directorio que crea PostgreSQL como root.
 # 4. Ninguna imagen usa latest: versión fija postgres:16-alpine.
 # ==============================================================================
 

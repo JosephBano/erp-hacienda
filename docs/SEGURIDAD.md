@@ -526,6 +526,39 @@ permite confirmar por lectura estática): comportamiento real de un despliegue f
 
 ---
 
+## 7. Modelo de acceso y seguridad del despliegue (ADR-0030 / ADR-0031)
+
+Con la implementación de la tubería de entrega continua (`feature-0011`), el acceso y la
+seguridad del despliegue se rigen bajo los siguientes principios:
+
+### Aislamiento de secretos por entorno
+- **Cero secretos a nivel de repositorio:** Todos los secretos (`DEPLOY_SSH_KEY`, `DEPLOY_HOST`,
+  `DEPLOY_USER`, `TS_OAUTH_CLIENT_ID`, `TS_OAUTH_SECRET`, `STAGING_POSTGRES_PASSWORD`) residen
+  exclusivamente en el entorno `staging` de GitHub. Un PR o workflow externo no tiene acceso
+  a ellos.
+- **Sin exposición en logs:** Ningún secreto se imprime por pantalla o en scripts visibles.
+  La protección de push de GitHub permanece activa como barrera preventiva.
+
+### Despliegue sobre red privada (Tailscale) y SSH restringido
+- **Nodo efímero de CI:** El runner de GitHub Actions no aloja servicios ni posee IP fija;
+  se conecta a la red privada Tailscale como nodo efímero (`tailscale/github-action`) y
+  desaparece inmediatamente al finalizar el job.
+- **Acceso SSH dedicado:** Se emplea una clave SSH específica (`DEPLOY_SSH_KEY`) para un usuario
+  en el servidor sin privilegios de `sudo`.
+- **Servidor doméstico como staging (ADR-0031):** Staging corre en `joemanserver` bajo
+  `ASPNETCORE_ENVIRONMENT=Staging`, sin publicar puertos al host ni al router doméstico. Caddy
+  actúa como reverse proxy HTTPS exclusivo dentro de la malla Tailscale en el puerto 8448.
+
+### Alcance de credenciales de agentes de IA (D12)
+- Los agentes automáticos operan con credenciales reducidas que no poseen permisos de
+  administración del repositorio. Esto garantiza que las protecciones de rama (`develop` y `main`),
+  los checks obligatorios de CI y los rulesets no puedan ser desactivados silenciosamente por un
+  agente durante el desarrollo.
+- El job `branch-protection-drift` vigila permanentemente la configuración declarada en
+  `.github/branch-protection.expected.json` y delata en rojo cualquier discrepancia.
+
+---
+
 ## Ver también
 
 - `docs/adr/0007-modelo-permisos-bd.md` — la decisión de RBAC granular en BD (qué se decidió).

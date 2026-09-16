@@ -17,6 +17,10 @@
 
 CodeQL se integró como análisis estático de seguridad y calidad en modo informativo (advisory check) en `.github/workflows/codeql.yml` para C# y TypeScript/JavaScript (D16). Se mantiene no obligatorio inicialmente para evaluar la tasa de falsos positivos sobre el código real del proyecto sin bloquear el flujo de desarrollo. El 2026-11-15 (o al cierre de la Fase 3.5), tras recopilar al menos dos meses de ejecuciones y validar que no introduce bloqueos espurios, debe evaluarse e incorporarse a la lista de checks requeridos (`required_status_checks`) en `develop` y `main` vía `scripts/apply-repo-config.sh`.
 
+### [ops] Rotación de `SERVER_PASSWORD` en `home-server` (Fecha límite: 2026-10-31)
+
+Durante el diseño de la tubería de despliegue a staging (`feature-0011`, ADR-0030, ADR-0031) se constató la existencia histórica del secreto `SERVER_PASSWORD` asociado a `home-server`. Este secreto **no** fue utilizado en ningún workflow ni archivo de este proyecto (T11.5), habiendo optado por una clave SSH dedicada (`DEPLOY_SSH_KEY`) y usuario restringido sin sudo. Se anota como deuda técnica operativa en `home-server` la rotación y eventual revocación de dicha contraseña maestra en el servidor físico, con fecha límite 2026-10-31.
+
 ## Pendiente feature-0010 — Rediseño de la aplicación de campo (2026-09-08)
 
 > Rediseño general de la aplicación móvil de campo centrado en aretes, fichas y estados en `feature/field-app-redesign`.

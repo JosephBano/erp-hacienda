@@ -34,6 +34,7 @@ documento.
 | `GLOSSARY.md` | ¿Cómo se llama esto en español y en código? | Aparece un término de dominio nuevo. |
 | `LEGAL-ECUADOR.md` | ¿Qué exige la ley ecuatoriana? | Cambia la norma. |
 | `BACKUPS.md` | ¿Cómo se respalda y se restaura? | Cambia la estrategia. |
+| `METRICAS-ENTREGA.md` | ¿Cuál es la velocidad y estabilidad de la entrega (DORA) y su línea base histórica? | Se recalculan métricas de entrega o se cierra una fase. |
 | `docs/BACKLOG.md` | ¿Qué sabemos que falta y decidimos no hacer ahora? | Continuamente. |
 | `adr/NNNN-*.md` | ¿Por qué se decidió esto y qué se descartó? | Nunca: un ADR se reemplaza, no se edita. |
 | `spec/<x>/spec.md` | ¿Qué se construye y qué queda fijado? | Antes de implementar. |
@@ -44,10 +45,10 @@ documento.
 | `tesis/README.md` | ¿Cómo se construye la tesis sobre este proyecto y dónde vive cada parte? | Cambia la separación público/privado o el flujo de trabajo de la tesis. |
 | `tesis/plantillas/*.md` | ¿Qué debe contener cada pieza de la tesis? | Mejora la plantilla — nunca con contenido real. |
 
-Son 22 entradas y cubren, sin resto, todo `.md` de la raíz del repositorio y de la raíz de
+Son 23 entradas y cubren, sin resto, todo `.md` de la raíz del repositorio y de la raíz de
 `docs/` (`AGENTS.md`, `README.md`; `ARCHITECTURE.md`, `docs/BACKLOG.md`, `BACKUPS.md`,
-`CONSTITUTION.md`, `DATA-MODEL.md`, `GLOSSARY.md`, `LEGAL-ECUADOR.md`, `ROADMAP.md`,
-`SOUL.md`), más las tres filas de patrón que cubren carpetas (`adr/`, `spec/<x>/`,
+`CONSTITUTION.md`, `DATA-MODEL.md`, `GLOSSARY.md`, `LEGAL-ECUADOR.md`, `METRICAS-ENTREGA.md`, `ROADMAP.md`,
+`SOUL.md`), más las filas de patrón que cubren carpetas (`adr/`, `spec/<x>/`,
 `diagramas/`, `tesis/`). Verificable con `ls *.md` y `ls docs/*.md`: todo lo que devuelven
 aparece arriba.
 

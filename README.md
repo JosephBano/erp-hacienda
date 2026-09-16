@@ -181,6 +181,20 @@ docker exec hato-postgres psql -U hato -d postgres -tAc \
       -c 'DROP DATABASE IF EXISTS "{}" WITH (FORCE);'
 ```
 
+## Entornos y despliegue continuo
+
+El proyecto gestiona dos entornos de promoción (ADR-0029, ADR-0030, ADR-0031):
+
+| Entorno | Rama que despliega | Destino | Gate / Aprobación |
+|---|---|---|---|
+| **`staging`** | `develop` | `joemanserver` (sobre red privada Tailscale) | CI verde (checks obligatorios) |
+| **`production`** | `main` | Producción física | CI verde + **revisor obligatorio** del entorno |
+
+- **Despliegue a Staging:** Todo push a `develop` dispara el workflow `.github/workflows/deploy-staging.yml`. El runner de GitHub Actions se une efímeramente al tailnet, actualiza el código en `/srv/hato-staging` vía SSH y levanta la pila con `compose.staging.yml`.
+- **Aislamiento:** El entorno de staging no expone ningún puerto al host ni al router doméstico. Caddy actúa como reverse proxy HTTPS exclusivo dentro de la malla Tailscale en el puerto 8448.
+- **Verificación automática (Smoke Test):** El despliegue finaliza en verde únicamente tras la respuesta exitosa del smoke test (`scripts/smoke-api-container.sh`) contra `/health` y `/version`.
+- **Configuración versionada:** Las reglas de protección y entornos se declaran en `.github/branch-protection.expected.json` y se aplican mediante `scripts/apply-repo-config.sh`. El job de CI `branch-protection-drift` delata cualquier deriva frente a GitHub API.
+
 ## Cómo se contribuye
 
 GitFlow: `main` (releases etiquetadas) ← `develop` ← `feature/*`. Nadie commitea directo

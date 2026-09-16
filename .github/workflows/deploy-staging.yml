@@ -88,8 +88,15 @@ jobs:
 
           # umask antes de crear el archivo: nunca existe, ni por un instante,
           # legible por otros usuarios.
+          # Trazabilidad del build: se toma del checkout que se acaba de hacer,
+          # que es la unica fuente que no puede mentir sobre que se desplego.
           umask 077
-          printf '%s\n' "STAGING_POSTGRES_PASSWORD=${STAGING_POSTGRES_PASSWORD}" > .env.staging
+          {
+            printf '%s\n' "STAGING_POSTGRES_PASSWORD=${STAGING_POSTGRES_PASSWORD}"
+            printf 'HATO_VERSION=%s\n' "$(cat VERSION)"
+            printf 'HATO_COMMIT=%s\n' "$(git rev-parse --short HEAD)"
+            printf 'HATO_BUILD_DATE=%s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          } > .env.staging
 
           docker compose --env-file .env.staging -f compose.staging.yml up -d --build
           REMOTE

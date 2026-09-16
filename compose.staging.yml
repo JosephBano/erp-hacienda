@@ -52,6 +52,12 @@ services:
       ASPNETCORE_URLS: http://+:8080
       ASPNETCORE_ENVIRONMENT: Staging
       ConnectionStrings__HatoDb: "Host=postgres;Port=5432;Database=hato_staging;Username=hato_staging;Password=${STAGING_POSTGRES_PASSWORD}"
+      # Trazabilidad del build (spec.md sec. 8 / test-e2e.md E2E-5): sin esto el
+      # endpoint /version responde commit "local" y lo desplegado no puede decir
+      # que es. El despliegue los escribe en .env.staging desde el checkout.
+      HATO_VERSION: ${HATO_VERSION:-}
+      HATO_COMMIT: ${HATO_COMMIT:-}
+      HATO_BUILD_DATE: ${HATO_BUILD_DATE:-}
     depends_on:
       postgres:
         condition: service_healthy

@@ -1,0 +1,184 @@
+# ==============================================================================
+# compose.production.yml — Stack de producción privada para Hato ERP en Oracle Cloud
+# Referencia: ADR-0033 / docs/spec/feature-0012-production-environment/spec.md sec. 4-5
+# ==============================================================================
+# Principios aplicados (ver spec.md sec. 4 "Host, red y datos"):
+# 1. ASPNETCORE_ENVIRONMENT: Production (nunca Staging ni Development).
+# 2. PostgreSQL SIN puerto publicado al host bajo ninguna circunstancia: solo
+#    alcanzable por la red interna `hato-production-internal`. No repetir aquí
+#    el patrón de "POSTGRES_PORT" de docker-compose.yml (desarrollo); eso solo
+#    existe para el equipo del desarrollador, nunca para producción.
+# 3. La API tampoco publica puerto: solo el proxy la alcanza por la red interna.
+#    El único binding de entrada al host es el proxy, en la IP de Tailscale
+#    (spec sec. 4, "único binding de entrada web en IP Tailscale concreta
+#    puerto 443"), nunca 0.0.0.0. TAILSCALE_IP se resuelve desde el entorno del
+#    operador (production.env), nunca hardcodeada aquí.
+# 4. Datos fuera de la raíz: volumen bajo /srv/hato-production/pgdata (patrón
+#    de compose.staging.yml con /srv/hato-staging/pgdata), fuera del contexto
+#    de build. El checkout vive en otro directorio del host; si los datos
+#    cayeran dentro del contexto, el build fallaría al no poder leer un
+#    directorio que crea PostgreSQL como root.
+# 5. Ninguna imagen usa `latest`: versión fija `postgres:16-alpine` como piso.
+#    TODO(spec sec. 4, línea 110-111): fijar por digest (`postgres@sha256:...`)
+#    en el proceso mensual de actualización de versiones/digests descrito en la
+#    spec; esta entrega deja el tag fijo como mínimo aceptable, no el digest.
+# 6. Roles PostgreSQL SEPARADOS (spec sec. 4, "Roles PostgreSQL separados"):
+#    - owner/migrador: único rol con DDL, usado por el servicio `migrate`.
+#      Es el rol que crea el superusuario inicial del contenedor `postgres`
+#      (POSTGRES_USER/POSTGRES_PASSWORD) porque el motor de PostgreSQL no deja
+#      crear la base de datos con otro rol al arrancar; en producción real este
+#      rol NO debe conservar privilegios de superusuario más allá del bootstrap
+#      inicial (ver TODO junto al servicio `postgres`).
+#    - runtime: DML mínimo, SIN superusuario y SIN DDL. Lo usa el servicio `api`.
+#    - backup: solo lectura, para el proceso de backup de feature-0013 (no
+#      forma parte de este compose porque el backup no corre como servicio
+#      permanente en este stack; queda documentado aquí para que el mecanismo
+#      de creación de roles sepa que debe provisionarlo).
+#    TODO: la CREACIÓN real de los roles `runtime` y `backup` (GRANT/REVOKE,
+#    ALTER ROLE ... NOSUPERUSER NOCREATEDB NOCREATEROLE, etc.) no existe hoy
+#    como mecanismo de la aplicación. Debe implementarse como una migración EF
+#    Core idempotente (p. ej. en el módulo que posea el esquema base) o como
+#    script de inicialización versionado en `ops/production/`, ejecutado por el
+#    servicio `migrate` o por un paso explícito de bootstrap — no lo asumas
+#    provisto por este compose. Hasta entonces, `api` seguirá usando el mismo
+#    rol que `migrate` si las variables runtime no se completan, lo cual NO
+#    cumple el requisito de mínimo privilegio y debe cerrarse antes de abrir
+#    producción a datos reales (spec sec. 4, D6).
+# 7. Secretos: todas las contraseñas y la clave de firma JWT llegan por
+#    variables de entorno con `:?` (falla si falta, como
+#    STAGING_POSTGRES_PASSWORD en compose.staging.yml). Se investigó soporte
+#    nativo de convención `*_FILE` en ASP.NET Core / Npgsql: ninguno de los dos
+#    la implementa de forma nativa (ASP.NET Core sí soporta el proveedor
+#    "Docker secrets" pero requiere que los archivos vivan bajo /run/secrets y
+#    no reescribe ConnectionStrings automáticamente). Por eso este compose usa
+#    variables de entorno normales con `:?`. IMPORTANTE: estas variables NO
+#    deben aparecer en logs ni compartirse vía `docker compose config` sin
+#    redactar; spec sec. 5 exige archivo 600 root-owned fuera del checkout
+#    (production.env) cargado con `--env-file`, nunca commiteado.
+# ==============================================================================
+
+# Nombre de proyecto fijo: igual que staging, evita que mover o renombrar el
+# checkout huérfane los contenedores existentes en vez de reemplazarlos.
+name: hato-production
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: hato-production-postgres
+    environment:
+      POSTGRES_DB: hato_production
+      # Rol de arranque del contenedor = rol owner/migrador (ver nota 6 arriba).
+      POSTGRES_USER: ${PRODUCTION_POSTGRES_OWNER_USER:?define PRODUCTION_POSTGRES_OWNER_USER}
+      POSTGRES_PASSWORD: ${PRODUCTION_POSTGRES_OWNER_PASSWORD:?define PRODUCTION_POSTGRES_OWNER_PASSWORD}
+    volumes:
+      - /srv/hato-production/pgdata:/var/lib/postgresql/data
+      # TODO: montar aquí el script de creación de roles runtime/backup una vez
+      # exista (p. ej. ./ops/production/init-roles.sql:/docker-entrypoint-initdb.d/10-roles.sql:ro).
+      # No se crea el archivo en esta entrega porque el contrato de qué roles y
+      # privilegios exactos otorgar pertenece a una migración/decisión de la
+      # aplicación, no a este compose (ver nota 6).
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${PRODUCTION_POSTGRES_OWNER_USER:?define PRODUCTION_POSTGRES_OWNER_USER} -d hato_production"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks:
+      - hato-production-internal
+    # SIN `ports:` — este servicio nunca debe publicar 5432 al host, ni en
+    # 127.0.0.1 ni en 0.0.0.0. La única vía de acceso es la red interna.
+    restart: unless-stopped
+
+  migrate:
+    container_name: hato-production-migrate
+    build:
+      context: .
+      dockerfile: src/Hato.Api/migrate.Dockerfile
+    environment:
+      # Rol owner/migrador: único con DDL. Ver bloqueador documentado en
+      # src/Hato.Api/migrate.Dockerfile y en el reporte de esta entrega sobre
+      # por qué CONNECTION_STRING (y no solo ConnectionStrings__HatoDb) sigue
+      # siendo necesaria hoy: el `--connection` del CMD la consume vía
+      # `ps aux` porque los IDesignTimeDbContextFactory de cada módulo (p.ej.
+      # src/Modules/Inventory/.../InventoryDbContextFactory.cs) solo leen
+      # `dotnet user-secrets`, no variables de entorno.
+      CONNECTION_STRING: "Host=postgres;Port=5432;Database=hato_production;Username=${PRODUCTION_POSTGRES_OWNER_USER:?define PRODUCTION_POSTGRES_OWNER_USER};Password=${PRODUCTION_POSTGRES_OWNER_PASSWORD:?define PRODUCTION_POSTGRES_OWNER_PASSWORD}"
+      ConnectionStrings__HatoDb: "Host=postgres;Port=5432;Database=hato_production;Username=${PRODUCTION_POSTGRES_OWNER_USER:?define PRODUCTION_POSTGRES_OWNER_USER};Password=${PRODUCTION_POSTGRES_OWNER_PASSWORD:?define PRODUCTION_POSTGRES_OWNER_PASSWORD}"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - hato-production-internal
+    restart: "no"
+
+  api:
+    container_name: hato-production-api
+    build:
+      context: .
+      dockerfile: src/Hato.Api/Dockerfile
+    environment:
+      ASPNETCORE_URLS: http://+:8080
+      ASPNETCORE_ENVIRONMENT: Production
+      # Rol runtime: DML mínimo, SIN superusuario, SIN DDL (ver nota 6 arriba
+      # y TODO de creación de roles). Hasta que el mecanismo de creación de
+      # roles exista, estas credenciales deben apuntar a un rol runtime creado
+      # manualmente por el operador siguiendo el contrato descrito arriba —
+      # nunca reutilizar PRODUCTION_POSTGRES_OWNER_* aquí.
+      ConnectionStrings__HatoDb: "Host=postgres;Port=5432;Database=hato_production;Username=${PRODUCTION_POSTGRES_RUNTIME_USER:?define PRODUCTION_POSTGRES_RUNTIME_USER};Password=${PRODUCTION_POSTGRES_RUNTIME_PASSWORD:?define PRODUCTION_POSTGRES_RUNTIME_PASSWORD}"
+      # JWT: producción exige signing key/issuer/audience propios; el proyecto
+      # ya falla al arrancar si falta Jwt:SigningKey (ver
+      # PeopleModule.cs, mínimo 32 caracteres) — spec sec. 4 pide exactamente
+      # ese comportamiento ("Production debe fallar si faltan secretos").
+      Jwt__Issuer: ${PRODUCTION_JWT_ISSUER:?define PRODUCTION_JWT_ISSUER}
+      Jwt__Audience: ${PRODUCTION_JWT_AUDIENCE:?define PRODUCTION_JWT_AUDIENCE}
+      Jwt__SigningKey: ${PRODUCTION_JWT_SIGNING_KEY:?define PRODUCTION_JWT_SIGNING_KEY}
+      # Trazabilidad del build (mismo patrón que compose.staging.yml): sin
+      # esto el endpoint /version responde commit "local". El despliegue los
+      # escribe en production.env desde el release etiquetado (spec sec. 6).
+      HATO_VERSION: ${HATO_VERSION:-}
+      HATO_COMMIT: ${HATO_COMMIT:-}
+      HATO_BUILD_DATE: ${HATO_BUILD_DATE:-}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    networks:
+      - hato-production-internal
+    # Sin red `proxy`/pública: la API solo es alcanzable desde `proxy` por
+    # `hato-production-internal`. A diferencia de compose.staging.yml, aquí no
+    # se une a ninguna red externa/compartida con otros stacks.
+    restart: unless-stopped
+
+  proxy:
+    container_name: hato-production-proxy
+    image: caddy:2-alpine
+    volumes:
+      # Caddyfile.production es responsabilidad de TLS.1 (tasks.md), fuera del
+      # alcance de esta entrega; se referencia por nombre para que el
+      # despliegue real lo monte cuando exista.
+      - ./ops/production/Caddyfile.production:/etc/caddy/Caddyfile:ro
+      - hato-production-caddy-data:/data
+      - hato-production-caddy-config:/config
+    ports:
+      # Único binding de entrada de todo el stack: la IP de Tailscale del host
+      # (nunca 0.0.0.0, nunca una IP real hardcodeada — placeholder de entorno
+      # resuelto desde production.env). Sin este binding explícito, Docker
+      # publicaría en todas las interfaces por defecto.
+      - "${TAILSCALE_IP:?define TAILSCALE_IP}:443:443"
+    depends_on:
+      api:
+        condition: service_started
+    networks:
+      - hato-production-internal
+    restart: unless-stopped
+
+volumes:
+  hato-production-caddy-data:
+  hato-production-caddy-config:
+
+networks:
+  # A diferencia de compose.staging.yml, no hay red `proxy` externa compartida:
+  # producción es un stack aislado en su propio host (Oracle Cloud), sin otros
+  # servicios con los que compartir red de proxy.
+  hato-production-internal:
+    driver: bridge

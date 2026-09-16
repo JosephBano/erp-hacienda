@@ -41,13 +41,20 @@ documento.
 | `spec/<x>/tasks.md` | ¿Qué falta exactamente? | Continuamente, durante la ejecución. |
 | `spec/<x>/test-e2e.md` | ¿Cómo compruebo a mano que funciona? | Cambia el flujo de usuario. |
 | `diagramas/*.mermaid` | ¿Cómo se ve esto? | Entra una migración o cambia un flujo. |
+| `tesis/README.md` | ¿Cómo se construye la tesis sobre este proyecto y dónde vive cada parte? | Cambia la separación público/privado o el flujo de trabajo de la tesis. |
+| `tesis/plantillas/*.md` | ¿Qué debe contener cada pieza de la tesis? | Mejora la plantilla — nunca con contenido real. |
 
-Son 20 entradas y cubren, sin resto, todo `.md` de la raíz del repositorio y de la raíz de
+Son 22 entradas y cubren, sin resto, todo `.md` de la raíz del repositorio y de la raíz de
 `docs/` (`AGENTS.md`, `README.md`; `ARCHITECTURE.md`, `docs/BACKLOG.md`, `BACKUPS.md`,
 `CONSTITUTION.md`, `DATA-MODEL.md`, `GLOSSARY.md`, `LEGAL-ECUADOR.md`, `ROADMAP.md`,
 `SOUL.md`), más las tres filas de patrón que cubren carpetas (`adr/`, `spec/<x>/`,
-`diagramas/`). Verificable con `ls *.md` y `ls docs/*.md`: todo lo que devuelven aparece
-arriba.
+`diagramas/`, `tesis/`). Verificable con `ls *.md` y `ls docs/*.md`: todo lo que devuelven
+aparece arriba.
+
+`docs/tesis/` es el único directorio de `docs/` con contenido deliberadamente ausente del
+repositorio: `docs/tesis/privado/` está en `.gitignore` y el job `tesis-privacy-guard` de CI
+falla si algo de ahí llega a rastrearse. La razón está en `docs/tesis/README.md` sec. 1 — este
+repositorio es MIT y la tesis contiene datos de personas y de una finca de un tercero.
 
 `PROTOCOLO-DE-TRABAJO.md` y `SEGURIDAD.md` están en la tabla porque esta misma rama los creó,
 en los commits `f2a714c` y `614cebd` respectivamente. No fueron aspiracionales: eran

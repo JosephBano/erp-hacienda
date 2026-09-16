@@ -45,3 +45,9 @@ img-no-save/
 # Workspace de ejecución de planes (ledger, briefs, informes, paquetes de revisión).
 # Scratch: el registro permanente es el historial de git.
 .superpowers/
+
+# Tesis: el contenido llenado es privado y nunca entra al repositorio.
+# Se ignora el directorio entero, no archivo por archivo: ignorar por patrón de
+# archivo es como se filtra lo que no debía salir. Las plantillas viven en
+# docs/tesis/plantillas/ y sí se versionan. Ver docs/tesis/README.md.
+docs/tesis/privado/

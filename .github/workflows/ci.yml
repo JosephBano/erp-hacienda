@@ -116,3 +116,24 @@ jobs:
 
       - name: Run unit tests
         run: npx ng test --watch=false
+
+  # Red de seguridad de privacidad, no de calidad: docs/tesis/privado/ contiene la
+  # tesis con nombres de personas, cartas firmadas y datos de finca de un cliente
+  # real, y este repositorio es MIT. .gitignore ya lo excluye; este job existe para
+  # el caso en que un `git add -f` o un `git add -A` distraído lo evada. GitGuardian
+  # atrapa credenciales, no datos personales.
+  tesis-privacy-guard:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: No thesis private files may be tracked
+        run: |
+          tracked="$(git ls-files 'docs/tesis/privado' 'docs/tesis/privado/**')"
+          if [ -n "$tracked" ]; then
+            echo "::error::Hay archivos privados de la tesis rastreados por git:"
+            echo "$tracked"
+            echo "Sácalos con 'git rm --cached <archivo>' antes de abrir el PR."
+            exit 1
+          fi
+          echo "OK: docs/tesis/privado/ no está rastreado."

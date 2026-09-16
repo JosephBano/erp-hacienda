@@ -301,6 +301,19 @@ El endpoint de bootstrap (`POST /users` sin usuarios previos) es una ventana del
 solo se abre mientras `people.users` está vacío, protegida por `BootstrapLock` (semáforo)
 contra doble-creación concurrente del primer admin.
 
+**`StagingAdminSeeder` (`src/Hato.Api/StagingAdminSeeder.cs`) usa esa misma ventana de
+bootstrap, automáticamente.** Al arrancar la API, si `ASPNETCORE_ENVIRONMENT=Staging` y no
+existe `admin@hato-staging.local`, lo crea con una contraseña fija documentada en el propio
+código (`Admin123!`, sobreescribible por `HATO_STAGING_SEED_ADMIN_PASSWORD`). Existe porque
+ADR-0031 declara que staging se reconstruye desde cero sin backups: sin esto, perder el
+volumen de datos dejaba sin forma de entrar salvo repetir el bootstrap a mano por API.
+
+**El guardado por entorno es la única razón por la que esto no es un backdoor.** Si algún día
+se ejecutara con `ASPNETCORE_ENVIRONMENT=Production`, crearía una cuenta admin con contraseña
+pública y conocida en un repositorio público (ADR-0030). Cualquier cambio a esta clase debe
+mantener el `if (!app.Environment.IsStaging()) return;` como primera línea, y revisarse con
+esa pregunta en mente.
+
 #### `PlausibilityRangesEndpoints.cs`
 
 | Método y ruta | Permiso exigido |

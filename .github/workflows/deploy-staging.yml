@@ -53,13 +53,17 @@ jobs:
           DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
           DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
           STAGING_POSTGRES_PASSWORD: ${{ secrets.STAGING_POSTGRES_PASSWORD }}
+          # Opcional: si no esta cargado en el entorno, queda vacio y
+          # StagingAdminSeeder simplemente no siembra nada (ver esa clase).
+          HATO_STAGING_SEED_ADMIN_PASSWORD: ${{ secrets.HATO_STAGING_SEED_ADMIN_PASSWORD }}
         run: |
           set -euo pipefail
 
           # spec.md sec. 6.2 regla 3 / ADR-0030 sec. 1.3.
           # El texto de este script remoto es constante y NO contiene ningun
-          # secreto: es lo unico que se ve en `ps` del servidor. La contrasena
-          # viaja por stdin del canal ssh y se lee con `read`.
+          # secreto: es lo unico que se ve en `ps` del servidor. Los dos
+          # secretos viajan por stdin del canal ssh, uno por linea, y se leen
+          # con `read`.
           # POSIX a proposito (sin `pipefail`): no depende del shell de login
           # del usuario de despliegue.
           REMOTE_SCRIPT=$(cat <<'REMOTE'
@@ -74,6 +78,10 @@ jobs:
             echo "ERROR: no llego la contrasena por stdin" >&2
             exit 1
           }
+          # Segunda linea = contrasena del admin de staging. Esta SI puede
+          # venir vacia (el secreto es opcional): en ese caso el seed no corre,
+          # no es un error del despliegue.
+          IFS= read -r HATO_STAGING_SEED_ADMIN_PASSWORD || true
           # Nada mas debe consumir stdin a partir de aqui.
           exec < /dev/null
 
@@ -98,6 +106,7 @@ jobs:
           umask 077
           {
             printf '%s\n' "STAGING_POSTGRES_PASSWORD=${STAGING_POSTGRES_PASSWORD}"
+            printf '%s\n' "HATO_STAGING_SEED_ADMIN_PASSWORD=${HATO_STAGING_SEED_ADMIN_PASSWORD}"
             printf 'HATO_VERSION=%s\n' "$(cat VERSION)"
             printf 'HATO_COMMIT=%s\n' "$(git rev-parse --short HEAD)"
             printf 'HATO_BUILD_DATE=%s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
@@ -107,7 +116,10 @@ jobs:
           REMOTE
           )
 
-          printf '%s\n' "$STAGING_POSTGRES_PASSWORD" | ssh \
+          {
+            printf '%s\n' "$STAGING_POSTGRES_PASSWORD"
+            printf '%s\n' "$HATO_STAGING_SEED_ADMIN_PASSWORD"
+          } | ssh \
             -o StrictHostKeyChecking=yes \
             -o BatchMode=yes \
             "${DEPLOY_USER}@${DEPLOY_HOST}" "$REMOTE_SCRIPT"

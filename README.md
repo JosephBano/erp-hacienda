@@ -183,17 +183,20 @@ docker exec hato-postgres psql -U hato -d postgres -tAc \
 
 ## Entornos y despliegue continuo
 
-El proyecto gestiona dos entornos de promoción (ADR-0029, ADR-0030, ADR-0031):
+El proyecto gestiona dos entornos de promoción (ADR-0029, ADR-0030, ADR-0031, ADR-0033):
 
 | Entorno | Rama que despliega | Destino | Gate / Aprobación |
 |---|---|---|---|
-| **`staging`** | `develop` | `joemanserver` (sobre red privada Tailscale) | CI verde (checks obligatorios) |
-| **`production`** | `main` | Producción física | CI verde + **revisor obligatorio** del entorno |
+| **`staging`** | `develop` | `joemanserver` (servidor doméstico, sobre red privada Tailscale) | CI verde (checks obligatorios) |
+| **`production`** | `main` (releases etiquetadas) | Oracle Cloud, cuenta bajo control del propietario, acceso privado exclusivo por Tailscale | CI verde del SHA exacto + **revisor obligatorio** del entorno |
 
 - **Despliegue a Staging:** Todo push a `develop` dispara el workflow `.github/workflows/deploy-staging.yml`. El runner de GitHub Actions se une efímeramente al tailnet, actualiza el código en `/srv/hato-staging` vía SSH y levanta la pila con `compose.staging.yml`.
 - **Aislamiento:** El entorno de staging no expone ningún puerto al host ni al router doméstico. Caddy actúa como reverse proxy HTTPS exclusivo dentro de la malla Tailscale en el puerto 8448.
 - **Verificación automática (Smoke Test):** El despliegue finaliza en verde únicamente tras la respuesta exitosa del smoke test (`scripts/smoke-api-container.sh`) contra `/health` y `/version`.
 - **Configuración versionada:** Las reglas de protección y entornos se declaran en `.github/branch-protection.expected.json` y se aplican mediante `scripts/apply-repo-config.sh`. El job de CI `branch-protection-drift` delata cualquier deriva frente a GitHub API.
+- **Despliegue a Producción:** aprobado en diseño (ADR-0033) pero pendiente de ejecución. El destino es Oracle Cloud, sin dominio comprado ni HA, alcanzable solo dentro del tailnet (incluidos los teléfonos de campo). El detalle completo — custodia de credenciales, usuario de despliegue restringido, release y recuperación — vive en
+  [`docs/spec/feature-0012-production-environment/spec.md`](docs/spec/feature-0012-production-environment/spec.md),
+  la especificación vigente para este entorno.
 
 ## Cómo se contribuye
 

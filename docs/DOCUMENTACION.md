@@ -36,6 +36,7 @@ documento.
 | `BACKUPS.md` | ¿Cómo se respalda y se restaura? | Cambia la estrategia. |
 | `POLITICAS-OPERACION.md` | ¿Qué políticas de alojamiento, credenciales y releases guían la implementación? | Se decide o revisa una política operativa. |
 | `PREFLIGHT-PRODUCCION.md` | ¿Cómo inventariar apps/datos y realizar altas asistidas antes del corte? | Cambia la preparación o se verifica un nuevo origen. |
+| `PRODUCCION.md` | ¿Cómo se despliega, corta y recupera producción? | Cambia el procedimiento de release, corte o recuperación. |
 | `GUIA-CAMPO-ANDROID.md` | ¿Cómo accede, instala y actualiza HATO un empleado? | Cambia el flujo del teléfono o la distribución. |
 | `METRICAS-ENTREGA.md` | ¿Cuál es la velocidad y estabilidad de la entrega (DORA) y su línea base histórica? | Se recalculan métricas de entrega o se cierra una fase. |
 | `docs/BACKLOG.md` | ¿Qué sabemos que falta y decidimos no hacer ahora? | Continuamente. |

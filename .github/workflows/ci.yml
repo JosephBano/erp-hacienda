@@ -52,8 +52,21 @@ jobs:
           # 3. Validate Commits in PR
           BASE_REF="${{ github.base_ref }}"
           if [ -n "$BASE_REF" ]; then
-            echo "Validando commits contra origin/$BASE_REF..."
-            COMMITS=$(git log "origin/$BASE_REF..HEAD" --format="%s" || true)
+            COMMIT_RANGE="origin/$BASE_REF..HEAD"
+            LOG_OPTIONS=()
+
+            # A release towards main can carry develop's complete, already-accepted
+            # history plus a merge parent from main. Validate only the release's own
+            # first-parent commits; validating main..HEAD would retroactively reject
+            # historic develop commits that never belonged to this release PR.
+            if [[ "$BASE_REF" == "main" && "$BRANCH_NAME" == release/* ]]; then
+              RELEASE_BASE=$(git merge-base origin/develop HEAD)
+              COMMIT_RANGE="$RELEASE_BASE..HEAD"
+              LOG_OPTIONS=(--first-parent)
+            fi
+
+            echo "Validando commits en $COMMIT_RANGE..."
+            COMMITS=$(git log "${LOG_OPTIONS[@]}" "$COMMIT_RANGE" --format="%s" || true)
             while IFS= read -r msg; do
               [ -z "$msg" ] && continue
               if echo "$msg" | grep -Eq "^Merge "; then
@@ -295,4 +308,3 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_REPOSITORY: ${{ github.repository }}
         run: ./scripts/check-config-drift.sh
-

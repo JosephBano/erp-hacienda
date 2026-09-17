@@ -201,7 +201,29 @@ El script `scripts/restore.sh`:
 - Valida conteos de registros esenciales, historial de eventos inmutables e integridad referencial.
 - Emite código de salida no-cero ante cualquier tabla fallida o esquema ausente.
 
-### 5.4 Registro del Simulacro
+### 5.4 Registro y Reporte del Simulacro
 - Documentar: ID del backup, tamaño, tiempo de descarga, tiempo de restauración, tiempo de verificación de API y RTO total obtenido.
-- Verificar que el RTO total sea inferior a **4 horas**.
-- Guardar el reporte en el archivo de auditoría del simulacro sin exponer datos personales ni contraseñas.
+- Comprobar que el RTO total observado no supere las **4 horas** de objetivo (Constitución Art. 2). Si se supera, se requiere ajuste de infraestructura o recalibración formal de la política.
+- Guardar el reporte en el inventario privado de operaciones sin exponer datos personales ni contraseñas.
+
+### 5.5 Procedimiento de Reautorización OAuth de Google Drive
+Si el token de Google Drive caduca o se revoca:
+1. Desde una máquina con entorno gráfico y navegador confiable bajo control del propietario:
+   ```bash
+   rclone authorize "drive" "<CLIENT_ID>" "<CLIENT_SECRET>"
+   ```
+2. Completar el inicio de sesión y consentimiento con la cuenta de backups.
+3. Copiar el bloque JSON `{"access_token": ...}` recibido.
+4. En el servidor, actualizar `/etc/hato-backup/rclone.conf` bajo `[hato-drive]` con el nuevo token.
+5. Probar conectividad sin tocar datos de producción:
+   ```bash
+   rclone --config /etc/hato-backup/rclone.conf lsd hato-drive:
+   ```
+
+### 5.6 Comprobación Automatizada del Simulacro
+El repositorio cuenta con una suite automatizada de simulacro de recuperación ante desastres:
+```bash
+tests/ops/backups/test-disaster-recovery-rehearsal.sh
+```
+Dicha suite genera un dump completo con esquemas modulares reales, descarga a un host limpio aislado, valida el checksum y el manifiesto, restaura mediante `scripts/restore.sh`, mide el RTO exacto, y valida la integridad de los 6 esquemas (`livestock`, `production`, `inventory`, `people`, `breeding`, `tasks`).
+

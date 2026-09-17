@@ -1,0 +1,21 @@
+# Archivo de configuración de ejemplo para rclone (Art. 2 / ADR-0034 / Feature-0013)
+# Instalar en el servidor como: /etc/hato-backup/rclone.conf
+# Permisos requeridos: 600, propietario hato-backup:hato-backup
+#
+# ADVERTENCIA: NUNCA almacene contraseñas en texto claro ni suba este archivo con credenciales a Git.
+
+[hato-drive]
+type = drive
+client_id = EJEMPLO_CLIENT_ID.apps.googleusercontent.com
+client_secret = EJEMPLO_CLIENT_SECRET
+scope = drive.file
+root_folder_id = EJEMPLO_ROOT_FOLDER_ID_DE_CARPETA_DEDICADA
+token = {"access_token":"EJEMPLO_TOKEN","token_type":"Bearer","refresh_token":"EJEMPLO_REFRESH_TOKEN","expiry":"2026-09-17T12:00:00Z"}
+
+[hato-crypt]
+type = crypt
+remote = hato-drive:
+filename_encryption = standard
+directory_name_encryption = true
+password = <GENERAR_CON_RCLONE_OBSCURE>
+password2 = <GENERAR_CON_RCLONE_OBSCURE>

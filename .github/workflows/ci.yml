@@ -60,8 +60,12 @@ jobs:
             # first-parent commits; validating main..HEAD would retroactively reject
             # historic develop commits that never belonged to this release PR.
             if [[ "$BASE_REF" == "main" && "$BRANCH_NAME" == release/* ]]; then
-              RELEASE_BASE=$(git merge-base origin/develop HEAD)
-              COMMIT_RANGE="$RELEASE_BASE..HEAD"
+              # Actions checks out GitHub's synthetic test merge for a PR. Use the
+              # real head SHA so that synthetic merge's main parent cannot enter the
+              # release-only range.
+              PR_HEAD_SHA="${{ github.event.pull_request.head.sha }}"
+              RELEASE_BASE=$(git merge-base origin/develop "$PR_HEAD_SHA")
+              COMMIT_RANGE="$RELEASE_BASE..$PR_HEAD_SHA"
               LOG_OPTIONS=(--first-parent)
             fi
 

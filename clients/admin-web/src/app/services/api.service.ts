@@ -1,6 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { map } from 'rxjs/operators';
 
 export interface Animal {
   id: string;
@@ -8,6 +9,13 @@ export interface Animal {
   officialTag?: string;
   name?: string;
   birthDate?: string;
+  /**
+   * Initial weight (kg) recorded at birth. Null for animals whose birth was not
+   * weighed or were registered before 3.5a.4 (docs/spec/plan-0002-fase-3-5/spec-3.5a.md sec.3.5a.4
+   * task 3). Surface only on detail views — not on list rows — to keep the list
+   * lean.
+   */
+  birthWeightKg?: number | null;
   gender: string;
   speciesName?: string;
   breedName?: string;
@@ -80,6 +88,91 @@ export interface InventoryItemDto {
   minStock: number;
   description?: string | null;
   totalStock: number;
+}
+
+export interface InventoryItemDetailDto {
+  id: string;
+  name: string;
+  category: string;
+  unit: string;
+  minStock: number;
+  description?: string | null;
+  feedStageId?: string | null;
+}
+
+export interface InventoryBatchDto {
+  id: string;
+  batchNumber: string;
+  quantity: number;
+  costPerUnit: number;
+  expirationDate?: string | null;
+  receivedAt: string;
+  supplierLabel?: string | null;
+  invoiceReference?: string | null;
+  notes?: string | null;
+  recordedByLabel?: string | null;
+}
+
+export interface InventoryConsumptionListItem {
+  id: string;
+  groupId: string;
+  groupName: string;
+  inventoryItemId: string;
+  inventoryItemName: string;
+  quantityRecorded: number;
+  unitRecorded: string;
+  quantityInBaseUnit: number;
+  appliedFactor: number;
+  batchId?: string | null;
+  consumedAt: string;
+  recordedByLabel: string;
+  notes?: string | null;
+}
+
+export type InventoryBatchSummaryDto = InventoryBatchDto;
+
+export interface CreateInventoryBatchRequest {
+  BatchNumber: string;
+  Quantity: number;
+  CostPerUnit: number;
+  ExpirationDate: string;
+}
+
+// ADR-0026 Decisión 3: DTO del endpoint canónico POST /receptions. Reemplaza a
+// `CreateInventoryBatchRequest` para entradas de stock normales — `AddBatch` queda
+// solo como ajuste técnico (ver Decisión 6 y el banner amarillo del componente).
+export interface RecordInventoryReceptionRequest {
+  BatchNumber: string;
+  Quantity: number;
+  Unit: string;
+  CostPerUnit: number;
+  ExpirationDate?: string;
+  ReceivedAt: string;
+  SupplierLabel?: string;
+  InvoiceReference?: string;
+  Notes?: string;
+  RecordedById?: string;
+  RecordedByLabel?: string;
+}
+
+export interface InventoryUnitConversionDto {
+  id: string;
+  fromUnit: string;
+  toUnit: string;
+  factor: number;
+}
+
+export interface RegisterUnitConversionRequest {
+  FromUnit: string;
+  ToUnit: string;
+  Factor: number;
+}
+
+export interface FeedStageDto {
+  id: string;
+  key: string;
+  labelEs: string;
+  isActive: boolean;
 }
 
 export interface FarmModuleDto {
@@ -190,6 +283,31 @@ export interface BirthingDto {
   createdAt: string;
   weanedAt?: string;
   weanedCount?: number;
+}
+
+export interface BirthingListOffspring {
+  animalId: string;
+  farmTag?: string | null;
+  sex: string;
+  birthWeightKg?: number | null;
+}
+
+export interface BirthingListItem {
+  id: string;
+  damId: string;
+  damFarmTag?: string | null;
+  birthDate: string;
+  difficulty: string;
+  totalBorn: number;
+  bornAlive: number;
+  bornDead: number;
+  mummified: number;
+  litterWeight?: number | null;
+  notes?: string | null;
+  nursingCohortId?: string | null;
+  weanedAt?: string | null;
+  weanedCount?: number | null;
+  offspring: BirthingListOffspring[];
 }
 
 export interface AncestorDto {
@@ -309,7 +427,7 @@ export interface SyncConflictDto {
 export interface GroupMembershipDto {
   id: string;
   animalId: string;
-  joinedAt: string;     // ISO date (DateOnly)
+  joinedAt: string; // ISO date (DateOnly)
   leftAt?: string | null;
   isActive: boolean;
 }
@@ -319,10 +437,10 @@ export interface AnimalGroupDto {
   name: string;
   description?: string | null;
   speciesId?: string | null;
-  speciesName?: string | null;       // PR1 server-side
+  speciesName?: string | null; // PR1 server-side
   isActive: boolean;
   trackingMode: 'Individual' | 'Headcount';
-  liveHeadCount: number;             // PR1 server-side
+  liveHeadCount: number; // PR1 server-side
   memberships: GroupMembershipDto[];
 }
 
@@ -353,7 +471,7 @@ export interface ChangeTrackingModeRequest {
 }
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class ApiService {
   private http = inject(HttpClient);
@@ -390,7 +508,9 @@ export class ApiService {
   getAnimalCategories(speciesId?: string): Observable<AnimalCategoryDto[]> {
     let httpParams = new HttpParams();
     if (speciesId) httpParams = httpParams.set('speciesId', speciesId);
-    return this.http.get<AnimalCategoryDto[]>(`${this.baseUrl}/animal-categories`, { params: httpParams });
+    return this.http.get<AnimalCategoryDto[]>(`${this.baseUrl}/animal-categories`, {
+      params: httpParams,
+    });
   }
 
   createAnimalCategory(data: { speciesId: string; name: string }): Observable<{ id: string }> {
@@ -403,7 +523,7 @@ export class ApiService {
 
   assignAnimalIdentifier(
     animalId: string,
-    data: { type: string; value: string; validFrom: string }
+    data: { type: string; value: string; validFrom: string },
   ): Observable<{ id: string }> {
     return this.http.post<{ id: string }>(`${this.baseUrl}/animals/${animalId}/identifiers`, data);
   }
@@ -412,13 +532,17 @@ export class ApiService {
   getSyncConflicts(entityType?: string): Observable<SyncConflictDto[]> {
     let httpParams = new HttpParams();
     if (entityType) httpParams = httpParams.set('entityType', entityType);
-    return this.http.get<SyncConflictDto[]>(`${this.baseUrl}/sync/conflicts`, { params: httpParams });
+    return this.http.get<SyncConflictDto[]>(`${this.baseUrl}/sync/conflicts`, {
+      params: httpParams,
+    });
   }
 
   getSyncOperations(status?: string): Observable<SyncOperationDto[]> {
     let httpParams = new HttpParams();
     if (status) httpParams = httpParams.set('status', status);
-    return this.http.get<SyncOperationDto[]>(`${this.baseUrl}/sync/operations`, { params: httpParams });
+    return this.http.get<SyncOperationDto[]>(`${this.baseUrl}/sync/operations`, {
+      params: httpParams,
+    });
   }
 
   getAnimals(): Observable<Animal[]> {
@@ -440,14 +564,16 @@ export class ApiService {
       recordedBy: data.recordedBy,
       payloadJson: JSON.stringify(data.details),
       milkWithdrawalDays: data.milkWithdrawalDays,
-      meatWithdrawalDays: data.meatWithdrawalDays
+      meatWithdrawalDays: data.meatWithdrawalDays,
     });
   }
 
   getMilkingSessions(date?: string): Observable<MilkingSessionDto[]> {
     let httpParams = new HttpParams();
     if (date) httpParams = httpParams.set('date', date);
-    return this.http.get<MilkingSessionDto[]>(`${this.baseUrl}/milking-sessions`, { params: httpParams });
+    return this.http.get<MilkingSessionDto[]>(`${this.baseUrl}/milking-sessions`, {
+      params: httpParams,
+    });
   }
 
   recordMilkingSession(data: MilkingSessionRequest): Observable<{ id: string }> {
@@ -459,7 +585,7 @@ export class ApiService {
       shift: data.sessionType,
       recordedBy: data.recordedBy,
       totalLiters,
-      individualYields
+      individualYields,
     });
   }
 
@@ -476,11 +602,19 @@ export class ApiService {
     return this.http.get<PermissionDto[]>(`${this.baseUrl}/people/permissions`);
   }
 
-  createRole(data: { code: string; name: string; description: string; permissionIds?: string[] }): Observable<{ id: string }> {
+  createRole(data: {
+    code: string;
+    name: string;
+    description: string;
+    permissionIds?: string[];
+  }): Observable<{ id: string }> {
     return this.http.post<{ id: string }>(`${this.baseUrl}/people/roles`, data);
   }
 
-  updateRole(roleId: string, data: { roleId: string; name: string; description: string; permissionIds?: string[] }): Observable<void> {
+  updateRole(
+    roleId: string,
+    data: { roleId: string; name: string; description: string; permissionIds?: string[] },
+  ): Observable<void> {
     return this.http.put<void>(`${this.baseUrl}/people/roles/${roleId}`, data);
   }
 
@@ -488,7 +622,13 @@ export class ApiService {
     return this.http.post<void>(`${this.baseUrl}/people/users/${userId}/roles/${roleId}`, {});
   }
 
-  getAuditLogs(params?: { userId?: string; from?: string; to?: string; page?: number; pageSize?: number }): Observable<PagedAuditLogsDto> {
+  getAuditLogs(params?: {
+    userId?: string;
+    from?: string;
+    to?: string;
+    page?: number;
+    pageSize?: number;
+  }): Observable<PagedAuditLogsDto> {
     let httpParams = new HttpParams();
     if (params?.userId) httpParams = httpParams.set('userId', params.userId);
     if (params?.from) httpParams = httpParams.set('from', params.from);
@@ -524,7 +664,16 @@ export class ApiService {
     return this.http.post<BirthingDto>(`${this.baseUrl}/breeding/birthings`, data);
   }
 
-  recordWeaning(data: { birthingId: string; weaningDate: string; weanedCount: number; notes?: string }): Observable<BirthingDto> {
+  getBirthings(): Observable<BirthingListItem[]> {
+    return this.http.get<BirthingListItem[]>(`${this.baseUrl}/breeding/birthings`);
+  }
+
+  recordWeaning(data: {
+    birthingId: string;
+    weaningDate: string;
+    weanedCount: number;
+    notes?: string;
+  }): Observable<BirthingDto> {
     return this.http.post<BirthingDto>(`${this.baseUrl}/breeding/weanings`, data);
   }
 
@@ -568,7 +717,9 @@ export class ApiService {
   getAdministrationRoutes(includeInactive = false): Observable<AdministrationRouteDto[]> {
     let params = new HttpParams();
     if (includeInactive) params = params.set('includeInactive', 'true');
-    return this.http.get<AdministrationRouteDto[]>(`${this.baseUrl}/administration-routes`, { params });
+    return this.http.get<AdministrationRouteDto[]>(`${this.baseUrl}/administration-routes`, {
+      params,
+    });
   }
 
   createAdministrationRoute(data: { key: string; labelEs: string }): Observable<{ id: string }> {
@@ -615,6 +766,92 @@ export class ApiService {
     return this.http.get<InventoryItemDto[]>(`${this.baseUrl}/inventory/items`, { params });
   }
 
+  getInventoryItemById(itemId: string): Observable<InventoryItemDetailDto> {
+    return this.http.get<InventoryItemDetailDto>(`${this.baseUrl}/inventory/items/${itemId}`);
+  }
+
+  getInventoryBatches(itemId: string): Observable<InventoryBatchSummaryDto[]> {
+    return this.http.get<InventoryBatchSummaryDto[]>(
+      `${this.baseUrl}/inventory/items/${itemId}/batches`,
+    );
+  }
+
+  createInventoryBatch(
+    itemId: string,
+    body: CreateInventoryBatchRequest,
+  ): Observable<{ id: string }> {
+    return this.http.post<{ id: string }>(
+      `${this.baseUrl}/inventory/items/${itemId}/batches`,
+      body,
+    );
+  }
+
+  // ADR-0026 Decisión 5: ruta canónica para registrar entradas de stock con
+  // trazabilidad de proveedor y factura. Reemplaza `createInventoryBatch` en la UI
+  // normal; el legacy `POST /batches` queda solo para ajustes manuales y emite
+  // warning en el log del backend.
+  recordInventoryReception(
+    itemId: string,
+    body: RecordInventoryReceptionRequest,
+  ): Observable<string> {
+    return this.http
+      .post<{ id: string }>(`${this.baseUrl}/inventory/items/${itemId}/receptions`, body)
+      .pipe(map((r) => r.id));
+  }
+
+  getInventoryUnitConversions(itemId: string): Observable<InventoryUnitConversionDto[]> {
+    return this.http.get<InventoryUnitConversionDto[]>(
+      `${this.baseUrl}/inventory/items/${itemId}/unit-conversions`,
+    );
+  }
+
+  /**
+   * Read-side of feature/inventory-consumption-history: the panel's
+   * "Consumos registrados" section under the item detail. Most-recent-first.
+   * 200 + [] when the item exists but has no consumptions yet;
+   * 404 when the item id is unknown.
+   */
+  getInventoryConsumptions(itemId: string): Observable<InventoryConsumptionListItem[]> {
+    return this.http.get<InventoryConsumptionListItem[]>(
+      `${this.baseUrl}/inventory/items/${itemId}/consumptions`,
+    );
+  }
+
+  registerInventoryUnitConversion(
+    itemId: string,
+    body: RegisterUnitConversionRequest,
+  ): Observable<{ id: string }> {
+    return this.http.post<{ id: string }>(
+      `${this.baseUrl}/inventory/items/${itemId}/unit-conversions`,
+      body,
+    );
+  }
+
+  setInventoryItemFeedStage(
+    itemId: string,
+    body: { feedStageId: string | null },
+  ): Observable<void> {
+    return this.http.post<void>(`${this.baseUrl}/inventory/items/${itemId}/feed-stage`, body);
+  }
+
+  getFeedStages(includeInactive = false): Observable<FeedStageDto[]> {
+    let params = new HttpParams();
+    if (includeInactive) params = params.set('includeInactive', 'true');
+    return this.http.get<FeedStageDto[]>(`${this.baseUrl}/inventory/feed-stages`, { params });
+  }
+
+  createFeedStage(body: { key: string; labelEs: string }): Observable<{ id: string }> {
+    return this.http.post<{ id: string }>(`${this.baseUrl}/inventory/feed-stages`, body);
+  }
+
+  deactivateFeedStage(id: string): Observable<void> {
+    return this.http.post<void>(`${this.baseUrl}/inventory/feed-stages/${id}/deactivate`, {});
+  }
+
+  activateFeedStage(id: string): Observable<void> {
+    return this.http.post<void>(`${this.baseUrl}/inventory/feed-stages/${id}/activate`, {});
+  }
+
   createInventoryItem(data: {
     name: string;
     category: string;
@@ -629,7 +866,11 @@ export class ApiService {
     return this.http.get<FarmModuleDto[]>(`${this.baseUrl}/farm-modules`);
   }
 
-  setFarmModuleEnabled(key: string, enabled: boolean, disabledReason?: string): Observable<FarmModuleDto> {
+  setFarmModuleEnabled(
+    key: string,
+    enabled: boolean,
+    disabledReason?: string,
+  ): Observable<FarmModuleDto> {
     return this.http.patch<FarmModuleDto>(`${this.baseUrl}/farm-modules/${key}`, {
       enabled,
       disabledReason,
@@ -640,10 +881,13 @@ export class ApiService {
     return this.http.get<SpeciesLactationDto>(`${this.baseUrl}/species/${speciesId}/lactation`);
   }
 
-  updateSpeciesLactation(speciesId: string, data: {
-    daysOfLactation?: number | null;
-    cohortWindowDays?: number | null;
-  }): Observable<void> {
+  updateSpeciesLactation(
+    speciesId: string,
+    data: {
+      daysOfLactation?: number | null;
+      cohortWindowDays?: number | null;
+    },
+  ): Observable<void> {
     return this.http.patch<void>(`${this.baseUrl}/species/${speciesId}/lactation`, data);
   }
 
@@ -683,7 +927,12 @@ export class ApiService {
     return this.http.post<void>(`${this.baseUrl}/animal-groups/${id}/activate`, {});
   }
 
-  changeAnimalGroupTrackingMode(id: string, trackingMode: 'Individual' | 'Headcount'): Observable<void> {
-    return this.http.patch<void>(`${this.baseUrl}/animal-groups/${id}/tracking-mode`, { trackingMode });
+  changeAnimalGroupTrackingMode(
+    id: string,
+    trackingMode: 'Individual' | 'Headcount',
+  ): Observable<void> {
+    return this.http.patch<void>(`${this.baseUrl}/animal-groups/${id}/tracking-mode`, {
+      trackingMode,
+    });
   }
 }

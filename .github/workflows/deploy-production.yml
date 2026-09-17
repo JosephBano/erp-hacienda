@@ -1,0 +1,400 @@
+name: Deploy to Production
+
+# spec.md sec. 6 "Release, migraciones y recuperación" / D4 / D5 / D7.
+#
+# Secrets esperados (ninguno se inventa aquí; todos deben existir en el
+# GitHub Environment `production` antes de que este workflow pueda correr):
+#   - DEPLOY_SSH_KEY               Clave privada SSH dedicada de CI (hato-deploy).
+#   - DEPLOY_HOST                  Nombre MagicDNS de Tailscale del host de producción.
+#   - DEPLOY_USER                  Siempre "hato-deploy" (nunca root, spec sec. 3).
+#   - PRODUCTION_SSH_HOST_FINGERPRINT
+#                                   Huella SHA256 fijada del host (formato de
+#                                   `ssh-keygen -lf`, ej. "SHA256:abc..."), registrada
+#                                   por el administrador durante el bootstrap de la
+#                                   Entrega 2 (ops/production/bootstrap.md) por un canal
+#                                   independiente de este workflow. `ssh-keyscan` por sí
+#                                   solo NO autentica al servidor (spec línea 142); este
+#                                   workflow lo usa solo para *capturar* la clave que
+#                                   ofrece el host en este intento de conexión, y la
+#                                   rechaza si su huella no coincide con este secret.
+#   - TS_OAUTH_CLIENT_ID           Cliente OAuth de Tailscale para el nodo efímero de CI.
+#   - TS_OAUTH_SECRET               Secreto OAuth de Tailscale para el nodo efímero de CI.
+#   - PRODUCTION_BASE_URL          URL base HTTPS de producción vía Tailscale
+#                                   (ej. https://<host>.<tailnet>.ts.net:443).
+#
+# Disparador: preferencia inicial por workflow_dispatch (spec línea 141: "preferencia
+# inicial por workflow_dispatch sobre main con tag validado"). El input `ref` es la
+# referencia (tag o SHA) a desplegar; este workflow exige que resuelva a un commit que
+# ya está en main. Si en el futuro se cambia el disparador a "push de tag", hay que
+# actualizar EXPLÍCITAMENTE `.github/branch-protection.expected.json` (entorno
+# `production`, hoy solo declara `allowed_branches: ["main"]`, pensado para el patrón
+# de branch de un `workflow_dispatch` sobre main) y probar esa política antes de
+# confiar en ella — no se cambia en este workflow, solo se deja esta advertencia.
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: >-
+          Tag o SHA a desplegar. Debe resolver a un commit presente en el historial
+          de main; cualquier otra referencia se rechaza explícitamente.
+        required: true
+        type: string
+
+concurrency:
+  # D4: "despliegue serializado". Mismo patrón que deploy-staging.yml: nunca dos
+  # despliegues de producción corriendo a la vez, y nunca se cancela uno a medias
+  # (cancelar un despliegue en curso a producción es más peligroso que esperar).
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  # ---------------------------------------------------------------------------------
+  # Job 1: resolver SHA, exigir CI verde para ESE SHA exacto, construir y publicar
+  # artefactos. Corre en el runner alojado de GitHub — NUNCA en la VPS de producción
+  # (spec D5: prohíbe compilar en la VPS o instalar runner self-hosted ahí). Este job
+  # NO tiene `environment: production`, así que no requiere aprobación de revisor
+  # todavía: el gate de aprobación se reserva para el job de despliegue, que es el
+  # único que toca producción (spec línea 136: "construye artefactos y solicita
+  # aprobación antes de acceder a production").
+  # ---------------------------------------------------------------------------------
+  resolve-and-build:
+    name: Resolve SHA, verify CI, build artifacts
+    runs-on: ubuntu-latest
+    # Mismo techo que deploy-staging.yml (30 min), por una razón distinta: aquí el
+    # runner es un ubuntu-latest amd64 normal, pero construye DOS imágenes para
+    # linux/arm64 bajo emulación QEMU (setup-qemu-action), que es sensiblemente más
+    # lento que una compilación nativa. 30 min da margen holgado para ese build
+    # cruzado sin dejar un job colgado ocupando la cola de `deploy-production`
+    # indefinidamente (recuerda que `concurrency.group: deploy-production` serializa
+    # todo despliegue posterior detrás de este).
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: write
+      actions: read
+    outputs:
+      sha: ${{ steps.resolve.outputs.sha }}
+      release: ${{ steps.resolve.outputs.release }}
+      digest_api: ${{ steps.push-api.outputs.digest }}
+      digest_migrate: ${{ steps.push-migrate.outputs.digest }}
+      image_api: ${{ steps.meta.outputs.image_api }}
+      image_migrate: ${{ steps.meta.outputs.image_migrate }}
+    steps:
+      - name: Checkout requested ref
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
+          fetch-depth: 0
+
+      - name: Resolve exact SHA and verify it is reachable from main
+        id: resolve
+        env:
+          # Nunca interpolado directamente en el texto del script: workflow_dispatch
+          # ya exige permiso de escritura para dispararlo, pero se trata igual como
+          # entrada no confiable (puede contener metacaracteres de shell) siguiendo
+          # la misma disciplina que el resto de este workflow para secretos/inputs.
+          REQUESTED_REF: ${{ inputs.ref }}
+        run: |
+          set -euo pipefail
+          sha="$(git rev-parse HEAD)"
+
+          # main puede no estar ya en el checkout local con fetch-depth 0 sobre un
+          # ref distinto; se trae explícitamente para el chequeo de ancestro.
+          git fetch origin main:refs/remotes/origin/main
+
+          # D4/spec línea 46-47: "Un push a main por sí solo no publica producción",
+          # pero SÍ se exige que la referencia solicitada provenga de main. Cualquier
+          # tag o SHA que no sea ancestro de main (p. ej. de una rama de feature) se
+          # rechaza aquí, antes de construir nada.
+          if ! git merge-base --is-ancestor "$sha" origin/main; then
+            echo "::error::La referencia '${REQUESTED_REF}' (resuelta a $sha) no es un ancestro de main. Solo se despliegan releases derivados de main." >&2
+            exit 1
+          fi
+
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+          echo "release=${REQUESTED_REF}" >> "$GITHUB_OUTPUT"
+          echo "Desplegando SHA exacto: $sha (referencia solicitada: ${REQUESTED_REF})"
+
+      - name: Require green CI for this exact SHA
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          sha="${{ steps.resolve.outputs.sha }}"
+
+          # Se consulta expresamente el workflow ci.yml (no "cualquier check verde
+          # de cualquier workflow"), y se exige conclusion=="success" para una
+          # ejecución cuyo head_sha sea EXACTAMENTE este SHA. Si la API no responde,
+          # o no hay ninguna ejecución exitosa para este SHA exacto, el job falla
+          # explícitamente — nunca se asume éxito (spec: "si no puedes verificarlo
+          # con certeza, el job debe fallar explícitamente").
+          response="$(gh api "repos/${{ github.repository }}/actions/workflows/ci.yml/runs?head_sha=${sha}&status=completed" --jq '.workflow_runs')" \
+            || { echo "::error::No se pudo consultar el estado de CI para $sha vía la API de GitHub." >&2; exit 1; }
+
+          success_count="$(printf '%s' "$response" | jq '[.[] | select(.conclusion=="success")] | length')"
+
+          if [ -z "$success_count" ] || [ "$success_count" -lt 1 ]; then
+            echo "::error::No hay una ejecución exitosa de ci.yml para el SHA exacto $sha. No se despliega un commit sin CI verde confirmado." >&2
+            exit 1
+          fi
+
+          echo "CI verde confirmado para $sha ($success_count ejecución(es) exitosa(s) de ci.yml)."
+
+      - name: Compute image coordinates
+        id: meta
+        run: |
+          set -euo pipefail
+          owner_lower="$(printf '%s' "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')"
+          # NOTA: el allowlist de scripts/production-deploy-entry.sh usa hoy
+          # "ORG_PLACEHOLDER" (TODO explícito ahí de reemplazarlo antes de instalar en
+          # un servidor real). Estos nombres de imagen deben mantenerse en sync con esa
+          # allowlist cuando el administrador la actualice durante el bootstrap.
+          echo "image_api=ghcr.io/${owner_lower}/hato-api" >> "$GITHUB_OUTPUT"
+          echo "image_migrate=ghcr.io/${owner_lower}/hato-migrate" >> "$GITHUB_OUTPUT"
+
+      - name: Set up QEMU (cross-build ARM64 on x86_64 runner)
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: arm64
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # D5: ARM64, publicadas en GHCR, referenciadas por digest (nunca por tag
+      # mutable). `push: true` sin `tags:` de "latest": el único identificador que
+      # sale de aquí es el digest capturado en el output `digest`.
+      - name: Build and push API image (linux/arm64, by digest)
+        id: push-api
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: src/Hato.Api/Dockerfile
+          platforms: linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.image_api }}:${{ steps.resolve.outputs.sha }}
+          build-args: |
+            BUILD_VERSION=${{ steps.resolve.outputs.release }}
+            BUILD_COMMIT=${{ steps.resolve.outputs.sha }}
+
+      - name: Build and push migrate image (linux/arm64, by digest)
+        id: push-migrate
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: src/Hato.Api/migrate.Dockerfile
+          platforms: linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.image_migrate }}:${{ steps.resolve.outputs.sha }}
+
+  # ---------------------------------------------------------------------------------
+  # Job 2: único job que toca producción. `environment: production` activa el gate
+  # de aprobación ya declarado en .github/branch-protection.expected.json
+  # (required_reviewers: true, allowed_branches: ["main"]) — GitHub Environments
+  # pausa este job hasta que un revisor humano lo apruebe. Esto satisface
+  # "construye artefactos y solicita aprobación antes de acceder a production":
+  # el build ya ocurrió en el job anterior (sin aprobación), y este job no ejecuta
+  # ni un solo comando contra el host de producción antes de la aprobación.
+  # ---------------------------------------------------------------------------------
+  deploy:
+    name: Deploy approved release to production
+    needs: resolve-and-build
+    runs-on: ubuntu-latest
+    environment: production
+    # `timeout-minutes` cuenta desde que el job arranca a ejecutarse, no desde que
+    # queda en espera de aprobación (GitHub Actions no descuenta el tiempo de espera
+    # del entorno contra este techo). 30 min, igual que deploy-staging.yml, cubre:
+    # handshake de Tailscale, verificación de huella SSH, el placeholder de backup,
+    # el `docker compose pull/up` remoto (pull de dos imágenes + migración sobre la
+    # DB real) y el smoke test de production-release-verify.sh (que ya trae su
+    # propio techo interno de 120s de espera de health). Igual que en staging: un
+    # despliegue colgado debe fallar visiblemente, no ocupar la cola indefinidamente
+    # (concurrency.group: deploy-production serializa todo lo que venga después).
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout repository (for release-verify script)
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.resolve-and-build.outputs.sha }}
+
+      - name: Connect to Tailscale (ephemeral node)
+        uses: tailscale/github-action@v3
+        with:
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+          tags: tag:ci
+
+      - name: Configure SSH key and pin host fingerprint
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          PRODUCTION_SSH_HOST_FINGERPRINT: ${{ secrets.PRODUCTION_SSH_HOST_FINGERPRINT }}
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          umask 077
+          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/id_ed25519
+
+          # spec línea 142: "ssh-keyscan solo no autentica al servidor". Se captura
+          # SOLO la clave ed25519 que el host ofrece en este intento, y se compara su
+          # huella contra el valor fijado en el secret PRODUCTION_SSH_HOST_FINGERPRINT
+          # ANTES de confiar en ella. Ese secret lo registra el administrador durante
+          # el bootstrap (Entrega 2 / ops/production/bootstrap.md, sección
+          # "Verificación de cierre": "Registrar usuario, huella pública y fecha"),
+          # verificándola por un canal independiente de este workflow (p. ej. consola
+          # serie de Oracle Cloud). Sin ese secret fijado, este step falla: nunca se
+          # asume que la primera huella observada es la correcta ("trust on first use"
+          # está explícitamente prohibido aquí).
+          [ -n "$PRODUCTION_SSH_HOST_FINGERPRINT" ] || {
+            echo "::error::PRODUCTION_SSH_HOST_FINGERPRINT no está definido. No se puede verificar la identidad del host de producción." >&2
+            exit 1
+          }
+
+          candidate_key="$(ssh-keyscan -T 10 -t ed25519 -H "$DEPLOY_HOST" 2>/dev/null)"
+          [ -n "$candidate_key" ] || {
+            echo "::error::ssh-keyscan no obtuvo una clave de host ed25519 para $DEPLOY_HOST." >&2
+            exit 1
+          }
+
+          candidate_fingerprint="$(printf '%s\n' "$candidate_key" | ssh-keygen -lf - | awk '{print $2}')"
+
+          if [ "$candidate_fingerprint" != "$PRODUCTION_SSH_HOST_FINGERPRINT" ]; then
+            echo "::error::La huella del host ($candidate_fingerprint) no coincide con PRODUCTION_SSH_HOST_FINGERPRINT. Posible MITM o host reinstalado sin actualizar el secret. Abortando." >&2
+            exit 1
+          fi
+
+          printf '%s\n' "$candidate_key" >> ~/.ssh/known_hosts
+          echo "Huella del host verificada contra el secret fijado."
+
+      # spec D6: "Producción no abre registros reales hasta cumplir el spec de
+      # backups" (feature-0013). Ese script todavía no existe en este repo. Este
+      # step es un placeholder que DEBE fallar explícitamente en vez de fingir que
+      # hizo un backup — permitir que el despliegue continúe sin backup verificado
+      # sería exactamente el escenario que D6 prohíbe.
+      - name: Pre-release backup (feature-0013)
+        run: |
+          set -euo pipefail
+          # TODO: feature-0013 backups aún no implementado, este step es un
+          # placeholder que debe fallar explícitamente hasta que exista.
+          if [ -x ./scripts/production-backup-pre-release.sh ]; then
+            ./scripts/production-backup-pre-release.sh
+          else
+            echo "::error::No existe scripts/production-backup-pre-release.sh (feature-0013 pendiente). spec D6 prohíbe desplegar a producción con datos reales sin backup pre-release verificado offsite. Este step no puede continuar." >&2
+            exit 1
+          fi
+
+      - name: Build release manifest
+        id: manifest
+        env:
+          DEPLOY_AUTHORIZATION_KEY: ${{ secrets.DEPLOY_AUTHORIZATION_KEY }}
+        run: |
+          set -euo pipefail
+          # El mismo manifiesto (release/sha/digests) que valida
+          # scripts/production-deploy-entry.sh campo por campo en el servidor. Se
+          # construye aquí, en texto plano, sin secretos: release y sha son públicos
+          # (vienen de git), y los digests son identificadores de imagen, no
+          # credenciales.
+          jq -n \
+            --arg release "${{ needs.resolve-and-build.outputs.release }}" \
+            --arg sha "${{ needs.resolve-and-build.outputs.sha }}" \
+            --arg run_id "${{ github.run_id }}" \
+            --arg run_attempt "${{ github.run_attempt }}" \
+            --arg api_image "${{ needs.resolve-and-build.outputs.image_api }}" \
+            --arg api_digest "${{ needs.resolve-and-build.outputs.digest_api }}" \
+            --arg migrate_image "${{ needs.resolve-and-build.outputs.image_migrate }}" \
+            --arg migrate_digest "${{ needs.resolve-and-build.outputs.digest_migrate }}" \
+            '{release: $release, sha: $sha, run_id: $run_id, run_attempt: $run_attempt, digests: {($api_image): $api_digest, ($migrate_image): $migrate_digest}}' \
+            > /tmp/release-authorization-payload.json
+
+          # Esta clave es distinta de DEPLOY_SSH_KEY. El host conserva solo su
+          # pública en deploy-authorization.allowed-signers y comprueba la firma
+          # antes de invocar sudo; así vincula run/attempt/SHA/digests a un job que
+          # ya cruzó el Environment production. No se muestra ni queda en argv.
+          umask 077
+          printf '%s\n' "$DEPLOY_AUTHORIZATION_KEY" > /tmp/deploy-authorization-key
+          ssh-keygen -Y sign -f /tmp/deploy-authorization-key -n hato-production \
+            /tmp/release-authorization-payload.json >/dev/null
+          authorization="$(base64 -w 0 /tmp/release-authorization-payload.json.sig)"
+          rm -f /tmp/deploy-authorization-key /tmp/release-authorization-payload.json.sig
+
+          jq --arg authorization "$authorization" \
+            '. + {authorization: $authorization}' \
+            /tmp/release-authorization-payload.json > /tmp/release-manifest.json
+          rm -f /tmp/release-authorization-payload.json
+
+          cat /tmp/release-manifest.json
+
+      # Descargar imágenes ANTES de detener escrituras (spec línea 144): el pull de
+      # las imágenes ya publicadas por digest ocurre dentro de
+      # scripts/production-deploy-root.sh como PRIMER paso de `docker compose ...
+      # pull`, antes de cualquier `up`/migración. Modo mantenimiento para
+      # escrituras, sincronización push, migración sobre la DB real y arranque del
+      # candidato son responsabilidad de production-deploy-root.sh (Entrega 2/3):
+      # este workflow NO reimplementa esa secuencia, solo entrega el manifiesto
+      # validado a deploy-entry por SSH y espera el resultado. Contrato de fallos
+      # (spec línea 150-153, responsabilidad de production-deploy-root.sh): un
+      # error ANTES de migrar conserva el release anterior intacto (compose no
+      # llega a `up` con el candidato); un error DESPUÉS de migrar NO dispara
+      # restauración automática de datos — exige decisión humana, nunca rollback ni
+      # borrado de volumen automático.
+      - name: Deploy via hato-deploy forced command (production-deploy-entry.sh)
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+        run: |
+          set -euo pipefail
+
+          # DEPLOY_USER debe ser hato-deploy: cuenta sin sudo general, sin shell
+          # libre y sin acceso al socket Docker (spec D7). sshd en el servidor tiene
+          # ForceCommand configurado (ops/production/sshd-hato.conf) para invocar
+          # SIEMPRE /usr/local/libexec/hato/deploy-entry sin importar qué pida este
+          # cliente; no se pasa ningún comando explícito en la invocación de ssh de
+          # abajo porque el servidor lo ignoraría de todos modos. El manifiesto
+          # viaja por stdin del canal SSH, nunca como argumento del comando remoto
+          # (mismo patrón que la contraseña de staging: un argumento de proceso es
+          # visible para cualquier usuario con `ps` en el servidor).
+          if [ "$DEPLOY_USER" != "hato-deploy" ]; then
+            echo "::error::DEPLOY_USER debe ser 'hato-deploy' (spec D7: nunca root, nunca un usuario con privilegios amplios). Valor recibido no es el esperado." >&2
+            exit 1
+          fi
+
+          ssh \
+            -o StrictHostKeyChecking=yes \
+            -o BatchMode=yes \
+            "${DEPLOY_USER}@${DEPLOY_HOST}" < /tmp/release-manifest.json
+
+      - name: Verify release (health + exact SHA + authenticated smoke)
+        env:
+          PRODUCTION_BASE_URL: ${{ secrets.PRODUCTION_BASE_URL }}
+        run: |
+          set -euo pipefail
+          # Publicar SOLO tras health + versión SHA + smoke autenticado (spec línea
+          # 145-146). Este script falla explícitamente si el endpoint no responde o
+          # si el SHA reportado no coincide EXACTO con el que se pretendía
+          # desplegar — nunca hace fallback silencioso.
+          ./scripts/production-release-verify.sh \
+            "$PRODUCTION_BASE_URL" \
+            "${{ needs.resolve-and-build.outputs.sha }}"
+
+      - name: Record deployment result (no secrets)
+        if: always()
+        run: |
+          set -euo pipefail
+          # spec línea 148: "Registrar versión previa y resultado sin secretos". La
+          # versión previa ya queda registrada en el servidor por
+          # production-deploy-root.sh (STATE_FILE, fuera de este log). Aquí solo se
+          # deja constancia pública, en el log del propio run de Actions, de qué
+          # release/sha se intentó desplegar y con qué resultado — sin tocar
+          # contraseñas, claves ni cadenas de conexión.
+          echo "release=${{ needs.resolve-and-build.outputs.release }}"
+          echo "sha=${{ needs.resolve-and-build.outputs.sha }}"
+          echo "job_status=${{ job.status }}"

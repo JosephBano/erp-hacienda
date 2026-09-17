@@ -10,7 +10,7 @@ import { IconComponent } from '../../shared/icon/icon.component';
   standalone: true,
   imports: [CommonModule, FormsModule, IconComponent],
   templateUrl: './login.component.html',
-  styleUrls: ['./login.component.css']
+  styleUrls: ['./login.component.css'],
 })
 export class LoginComponent {
   private auth = inject(AuthService);
@@ -33,7 +33,7 @@ export class LoginComponent {
       error: () => {
         this.isSubmitting = false;
         this.errorMessage = 'Correo o contraseña incorrectos.';
-      }
+      },
     });
   }
 }

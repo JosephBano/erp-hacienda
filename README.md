@@ -34,7 +34,7 @@
 | 8 | [`LEGAL-ECUADOR.md`](docs/LEGAL-ECUADOR.md) | Agrocalidad/SIFAE, ARCSA, SRI, IESS, LOPDP | Antes de cada fase que lo toque |
 | 9 | [`BACKUPS.md`](docs/BACKUPS.md) | Estrategia de respaldos y restauración probada | Antes de declarar producción |
 | 10 | [`adr/`](docs/adr/) | Decisiones de arquitectura (19 + plantilla) | Antes de contradecir una |
-| 11 | [`planes/`](docs/planes/) | Planes de ejecución por fase (ramas, tareas, pruebas) | Al abrir una fase o una rama |
+| 11 | [`spec/`](docs/spec/) | Especificaciones y planes de ejecución (ramas, tareas, pruebas) | Al abrir una fase o una rama |
 | 12 | [`diagramas/`](docs/diagramas/) | Diagramas ER completos en Mermaid, por núcleo | Al tocar el esquema |
 
 ## Stack
@@ -49,12 +49,13 @@ para la app de campo (Fase 3). Detalles y justificación en
 ```
 .
 ├─ AGENTS.md                  # protocolo para agentes de IA (los lee automáticamente)
+├─ VERSION                    # fuente única de versión del build (ADR-0029, no editar a mano)
 ├─ Hato.sln
 ├─ Directory.Build.props      # net8.0, nullable, warnings como errores
 ├─ docker-compose.yml         # PostgreSQL 16 local
 ├─ docs/                      # SOUL, CONSTITUTION, ARCHITECTURE, DATA-MODEL…
 │  ├─ adr/                    # decisiones de arquitectura: NNNN-titulo-en-kebab.md
-│  ├─ planes/                 # planes de ejecución por fase
+│  ├─ spec/                   # especificaciones y planes de ejecución (features y fases)
 │  └─ diagramas/              # diagramas ER completos (.mermaid)
 ├─ src/
 │  ├─ Hato.Api/               # composición: DI, auth, endpoints de todos los módulos
@@ -67,6 +68,8 @@ para la app de campo (Fase 3). Detalles y justificación en
    └─ field-app/              # React Native     (llega en Fase 3)
 ```
 
+La versión del proyecto vive exclusivamente en el archivo `VERSION` en la raíz (ADR-0029). No se edita a mano en `package.json` ni en proyectos de .NET: el pipeline de build la lee y la estampa automáticamente en los tres artefactos.
+
 Los módulos restantes (Breeding, Health, Production, Inventory, Sales, Accounting,
 People…) nacen bajo `src/Modules/` con la misma forma, cada uno cuando su fase lo pida.
 
@@ -74,16 +77,28 @@ People…) nacen bajo `src/Modules/` con la misma forma, cada uno cuando su fase
 
 Requisitos: .NET SDK 8, Docker.
 
-Ninguna credencial vive en el repositorio, ni siquiera las de desarrollo: la contraseña
-de PostgreSQL sale de tu `.env` local y la cadena de conexión, de los *user secrets*
-de .NET.
+Ninguna credencial vive en el repositorio, ni siquiera las de desarrollo: el `.env` local
+es la **única fuente** del puerto y la contraseña del PostgreSQL. La cadena de conexión
+sale de los *user secrets* de .NET (si corres el backend fuera de Docker) o de las
+variables de entorno del servicio `api` (si lo corres dentro).
 
 ```bash
-cp .env.example .env                  # y elige tu contraseña local
-docker compose up -d                  # PostgreSQL en localhost:5432
+cp .env.example .env                  # completa POSTGRES_PASSWORD y, si hace falta, POSTGRES_PORT
+docker compose up -d                  # PostgreSQL en localhost:${POSTGRES_PORT:-5432}
+```
+
+`POSTGRES_PORT` define el **puerto en tu máquina** mapeado al 5432 interno del contenedor.
+Cámbialo solo si 5432 ya está ocupado en tu equipo (en este repo es habitual por
+otros proyectos). El backend, dentro de la red de compose, habla con `postgres:5432`,
+así que mover el puerto del host no toca ninguna línea del código del backend.
+
+### Opción A — backend local, DB en contenedor
+
+```bash
+set -a; . ./.env; set +a              # trae POSTGRES_PASSWORD y POSTGRES_PORT del .env
 
 dotnet user-secrets set "ConnectionStrings:HatoDb" \
-  "Host=localhost;Port=5432;Database=hato;Username=hato;Password=<la del .env>" \
+  "Host=localhost;Port=${POSTGRES_PORT};Database=hato;Username=hato;Password=${POSTGRES_PASSWORD}" \
   --project src/Hato.Api
 
 dotnet tool restore                   # dotnet-ef
@@ -94,8 +109,33 @@ dotnet ef database update \
   --project src/Modules/Livestock/Hato.Modules.Livestock.Infrastructure \
   --startup-project src/Hato.Api
 
-dotnet run --project src/Hato.Api     # health check en /health
+dotnet run --project src/Hato.Api     # health check en http://localhost:5xxx/health
 ```
+
+> **Si `dotnet run` falla con `MSB4166: Child node "X" exited prematurely`:** el
+> build paralelo se quedó sin RAM. En máquinas con muchas CPUs y poca memoria
+> libre, MSBuild arranca un child node por CPU y Roslyn los mata. Solución:
+> [`scripts/dev-backend.sh`](scripts/dev-backend.sh) — un wrapper que aplica
+> `MSBUILDDISABLENODEREUSE=1 -m:2` antes del `dotnet run`, separando build
+> de ejecución para no repetir el costo en cada arranque:
+>
+> ```bash
+> ./scripts/dev-backend.sh --urls "http://127.0.0.1:5282;http://100.101.240.44:5282"
+> ```
+>
+> Variables reconocidas: `DOTNET_BUILD_PARALLELISM` (default `1`), `ASPNETCORE_URLS`.
+
+### Opción B — backend y DB en contenedores (todo el stack)
+
+```bash
+docker compose up -d --build          # api + postgres, api en http://localhost:8080/health
+bash scripts/smoke-api-container.sh   # verificación end-to-end del contenedor (sube, golpea /health, baja)
+```
+
+`ASPNETCORE_ENVIRONMENT=Development` y la cadena de conexión del `api` se fijan en
+`docker-compose.yml`; los valores vienen del mismo `.env`. Para producción real (TLS,
+JWT signing key, CORS restrictivo) ese archivo se sustituye por una variante — fuera
+del alcance de este PR.
 
 ### Las pruebas de integración y su PostgreSQL
 
@@ -140,6 +180,23 @@ docker exec hato-postgres psql -U hato -d postgres -tAc \
   | xargs -r -I{} docker exec hato-postgres psql -U hato -d postgres \
       -c 'DROP DATABASE IF EXISTS "{}" WITH (FORCE);'
 ```
+
+## Entornos y despliegue continuo
+
+El proyecto gestiona dos entornos de promoción (ADR-0029, ADR-0030, ADR-0031, ADR-0033):
+
+| Entorno | Rama que despliega | Destino | Gate / Aprobación |
+|---|---|---|---|
+| **`staging`** | `develop` | `joemanserver` (servidor doméstico, sobre red privada Tailscale) | CI verde (checks obligatorios) |
+| **`production`** | `main` (releases etiquetadas) | Oracle Cloud, cuenta bajo control del propietario, acceso privado exclusivo por Tailscale | CI verde del SHA exacto + **revisor obligatorio** del entorno |
+
+- **Despliegue a Staging:** Todo push a `develop` dispara el workflow `.github/workflows/deploy-staging.yml`. El runner de GitHub Actions se une efímeramente al tailnet, actualiza el código en `/srv/hato-staging` vía SSH y levanta la pila con `compose.staging.yml`.
+- **Aislamiento:** El entorno de staging no expone ningún puerto al host ni al router doméstico. Caddy actúa como reverse proxy HTTPS exclusivo dentro de la malla Tailscale en el puerto 8448.
+- **Verificación automática (Smoke Test):** El despliegue finaliza en verde únicamente tras la respuesta exitosa del smoke test (`scripts/smoke-api-container.sh`) contra `/health` y `/version`.
+- **Configuración versionada:** Las reglas de protección y entornos se declaran en `.github/branch-protection.expected.json` y se aplican mediante `scripts/apply-repo-config.sh`. El job de CI `branch-protection-drift` delata cualquier deriva frente a GitHub API.
+- **Despliegue a Producción:** aprobado en diseño (ADR-0033) pero pendiente de ejecución. El destino es Oracle Cloud, sin dominio comprado ni HA, alcanzable solo dentro del tailnet (incluidos los teléfonos de campo). El detalle completo — custodia de credenciales, usuario de despliegue restringido, release y recuperación — vive en
+  [`docs/spec/feature-0012-production-environment/spec.md`](docs/spec/feature-0012-production-environment/spec.md),
+  la especificación vigente para este entorno.
 
 ## Cómo se contribuye
 

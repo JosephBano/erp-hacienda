@@ -26,7 +26,8 @@ public class AnimalRegistrationService(ILivestockDbContext dbContext) : IAnimalR
             request.BirthDate,
             dam.BreedId,
             request.CategoryId,
-            request.BirthWeightKg);
+            request.BirthWeightKg,
+            id: request.ChildId);
 
         offspring.SetGenealogy(request.DamId, request.FatherAnimalId, request.FatherStrawId, request.BirthingId);
 
@@ -34,9 +35,31 @@ public class AnimalRegistrationService(ILivestockDbContext dbContext) : IAnimalR
             offspring.AssignIdentifier(IdentifierType.FarmTag, request.FarmTag, request.BirthDate);
 
         dbContext.Animals.Add(offspring);
+
+        if (request.BirthWeightKg.HasValue && request.BirthWeightKg.Value > 0)
+        {
+            var weighingPayload = System.Text.Json.JsonSerializer.Serialize(new { weightKg = request.BirthWeightKg.Value });
+            var weighingEvent = AnimalEvent.Create(
+                offspring.Id,
+                EventType.Weighing,
+                request.BirthDate.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc),
+                "sistema",
+                weighingPayload);
+            dbContext.AnimalEvents.Add(weighingEvent);
+        }
+
         await dbContext.SaveChangesAsync(cancellationToken);
 
         return offspring.Id;
+    }
+
+    public async Task<DamFitnessDto?> GetDamFitnessAsync(Guid damId, CancellationToken cancellationToken)
+    {
+        return await dbContext.Animals
+            .AsNoTracking()
+            .Where(a => a.Id == damId && a.DeletedAt == null)
+            .Select(a => new DamFitnessDto(a.Id, a.Sex == Sex.Female, a.DisposedAt, a.SpeciesId))
+            .FirstOrDefaultAsync(cancellationToken);
     }
 
     public async Task<Guid?> GetSpeciesAsync(Guid animalId, CancellationToken cancellationToken)

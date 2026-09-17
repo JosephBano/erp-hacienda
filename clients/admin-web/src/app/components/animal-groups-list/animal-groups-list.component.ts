@@ -1,9 +1,20 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  OnInit,
+  computed,
+  inject,
+  signal,
+} from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
 import { ApiService, AnimalGroupDto } from '../../services/api.service';
-import { CatalogTableComponent, CatalogColumn, CatalogAction } from '../../shared/catalog-table/catalog-table.component';
+import {
+  CatalogTableComponent,
+  CatalogColumn,
+  CatalogAction,
+} from '../../shared/catalog-table/catalog-table.component';
 import { IconComponent } from '../../shared/icon/icon.component';
 
 /**
@@ -45,12 +56,12 @@ export class AnimalGroupsListComponent implements OnInit {
     {
       key: 'trackingMode',
       label: 'Modo',
-      render: (g) => g.trackingMode === 'Headcount' ? 'Por conteo' : 'Individual',
+      render: (g) => (g.trackingMode === 'Headcount' ? 'Por conteo' : 'Individual'),
     },
     {
       key: 'liveHeadCount',
       label: 'Cabezas vivas',
-      render: (g) => g.liveHeadCount == null ? '—' : String(g.liveHeadCount),
+      render: (g) => (g.liveHeadCount == null ? '—' : String(g.liveHeadCount)),
     },
     { key: 'isActive', label: 'Activo', boolean: true },
   ]);

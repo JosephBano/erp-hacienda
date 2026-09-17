@@ -9,7 +9,7 @@ import { Outbox } from '../src/services/outbox';
 import { MilkingService } from '../src/services/milkingService';
 
 /**
- * Module visibility per ADR-0019 and PLAN-FASE-3-5-PORCINO 3.5a.9-A.
+ * Module visibility per ADR-0019 and docs/spec/plan-0002-fase-3-5/spec.md 3.5a.9-A.
  *
  * The contract is "módulo habilitado AND capacidades AND permisos", evaluated without
  * network so a phone in the paddock does not flash a button in and out of view depending
@@ -119,7 +119,13 @@ describe('ModuleVisibility', () => {
     const outbox = new Outbox(database);
     const milking = new MilkingService(database);
 
-    await milking.recordIndividualYield('animal-species-bovino', 'Morning', 12.5, recordedBy, today);
+    await milking.recordIndividualYield(
+      'animal-species-bovino',
+      'Morning',
+      12.5,
+      recordedBy,
+      today,
+    );
 
     const pending = await outbox.pending();
     expect(pending).toHaveLength(1);

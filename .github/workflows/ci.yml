@@ -2,11 +2,114 @@ name: CI
 
 on:
   pull_request:
+    types: [opened, synchronize, reopened, edited]
     branches: [develop, main]
   push:
     branches: [develop, main]
 
 jobs:
+  pr-hygiene:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Validate branch name, commit messages, and PR title
+        run: |
+          set -e
+          FAILED=0
+          CONVENTIONAL_REGEX="^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)(\([a-zA-Z0-9_./-]+\))?(!)?: .+$"
+          BRANCH_REGEX="^(feature|release|hotfix|docs)/[a-zA-Z0-9_./-]+$"
+
+          # 1. Validate Branch Name
+          BRANCH_NAME="${{ github.head_ref }}"
+          if [ -n "$BRANCH_NAME" ]; then
+            if ! echo "$BRANCH_NAME" | grep -Eq "$BRANCH_REGEX"; then
+              echo "::error::Nombre de rama inválido: '$BRANCH_NAME'. Debe comenzar con feature/, release/, hotfix/ o docs/ (AGENTS.md regla 4, Art. 13)."
+              FAILED=1
+            else
+              echo "OK: Rama '$BRANCH_NAME' cumple la convención."
+            fi
+          fi
+
+          # 2. Validate PR Title
+          PR_TITLE="${{ github.event.pull_request.title }}"
+          if [ -n "$PR_TITLE" ]; then
+            if ! echo "$PR_TITLE" | grep -Eq "$CONVENTIONAL_REGEX"; then
+              echo "::error::Título del PR inválido: '$PR_TITLE'. Debe cumplir Conventional Commits (ej. 'feat(modulo): descripcion' o 'chore: descripcion')."
+              FAILED=1
+            else
+              echo "OK: Título del PR '$PR_TITLE' cumple Conventional Commits."
+            fi
+          fi
+
+          # 3. Validate Commits in PR
+          BASE_REF="${{ github.base_ref }}"
+          if [ -n "$BASE_REF" ]; then
+            COMMIT_RANGE="origin/$BASE_REF..HEAD"
+            LOG_OPTIONS=()
+
+            # A release towards main can carry develop's complete, already-accepted
+            # history plus a merge parent from main. Validate only the release's own
+            # first-parent commits; validating main..HEAD would retroactively reject
+            # historic develop commits that never belonged to this release PR.
+            if [[ "$BASE_REF" == "main" && "$BRANCH_NAME" == release/* ]]; then
+              # Actions checks out GitHub's synthetic test merge for a PR. Use the
+              # real head SHA so that synthetic merge's main parent cannot enter the
+              # release-only range.
+              PR_HEAD_SHA="${{ github.event.pull_request.head.sha }}"
+              if git merge-base --is-ancestor origin/develop "$PR_HEAD_SHA"; then
+                RELEASE_BASE=$(git merge-base origin/develop "$PR_HEAD_SHA")
+                COMMIT_RANGE="$RELEASE_BASE..$PR_HEAD_SHA"
+                LOG_OPTIONS=(--first-parent)
+              fi
+            fi
+
+            echo "Validando commits en $COMMIT_RANGE..."
+            COMMITS=$(git log "${LOG_OPTIONS[@]}" "$COMMIT_RANGE" --format="%s" || true)
+            while IFS= read -r msg; do
+              [ -z "$msg" ] && continue
+              if echo "$msg" | grep -Eq "^Merge "; then
+                continue
+              fi
+              if ! echo "$msg" | grep -Eq "$CONVENTIONAL_REGEX"; then
+                echo "::error::Mensaje de commit inválido: '$msg'. Debe cumplir Conventional Commits (ej. 'feat(modulo): descripcion')."
+                FAILED=1
+              else
+                echo "OK: Commit '$msg' cumple Conventional Commits."
+              fi
+            done <<< "$COMMITS"
+          fi
+
+          if [ "$FAILED" -ne 0 ]; then
+            echo "Fallo en la verificación de higiene de PR."
+            exit 1
+          fi
+          echo "Higiene de PR verificada con éxito."
+
+      - name: Check and signal missing PR metadata (D15)
+        if: always() && github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          MILESTONE: ${{ github.event.pull_request.milestone.title }}
+        run: |
+          # Señala, no bloquea (D15 / spec.md sec. 3). Nunca debe hacer fallar el job.
+          if [ -z "$MILESTONE" ]; then
+            echo "::warning::El PR #$PR_NUMBER no tiene hito asignado. Señalando con etiqueta 'needs-milestone'..."
+            gh label create "needs-milestone" --color "FBCA04" --description "PR sin hito asignado" 2>/dev/null || true
+            gh pr edit "$PR_NUMBER" --add-label "needs-milestone" 2>/dev/null || true
+          else
+            echo "OK: PR #$PR_NUMBER tiene asignado el hito '$MILESTONE'."
+            gh pr edit "$PR_NUMBER" --remove-label "needs-milestone" 2>/dev/null || true
+          fi
+
   backend-build-and-test:
     runs-on: ubuntu-latest
 
@@ -52,7 +155,14 @@ jobs:
         run: dotnet format --verify-no-changes
 
       - name: Build
-        run: dotnet build --no-restore --configuration Release
+        run: |
+          VERSION=$(cat VERSION)
+          COMMIT=$(git rev-parse --short HEAD)
+          BUILD_DATE=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          dotnet build --no-restore --configuration Release \
+            -p:Version="$VERSION" \
+            -p:SourceRevisionId="$COMMIT" \
+            -p:InformationalVersion="$VERSION+$COMMIT.$BUILD_DATE"
 
       - name: Test
         run: dotnet test --no-build --configuration Release --logger "trx" --results-directory TestResults
@@ -79,6 +189,28 @@ jobs:
           cache: 'npm'
           cache-dependency-path: clients/field-app/package.json
 
+      - name: Stamp version
+        run: |
+          VERSION=$(cat ../../VERSION)
+          COMMIT=$(git rev-parse --short HEAD)
+          BUILD_DATE=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          node -e "
+            const fs = require('fs');
+            const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+            pkg.version = '$VERSION';
+            pkg.buildMetadata = { commit: '$COMMIT', buildDate: '$BUILD_DATE' };
+            fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
+            const appPath = 'app.json';
+            if (fs.existsSync(appPath)) {
+              const app = JSON.parse(fs.readFileSync(appPath, 'utf8'));
+              if (app.expo) {
+                app.expo.version = '$VERSION';
+                app.expo.extra = { ...(app.expo.extra || {}), commit: '$COMMIT', buildDate: '$BUILD_DATE' };
+                fs.writeFileSync(appPath, JSON.stringify(app, null, 2) + '\n');
+              }
+            }
+          "
+
       # --legacy-peer-deps is required because @nozbe/with-observables@1.6.0 still
       # declares peer @types/react ^16||^17||^18 — the project is on React 19 since the
       # SDK 51 -> 56 upgrade. The runtime types are structurally compatible (TS forwards
@@ -86,6 +218,12 @@ jobs:
       # PR body so reviewers know it's intentional.
       - name: Install dependencies
         run: npm ci --legacy-peer-deps || npm install --legacy-peer-deps
+
+      - name: Check formatting
+        run: npm run format:check
+
+      - name: Lint
+        run: npm run lint
 
       - name: Typecheck
         run: npm run typecheck
@@ -108,11 +246,71 @@ jobs:
           cache: 'npm'
           cache-dependency-path: clients/admin-web/package-lock.json
 
+      - name: Stamp version
+        run: |
+          VERSION=$(cat ../../VERSION)
+          COMMIT=$(git rev-parse --short HEAD)
+          BUILD_DATE=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          node -e "
+            const fs = require('fs');
+            const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+            pkg.version = '$VERSION';
+            pkg.buildMetadata = { commit: '$COMMIT', buildDate: '$BUILD_DATE' };
+            fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
+          "
+
       - name: Install dependencies
         run: npm ci || npm install
+
+      - name: Check formatting
+        run: npm run format:check
+
+      - name: Lint
+        run: npm run lint
 
       - name: Build (compile + typecheck + budget check)
         run: npx ng build --configuration production
 
       - name: Run unit tests
         run: npx ng test --watch=false
+
+  # Red de seguridad de privacidad, no de calidad: docs/tesis/privado/ contiene la
+  # tesis con nombres de personas, cartas firmadas y datos de finca de un cliente
+  # real, y este repositorio es MIT. .gitignore ya lo excluye; este job existe para
+  # el caso en que un `git add -f` o un `git add -A` distraído lo evada. GitGuardian
+  # atrapa credenciales, no datos personales.
+  tesis-privacy-guard:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: No thesis private files may be tracked
+        run: |
+          tracked="$(git ls-files 'docs/tesis/privado' 'docs/tesis/privado/**')"
+          if [ -n "$tracked" ]; then
+            echo "::error::Hay archivos privados de la tesis rastreados por git:"
+            echo "$tracked"
+            echo "Sácalos con 'git rm --cached <archivo>' antes de abrir el PR."
+            exit 1
+          fi
+          echo "OK: docs/tesis/privado/ no está rastreado."
+
+  # Vigilancia de deriva de la configuración esperada (D12 / ADR-0030 sec. 3):
+  # Compara la protección de ramas y entornos en GitHub API contra
+  # .github/branch-protection.expected.json.
+  # NOTA: En repositorios personales de GitHub no es posible bloquear la configuración
+  # perimetralmente; este job NO afirma impedir el cambio, sino detectarlo y delatarlo
+  # inmediatamente en rojo en el siguiente PR antes de que llegue a producción.
+  branch-protection-drift:
+    name: Check branch protection drift
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify configuration drift
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: ./scripts/check-config-drift.sh

@@ -5,7 +5,7 @@ namespace Hato.Sync.IntegrationTests;
 
 /// <summary>
 /// Births are the one field flow where the client creates a brand new animal offline
-/// (PLAN-FASE-3-4 sec.3.B). The calf has to arrive on the server exactly once and with its
+/// (docs/spec/plan-0001-fase-3/spec.md sec.3.B). The calf has to arrive on the server exactly once and with its
 /// genealogy intact — a calf without a dam is a silently corrupted pedigree that nobody
 /// notices until someone asks who its mother was, years later.
 /// </summary>
@@ -34,6 +34,58 @@ public class SyncPushBirthTests(SyncApiFactory factory)
 
         var offspring = await context.FindOffspringOfAsync(damId);
         Assert.Single(offspring);
+    }
+
+    [Fact]
+    public async Task Push_RecordBirthWithClientChildId_EnrollsOffspringWithExactGuidAndGenealogy()
+    {
+        var context = await SyncTestContext.CreateAsync(factory, "birth-client-uuid");
+        var speciesId = await context.CreateSpeciesAsync("Bovino");
+        var damId = await context.CreateAnimalAsync(speciesId);
+        var expectedChildId = Guid.NewGuid();
+
+        var result = await context.PushAsync(
+            "recordBirth",
+            new
+            {
+                damId,
+                birthDate = DateOnly.FromDateTime(DateTime.UtcNow),
+                difficulty = "Normal",
+                bornAlive = 1,
+                offspring = new[]
+                {
+                    new
+                    {
+                        childId = expectedChildId,
+                        sex = "F",
+                        farmTag = "CRIA-01",
+                        birthWeightKg = 34.5m
+                    }
+                },
+            });
+
+        Assert.Equal("Accepted", result.GetProperty("status").GetString());
+
+        var offspring = await context.FindOffspringOfAsync(damId);
+        Assert.Contains(expectedChildId, offspring);
+
+        var calf = await context.FindAsync("animals", expectedChildId);
+        Assert.Equal(expectedChildId, calf.GetProperty("id").GetGuid());
+        Assert.Equal(damId, calf.GetProperty("motherId").GetGuid());
+
+        // Subsequent event (weighing) on the newborn calf with client-generated UUID succeeds without orphan rejection
+        var weightResult = await context.PushAsync(
+            "recordAnimalEvent",
+            new
+            {
+                animalId = expectedChildId,
+                eventType = "Weighing",
+                occurredAt = DateTimeOffset.UtcNow,
+                recordedBy = "field-app",
+                payloadJson = JsonSerializer.Serialize(new { weightKg = 36.0m })
+            });
+
+        Assert.Equal("Accepted", weightResult.GetProperty("status").GetString());
     }
 
     [Fact]

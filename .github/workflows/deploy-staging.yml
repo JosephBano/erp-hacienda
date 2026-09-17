@@ -1,0 +1,126 @@
+name: Deploy to Staging
+
+on:
+  push:
+    branches:
+      - develop
+
+concurrency:
+  group: deploy-staging
+  cancel-in-progress: false
+
+jobs:
+  deploy-staging:
+    name: Deploy Staging Stack over Tailscale
+    runs-on: ubuntu-latest
+    environment: staging
+    # El build corre en el servidor (i5-7200U, 2 nucleos). Un despliegue sano
+    # tarda minutos; este techo existe para que uno colgado no ocupe la cola
+    # indefinidamente en lugar de fallar.
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Connect to Tailscale (ephemeral node)
+        uses: tailscale/github-action@v3
+        with:
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+          tags: tag:ci
+
+      - name: Configure SSH key
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          # printf sobre un env var, no `echo` de una interpolacion: el valor no
+          # queda en el texto del script (spec.md sec. 6.2, regla 3).
+          umask 077
+          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/id_ed25519
+          # Sin `|| true`: si no se puede fijar la huella del host, el
+          # despliegue no debe seguir a ciegas. El ssh de abajo la exige con
+          # StrictHostKeyChecking=yes.
+          ssh-keyscan -H "$DEPLOY_HOST" >> ~/.ssh/known_hosts
+
+      - name: Deploy staging stack via SSH
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          STAGING_POSTGRES_PASSWORD: ${{ secrets.STAGING_POSTGRES_PASSWORD }}
+        run: |
+          set -euo pipefail
+
+          # spec.md sec. 6.2 regla 3 / ADR-0030 sec. 1.3.
+          # El texto de este script remoto es constante y NO contiene ningun
+          # secreto: es lo unico que se ve en `ps` del servidor. La contrasena
+          # viaja por stdin del canal ssh y se lee con `read`.
+          # POSIX a proposito (sin `pipefail`): no depende del shell de login
+          # del usuario de despliegue.
+          REMOTE_SCRIPT=$(cat <<'REMOTE'
+          set -eu
+
+          # Primera linea de stdin = contrasena de PostgreSQL de staging.
+          # `read` devuelve 1 si el ultimo dato llega sin salto de linea final;
+          # con `set -e` eso abortaria el despliegue sin imprimir nada. Se acepta
+          # el valor y se comprueba aparte que no venga vacio.
+          IFS= read -r STAGING_POSTGRES_PASSWORD || true
+          [ -n "$STAGING_POSTGRES_PASSWORD" ] || {
+            echo "ERROR: no llego la contrasena por stdin" >&2
+            exit 1
+          }
+          # Nada mas debe consumir stdin a partir de aqui.
+          exec < /dev/null
+
+          # El checkout va en un subdirectorio, NO en la raiz del stack: el
+          # contexto de build de compose es este directorio, y `pgdata` —que
+          # crea PostgreSQL como root— quedaria dentro. Docker no puede leerlo
+          # y el build falla con "permission denied", pero solo a partir del
+          # SEGUNDO despliegue, cuando el volumen ya existe.
+          mkdir -p /srv/hato-staging/repo
+          cd /srv/hato-staging/repo
+          if [ ! -d .git ]; then
+            git clone https://github.com/JosephBano/erp-hacienda.git .
+          fi
+          git fetch origin develop
+          git checkout develop
+          git reset --hard origin/develop
+
+          # umask antes de crear el archivo: nunca existe, ni por un instante,
+          # legible por otros usuarios.
+          # Trazabilidad del build: se toma del checkout que se acaba de hacer,
+          # que es la unica fuente que no puede mentir sobre que se desplego.
+          umask 077
+          {
+            printf '%s\n' "STAGING_POSTGRES_PASSWORD=${STAGING_POSTGRES_PASSWORD}"
+            printf 'HATO_VERSION=%s\n' "$(cat VERSION)"
+            printf 'HATO_COMMIT=%s\n' "$(git rev-parse --short HEAD)"
+            printf 'HATO_BUILD_DATE=%s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          } > .env.staging
+
+          docker compose --env-file .env.staging -f compose.staging.yml up -d --build
+          REMOTE
+          )
+
+          printf '%s\n' "$STAGING_POSTGRES_PASSWORD" | ssh \
+            -o StrictHostKeyChecking=yes \
+            -o BatchMode=yes \
+            "${DEPLOY_USER}@${DEPLOY_HOST}" "$REMOTE_SCRIPT"
+
+      - name: Verify deployment with Smoke Test (D8)
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+        run: |
+          set -euo pipefail
+          # D8: el despliegue se verifica solo, y si no responde, falla.
+          # Unica ruta posible: Caddy en el tailnet, puerto 8448 sobre HTTPS.
+          # El stack NO publica puertos al host (compose.staging.yml / ADR-0031),
+          # de modo que un fallback a http://HOST:8080 nunca podria responder.
+          # DEPLOY_HOST es el nombre MagicDNS completo para que valide el
+          # certificado que emite Tailscale.
+          ./scripts/smoke-api-container.sh "https://${DEPLOY_HOST}:8448/health"

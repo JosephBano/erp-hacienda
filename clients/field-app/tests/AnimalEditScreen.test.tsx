@@ -46,7 +46,19 @@ describe('AnimalEditScreen', () => {
       });
     });
 
-    animals = [{ animalId: 'animal-1', label: 'La Pinta', sex: 'Female', isWithheld: false, speciesId: 'species-1', speciesIsMilkable: true }];
+    animals = [
+      {
+        animalId: 'animal-1',
+        label: 'La Pinta',
+        sex: 'Female',
+        isWithheld: false,
+        speciesId: 'species-1',
+        speciesIsMilkable: true,
+        activeIdentifiers: [],
+        historicalIdentifiers: [],
+        hasPendingTag: false,
+      },
+    ];
   });
 
   // Smoke test that survives the SDK 51 -> 56 upgrade. The three interaction-heavy tests
@@ -117,7 +129,7 @@ describe('AnimalEditScreen', () => {
     });
   });
 
-  it.skip('only lists breeds belonging to the selected animal\'s species', async () => {
+  it.skip("only lists breeds belonging to the selected animal's species", async () => {
     await database.write(async () => {
       await database.get('breeds').create((row: any) => {
         row._raw.id = 'breed-other-species';

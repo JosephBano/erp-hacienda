@@ -19,10 +19,7 @@ describe('AnimalGroupCreateComponent', () => {
     };
     await TestBed.configureTestingModule({
       imports: [AnimalGroupCreateComponent],
-      providers: [
-        provideRouter([]),
-        { provide: ApiService, useValue: apiStub },
-      ],
+      providers: [provideRouter([]), { provide: ApiService, useValue: apiStub }],
     }).compileComponents();
   });
 
@@ -31,10 +28,18 @@ describe('AnimalGroupCreateComponent', () => {
     fixture.detectChanges();
 
     expect(fixture.nativeElement.querySelector('[data-testid="group-name-input"]')).toBeTruthy();
-    expect(fixture.nativeElement.querySelector('[data-testid="group-description-input"]')).toBeTruthy();
-    expect(fixture.nativeElement.querySelector('[data-testid="group-species-select"]')).toBeTruthy();
-    expect(fixture.nativeElement.querySelector('[data-testid="tracking-mode-individual"]')).toBeTruthy();
-    expect(fixture.nativeElement.querySelector('[data-testid="tracking-mode-headcount"]')).toBeTruthy();
+    expect(
+      fixture.nativeElement.querySelector('[data-testid="group-description-input"]'),
+    ).toBeTruthy();
+    expect(
+      fixture.nativeElement.querySelector('[data-testid="group-species-select"]'),
+    ).toBeTruthy();
+    expect(
+      fixture.nativeElement.querySelector('[data-testid="tracking-mode-individual"]'),
+    ).toBeTruthy();
+    expect(
+      fixture.nativeElement.querySelector('[data-testid="tracking-mode-headcount"]'),
+    ).toBeTruthy();
   });
 
   it('renders no emoji in the help text', () => {
@@ -67,7 +72,9 @@ describe('AnimalGroupCreateComponent', () => {
     const router = TestBed.inject(Router);
     vi.spyOn(router, 'navigate');
 
-    (fixture.nativeElement.querySelector('[data-testid="submit-button"]') as HTMLButtonElement).click();
+    (
+      fixture.nativeElement.querySelector('[data-testid="submit-button"]') as HTMLButtonElement
+    ).click();
 
     expect(apiStub.createAnimalGroup).toHaveBeenCalledWith({
       name: 'Engorde abril-2026',
@@ -79,14 +86,17 @@ describe('AnimalGroupCreateComponent', () => {
   });
 
   it('shows an error message when the API rejects', () => {
-    apiStub.createAnimalGroup = () => throwError(() => ({
-      error: { detail: 'El nombre del grupo no puede estar vacío.' },
-    }));
+    apiStub.createAnimalGroup = () =>
+      throwError(() => ({
+        error: { detail: 'El nombre del grupo no puede estar vacío.' },
+      }));
     const fixture = TestBed.createComponent(AnimalGroupCreateComponent);
     fixture.componentInstance.name = 'whatever';
     fixture.detectChanges();
 
-    (fixture.nativeElement.querySelector('[data-testid="submit-button"]') as HTMLButtonElement).click();
+    (
+      fixture.nativeElement.querySelector('[data-testid="submit-button"]') as HTMLButtonElement
+    ).click();
     fixture.detectChanges();
 
     const alert = fixture.nativeElement.querySelector('.alert-danger');

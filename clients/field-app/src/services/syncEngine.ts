@@ -1,14 +1,18 @@
 import { Database, Q } from '@nozbe/watermelondb';
 import NetInfo from '@react-native-community/netinfo';
 
+import { AppState, type NativeEventSubscription } from 'react-native';
+
 import { SyncMeta } from '../database/models';
 import { Outbox, OutboxStats } from './outbox';
+import { LoggerService } from './loggerService';
+import { newUuid } from './identifiers';
 import type { PushOperation, PushResult, SyncApi } from './syncApi';
 
 const CURSOR_KEY = 'pull_cursor';
 const MAX_PULL_PAGES = 200;
 
-export type SyncFailureReason = 'offline' | 'network' | 'auth' | 'unknown';
+export type SyncFailureReason = 'offline' | 'network' | 'auth' | 'unknown' | 'pending';
 
 export interface SyncResult {
   ok: boolean;
@@ -19,9 +23,12 @@ export interface SyncResult {
   stats: OutboxStats;
 }
 
+export type SyncChangeListener = (result: SyncResult) => void;
+
 export interface SyncEngineOptions {
   /** Must stay at or below the server's own batch ceiling (500). */
   batchSize?: number;
+  logger?: LoggerService;
 }
 
 /**
@@ -49,9 +56,24 @@ export function backoffDelayMs(consecutiveFailures: number): number {
 export class SyncEngine {
   private readonly outbox: Outbox;
   private readonly batchSize: number;
+  private readonly _logger: LoggerService;
+  private readonly changeListeners = new Set<SyncChangeListener>();
   private consecutiveFailures = 0;
   private running = false;
-  private unsubscribe?: () => void;
+  private inFlightSync?: Promise<SyncResult>;
+  private inFlightReset?: Promise<void>;
+
+  get isRunning(): boolean {
+    return this.running;
+  }
+
+  get logger(): LoggerService {
+    return this._logger;
+  }
+  private retryTimer?: ReturnType<typeof setTimeout>;
+  private isStarted = false;
+  private unsubscribeNetInfo?: () => void;
+  private appStateSubscription?: NativeEventSubscription | { remove: () => void };
 
   constructor(
     private readonly database: Database,
@@ -60,23 +82,77 @@ export class SyncEngine {
   ) {
     this.outbox = new Outbox(database);
     this.batchSize = options.batchSize ?? 100;
+    this._logger = options.logger ?? new LoggerService();
   }
 
   /**
-   * Opportunistic syncing: run when the signal returns. The employee never has to think
-   * about it, which is the point — they are wearing gloves and it is 5 AM.
+   * Subscribes to changes applied by synchronization (e.g. pushes acknowledged, pulls applied).
+   * Notifies container and screens so open views reflect confirmed database state.
+   */
+  subscribe(listener: SyncChangeListener): () => void {
+    this.changeListeners.add(listener);
+    return () => {
+      this.changeListeners.delete(listener);
+    };
+  }
+
+  private notifyChanges(result: SyncResult): void {
+    for (const listener of this.changeListeners) {
+      try {
+        listener(result);
+      } catch (error) {
+        this.logger.error('Error in sync change listener', { error: String(error) });
+      }
+    }
+  }
+
+  /**
+   * Opportunistic syncing: run when the signal returns or when returning to foreground (AppState).
+   * Also schedules retries on transient failures while active.
    */
   start(): void {
-    this.unsubscribe = NetInfo.addEventListener((state) => {
+    this.isStarted = true;
+    this.unsubscribeNetInfo = NetInfo.addEventListener((state) => {
       if (state.isConnected) {
+        void this.syncNow();
+      }
+    });
+
+    this.appStateSubscription = AppState.addEventListener('change', (state) => {
+      if (state === 'active') {
         void this.syncNow();
       }
     });
   }
 
   stop(): void {
-    this.unsubscribe?.();
-    this.unsubscribe = undefined;
+    this.isStarted = false;
+    this.clearRetryTimer();
+    this.unsubscribeNetInfo?.();
+    this.unsubscribeNetInfo = undefined;
+    this.appStateSubscription?.remove();
+    this.appStateSubscription = undefined;
+  }
+
+  private clearRetryTimer(): void {
+    if (this.retryTimer) {
+      clearTimeout(this.retryTimer);
+      this.retryTimer = undefined;
+    }
+  }
+
+  private scheduleRetry(): void {
+    this.clearRetryTimer();
+    if (!this.isStarted) return;
+
+    const delay = this.retryDelayMs;
+    this.retryTimer = setTimeout(() => {
+      this.retryTimer = undefined;
+      void this.syncNow();
+    }, delay);
+    if (typeof (this.retryTimer as any)?.unref === 'function') {
+      (this.retryTimer as any).unref();
+    }
   }
 
   /** Milliseconds the caller should wait before trying again, given the failures so far. */
@@ -89,37 +165,68 @@ export class SyncEngine {
   }
 
   async syncNow(): Promise<SyncResult> {
-    if (this.running) {
-      return this.result(false, 'unknown', 0, 0, 0);
+    if (this.inFlightReset) {
+      try {
+        await this.inFlightReset;
+      } catch {
+        // Handled by resetMirror caller
+      }
     }
 
+    if (this.inFlightSync) {
+      return this.inFlightSync;
+    }
+
+    this.clearRetryTimer();
     this.running = true;
+    this.inFlightSync = this.performSync();
     try {
-      const netState = await NetInfo.fetch();
-      if (!netState.isConnected) {
-        return this.result(false, 'offline', 0, 0, 0);
+      const result = await this.inFlightSync;
+      if (result.pulled > 0 || result.pushed > 0 || result.rejected > 0) {
+        this.notifyChanges(result);
       }
-
-      const push = await this.pushOutbox();
-      if (!push.ok) {
-        this.consecutiveFailures += 1;
-        return this.result(false, push.reason, push.pushed, push.rejected, 0);
+      if (!result.ok) {
+        // Transient network failures or pending pull pages are scheduled for retry
+        // while the app is active. Business rejections, offline states (handled by
+        // NetInfo listener), and expired sessions are not auto-retried.
+        if (result.reason !== 'offline' && result.reason !== 'auth') {
+          this.scheduleRetry();
+        }
       }
-
-      const pull = await this.pullChanges();
-      if (!pull.ok) {
-        this.consecutiveFailures += 1;
-        return this.result(false, pull.reason, push.pushed, push.rejected, pull.pulled);
-      }
-
-      this.consecutiveFailures = 0;
-      return this.result(true, undefined, push.pushed, push.rejected, pull.pulled);
+      return result;
     } finally {
       this.running = false;
+      this.inFlightSync = undefined;
     }
   }
 
-  private async pushOutbox(): Promise<{
+  private async performSync(): Promise<SyncResult> {
+    const netState = await NetInfo.fetch();
+    if (!netState.isConnected) {
+      return this.result(false, 'offline', 0, 0, 0);
+    }
+
+    const attemptId = newUuid();
+
+    const push = await this.pushOutbox(attemptId);
+    if (!push.ok) {
+      this.consecutiveFailures += 1;
+      return this.result(false, push.reason, push.pushed, push.rejected, 0);
+    }
+
+    const pull = await this.pullChanges(attemptId);
+    if (!pull.ok) {
+      if (pull.reason !== 'pending') {
+        this.consecutiveFailures += 1;
+      }
+      return this.result(false, pull.reason, push.pushed, push.rejected, pull.pulled);
+    }
+
+    this.consecutiveFailures = 0;
+    return this.result(true, undefined, push.pushed, push.rejected, pull.pulled);
+  }
+
+  private async pushOutbox(attemptId?: string): Promise<{
     ok: boolean;
     reason?: SyncFailureReason;
     pushed: number;
@@ -149,21 +256,73 @@ export class SyncEngine {
       } catch (error) {
         // The batch stays pending, untouched. Anything else would risk discarding work
         // that never reached the server.
+        this._logger.logError(`Push sync falló: ${String(error)}`, {
+          failedStage: 'push',
+          attemptId,
+          counts: { total: batch.length, pushed, rejected },
+        });
         return { ok: false, reason: classify(error), pushed, rejected };
       }
 
+      const cascadeRejectedIds = new Set<string>();
+
       for (const result of results) {
+        if (cascadeRejectedIds.has(result.clientOperationId)) {
+          continue;
+        }
+
         if (result.status === 'Rejected') {
           rejected += 1;
+          const matching = batch.find((b) => b.clientOperationId === result.clientOperationId);
+          this._logger.logWarn(`Operación rechazada por el servidor: ${result.clientOperationId}`, {
+            failedStage: 'push',
+            attemptId,
+            clientOperationId: result.clientOperationId,
+            operationType: matching?.operationType,
+            errorDetails: result.errorDetails,
+          });
           await this.outbox.markRejected(
             result.clientOperationId,
             result.errorDetails ?? 'El servidor rechazó la operación sin indicar el motivo.',
           );
+          if (matching?.operationType === 'recordBirth') {
+            rejected += await this.cascadeBirthRejection(
+              matching.payload,
+              result.errorDetails,
+              cascadeRejectedIds,
+            );
+          }
           continue;
         }
 
-        // Accepted and Duplicate are the same outcome from the phone's side: the record
-        // is on the server exactly once.
+        if (result.status === 'Duplicate' && result.errorDetails) {
+          // If a duplicate returns errorDetails, the operation was previously rejected
+          // on the server. Replaying it must preserve the rejection rather than whitewashing it.
+          rejected += 1;
+          const matching = batch.find((b) => b.clientOperationId === result.clientOperationId);
+          this._logger.logWarn(
+            `Operación duplicada rechazada por el servidor: ${result.clientOperationId}`,
+            {
+              failedStage: 'push',
+              attemptId,
+              clientOperationId: result.clientOperationId,
+              operationType: matching?.operationType,
+              errorDetails: result.errorDetails,
+            },
+          );
+          await this.outbox.markRejected(result.clientOperationId, result.errorDetails);
+          if (matching?.operationType === 'recordBirth') {
+            rejected += await this.cascadeBirthRejection(
+              matching.payload,
+              result.errorDetails,
+              cascadeRejectedIds,
+            );
+          }
+          continue;
+        }
+
+        // Accepted (and Duplicate without errorDetails, meaning previously accepted)
+        // are successful outcomes: the record was applied on the server.
         pushed += 1;
         await this.outbox.markSynced(result.clientOperationId, result.resultRef ?? undefined);
       }
@@ -175,7 +334,97 @@ export class SyncEngine {
     }
   }
 
-  private async pullChanges(): Promise<{
+  private async cascadeBirthRejection(
+    birthPayload: any,
+    errorDetails: string | undefined | null,
+    cascadeRejectedIds: Set<string>,
+  ): Promise<number> {
+    const offspring = birthPayload?.offspring;
+    const childIds: string[] = [];
+    if (Array.isArray(offspring)) {
+      for (const calf of offspring) {
+        const cid = calf?.childId ?? calf?.id;
+        if (cid && typeof cid === 'string') {
+          childIds.push(cid);
+        }
+      }
+    }
+
+    if (childIds.length === 0) return 0;
+
+    let cascadeCount = 0;
+    const pendingEntries = await this.outbox.pending();
+    for (const entry of pendingEntries) {
+      if (cascadeRejectedIds.has(entry.clientOperationId)) continue;
+      const targetAnimalId = (entry.payload as any)?.animalId ?? (entry.payload as any)?.id;
+      if (targetAnimalId && childIds.includes(String(targetAnimalId))) {
+        const rejectionReason = `Depende de un nacimiento rechazado: ${errorDetails ?? 'Parto rechazado por el servidor'}`;
+        await this.outbox.markRejected(entry.clientOperationId, rejectionReason);
+        cascadeRejectedIds.add(entry.clientOperationId);
+        cascadeCount += 1;
+      }
+    }
+    return cascadeCount;
+  }
+
+  /**
+   * Resets all mirror tables (those populated from the server via TABLE_BY_COLLECTION)
+   * and clears the stored pull cursor so the next sync performs a clean full download.
+   *
+   * Coordinates mutually exclusively with syncNow (running / inFlightSync).
+   *
+   * CRITICAL (Rule 10 & D8): NEVER touches sync_outbox, milk_yields, or any local-only tables.
+   */
+  async resetMirror(): Promise<void> {
+    if (this.inFlightReset) {
+      return this.inFlightReset;
+    }
+
+    const resetPromise = (async () => {
+      if (this.inFlightSync) {
+        try {
+          await this.inFlightSync;
+        } catch {
+          // Handled by syncNow caller
+        }
+      }
+
+      this.running = true;
+      try {
+        await this.performResetMirror();
+      } finally {
+        this.running = false;
+        this.inFlightReset = undefined;
+      }
+    })();
+
+    this.inFlightReset = resetPromise;
+    return resetPromise;
+  }
+
+  private async performResetMirror(): Promise<void> {
+    const mirrorTables = Array.from(new Set(Object.values(TABLE_BY_COLLECTION)));
+
+    await this.database.write(async () => {
+      for (const table of mirrorTables) {
+        const collection = this.database.get(table);
+        const records = await collection.query().fetch();
+        const destroyOps = records.map((r) => r.prepareDestroyPermanently());
+        if (destroyOps.length > 0) {
+          await this.database.batch(...destroyOps);
+        }
+      }
+
+      const metaCollection = this.database.get<SyncMeta>('sync_meta');
+      const metaRecords = await metaCollection.query(Q.where('key', CURSOR_KEY)).fetch();
+      const metaDestroyOps = metaRecords.map((r) => r.prepareDestroyPermanently());
+      if (metaDestroyOps.length > 0) {
+        await this.database.batch(...metaDestroyOps);
+      }
+    });
+  }
+
+  private async pullChanges(attemptId?: string): Promise<{
     ok: boolean;
     reason?: SyncFailureReason;
     pulled: number;
@@ -188,10 +437,24 @@ export class SyncEngine {
       try {
         response = await this.api.pull(cursor, this.batchSize);
       } catch (error) {
+        this._logger.logError(`Pull sync falló: ${String(error)}`, {
+          failedStage: 'pull',
+          attemptId,
+          counts: { pulled },
+        });
         return { ok: false, reason: classify(error), pulled };
       }
 
-      pulled += await this.applyCollections(response.collections);
+      try {
+        pulled += await this.applyCollections(response.collections, attemptId);
+      } catch (error) {
+        this._logger.logError(`Aplicación de colecciones falló: ${String(error)}`, {
+          failedStage: 'apply',
+          attemptId,
+          counts: { pulled },
+        });
+        return { ok: false, reason: classify(error), pulled };
+      }
 
       cursor = response.cursor || cursor;
       if (cursor) {
@@ -203,7 +466,7 @@ export class SyncEngine {
       }
     }
 
-    return { ok: true, pulled };
+    return { ok: false, reason: 'pending', pulled };
   }
 
   /**
@@ -213,17 +476,33 @@ export class SyncEngine {
    */
   private async applyCollections(
     collections: Record<string, Array<Record<string, unknown>>>,
+    attemptId?: string,
   ): Promise<number> {
     let applied = 0;
+    let hasUnknown = false;
 
     for (const [collectionName, rows] of Object.entries(collections)) {
       const table = TABLE_BY_COLLECTION[collectionName];
-      if (!table || !Array.isArray(rows) || rows.length === 0) {
+      if (!table) {
+        this._logger.logError(`Colección no reconocida en sincronización: ${collectionName}`, {
+          failedStage: 'apply',
+          attemptId,
+          collection: collectionName,
+          counts: { total: Array.isArray(rows) ? rows.length : 0 },
+        });
+        hasUnknown = true;
+        continue;
+      }
+
+      if (!Array.isArray(rows) || rows.length === 0) {
         continue;
       }
 
       const ids = rows.map((row) => String(row.id));
-      const existing = await this.database.get(table).query(Q.where('id', Q.oneOf(ids))).fetch();
+      const existing = await this.database
+        .get(table)
+        .query(Q.where('id', Q.oneOf(ids)))
+        .fetch();
       const byId = new Map(existing.map((record) => [record.id, record]));
 
       const operations = rows.map((row) => {
@@ -259,6 +538,10 @@ export class SyncEngine {
       });
 
       applied += ops.length;
+    }
+
+    if (hasUnknown) {
+      throw new Error('Colección no reconocida recibida durante la sincronización');
     }
 
     return applied;
@@ -325,8 +608,15 @@ const TABLE_BY_COLLECTION: Record<string, string> = {
   administrationRoutes: 'administration_routes',
   // 3.5a.2-A: catalog of treatment reasons (scheduled, curative, preventive).
   treatmentReasons: 'treatment_reasons',
+  // 3.5a.2-B/C: dose-form catalog (absolute, per_weight, per_head).
+  doseKinds: 'dose_kinds',
   // 3.5a.6 (ADR-0022): plausibility ranges for offline validation.
   plausibilityRanges: 'plausibility_ranges',
+  // 3.5a.1 (ADR-0015) + BACKLOG "AnimalEvent grupal aún no viaja en el pull":
+  // animal- and group-subject event history, needed by 3.5a.7's lot record.
+  animalEvents: 'animal_events',
+  pregnancies: 'pregnancies',
+  breedingServices: 'breeding_services',
 };
 
 /**
@@ -334,7 +624,7 @@ const TABLE_BY_COLLECTION: Record<string, string> = {
  * are stored under `server*` names because WatermelonDB reserves the plain ones for its
  * own bookkeeping.
  */
-function applyRow(record: any, row: Record<string, unknown>): void {
+export function applyRow(record: any, row: Record<string, unknown>): void {
   for (const [key, value] of Object.entries(row)) {
     if (key === 'id') continue;
 
@@ -342,7 +632,12 @@ function applyRow(record: any, row: Record<string, unknown>): void {
       // Server dates arrive as ISO strings; WatermelonDB number columns need epoch ms.
       // lastEditedAt keeps its own name (unlike created/updatedAt) because there is no
       // WatermelonDB-reserved field it collides with.
-      const target = key === 'createdAt' ? 'serverCreatedAt' : key === 'updatedAt' ? 'serverUpdatedAt' : 'lastEditedAt';
+      const target =
+        key === 'createdAt'
+          ? 'serverCreatedAt'
+          : key === 'updatedAt'
+            ? 'serverUpdatedAt'
+            : 'lastEditedAt';
       if (target in record) {
         record[target] = value ? Date.parse(String(value)) : undefined;
       }
@@ -352,10 +647,6 @@ function applyRow(record: any, row: Record<string, unknown>): void {
     if (key in record) {
       record[key] = value ?? undefined;
     }
-  }
-
-  if ('isDeleted' in record) {
-    record.isDeleted = false;
   }
 }
 

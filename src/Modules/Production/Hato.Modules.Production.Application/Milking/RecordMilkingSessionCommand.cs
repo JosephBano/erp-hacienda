@@ -17,7 +17,8 @@ public record RecordMilkingSessionCommand(
     decimal TotalLiters,
     Guid? GroupId = null,
     string? Notes = null,
-    List<IndividualYieldItem>? IndividualYields = null) : IRequest<Guid>;
+    List<IndividualYieldItem>? IndividualYields = null,
+    bool IsPlausibilityConfirmed = false) : IRequest<Guid>;
 
 public class RecordMilkingSessionValidator : AbstractValidator<RecordMilkingSessionCommand>
 {
@@ -29,7 +30,10 @@ public class RecordMilkingSessionValidator : AbstractValidator<RecordMilkingSess
     }
 }
 
-public class RecordMilkingSessionHandler(IProductionDbContext dbContext, IWithdrawalPeriodsReader withdrawals)
+public class RecordMilkingSessionHandler(
+    IProductionDbContext dbContext,
+    IWithdrawalPeriodsReader withdrawals,
+    IMilkingEligibilityReader milkingEligibility)
     : IRequestHandler<RecordMilkingSessionCommand, Guid>
 {
     public async Task<Guid> Handle(RecordMilkingSessionCommand request, CancellationToken cancellationToken)
@@ -47,18 +51,40 @@ public class RecordMilkingSessionHandler(IProductionDbContext dbContext, IWithdr
                     $"El grupo tiene animal(es) con período de retiro de leche activo y no puede registrarse el ordeño grupal: {string.Join(", ", withheldInGroup)}.");
         }
 
-        var session = MilkingSession.Create(
-            request.Date,
-            request.Shift,
-            request.RecordedBy,
-            request.TotalLiters,
-            request.GroupId,
-            request.Notes);
-
         if (request.IndividualYields is not null && request.IndividualYields.Count > 0)
         {
+            var distinctAnimalIds = request.IndividualYields.Select(y => y.AnimalId).Distinct().ToList();
+            var eligibilityMap = await milkingEligibility.GetEligibilityBatchAsync(distinctAnimalIds, cancellationToken);
+
             foreach (var item in request.IndividualYields)
             {
+                if (!eligibilityMap.TryGetValue(item.AnimalId, out var eligibility) || !eligibility.Exists)
+                {
+                    throw new DomainException($"El animal con ID '{item.AnimalId}' no existe.");
+                }
+
+                if (!eligibility.IsFemale)
+                {
+                    throw new DomainException("Solo se pueden ordeñar animales de sexo hembra.");
+                }
+
+                if (eligibility.DisposedAt is { } disposedAt)
+                {
+                    var disposedDate = DateOnly.FromDateTime(disposedAt.UtcDateTime);
+                    if (disposedDate <= request.Date)
+                    {
+                        throw new DomainException("El animal fue dado de baja y no puede ser ordeñado.");
+                    }
+                }
+
+                if (!eligibility.IsSpeciesMilkable)
+                {
+                    throw new DomainException(
+                        string.IsNullOrWhiteSpace(eligibility.SpeciesName)
+                            ? "La especie no es ordeñable."
+                            : $"La especie '{eligibility.SpeciesName}' no está habilitada para ordeño.");
+                }
+
                 // Art. 19: milk from an animal under an active withdrawal cannot be sold —
                 // enforced here at the point of entry, not left to a report someone reads later.
                 var isWithheld = await withdrawals.HasActiveWithdrawalAsync(
@@ -67,7 +93,22 @@ public class RecordMilkingSessionHandler(IProductionDbContext dbContext, IWithdr
                 if (isWithheld)
                     throw new DomainException(
                         $"El animal '{item.AnimalId}' tiene un período de retiro de leche activo y no puede registrarse su producción.");
+            }
+        }
 
+        var session = MilkingSession.Create(
+            request.Date,
+            request.Shift,
+            request.RecordedBy,
+            request.TotalLiters,
+            request.GroupId,
+            request.Notes,
+            isPlausibilityConfirmed: request.IsPlausibilityConfirmed);
+
+        if (request.IndividualYields is not null && request.IndividualYields.Count > 0)
+        {
+            foreach (var item in request.IndividualYields)
+            {
                 var y = session.RecordAnimalYield(item.AnimalId, item.Liters);
                 dbContext.MilkYields.Add(y);
             }

@@ -14,6 +14,7 @@ import { LoginComponent } from './components/login/login.component';
 import { AnimalGroupsListComponent } from './components/animal-groups-list/animal-groups-list.component';
 import { AnimalGroupCreateComponent } from './components/animal-group-create/animal-group-create.component';
 import { AnimalGroupDetailComponent } from './components/animal-group-detail/animal-group-detail.component';
+import { InventoryItemDetailComponent } from './components/inventory-item-detail/inventory-item-detail.component';
 import { authGuard } from './guards/auth.guard';
 import { permissionGuard } from './guards/permission.guard';
 
@@ -29,37 +30,42 @@ export const routes: Routes = [
   {
     path: 'animal-groups',
     component: AnimalGroupsListComponent,
-    canActivate: [authGuard, permissionGuard('livestock.animals.write')]
+    canActivate: [authGuard, permissionGuard('livestock.animals.write')],
   },
   {
     path: 'animal-groups/new',
     component: AnimalGroupCreateComponent,
-    canActivate: [authGuard, permissionGuard('livestock.animals.write')]
+    canActivate: [authGuard, permissionGuard('livestock.animals.write')],
   },
   {
     path: 'animal-groups/:id',
     component: AnimalGroupDetailComponent,
-    canActivate: [authGuard, permissionGuard('livestock.animals.write')]
+    canActivate: [authGuard, permissionGuard('livestock.animals.write')],
+  },
+  {
+    path: 'inventory/items/:id',
+    component: InventoryItemDetailComponent,
+    canActivate: [authGuard, permissionGuard('inventory.items.manage')],
   },
   {
     path: 'roles',
     component: RolesManagementComponent,
-    canActivate: [authGuard, permissionGuard('people.roles.manage')]
+    canActivate: [authGuard, permissionGuard('people.roles.manage')],
   },
   {
     path: 'audit',
     component: AuditLogComponent,
-    canActivate: [authGuard, permissionGuard('people.users.manage')]
+    canActivate: [authGuard, permissionGuard('people.users.manage')],
   },
   {
     path: 'sync',
     component: SyncTrayComponent,
-    canActivate: [authGuard, permissionGuard('people.users.manage')]
+    canActivate: [authGuard, permissionGuard('people.users.manage')],
   },
   {
     path: 'catalogs',
     component: CatalogsComponent,
-    canActivate: [authGuard, permissionGuard('livestock.species.manage')]
+    canActivate: [authGuard, permissionGuard('livestock.species.manage')],
   },
-  { path: '**', redirectTo: '' }
+  { path: '**', redirectTo: '' },
 ];

@@ -1,7 +1,7 @@
 import { schemaMigrations, createTable, addColumns } from '@nozbe/watermelondb/Schema/migrations';
 
 /**
- * Versioned local migrations (PLAN-FASE-3-4 sec.3.B).
+ * Versioned local migrations (docs/spec/plan-0001-fase-3/spec.md sec.3.B).
  *
  * A phone in the field cannot be wiped and re-seeded to pick up a schema change: it may
  * be carrying a week of unsynced records. Every schema bump therefore needs a migration
@@ -189,6 +189,95 @@ export const migrations = schemaMigrations({
             { name: 'is_active', type: 'boolean' },
             { name: 'is_deleted', type: 'boolean' },
           ],
+        }),
+      ],
+    },
+    {
+      toVersion: 9,
+      steps: [
+        // 3.5a.1 (ADR-0015) + BACKLOG "AnimalEvent grupal aún no viaja en el
+        // pull": the event history (individual and group-subject) now travels
+        // on the pull, which is what 3.5a.7's lot record needs. A phone in
+        // the field cannot be wiped to pick this up (docs/spec/plan-0001-fase-3/spec.md sec.3.B),
+        // so this is a real migration, not a fresh install requirement.
+        createTable({
+          name: 'animal_events',
+          columns: [
+            { name: 'animal_id', type: 'string', isOptional: true, isIndexed: true },
+            { name: 'group_id', type: 'string', isOptional: true, isIndexed: true },
+            { name: 'event_type', type: 'string', isIndexed: true },
+            { name: 'occurred_at', type: 'string', isIndexed: true },
+            { name: 'recorded_by', type: 'string' },
+            { name: 'recorded_by_id', type: 'string', isOptional: true },
+            { name: 'payload_json', type: 'string' },
+            { name: 'cost', type: 'number', isOptional: true },
+            { name: 'related_event_id', type: 'string', isOptional: true },
+            { name: 'affected_count', type: 'number', isOptional: true },
+            { name: 'cause_id', type: 'string', isOptional: true },
+            { name: 'route_id', type: 'string', isOptional: true },
+            { name: 'reason', type: 'string', isOptional: true },
+            { name: 'batch_id', type: 'string', isOptional: true },
+            { name: 'health_plan_item_id', type: 'string', isOptional: true },
+            { name: 'applied_by_user_id', type: 'string', isOptional: true },
+            { name: 'is_deleted', type: 'boolean' },
+          ],
+        }),
+      ],
+    },
+    {
+      toVersion: 10,
+      steps: [
+        // 3.5a.2-C: dose-form catalog, mirrored so VaccinateScreen/TreatScreen
+        // can resolve a DoseKindId offline for createTreatmentCourse (Art. 9).
+        createTable({
+          name: 'dose_kinds',
+          columns: [
+            { name: 'key', type: 'string', isIndexed: true },
+            { name: 'label_es', type: 'string' },
+            { name: 'is_active', type: 'boolean' },
+            { name: 'is_deleted', type: 'boolean' },
+          ],
+        }),
+      ],
+    },
+    {
+      toVersion: 11,
+      steps: [
+        createTable({
+          name: 'pregnancies',
+          columns: [
+            { name: 'dam_id', type: 'string', isIndexed: true },
+            { name: 'service_id', type: 'string', isOptional: true },
+            { name: 'status', type: 'string', isIndexed: true },
+            { name: 'expected_birth_date', type: 'string', isOptional: true },
+            { name: 'is_deleted', type: 'boolean' },
+            { name: 'server_created_at', type: 'number' },
+            { name: 'server_updated_at', type: 'number', isOptional: true },
+          ],
+        }),
+        createTable({
+          name: 'breeding_services',
+          columns: [
+            { name: 'dam_id', type: 'string', isIndexed: true },
+            { name: 'service_type', type: 'string' },
+            { name: 'sire_animal_id', type: 'string', isOptional: true },
+            { name: 'straw_id', type: 'string', isOptional: true },
+            { name: 'is_deleted', type: 'boolean' },
+            { name: 'server_created_at', type: 'number' },
+            { name: 'server_updated_at', type: 'number', isOptional: true },
+          ],
+        }),
+      ],
+    },
+    {
+      toVersion: 12,
+      steps: [
+        // feature-0005: carry the animal disposal state to the field app (D1, D5)
+        // so candidate filters and retrospective validations can tell when an animal
+        // left the herd, without reducing the historical record.
+        addColumns({
+          table: 'animals',
+          columns: [{ name: 'disposed_at', type: 'string', isOptional: true }],
         }),
       ],
     },

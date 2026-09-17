@@ -23,12 +23,18 @@ public record AnimalEventDto(
     string? Reason,
     Guid? BatchId,
     Guid? HealthPlanItemId,
-    Guid? AppliedByUserId);
+    Guid? AppliedByUserId,
+    // 3.5a.2-B task 9: set once this legacy event has been migrated to a
+    // synthetic TreatmentCourse.
+    Guid? MigratedToCourseId);
 
 public record WithdrawalPeriodDto(
     Guid Id,
     Guid AnimalId,
-    Guid EventId,
+    // Nullable since 3.5a.2-B: a period anchored to a TreatmentCourse carries
+    // TreatmentCourseId instead (WithdrawalPeriod's Event-xor-Course invariant).
+    Guid? EventId,
+    Guid? TreatmentCourseId,
     WithdrawalTarget Target,
     DateOnly StartsAt,
     DateOnly EndsAt,
@@ -66,7 +72,8 @@ public class GetAnimalEventsHandler(ILivestockDbContext dbContext)
             e.Reason,
             e.BatchId,
             e.HealthPlanItemId,
-            e.AppliedByUserId
+            e.AppliedByUserId,
+            e.MigratedToCourseId
         )).ToList();
     }
 }
@@ -85,6 +92,7 @@ public class GetActiveWithdrawalsHandler(ILivestockDbContext dbContext)
             w.Id,
             w.AnimalId,
             w.EventId,
+            w.TreatmentCourseId,
             w.Target,
             w.StartsAt,
             w.EndsAt,

@@ -65,7 +65,11 @@ export class ModuleVisibility {
    * row. The row is created on first use so a phone that has never received
    * a pull can still be configured locally.
    */
-  async setEnabled(key: ModuleKey, enabled: boolean, updatedBy: string = 'field-app'): Promise<void> {
+  async setEnabled(
+    key: ModuleKey,
+    enabled: boolean,
+    updatedBy: string = 'field-app',
+  ): Promise<void> {
     const rows = await this.database
       .get<FarmModule>('farm_modules')
       .query(Q.where('key', key))

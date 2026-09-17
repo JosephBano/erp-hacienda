@@ -1,6 +1,7 @@
 using FluentValidation;
 using Hato.Modules.Livestock.Application.HealthPlans;
 using Hato.Modules.Livestock.Application.PlausibilityRanges;
+using Hato.Modules.Livestock.Application.TreatmentCourses;
 using Hato.Modules.Livestock.Domain.Exceptions;
 using Hato.SharedKernel;
 using Microsoft.AspNetCore.Diagnostics;
@@ -20,6 +21,7 @@ public class ApiExceptionHandler : IExceptionHandler
             DomainException => (StatusCodes.Status400BadRequest, "Regla de negocio violada"),
             DuplicateHealthPlanException => (StatusCodes.Status409Conflict, "Plan duplicado"),
             DuplicatePlausibilityRangeException => (StatusCodes.Status409Conflict, "Combinación duplicada"),
+            MissingWeighingForDoseException => (StatusCodes.Status400BadRequest, "Falta un pesaje para calcular la dosis"),
             AnimalGroupStateException => (StatusCodes.Status409Conflict, "Estado del grupo no permite la operación"),
             UnauthorizedAccessException => (StatusCodes.Status401Unauthorized, "No autorizado"),
             KeyNotFoundException => (StatusCodes.Status404NotFound, "No encontrado"),
@@ -44,6 +46,14 @@ public class ApiExceptionHandler : IExceptionHandler
             problemDetails.Extensions["errors"] = validationException.Errors
                 .GroupBy(e => e.PropertyName)
                 .ToDictionary(g => g.Key, g => g.Select(e => e.ErrorMessage).ToArray());
+        }
+
+        if (exception is MissingWeighingForDoseException)
+        {
+            // Typed error code (task 6/test 4): the field-app branches on this
+            // instead of parsing the Spanish sentence to offer "switch to Absolute,
+            // or weigh first" (sub-plan risk table).
+            problemDetails.Extensions["errorCode"] = MissingWeighingForDoseException.ErrorCode;
         }
 
         httpContext.Response.StatusCode = statusCode;

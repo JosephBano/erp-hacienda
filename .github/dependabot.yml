@@ -1,0 +1,10 @@
+version: 2
+updates:
+  # Alcance acotado exclusivamente a GitHub Actions (D9 / spec.md sec. 3).
+  # No se configuran ecosistemas de actualización de versiones para NuGet ni npm
+  # para cumplir con AGENTS.md regla 2 (requiere ADR para cada nueva dependencia).
+  # Las alertas de seguridad se gestionan mediante GitHub Dependabot Alerts nativo.
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"

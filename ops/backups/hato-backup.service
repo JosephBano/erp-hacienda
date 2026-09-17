@@ -1,0 +1,22 @@
+[Unit]
+Description=HATO ERP - Automated Encrypted PostgreSQL Backup
+Documentation=file:///home/joeman/Documents/proyects/erp-hacienda/docs/BACKUPS.md
+After=network-online.target docker.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=hato-backup
+Group=hato-backup
+EnvironmentFile=-/etc/hato-backup/backup.env
+ExecStart=/usr/local/bin/hato-backup-daily
+TimeoutStartSec=1800
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/var/backups/hato-db /tmp /var/log
+# NoNewPrivileges=false is required so hato-backup can sudo to the root-owned helper
+NoNewPrivileges=false
+
+[Install]
+WantedBy=multi-user.target

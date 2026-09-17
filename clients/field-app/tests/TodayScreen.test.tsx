@@ -24,13 +24,15 @@ describe('TodayScreen', () => {
     }) as unknown as typeof fetch;
   });
 
-  const noopOutbox = (): Outbox => ({
-    cancelPending: jest.fn().mockResolvedValue('cancelled'),
-  } as unknown as Outbox);
+  const noopOutbox = (): Outbox =>
+    ({
+      cancelPending: jest.fn().mockResolvedValue('cancelled'),
+    }) as unknown as Outbox;
 
-  const noopEvents = (): EventService => ({
-    recordCorrection: jest.fn().mockResolvedValue({ clientOperationId: 'new-op' }),
-  } as unknown as EventService);
+  const noopEvents = (): EventService =>
+    ({
+      recordCorrection: jest.fn().mockResolvedValue({ clientOperationId: 'new-op' }),
+    }) as unknown as EventService;
 
   it('shows the empty-state when nothing has been recorded today', async () => {
     await render(
@@ -47,8 +49,18 @@ describe('TodayScreen', () => {
 
   it('lists one row per recorded entry, newest first', async () => {
     const entries = [
-      { clientOperationId: 'op-2', operationType: 'recordAnimalEvent', occurredAt: '2026-08-06T15:00:00.000Z', status: 'pending' as const },
-      { clientOperationId: 'op-1', operationType: 'recordMilking', occurredAt: '2026-08-06T05:00:00.000Z', status: 'pending' as const },
+      {
+        clientOperationId: 'op-2',
+        operationType: 'recordAnimalEvent',
+        occurredAt: '2026-08-06T15:00:00.000Z',
+        status: 'pending' as const,
+      },
+      {
+        clientOperationId: 'op-1',
+        operationType: 'recordMilking',
+        occurredAt: '2026-08-06T05:00:00.000Z',
+        status: 'pending' as const,
+      },
     ];
     await render(
       <TodayScreen
@@ -64,21 +76,32 @@ describe('TodayScreen', () => {
     const rows = screen
       .getAllByTestId(/^today-row-/)
       .map((node) => node.props.testID)
-      .filter((id) =>
-        !id.endsWith('-label') &&
-        !id.includes('-status-') &&
-        !id.endsWith('-correct') &&
-        !id.endsWith('-reason') &&
-        !id.endsWith('-submit') &&
-        !id.endsWith('-cancel'),
+      .filter(
+        (id) =>
+          !id.endsWith('-label') &&
+          !id.includes('-status-') &&
+          !id.endsWith('-correct') &&
+          !id.endsWith('-reason') &&
+          !id.endsWith('-submit') &&
+          !id.endsWith('-cancel'),
       );
     expect(rows).toEqual(['today-row-op-2', 'today-row-op-1']);
   });
 
   it('shows the human label for each operation type', async () => {
     const entries = [
-      { clientOperationId: 'op-1', operationType: 'recordMilking', occurredAt: '2026-08-06T05:00:00.000Z', status: 'pending' as const },
-      { clientOperationId: 'op-2', operationType: 'recordBirth', occurredAt: '2026-08-06T07:00:00.000Z', status: 'synced' as const },
+      {
+        clientOperationId: 'op-1',
+        operationType: 'recordMilking',
+        occurredAt: '2026-08-06T05:00:00.000Z',
+        status: 'pending' as const,
+      },
+      {
+        clientOperationId: 'op-2',
+        operationType: 'recordBirth',
+        occurredAt: '2026-08-06T07:00:00.000Z',
+        status: 'synced' as const,
+      },
     ];
     await render(
       <TodayScreen
@@ -95,8 +118,18 @@ describe('TodayScreen', () => {
 
   it('marks a synced entry differently from a pending one', async () => {
     const entries = [
-      { clientOperationId: 'op-1', operationType: 'recordMilking', occurredAt: '2026-08-06T05:00:00.000Z', status: 'synced' as const },
-      { clientOperationId: 'op-2', operationType: 'recordMilking', occurredAt: '2026-08-06T06:00:00.000Z', status: 'pending' as const },
+      {
+        clientOperationId: 'op-1',
+        operationType: 'recordMilking',
+        occurredAt: '2026-08-06T05:00:00.000Z',
+        status: 'synced' as const,
+      },
+      {
+        clientOperationId: 'op-2',
+        operationType: 'recordMilking',
+        occurredAt: '2026-08-06T06:00:00.000Z',
+        status: 'pending' as const,
+      },
     ];
     await render(
       <TodayScreen
@@ -119,16 +152,16 @@ describe('TodayScreen', () => {
     const entries = [
       // Today only recordAnimalEvent is correctable from the phone
       // (recordBirth / recordMilking are deferred to 3.5b — see ADR-0020).
-      { clientOperationId: 'op-1', operationType: 'recordAnimalEvent', occurredAt: '2026-08-06T05:00:00.000Z', status: 'pending' as const },
+      {
+        clientOperationId: 'op-1',
+        operationType: 'recordAnimalEvent',
+        occurredAt: '2026-08-06T05:00:00.000Z',
+        status: 'pending' as const,
+      },
     ];
 
     await render(
-      <TodayScreen
-        entries={entries}
-        outbox={outbox}
-        events={noopEvents()}
-        onChanged={onChanged}
-      />,
+      <TodayScreen entries={entries} outbox={outbox} events={noopEvents()} onChanged={onChanged} />,
     );
 
     fireEvent.press(await screen.findByTestId('today-row-op-1-correct'));
@@ -157,12 +190,7 @@ describe('TodayScreen', () => {
     ];
 
     await render(
-      <TodayScreen
-        entries={entries}
-        outbox={outbox}
-        events={events}
-        onChanged={onChanged}
-      />,
+      <TodayScreen entries={entries} outbox={outbox} events={events} onChanged={onChanged} />,
     );
 
     fireEvent.press(await screen.findByTestId('today-row-op-1-correct'));
@@ -206,5 +234,69 @@ describe('TodayScreen', () => {
     fireEvent.press(await screen.findByTestId('today-row-op-1-correct'));
 
     expect(await screen.findByTestId('today-row-op-1-reason')).toBeTruthy();
+  });
+
+  it('T8.2: displays plain language error explanation for rejected entries without technical jargon', async () => {
+    const entries = [
+      {
+        clientOperationId: 'op-rej-1',
+        operationType: 'recordAnimalEvent',
+        occurredAt: '2026-08-06T05:00:00.000Z',
+        status: 'rejected' as const,
+        errorDetails:
+          'Error: Male animal is incompatible with milking yield operation table animal_events cursor 1234',
+      },
+    ];
+
+    await render(
+      <TodayScreen
+        entries={entries}
+        outbox={noopOutbox()}
+        events={noopEvents()}
+        onChanged={() => undefined}
+      />,
+    );
+
+    // Rejection notice is displayed
+    const rejectionNotice = await screen.findByTestId('today-row-op-rej-1-rejection');
+    expect(rejectionNotice).toBeTruthy();
+    // Sanitized without UUID/table/cursor technical jargon
+    expect(screen.getByText(/no es apto para esta actividad/i)).toBeTruthy();
+  });
+
+  it('T8.5: renders status badges distinguishing local pending, synced, and rejected entries', async () => {
+    const entries = [
+      {
+        clientOperationId: 'op-1',
+        operationType: 'recordMilking',
+        occurredAt: '2026-08-06T05:00:00.000Z',
+        status: 'pending' as const,
+      },
+      {
+        clientOperationId: 'op-2',
+        operationType: 'recordMilking',
+        occurredAt: '2026-08-06T06:00:00.000Z',
+        status: 'synced' as const,
+      },
+      {
+        clientOperationId: 'op-3',
+        operationType: 'recordMilking',
+        occurredAt: '2026-08-06T07:00:00.000Z',
+        status: 'rejected' as const,
+      },
+    ];
+
+    await render(
+      <TodayScreen
+        entries={entries}
+        outbox={noopOutbox()}
+        events={noopEvents()}
+        onChanged={() => undefined}
+      />,
+    );
+
+    expect(await screen.findByText('Guardado local')).toBeTruthy();
+    expect(screen.getByText('Al día')).toBeTruthy();
+    expect(screen.getByText('Rechazado')).toBeTruthy();
   });
 });

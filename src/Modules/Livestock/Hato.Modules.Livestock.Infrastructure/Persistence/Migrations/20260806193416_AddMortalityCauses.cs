@@ -8,7 +8,7 @@ namespace Hato.Modules.Livestock.Infrastructure.Persistence.Migrations
     /// <inheritdoc />
     public partial class AddMortalityCauses : Migration
     {
-        // PLAN-FASE-3-5-PORCINO.md sec.3.5a.3: the standard list, ampliable from the panel.
+        // docs/spec/plan-0002-fase-3-5/spec-3.5a.md sec.3.5a.3: the standard list, ampliable from the panel.
         // The client's own list may differ (sec.7-B) — this is a starting point, not a
         // closed catalog, and the seed exists so the branch is testable from day one
         // instead of shipping an empty, silently-useless table.

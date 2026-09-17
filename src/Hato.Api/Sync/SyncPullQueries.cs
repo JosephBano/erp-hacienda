@@ -1,4 +1,5 @@
 using System.Linq.Expressions;
+using Hato.Modules.Breeding.Application.Abstractions;
 using Hato.Modules.Inventory.Application.Abstractions;
 using Hato.Modules.Livestock.Application.Abstractions;
 using Hato.Modules.People.Application.Abstractions;
@@ -40,10 +41,11 @@ public record SyncCollectionsDto(
     List<SyncFarmModuleDto> FarmModules,
     List<SyncAdministrationRouteDto> AdministrationRoutes,
     List<SyncTreatmentReasonDto> TreatmentReasons,
-    List<SyncHealthPlanDto> HealthPlans,
-    List<SyncHealthPlanItemDto> HealthPlanItems,
-    List<SyncHealthPlanAssignmentDto> HealthPlanAssignments,
-    List<SyncPlausibilityRangeDto> PlausibilityRanges);
+    List<SyncDoseKindDto> DoseKinds,
+    List<SyncPlausibilityRangeDto> PlausibilityRanges,
+    List<SyncAnimalEventDto> AnimalEvents,
+    List<SyncPregnancyDto> Pregnancies,
+    List<SyncBreedingServiceDto> BreedingServices);
 
 public record SyncAnimalDto(
     Guid Id,
@@ -62,7 +64,8 @@ public record SyncAnimalDto(
     // next updateAnimal push, so the server can tell whether another write landed on
     // the row after this device last saw it. Distinct from UpdatedAt, which is server
     // processing time and would make conflict resolution depend on network luck.
-    DateTimeOffset? LastEditedAt) : ISyncRow;
+    DateTimeOffset? LastEditedAt,
+    DateTimeOffset? DisposedAt = null) : ISyncRow;
 
 public record SyncAnimalIdentifierDto(
     Guid Id,
@@ -139,7 +142,11 @@ public record SyncInventoryItemDto(
 public record SyncWithdrawalPeriodDto(
     Guid Id,
     Guid AnimalId,
-    Guid EventId,
+    // Nullable since 3.5a.2-B: a period anchored to a TreatmentCourse carries
+    // TreatmentCourseId instead (see WithdrawalPeriod's Event-xor-Course invariant).
+    // The field-app mirror table update for this new shape is 3.5a.2-C scope.
+    Guid? EventId,
+    Guid? TreatmentCourseId,
     string Target,
     DateOnly StartsAt,
     DateOnly EndsAt,
@@ -178,9 +185,24 @@ public record SyncFarmModuleDto(
 /// The administration routes catalog (3.5a.2-A). The field app uses these to
 /// populate the "via de administración" picker when registering a treatment
 /// offline — without them it cannot build a structured treatment payload
-/// (PLAN-FASE-3-5-PORCINO-3.5a.2-A sec.7).
+/// (docs/spec/plan-0002-fase-3-5/sub-planes/3.5a.2-A.md sec.7).
 /// </summary>
 public record SyncAdministrationRouteDto(
+    Guid Id,
+    string Key,
+    string LabelEs,
+    bool IsActive,
+    DateTimeOffset CreatedAt,
+    DateTimeOffset? UpdatedAt,
+    bool IsDeleted) : ISyncRow;
+
+/// <summary>
+/// The dose-form catalog (3.5a.2-B: absolute / per_weight / per_head), mirrored so
+/// <c>VaccinateScreen</c> and <c>TreatScreen</c> (3.5a.2-C) can resolve a
+/// <c>DoseKindId</c> for <c>createTreatmentCourse</c> offline (Art. 9) instead of
+/// hardcoding the seed's stable GUIDs client-side.
+/// </summary>
+public record SyncDoseKindDto(
     Guid Id,
     string Key,
     string LabelEs,
@@ -198,51 +220,6 @@ public record SyncTreatmentReasonDto(
     Guid Id,
     string Key,
     string LabelEs,
-    bool IsActive,
-    DateTimeOffset CreatedAt,
-    DateTimeOffset? UpdatedAt,
-    bool IsDeleted) : ISyncRow;
-
-/// <summary>
-/// Health plan catalog (3.5b.1, ADR-0016). The field-app needs the cronogram
-/// locally so it can resolve theoretical dates offline and stamp the
-/// <c>health_plan_item_id</c> on a treatment when the user is in the corral.
-/// </summary>
-public record SyncHealthPlanDto(
-    Guid Id,
-    string Name,
-    Guid SpeciesId,
-    bool IsActive,
-    DateTimeOffset CreatedAt,
-    DateTimeOffset? UpdatedAt,
-    bool IsDeleted) : ISyncRow;
-
-public record SyncHealthPlanItemDto(
-    Guid Id,
-    Guid HealthPlanId,
-    string Name,
-    string EventType,
-    string Anchor,
-    int AnchorOffsetDays,
-    int ComplianceWindowDays,
-    Guid? InventoryItemId,
-    Guid? RouteId,
-    decimal? DoseQuantity,
-    Guid? DoseUnitId,
-    int? Repetitions,
-    Guid? AppliesToCategoryId,
-    string? AppliesToSex,
-    bool IsActive,
-    DateTimeOffset CreatedAt,
-    DateTimeOffset? UpdatedAt,
-    bool IsDeleted) : ISyncRow;
-
-public record SyncHealthPlanAssignmentDto(
-    Guid Id,
-    Guid HealthPlanId,
-    Guid? AnimalId,
-    Guid? GroupId,
-    DateTimeOffset AssignedAt,
     bool IsActive,
     DateTimeOffset CreatedAt,
     DateTimeOffset? UpdatedAt,
@@ -269,6 +246,67 @@ public record SyncPlausibilityRangeDto(
     DateTimeOffset? UpdatedAt,
     bool IsDeleted) : ISyncRow;
 
+/// <summary>
+/// The animal/group event history (3.5a.1, ADR-0015), gated by
+/// <c>livestock.animals.read</c> like the rest of the animal-support collections.
+///
+/// This is the deuda from BACKLOG.md ("AnimalEvent grupal aún no viaja en el pull"):
+/// 3.5a.1 built the group-subject mechanism (push, domain, DB CHECK) but nothing pulled
+/// it back down until 3.5a.7 needed "última vacunación, alimento del período" on the lot
+/// record. One collection carries both animal- and group-subject events, mirroring the
+/// same XOR the domain and the DB CHECK already enforce (ADR-0015 sec.2) — <see
+/// cref="AnimalId"/> and <see cref="GroupId"/> are never both set and never both null.
+/// Faking an <c>animalId</c> on a group event to keep the wire shape uniform is exactly
+/// the synthetic data ADR-0015 exists to prevent, so the DTO stays honest about the
+/// subject.
+///
+/// Events are append-only (Art. 1): a correction is a new row referencing the original
+/// via <see cref="RelatedEventId"/>, never an edit. So <see cref="UpdatedAt"/> is always
+/// null and <see cref="IsDeleted"/> is always false — there is nothing to overwrite or
+/// tombstone, only a growing log for the cursor to walk.
+/// </summary>
+public record SyncAnimalEventDto(
+    Guid Id,
+    Guid? AnimalId,
+    Guid? GroupId,
+    string EventType,
+    DateTimeOffset OccurredAt,
+    string RecordedBy,
+    Guid? RecordedById,
+    string PayloadJson,
+    decimal? Cost,
+    Guid? RelatedEventId,
+    int? AffectedCount,
+    Guid? CauseId,
+    Guid? RouteId,
+    string? Reason,
+    Guid? BatchId,
+    Guid? HealthPlanItemId,
+    Guid? AppliedByUserId,
+    DateTimeOffset CreatedAt,
+    DateTimeOffset? UpdatedAt,
+    bool IsDeleted) : ISyncRow;
+
+public record SyncPregnancyDto(
+    Guid Id,
+    Guid DamId,
+    Guid? ServiceId,
+    string Status,
+    DateOnly ExpectedBirthDate,
+    DateTimeOffset CreatedAt,
+    DateTimeOffset? UpdatedAt,
+    bool IsDeleted) : ISyncRow;
+
+public record SyncBreedingServiceDto(
+    Guid Id,
+    Guid DamId,
+    string ServiceType,
+    Guid? SireAnimalId,
+    Guid? StrawId,
+    DateTimeOffset CreatedAt,
+    DateTimeOffset? UpdatedAt,
+    bool IsDeleted) : ISyncRow;
+
 public record GetSyncPullQuery(
     string? Since = null,
     string? Collections = null,
@@ -278,6 +316,7 @@ public class GetSyncPullQueryHandler(
     ILivestockDbContext livestockDb,
     IInventoryDbContext inventoryDb,
     IPeopleDbContext peopleDb,
+    IBreedingDbContext breedingDb,
     IUserPermissionsReader permissionsReader,
     ICurrentUser currentUser)
     : IRequestHandler<GetSyncPullQuery, SyncPullResponseDto>
@@ -286,7 +325,7 @@ public class GetSyncPullQueryHandler(
     public const int MaxBatchSize = 1000;
 
     /// <summary>
-    /// The permission a role needs to read each collection (PLAN-FASE-3-4 sec.3.A, pull task
+    /// The permission a role needs to read each collection (docs/spec/plan-0001-fase-3/spec.md sec.3.A, pull task
     /// 4: "el empleado solo baja lo que le corresponde"). Reference tables (species,
     /// breeds, categories) sit under the same permission as animals: they exist to
     /// support working with animals, so a role with no livestock access has no use for
@@ -309,10 +348,11 @@ public class GetSyncPullQueryHandler(
             ["farmModules"] = SystemPermissions.SettingsFarmModulesRead,
             ["administrationRoutes"] = SystemPermissions.LivestockAnimalsRead,
             ["treatmentReasons"] = SystemPermissions.LivestockAnimalsRead,
-            ["healthPlans"] = SystemPermissions.LivestockAnimalsRead,
-            ["healthPlanItems"] = SystemPermissions.LivestockAnimalsRead,
-            ["healthPlanAssignments"] = SystemPermissions.LivestockAnimalsRead,
+            ["doseKinds"] = SystemPermissions.LivestockAnimalsRead,
             ["plausibilityRanges"] = SystemPermissions.LivestockAnimalsRead,
+            ["animalEvents"] = SystemPermissions.LivestockAnimalsRead,
+            ["pregnancies"] = SystemPermissions.BreedingEventsRead,
+            ["breedingServices"] = SystemPermissions.BreedingEventsRead,
         };
 
     public async Task<SyncPullResponseDto> Handle(GetSyncPullQuery request, CancellationToken cancellationToken)
@@ -344,7 +384,8 @@ public class GetSyncPullQueryHandler(
             a => new SyncAnimalDto(
                 a.Id, a.Sex.ToString(), a.BirthDate, a.SpeciesId, a.BreedId, a.CategoryId,
                 a.MotherId, a.FatherAnimalId, a.FatherStrawId,
-                a.CreatedAt, a.UpdatedAt, a.DeletedAt != null, a.LastEditedAt),
+                a.CreatedAt, a.UpdatedAt, a.DeletedAt != null, a.LastEditedAt,
+                a.DisposedAt),
             cancellationToken);
 
         var identifiers = await ReadAsync(
@@ -396,7 +437,7 @@ public class GetSyncPullQueryHandler(
         var withdrawals = await ReadAsync(
             effective, "withdrawalPeriods", livestockDb.WithdrawalPeriods, since, limit, frontier,
             w => new SyncWithdrawalPeriodDto(
-                w.Id, w.AnimalId, w.EventId, w.Target.ToString(), w.StartsAt, w.EndsAt,
+                w.Id, w.AnimalId, w.EventId, w.TreatmentCourseId, w.Target.ToString(), w.StartsAt, w.EndsAt,
                 w.CreatedAt, w.UpdatedAt, w.DeletedAt != null),
             cancellationToken);
 
@@ -424,27 +465,10 @@ public class GetSyncPullQueryHandler(
                 r.Id, r.Key, r.LabelEs, r.IsActive, r.CreatedAt, r.UpdatedAt, r.DeletedAt != null),
             cancellationToken);
 
-        var healthPlans = await ReadAsync(
-            effective, "healthPlans", livestockDb.HealthPlans, since, limit, frontier,
-            p => new SyncHealthPlanDto(
-                p.Id, p.Name, p.SpeciesId, p.IsActive, p.CreatedAt, p.UpdatedAt, p.DeletedAt != null),
-            cancellationToken);
-
-        var healthPlanItems = await ReadAsync(
-            effective, "healthPlanItems", livestockDb.HealthPlanItems, since, limit, frontier,
-            i => new SyncHealthPlanItemDto(
-                i.Id, i.HealthPlanId, i.Name, i.EventType, i.Anchor.ToString(),
-                i.AnchorOffsetDays, i.ComplianceWindowDays,
-                i.InventoryItemId, i.RouteId, i.DoseQuantity, i.DoseUnitId,
-                i.Repetitions, i.AppliesToCategoryId, i.AppliesToSex, i.IsActive,
-                i.CreatedAt, i.UpdatedAt, i.DeletedAt != null),
-            cancellationToken);
-
-        var healthPlanAssignments = await ReadAsync(
-            effective, "healthPlanAssignments", livestockDb.HealthPlanAssignments, since, limit, frontier,
-            a => new SyncHealthPlanAssignmentDto(
-                a.Id, a.HealthPlanId, a.AnimalId, a.GroupId, a.AssignedAt,
-                a.IsActive, a.CreatedAt, a.UpdatedAt, a.DeletedAt != null),
+        var doseKinds = await ReadAsync(
+            effective, "doseKinds", livestockDb.DoseKinds, since, limit, frontier,
+            k => new SyncDoseKindDto(
+                k.Id, k.Key, k.LabelEs, k.IsActive, k.CreatedAt, k.UpdatedAt, k.DeletedAt != null),
             cancellationToken);
 
         var plausibilityRanges = await ReadAsync(
@@ -455,12 +479,36 @@ public class GetSyncPullQueryHandler(
                 r.IsActive, r.CreatedAt, r.UpdatedAt, r.DeletedAt != null),
             cancellationToken);
 
+        var animalEvents = await ReadAsync(
+            effective, "animalEvents", livestockDb.AnimalEvents, since, limit, frontier,
+            e => new SyncAnimalEventDto(
+                e.Id, e.AnimalId, e.GroupId, e.EventType.ToString(), e.OccurredAt,
+                e.RecordedByLabel, e.RecordedById, e.PayloadJson, e.Cost, e.RelatedEventId,
+                e.AffectedCount, e.CauseId, e.RouteId, e.Reason, e.BatchId,
+                e.HealthPlanItemId, e.AppliedByUserId,
+                e.CreatedAt, e.UpdatedAt, e.DeletedAt != null),
+            cancellationToken);
+
+        var pregnancies = await ReadAsync(
+            effective, "pregnancies", breedingDb.Pregnancies, since, limit, frontier,
+            p => new SyncPregnancyDto(
+                p.Id, p.DamId, p.ServiceId, p.Status.ToString(), p.ExpectedBirthDate,
+                p.CreatedAt, p.UpdatedAt, p.DeletedAt != null),
+            cancellationToken);
+
+        var breedingServices = await ReadAsync(
+            effective, "breedingServices", breedingDb.BreedingServices, since, limit, frontier,
+            s => new SyncBreedingServiceDto(
+                s.Id, s.DamId, s.ServiceType.ToString(), s.SireAnimalId, s.StrawId,
+                s.CreatedAt, s.UpdatedAt, s.DeletedAt != null),
+            cancellationToken);
+
         var collections = new SyncCollectionsDto(
             animals, identifiers, groups, memberships,
             speciesList, breeds, categories, items, withdrawals, mortalityCauses, farmModules,
-            administrationRoutes, treatmentReasons,
-            healthPlans, healthPlanItems, healthPlanAssignments,
-            plausibilityRanges);
+            administrationRoutes, treatmentReasons, doseKinds,
+            plausibilityRanges, animalEvents,
+            pregnancies, breedingServices);
 
         return new SyncPullResponseDto(frontier.Next.Format(), frontier.HasMore, collections);
     }
@@ -578,12 +626,30 @@ public record SyncOperationDto(
     DateTimeOffset OccurredAt,
     DateTimeOffset ReceivedAt);
 
-public class GetSyncOperationsQueryHandler(IPeopleDbContext context)
+/// <summary>
+/// Scopes sync operations to the caller's own user unless they hold people.users.manage,
+/// which grants global supervision across all users (D3).
+/// </summary>
+public class GetSyncOperationsQueryHandler(
+    IPeopleDbContext context,
+    ICurrentUser currentUser,
+    IUserPermissionsReader permissionsReader)
     : IRequestHandler<GetSyncOperationsQuery, List<SyncOperationDto>>
 {
     public async Task<List<SyncOperationDto>> Handle(GetSyncOperationsQuery request, CancellationToken cancellationToken)
     {
+        var userId = currentUser.UserId
+            ?? throw new UnauthorizedAccessException("La consulta de operaciones requiere un usuario autenticado.");
+
+        var permissions = await permissionsReader.GetPermissionCodesAsync(userId, cancellationToken);
+        var canManageUsers = permissions.Contains(SystemPermissions.PeopleUsersManage);
+
         var query = context.SyncOperations.AsNoTracking();
+
+        if (!canManageUsers)
+        {
+            query = query.Where(o => o.UserId == userId);
+        }
 
         if (!string.IsNullOrWhiteSpace(request.Status)
             && Enum.TryParse<Modules.People.Domain.SyncOperationStatus>(request.Status, true, out var parsedStatus))

@@ -140,4 +140,36 @@ public class AnimalEventTests
         Assert.Throws<DomainException>(() =>
             new WithdrawalPeriod(Guid.NewGuid(), Guid.NewGuid(), WithdrawalTarget.Milk, new DateOnly(2026, 8, 5), new DateOnly(2026, 8, 1)));
     }
+
+    [Fact]
+    public void WithdrawalPeriod_ForTreatmentCourse_Succeeds()
+    {
+        // 3.5a.2-B task 5: a period can anchor to a TreatmentCourse instead of a
+        // loose event.
+        var period = WithdrawalPeriod.ForTreatmentCourse(
+            Guid.NewGuid(), Guid.NewGuid(), WithdrawalTarget.Meat, new DateOnly(2026, 8, 1), new DateOnly(2026, 8, 10));
+
+        Assert.Null(period.EventId);
+        Assert.NotNull(period.TreatmentCourseId);
+    }
+
+    [Fact]
+    public void WithdrawalPeriod_ForTreatmentCourse_WithEmptyCourseId_Throws()
+    {
+        Assert.Throws<DomainException>(() =>
+            WithdrawalPeriod.ForTreatmentCourse(
+                Guid.NewGuid(), Guid.Empty, WithdrawalTarget.Meat, new DateOnly(2026, 8, 1), new DateOnly(2026, 8, 10)));
+    }
+
+    [Fact]
+    public void MarkMigratedToCourse_SetsMarker_AndIsIdempotentGuarded()
+    {
+        var evt = AnimalEvent.Create(Guid.NewGuid(), EventType.Treatment, DateTimeOffset.UtcNow, "vet", "{\"dose\":10,\"unit\":\"ml\"}");
+        var courseId = Guid.NewGuid();
+
+        evt.MarkMigratedToCourse(courseId);
+
+        Assert.Equal(courseId, evt.MigratedToCourseId);
+        Assert.Throws<DomainException>(() => evt.MarkMigratedToCourse(Guid.NewGuid()));
+    }
 }

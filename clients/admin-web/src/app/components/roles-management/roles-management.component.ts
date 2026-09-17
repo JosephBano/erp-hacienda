@@ -15,7 +15,7 @@ import { IconComponent } from '../../shared/icon/icon.component';
   standalone: true,
   imports: [CommonModule, FormsModule, IconComponent],
   templateUrl: './roles-management.component.html',
-  styleUrls: ['./roles-management.component.css']
+  styleUrls: ['./roles-management.component.css'],
 })
 export class RolesManagementComponent implements OnInit {
   private api = inject(ApiService);
@@ -52,25 +52,27 @@ export class RolesManagementComponent implements OnInit {
     this.loadError = false;
     this.api.getRoles().subscribe({
       next: (data) => (this.roles = data),
-      error: () => (this.loadError = true)
+      error: () => (this.loadError = true),
     });
     this.api.getPermissions().subscribe({
       next: (data) => {
         this.permissions = data;
         this.permissionsByModule = this.groupByModule(data);
       },
-      error: () => (this.loadError = true)
+      error: () => (this.loadError = true),
     });
     this.api.getUsers().subscribe({
       next: (data) => {
         this.users = data;
         if (data.length > 0) this.assignUserId = data[0].id;
       },
-      error: () => (this.loadError = true)
+      error: () => (this.loadError = true),
     });
   }
 
-  private groupByModule(permissions: PermissionDto[]): { module: string; items: PermissionDto[] }[] {
+  private groupByModule(
+    permissions: PermissionDto[],
+  ): { module: string; items: PermissionDto[] }[] {
     const groups = new Map<string, PermissionDto[]>();
     for (const p of permissions) {
       const list = groups.get(p.module) ?? [];
@@ -126,21 +128,23 @@ export class RolesManagementComponent implements OnInit {
       return;
     }
 
-    this.api.updateRole(this.editingRoleId, {
-      roleId: this.editingRoleId,
-      name: this.editRoleName.trim(),
-      description: this.editRoleDescription.trim(),
-      permissionIds: Array.from(this.editRolePermissionIds)
-    }).subscribe({
-      next: () => {
-        this.successMessage = `Rol "${this.editRoleName}" actualizado.`;
-        this.editingRoleId = null;
-        this.loadAll();
-      },
-      error: (err) => {
-        this.errorMessage = err?.error?.detail || 'No se pudo actualizar el rol.';
-      }
-    });
+    this.api
+      .updateRole(this.editingRoleId, {
+        roleId: this.editingRoleId,
+        name: this.editRoleName.trim(),
+        description: this.editRoleDescription.trim(),
+        permissionIds: Array.from(this.editRolePermissionIds),
+      })
+      .subscribe({
+        next: () => {
+          this.successMessage = `Rol "${this.editRoleName}" actualizado.`;
+          this.editingRoleId = null;
+          this.loadAll();
+        },
+        error: (err) => {
+          this.errorMessage = err?.error?.detail || 'No se pudo actualizar el rol.';
+        },
+      });
   }
 
   createRole(): void {
@@ -152,24 +156,26 @@ export class RolesManagementComponent implements OnInit {
       return;
     }
 
-    this.api.createRole({
-      code: this.newRoleCode.trim(),
-      name: this.newRoleName.trim(),
-      description: this.newRoleDescription.trim(),
-      permissionIds: Array.from(this.newRolePermissionIds)
-    }).subscribe({
-      next: () => {
-        this.successMessage = `Rol "${this.newRoleName}" creado.`;
-        this.newRoleCode = '';
-        this.newRoleName = '';
-        this.newRoleDescription = '';
-        this.newRolePermissionIds = new Set<string>();
-        this.loadAll();
-      },
-      error: (err) => {
-        this.errorMessage = err?.error?.detail || 'No se pudo crear el rol.';
-      }
-    });
+    this.api
+      .createRole({
+        code: this.newRoleCode.trim(),
+        name: this.newRoleName.trim(),
+        description: this.newRoleDescription.trim(),
+        permissionIds: Array.from(this.newRolePermissionIds),
+      })
+      .subscribe({
+        next: () => {
+          this.successMessage = `Rol "${this.newRoleName}" creado.`;
+          this.newRoleCode = '';
+          this.newRoleName = '';
+          this.newRoleDescription = '';
+          this.newRolePermissionIds = new Set<string>();
+          this.loadAll();
+        },
+        error: (err) => {
+          this.errorMessage = err?.error?.detail || 'No se pudo crear el rol.';
+        },
+      });
   }
 
   assignRole(): void {
@@ -188,7 +194,7 @@ export class RolesManagementComponent implements OnInit {
       },
       error: (err) => {
         this.errorMessage = err?.error?.detail || 'No se pudo asignar el rol.';
-      }
+      },
     });
   }
 }

@@ -27,10 +27,7 @@ describe('AnimalListComponent', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [AnimalListComponent],
-      providers: [
-        provideRouter([]),
-        { provide: ApiService, useValue: apiStub },
-      ],
+      providers: [provideRouter([]), { provide: ApiService, useValue: apiStub }],
     }).compileComponents();
   });
 

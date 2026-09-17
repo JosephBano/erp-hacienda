@@ -15,7 +15,7 @@ namespace Hato.Sync.IntegrationTests;
 
 /// <summary>
 /// Shared PostgreSQL container for the whole synchronization suite. The database is
-/// always created from scratch by running the migrations (PLAN-FASE-3-4 sec.2.1), never
+/// always created from scratch by running the migrations (docs/PROTOCOLO-DE-TRABAJO.md sec.2.1), never
 /// by <c>EnsureCreated</c>: a migration that does not apply must fail the suite.
 /// </summary>
 public class SyncApiFactory : WebApplicationFactory<Program>, IAsyncLifetime

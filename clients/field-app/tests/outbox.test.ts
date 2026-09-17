@@ -52,7 +52,7 @@ describe('Outbox', () => {
     await outbox.enqueue('recordMilking', { totalLiters: 8 });
 
     // Yesterday: enqueue first, then rewind the queued_at column directly. The public
-    // enqueue API stamps queued_at = Date.now() on purpose (PLAN-FASE-3-4 sec. 2.2) —
+    // enqueue API stamps queued_at = Date.now() on purpose (docs/spec/plan-0001-fase-3/spec.md sec. 2.2) —
     // simulating yesterday needs to bypass that contract.
     await outbox.enqueue('recordMilking', { totalLiters: 5 });
     await database.write(async () => {
@@ -72,8 +72,16 @@ describe('Outbox', () => {
   it('today() newest first', async () => {
     const outbox = new Outbox(database);
 
-    await outbox.enqueue('recordMilking', { totalLiters: 5 }, new Date('2026-08-06T05:00:00.000Z').toISOString());
-    await outbox.enqueue('recordMilking', { totalLiters: 7 }, new Date('2026-08-06T15:00:00.000Z').toISOString());
+    await outbox.enqueue(
+      'recordMilking',
+      { totalLiters: 5 },
+      new Date('2026-08-06T05:00:00.000Z').toISOString(),
+    );
+    await outbox.enqueue(
+      'recordMilking',
+      { totalLiters: 7 },
+      new Date('2026-08-06T15:00:00.000Z').toISOString(),
+    );
 
     const result = await outbox.today();
 

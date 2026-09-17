@@ -17,7 +17,7 @@ public class WithdrawalBlockingApiTests(ProductionApiFactory factory) : IClassFi
     {
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
 
-        var speciesResponse = await _client.PostAsJsonAsync("/api/v1/species", new { name = $"Bovino-{Guid.NewGuid()}", gestationDays = 283 });
+        var speciesResponse = await _client.PostAsJsonAsync("/api/v1/species", new { name = $"Bovino-{Guid.NewGuid()}", gestationDays = 283, isMilkable = true });
         speciesResponse.EnsureSuccessStatusCode();
         var speciesId = (await speciesResponse.Content.ReadFromJsonAsync<CreatedId>())!.Id;
 
@@ -52,7 +52,7 @@ public class WithdrawalBlockingApiTests(ProductionApiFactory factory) : IClassFi
     {
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
 
-        var speciesResponse = await _client.PostAsJsonAsync("/api/v1/species", new { name = $"Bovino-{Guid.NewGuid()}", gestationDays = 283 });
+        var speciesResponse = await _client.PostAsJsonAsync("/api/v1/species", new { name = $"Bovino-{Guid.NewGuid()}", gestationDays = 283, isMilkable = true });
         speciesResponse.EnsureSuccessStatusCode();
         var speciesId = (await speciesResponse.Content.ReadFromJsonAsync<CreatedId>())!.Id;
 

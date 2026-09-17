@@ -1,12 +1,22 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Share, StyleSheet, Text, View } from 'react-native';
+import NetInfo from '@react-native-community/netinfo';
 
 import { theme } from '../ui/theme';
-import { BigButton, Body, Card, Notice, Screen, Title } from '../ui/components';
+import {
+  BigButton,
+  Body,
+  Card,
+  Notice,
+  Screen,
+  Title,
+  formatOperationError,
+} from '../ui/components';
 import type { Outbox, OutboxEntry, OutboxStats } from '../services/outbox';
 import type { SyncEngine, SyncResult } from '../services/syncEngine';
 import type { ModuleKey, ModuleVisibility } from '../services/moduleVisibility';
 import { ModuleToggle } from './ModuleToggle';
+import { APP_VERSION } from '../version';
 
 /**
  * Sync status written for the person carrying the phone, not for the developer.
@@ -38,8 +48,12 @@ export function SyncStatusScreen({
     tasks: true,
     people: true,
   });
-  const [pendingConfirm, setPendingConfirm] = useState<{ key: ModuleKey; wasEnabled: boolean } | null>(null);
+  const [pendingConfirm, setPendingConfirm] = useState<{
+    key: ModuleKey;
+    wasEnabled: boolean;
+  } | null>(null);
   const [moduleError, setModuleError] = useState<string | null>(null);
+  const [showRedownloadConfirm, setShowRedownloadConfirm] = useState(false);
 
   const refresh = useCallback(async () => {
     setStats(await outbox.stats());
@@ -57,11 +71,44 @@ export function SyncStatusScreen({
 
   useEffect(() => {
     void refresh();
-  }, [refresh]);
+    const unsubscribe = engine.subscribe?.((res) => {
+      if (res.pulled > 0 || res.pushed > 0 || res.rejected > 0) {
+        void refresh();
+      }
+    });
+    return () => {
+      unsubscribe?.();
+    };
+  }, [engine, refresh]);
 
   const sync = async () => {
     setBusy(true);
     try {
+      setResult(await engine.syncNow());
+    } finally {
+      await refresh();
+      setBusy(false);
+    }
+  };
+
+  const confirmRedownload = async () => {
+    setShowRedownloadConfirm(false);
+    const netState = await NetInfo.fetch();
+    if (!netState.isConnected) {
+      setResult({
+        ok: false,
+        reason: 'offline',
+        pushed: 0,
+        rejected: 0,
+        pulled: 0,
+        stats: stats ?? { pending: 0, synced: 0, rejected: 0, cancelled: 0 },
+      });
+      return;
+    }
+
+    setBusy(true);
+    try {
+      await engine.resetMirror();
       setResult(await engine.syncNow());
     } finally {
       await refresh();
@@ -98,7 +145,13 @@ export function SyncStatusScreen({
   };
 
   return (
-    <Screen testID="sync-status-screen">
+    /*
+     * Scrollable: this screen is the one the employees named. It stacks two counters,
+     * two buttons, an optional confirmation card, an optional notice, the refused-record
+     * tray and the module switches — on a short tablet (IT-701A, Android 14) the module
+     * section sits below the fold with nothing to drag.
+     */
+    <Screen testID="sync-status-screen" scrollable>
       <Title>Sincronización</Title>
 
       <Card>
@@ -112,6 +165,51 @@ export function SyncStatusScreen({
       </Card>
 
       <BigButton testID="sync-now" label="Enviar ahora" busy={busy} onPress={sync} />
+      <BigButton
+        testID="redownload"
+        label="Rehacer descarga"
+        tone="neutral"
+        busy={busy}
+        onPress={() => setShowRedownloadConfirm(true)}
+      />
+      <BigButton
+        testID="share-diagnostic"
+        label="Compartir diagnóstico"
+        tone="neutral"
+        onPress={async () => {
+          const logsJson = engine.logger.exportLogsJson();
+          await Share.share({
+            title: 'Diagnóstico de sincronización',
+            message: logsJson,
+          });
+        }}
+      />
+      <Body muted testID="app-version-info">
+        {`Versión ${APP_VERSION.version}${APP_VERSION.commit ? ` · ${APP_VERSION.commit}` : ''}`}
+      </Body>
+
+      {showRedownloadConfirm ? (
+        <Card>
+          <Body>
+            Se volverán a descargar los datos del servidor (el hato, lotes y catálogos). Lo que
+            registraste hoy y aún no se ha enviado se conserva en el teléfono. Requiere conexión a
+            internet. ¿Continuar?
+          </Body>
+          <BigButton
+            testID="confirm-redownload"
+            label="Sí, rehacer descarga"
+            tone="danger"
+            busy={busy}
+            onPress={confirmRedownload}
+          />
+          <BigButton
+            testID="cancel-redownload"
+            label="Cancelar"
+            tone="neutral"
+            onPress={() => setShowRedownloadConfirm(false)}
+          />
+        </Card>
+      ) : null}
 
       {result && !result.ok ? (
         <Notice
@@ -120,29 +218,37 @@ export function SyncStatusScreen({
             result.reason === 'offline'
               ? 'Sin señal. Lo registrado está guardado en el teléfono y se enviará solo cuando haya señal.'
               : result.reason === 'auth'
-                ? 'La sesión caducó. Inicie sesión con contraseña cuando tenga señal.'
-                : 'No se pudo enviar. Nada se perdió: se reintentará automáticamente.'
+                ? 'La sesión caducó. Sus registros locales están a salvo. Inicie sesión con contraseña cuando tenga señal para enviarlos.'
+                : result.reason === 'pending'
+                  ? 'Quedan datos por descargar. Sincronice de nuevo para continuar.'
+                  : 'No se pudo enviar. Nada se perdió: se reintentará automáticamente.'
           }
         />
       ) : null}
 
-      {result?.ok ? <Body muted>{`Enviados ${result.pushed} · recibidos ${result.pulled}`}</Body> : null}
+      {result?.ok ? (
+        <Body muted>{`Enviados ${result.pushed} · recibidos ${result.pulled}`}</Body>
+      ) : null}
 
       <Title>Registros con problema</Title>
       {rejected.length === 0 ? (
         <Body muted>Ninguno. Todo lo registrado fue aceptado.</Body>
       ) : (
-        <ScrollView testID="problem-list" contentContainerStyle={styles.list}>
+        /*
+         * A plain View, not a ScrollView: the screen itself now scrolls, and a second
+         * vertical scroller here would swallow the drag that belongs to it (D1).
+         */
+        <View testID="problem-list" style={styles.list}>
           {rejected.map((entry) => (
             <Card key={entry.clientOperationId}>
               <Body>{LABELS[entry.operationType] ?? entry.operationType}</Body>
               <Body muted>{new Date(entry.occurredAt).toLocaleString()}</Body>
               <View style={styles.reason}>
-                <Text style={styles.reasonText}>{entry.errorDetails}</Text>
+                <Text style={styles.reasonText}>{formatOperationError(entry.errorDetails)}</Text>
               </View>
             </Card>
           ))}
-        </ScrollView>
+        </View>
       )}
 
       <Title>Módulos del dispositivo</Title>
@@ -160,20 +266,36 @@ export function SyncStatusScreen({
           <Body>
             Apagar Ordeño en el teléfono solo se puede revertir desde el panel admin. ¿Continuar?
           </Body>
-          <BigButton testID="confirm-disable-production" label="Sí, apagar" tone="danger" onPress={confirmDisable} />
-          <BigButton testID="cancel-disable-production" label="Cancelar" tone="neutral" onPress={() => setPendingConfirm(null)} />
+          <BigButton
+            testID="confirm-disable-production"
+            label="Sí, apagar"
+            tone="danger"
+            onPress={confirmDisable}
+          />
+          <BigButton
+            testID="cancel-disable-production"
+            label="Cancelar"
+            tone="neutral"
+            onPress={() => setPendingConfirm(null)}
+          />
         </Card>
       ) : null}
     </Screen>
   );
 }
 
-const LABELS: Record<string, string> = {
+export const LABELS: Record<string, string> = {
   recordMilking: 'Ordeño',
   recordAnimalEvent: 'Evento del animal',
   createAnimal: 'Alta de animal',
   recordBirth: 'Parto',
   moveAnimal: 'Movimiento de lote',
+  createTreatmentCourse: 'Tratamiento / Vacunación',
+  recordGroupEvent: 'Evento de lote',
+  recordFeedConsumption: 'Consumo de alimento',
+  updateAnimal: 'Actualización de animal',
+  recordCorrection: 'Corrección de evento',
+  assignAnimalIdentifier: 'Identificación de animal',
 };
 
 const styles = StyleSheet.create({

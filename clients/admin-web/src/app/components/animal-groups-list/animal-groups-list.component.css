@@ -1,22 +1,42 @@
-/* ADR-0025 PR3 — Lista de lotes. Estilo base de páginas (page-container,
-   page-header, filter-toolbar, btn-primary, btn-secondary) viene de
-   `roles-management.component.css` / `animal-list.component.css` / estilos
-   globales (`styles.css`); aquí solo añadimos lo específico de la pantalla. */
+:host {
+  display: block;
+}
 
 .confirm-bar {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 1rem;
   padding: 1rem 1.5rem;
-  background: rgba(245, 158, 11, 0.08);
-  border: 1px solid rgba(245, 158, 11, 0.35);
   border-radius: var(--radius-md);
-  font-weight: 600;
+  font-weight: 500;
   color: var(--text-main);
+  margin-top: 1.25rem;
+  flex-wrap: wrap;
 }
 
-.confirm-bar > span {
+.confirm-bar-danger {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+}
+
+.confirm-bar-success {
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.35);
+}
+
+.confirm-message {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
   flex: 1;
+  min-width: 240px;
+}
+
+.confirm-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
 }
 
 .confirm-bar .btn-sm {

@@ -68,6 +68,14 @@ public static class SystemPermissions
     // Inventory
     public const string InventoryItemsManage = "inventory.items.manage";
     public const string InventoryItemsRead = "inventory.items.read";
+    public const string InventoryFeedStagesManage = "inventory.feed-stages.manage";
+    // ADR-0026 Decisión 5: dedicated permission for the InventoryReception flow, so a
+    // future "registrador de compras" role can create receptions without gaining
+    // inventory-items.manage (which would let them mutate the catalogue too).
+    public const string InventoryReceptionsManage = "inventory.receptions.manage";
+    // Feature 0008 Commit 5 (D4): dedicated permission for feed consumption recording, so a
+    // registrar can record consumption for animal lots without gaining inventory-items.manage.
+    public const string InventoryFeedConsumptionsRecord = "inventory.feed-consumptions.record";
 
     // Breeding
     public const string BreedingEventsRecord = "breeding.events.record";

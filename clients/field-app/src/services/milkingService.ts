@@ -1,6 +1,6 @@
 import { Database, Q } from '@nozbe/watermelondb';
 
-import { MilkYield, OutboxEntryModel, Species, WithdrawalPeriod } from '../database/models';
+import { Animal, MilkYield, OutboxEntryModel, Species, WithdrawalPeriod } from '../database/models';
 import { Outbox } from './outbox';
 
 /**
@@ -11,11 +11,15 @@ import { Outbox } from './outbox';
  *      before they touch the outbox; improbable ones pass. The reasoning lives in
  *      `assertVolume` and its siblings below. Locked by the
  *      'locks the input guardrail' test in `tests/milking.test.ts`.
- *   2. **3.5a.6 (later).** Plausibility ranges per species, configurable from the
- *      web panel, fail-open when unset. Those are *warnings*, not blocks: the
- *      operator may confirm an unusual figure.
+ *   2. **`plausibilityService.ts` (ADR-0022, 3.5a.6), wired at `MilkingScreen`.**
+ *      Plausibility ranges per species/category, mirrored locally and evaluated
+ *      offline, fail-open when unset. Those are *warnings*, not blocks: the
+ *      operator confirms an unusual figure (e.g. 1000 L for one cow) before it
+ *      is enqueued, and the confirmation is persisted as
+ *      `isPlausibilityConfirmed` on the payload. Only a value outside the
+ *      *absolute* range is rejected outright, same as this layer's floor.
  *
- * The rule both layers obey (PLAN-FASE-3-5-PORCINO 3.5a.0 #4):
+ * The rule both layers obey (docs/spec/plan-0002-fase-3-5/spec.md 3.5a.0 #4):
  *
  *   "3 taps for the normal, 4 for the rare. Do not punish the operator:
  *    confirm the improbable, block only the impossible."
@@ -69,13 +73,25 @@ export class MilkingService {
     liters: number,
     recordedBy: string,
     date: string = todayIso(),
+    /**
+     * Set by `MilkingScreen` when the operator explicitly confirmed a value the
+     * plausibility check (ADR-0022) flagged as improbable. Stamped on the payload
+     * so the server-side audit (sec.6 of the ADR) can tell a confirmed outlier
+     * from one nobody looked at.
+     */
+    isPlausibilityConfirmed = false,
   ): Promise<RecordedYield> {
     assertVolume(liters);
 
-    // Defense-in-depth: the UI disables non-milkable species, but if the picker is
-    // bypassed (older cached UI, automated test, a script) the service still rejects.
-    // Art. 8: capability is configured per-species, not per-animal.
-    await this.assertSpeciesIsMilkable(animalId);
+    // Defense-in-depth: the UI disables non-milkable species and filters males/disposed,
+    // but if the picker is bypassed (older cached UI, automated test, a script) the service
+    // still rejects with a clear business error.
+    // Preconditions:
+    // - Animal exists and not deleted
+    // - Sex is female
+    // - Not disposed at or before record date
+    // - Species is milkable
+    await this.assertAnimalMilkable(animalId, date);
 
     const status = await this.withdrawalStatus(animalId, date);
     if (status.isWithheld) {
@@ -90,6 +106,7 @@ export class MilkingService {
       recordedBy,
       totalLiters: liters,
       individualYields: [{ animalId, liters }],
+      isPlausibilityConfirmed,
     });
 
     return this.remember({
@@ -227,23 +244,42 @@ export class MilkingService {
   }
 
   /**
-   * Service-level guard: refuses a milking registration for an animal whose species
-   * is flagged `is_milkable = false` (Art. 8: per-species capability, not per-animal).
-   * The MilkingScreen already disables non-milkable rows, but if the UI is bypassed
-   * (an old cached session, an automated test, a direct service call) this check
-   * still rejects the operation with the same wording the UI would have used.
+   * Service-level guard: verifies animal preconditions before registering milking.
+   *
+   * 1. Animal exists and is not deleted.
+   * 2. Sex is female.
+   * 3. Not marked with disposed_at <= date.
+   * 4. Species is milkable (Art. 8).
    */
-  private async assertSpeciesIsMilkable(animalId: string): Promise<void> {
-    let speciesId: string | undefined;
+  private async assertAnimalMilkable(animalId: string, date: string): Promise<void> {
+    let animal: Animal;
     try {
-      const animal = await this.database.get('animals').find(animalId);
-      speciesId = (animal as { speciesId?: string }).speciesId;
+      animal = await this.database.get<Animal>('animals').find(animalId);
     } catch {
       throw new Error('No se encontró el animal en este dispositivo.');
     }
 
+    if (animal.isDeleted) {
+      throw new Error('No se encontró el animal en este dispositivo.');
+    }
+
+    if (animal.sex?.toLowerCase() !== 'female') {
+      throw new Error('Solo se pueden ordeñar animales de sexo hembra.');
+    }
+
+    if (animal.disposedAt) {
+      const disposedDate = animal.disposedAt.slice(0, 10);
+      const milkingDate = date.slice(0, 10);
+      if (disposedDate <= milkingDate) {
+        throw new Error('El animal fue dado de baja y no puede ser ordeñado.');
+      }
+    }
+
+    const speciesId = animal.speciesId;
     if (!speciesId) {
-      throw new Error('El animal no tiene especie asociada. Sincronice para descargar el catálogo.');
+      throw new Error(
+        'El animal no tiene especie asociada. Sincronice para descargar el catálogo.',
+      );
     }
 
     let species: Species | undefined;
@@ -261,10 +297,14 @@ export class MilkingService {
       );
     }
   }
+
+  private async assertSpeciesIsMilkable(animalId: string): Promise<void> {
+    return this.assertAnimalMilkable(animalId, todayIso());
+  }
 }
 
 /**
- * 3-toque input guard for the milking round (see PLAN-FASE-3-5-PORCINO 3.5a.0 #4):
+ * 3-toque input guard for the milking round (see docs/spec/plan-0002-fase-3-5/spec.md 3.5a.0 #4):
  *
  *   - `NaN` / `Infinity`              → rejected. A missing or absurd value is a typo.
  *   - `liters < 0`                    → rejected. The sanity floor.
@@ -272,9 +312,14 @@ export class MilkingService {
  *                                       exactly nothing. Recording it would litter the
  *                                       outbox with meaningless rows and muddy the
  *                                       plausibility work planned for 3.5a.6.
- *   - `liters > 0`                    → accepted. The plausibility ceiling (a 1000-L cow)
- *                                       is NOT this layer's job; it belongs to the
- *                                       configurable per-species ranges.
+ *   - `liters > 0`                    → accepted here. The plausibility ceiling (a
+ *                                       1000-L cow) is NOT this layer's job: it is
+ *                                       evaluated by `evaluatePlausibility` in
+ *                                       `MilkingScreen`, against the per-species/
+ *                                       category ranges mirrored from the server
+ *                                       (ADR-0022, 3.5a.6). That layer runs *after*
+ *                                       this one and decides pass / confirm / block
+ *                                       for anything that gets past this floor.
  *
  * The error message explains the rule rather than restating it, so an employee who reads
  * it understands *why* their input was rejected and not just that it was.

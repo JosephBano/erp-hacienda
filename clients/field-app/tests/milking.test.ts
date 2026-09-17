@@ -94,6 +94,26 @@ describe('MilkingService', () => {
     expect(record.liters).toBe(12.5);
   });
 
+  /**
+   * ADR-0022 sec.5: the confirmation of an improbable value is persisted on the
+   * payload, not just shown and forgotten. The default is false so a plain call
+   * (no plausibility involved, e.g. a value inside range) never claims a
+   * confirmation that never happened.
+   */
+  it('defaults isPlausibilityConfirmed to false when not stamped by the screen', async () => {
+    await service.recordIndividualYield('cow-1', 'Morning', 12.5, recordedBy);
+
+    const [entry] = await outbox.pending();
+    expect(entry.payload).toMatchObject({ isPlausibilityConfirmed: false });
+  });
+
+  it('carries isPlausibilityConfirmed through to the outbox payload when set', async () => {
+    await service.recordIndividualYield('cow-1', 'Morning', 12.5, recordedBy, undefined, true);
+
+    const [entry] = await outbox.pending();
+    expect(entry.payload).toMatchObject({ isPlausibilityConfirmed: true });
+  });
+
   it('records the day total per group in a single operation', async () => {
     await service.recordGroupMilking('group-1', 'Morning', 240, recordedBy);
 
@@ -164,9 +184,9 @@ describe('MilkingService', () => {
   it('blocks milk from a cow under an active withdrawal period', async () => {
     await giveWithdrawal('cow-treated', 'Milk', '2000-01-01', '2999-12-31');
 
-    await expect(service.recordIndividualYield('cow-treated', 'Morning', 10, recordedBy)).rejects.toThrow(
-      /retiro/i,
-    );
+    await expect(
+      service.recordIndividualYield('cow-treated', 'Morning', 10, recordedBy),
+    ).rejects.toThrow(/retiro/i);
 
     expect(await outbox.pending()).toHaveLength(0);
   });
@@ -226,5 +246,57 @@ describe('MilkingService', () => {
     await expect(service.correctTodayYield(record.clientOperationId, 11)).rejects.toThrow(
       /sincroniz/i,
     );
+  });
+
+  it('refuses to milk a male animal', async () => {
+    await database.write(async () => {
+      await database.get('animals').create((row: any) => {
+        row._raw.id = 'bull-1';
+        row.sex = 'Male';
+        row.speciesId = 'species-bovino';
+        row.isDeleted = false;
+        row.serverCreatedAt = Date.now();
+      });
+    });
+
+    await expect(
+      service.recordIndividualYield('bull-1', 'Morning', 10, recordedBy),
+    ).rejects.toThrow('Solo se pueden ordeñar animales de sexo hembra.');
+    expect(await outbox.pending()).toHaveLength(0);
+  });
+
+  it('refuses to milk an animal disposed at or before the record date', async () => {
+    await database.write(async () => {
+      await database.get('animals').create((row: any) => {
+        row._raw.id = 'cow-disposed';
+        row.sex = 'Female';
+        row.speciesId = 'species-bovino';
+        row.disposedAt = '2026-09-01T10:00:00Z';
+        row.isDeleted = false;
+        row.serverCreatedAt = Date.now();
+      });
+    });
+
+    await expect(
+      service.recordIndividualYield('cow-disposed', 'Morning', 10, recordedBy, '2026-09-05'),
+    ).rejects.toThrow('El animal fue dado de baja y no puede ser ordeñado.');
+    expect(await outbox.pending()).toHaveLength(0);
+  });
+
+  it('refuses to milk a deleted animal', async () => {
+    await database.write(async () => {
+      await database.get('animals').create((row: any) => {
+        row._raw.id = 'cow-deleted';
+        row.sex = 'Female';
+        row.speciesId = 'species-bovino';
+        row.isDeleted = true;
+        row.serverCreatedAt = Date.now();
+      });
+    });
+
+    await expect(
+      service.recordIndividualYield('cow-deleted', 'Morning', 10, recordedBy),
+    ).rejects.toThrow('No se encontró el animal en este dispositivo.');
+    expect(await outbox.pending()).toHaveLength(0);
   });
 });

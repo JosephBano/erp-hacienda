@@ -131,28 +131,56 @@ móvil, incluyendo días sin señal, sin pérdida ni duplicación de datos.
 > podía disparar un conflicto LWW fuera de una prueba) y otra en `admin-web` que la
 > expone, los endpoints de lectura de especies/razas/categorías que faltaban para poder
 > registrar un animal desde cualquier cliente con su pantalla correspondiente, los 10
-> escenarios obligatorios de sincronización de PLAN-FASE-3-4 sec.2.2 (los últimos dos —
+> escenarios obligatorios de sincronización de `docs/spec/plan-0001-fase-3/spec.md` sec.2.2 (los últimos dos —
 > token expirado a mitad de push y corte de red a mitad de un lote — encontraron y
 > corrigieron un bug real en el cliente), la prueba de convergencia end-to-end con dos
 > dispositivos simulados, y las pantallas de roles/permisos (con edición), auditoría y
 > sincronización en el panel. `docs/BACKLOG.md` recoge lo que se dejó fuera a propósito
 > (extender borrado lógico y LWW a otras entidades, resolución manual de operaciones
-> rechazadas, `ng test` roto en `admin-web`) y por qué. Sigue pendiente, heredado y sin
+> rechazadas) y por qué. Sigue pendiente, heredado y sin
 > relación con esta fase: la subida de fotos (Fase 4) y el ciclo de vida de `Lactation`
 > (Fase 2, nunca implementado).
+>
+> **Actualización post-reporte de campo (2026-09-07, `feature/sync-field-app-reliability`):**
+> Tras el reporte de tres semanas de uso en producción con fallos intermitentes de sincronización,
+> se implementó la estabilización de contratos y motor móvil (feature-0004):
+> 1. Se resolvió la causa viva de rechazo determinista en ordeño individual persistiendo el flag
+>    `isPlausibilityConfirmed` en backend (`MilkingSession`) y comandos.
+> 2. Se corrigió el pull para no reportar éxito si se agota el presupuesto de páginas con datos pendientes.
+> 3. Se garantizó que una operación rechazada permanezca rechazada con su motivo original ante duplicados.
+> 4. Se unificaron los disparadores de sincronización con serialización y reintento programado por backoff y primer plano.
+> 5. Se conectó la reactividad de pantallas abiertas al aplicar cambios confirmados en SQLite sin descartar formularios en edición.
+> 6. Se aseguró la recuperación manual (`resetMirror`) con exclusión mutua frente a sync, verificación de red previa e inmunidad de `sync_outbox`.
+> 7. Se implementó bitácora diagnóstica persistente en almacenamiento nativo con retención acotada (100 entradas), redacción de secretos y exportación deliberada vía `Share`.
+> Sigue abierto para el cierre definitivo de la fase: validación manual de `test-e2e.md` en SQLite nativo en el dispositivo físico de la finca.
 
 ---
 
 ## Fase 3.5 — Adaptación porcina (insertada 2026-08-05)
 
 > **Desacople del inicio del piloto del cierre completo del bloque 3.5a (ADR-0024,
-> 2026-08-08).** El inicio del piloto real no exige cerrar 3.5a como bloque: exige
-> un sub-conjunto mínimo de captura + tratamiento + primer nivel del árbol + visibilidad
-> de módulos + rangos de plausibilidad, todos mergeados a develop. Lo que falta
-> (3.5a.7.1–5 UI del sujeto "lote", 3.5a.8 correcciones desde el teléfono, 3.5a.3
-> causas de muerte) queda como deuda rastreable en `BACKLOG.md`, no como bloqueo.
+> 2026-08-07; ADR-0021, 2026-08-07, sobre la compuerta sec.2.3).** El inicio del piloto
+> real no exige cerrar 3.5a como bloque: exige un sub-conjunto mínimo de captura +
+> tratamiento + primer nivel del árbol + visibilidad de módulos + rangos de plausibilidad,
+> todos mergeados a integration. **Estado al 2026-08-09:** 3.5a.2 (A/B/C) mergeado
+> (B/C vía `feature/livestock-treatment-dose-logic` + `feature/field-app-treatment-ui`),
+> 3.5a.6 mergeado (PR #73), 3.5a.7 tasks 1–5 mergeado
+> (`feature/field-app-lot-registration`). Lo que queda como deuda rastreable
+> (no bloqueo): 3.5a.8 correcciones desde el teléfono, 3.5a.3 causas de muerte
+> (la lógica de dominio está; falta la pantalla de admin-web), 3.5a.4 task 4
+> (clasificación por peso — pieza que cierra el criterio de salida completo de 3.5a).
 > El criterio completo de salida de 3.5a sigue exigiendo clasificación por peso +
-> tratamiento con vía/motivo + corrección desde el teléfono como bloque.
+> tratamento con vía/motivo + corrección desde el teléfono como bloque.
+
+**Recepción de inventario (ADR-0026, PR #94, mergeada 2026-08-13):** cierre
+del bloqueante transversal "no hay forma trazable de rellenar inventario
+de comida" detectado durante el piloto. Endpoint `POST /receptions`,
+comando `RecordInventoryReceptionCommand`, evento `InventoryReceptionRecorded`,
+UI admin-web "Recibir alimento" con badge "Sin declaración completa" (issue
+#93). Vida útil declarada: deprecado cuando llegue Purchasing (Fase 4). El
+consumo desde lote (3.5a.7 mergeado) ya descuenta de `InventoryBatch`; este
+feature cierra la otra mitad del flujo (entrada con fecha declarada, proveedor,
+factura, autor).
 
 **Objetivo:** que el sistema represente el negocio real del cliente del piloto, que no es
 una lechería sino una **granja porcina**.
@@ -191,7 +219,7 @@ plan) puede ocurrir en paralelo al uso real:
 > ficha del animal en el móvil, que transfieren el conocimiento del empleado veterano al que
 > recién entra — valor que no tiene nada que ver con esta fase ni con esta especie.
 
-El plan de ejecución detallado está en `PLAN-FASE-3-5-PORCINO.md`.
+El plan de ejecución detallado está en `docs/spec/plan-0002-fase-3-5/spec.md`.
 
 **Criterio de salida (3.5a):** una camada real nacida, pesada y seguida dentro del sistema
 hasta su clasificación por peso a los 24 días, con sus tratamientos registrados con vía y
@@ -254,7 +282,7 @@ con un análisis del sistema.
 ## Reglas anti-estancamiento
 
 1. Si una fase pasa de ~3 meses sin uso real → **recortar alcance**, no extender plazo.
-2. Ideas nuevas van a `BACKLOG.md`, no a la fase actual. Se revisan al cerrar fase.
+2. Ideas nuevas van a `docs/BACKLOG.md`, no a la fase actual. Se revisan al cerrar fase.
 3. Cada cierre de fase: retrospectiva de 5 líneas aquí mismo (qué costó, qué aprendí).
 4. Está permitido pausar el proyecto; está prohibido abandonarlo en silencio: se escribe
    una nota con fecha y estado, para que el regreso sea fácil.

@@ -8,7 +8,7 @@ namespace Hato.Modules.Breeding.Application.Cohorts;
 
 /// <summary>
 /// Decides which nursing cohort a new birthing belongs to, and opens one when there is
-/// none (PLAN-FASE-3-5-PORCINO.md sec.3.5a.4). The rule is: an open cohort of the same
+/// none (docs/spec/plan-0002-fase-3-5/spec-3.5a.md sec.3.5a.4). The rule is: an open cohort of the same
 /// species whose latest birth falls inside the species' enrolment window catches the new
 /// birthing. Otherwise a fresh cohort is opened. The cohort id is computed here so the
 /// command handler never has to remember which branch it took, and the domain invariant

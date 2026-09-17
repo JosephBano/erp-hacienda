@@ -27,6 +27,7 @@ public class MilkingSession : AuditableEntity
     public string RecordedByLabel { get; private set; }
     public string RecordedBy => RecordedByLabel;
     public string? Notes { get; private set; }
+    public bool IsPlausibilityConfirmed { get; private set; }
 
     public IReadOnlyCollection<MilkYield> Yields => _yields.AsReadOnly();
 
@@ -42,7 +43,8 @@ public class MilkingSession : AuditableEntity
         decimal totalLiters,
         string recordedByLabel,
         Guid? recordedById,
-        string? notes)
+        string? notes,
+        bool isPlausibilityConfirmed = false)
     {
         Date = date;
         Shift = shift;
@@ -51,6 +53,7 @@ public class MilkingSession : AuditableEntity
         RecordedByLabel = recordedByLabel;
         RecordedById = recordedById;
         Notes = notes;
+        IsPlausibilityConfirmed = isPlausibilityConfirmed;
         CreatedAt = DateTimeOffset.UtcNow;
     }
 
@@ -61,7 +64,8 @@ public class MilkingSession : AuditableEntity
         decimal totalLiters = 0,
         Guid? groupId = null,
         string? notes = null,
-        Guid? recordedById = null)
+        Guid? recordedById = null,
+        bool isPlausibilityConfirmed = false)
     {
         if (string.IsNullOrWhiteSpace(recordedBy))
             throw new DomainException("El registrador del ordeño es requerido.");
@@ -69,7 +73,7 @@ public class MilkingSession : AuditableEntity
         if (totalLiters < 0)
             throw new DomainException("Los litros totales no pueden ser negativos.");
 
-        return new MilkingSession(date, shift, groupId, totalLiters, recordedBy.Trim(), recordedById, notes?.Trim());
+        return new MilkingSession(date, shift, groupId, totalLiters, recordedBy.Trim(), recordedById, notes?.Trim(), isPlausibilityConfirmed);
     }
 
     public MilkYield RecordAnimalYield(Guid animalId, decimal liters)

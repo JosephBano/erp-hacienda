@@ -24,10 +24,7 @@ describe('CatalogsComponent', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [CatalogsComponent],
-      providers: [
-        provideRouter([]),
-        { provide: ApiService, useValue: apiStub },
-      ],
+      providers: [provideRouter([]), { provide: ApiService, useValue: apiStub }],
     }).compileComponents();
   });
 
@@ -47,7 +44,8 @@ describe('CatalogsComponent', () => {
 
     const tabs = fixture.nativeElement.querySelectorAll('[role="tab"]');
     const active = Array.from(tabs as NodeListOf<HTMLElement>).filter(
-      (t) => t.getAttribute('aria-selected') === 'true');
+      (t) => t.getAttribute('aria-selected') === 'true',
+    );
     expect(active.length).toBe(1);
     expect((active[0] as HTMLElement).getAttribute('data-tab')).toBe('species');
   });
@@ -58,7 +56,8 @@ describe('CatalogsComponent', () => {
 
     const tabs = fixture.nativeElement.querySelectorAll('[role="tab"]');
     const mortalityTab = Array.from(tabs as NodeListOf<HTMLElement>).find(
-      (t) => t.getAttribute('data-tab') === 'mortality') as HTMLElement;
+      (t) => t.getAttribute('data-tab') === 'mortality',
+    ) as HTMLElement;
     mortalityTab.click();
     fixture.detectChanges();
 

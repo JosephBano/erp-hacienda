@@ -2,7 +2,12 @@ import { TestBed } from '@angular/core/testing';
 import { provideRouter, Router, ActivatedRoute } from '@angular/router';
 import { of, throwError } from 'rxjs';
 import { AnimalGroupDetailComponent } from './animal-group-detail.component';
-import { ApiService, AnimalGroupDto, AnimalGroupSummaryDto, SpeciesDto } from '../../services/api.service';
+import {
+  ApiService,
+  AnimalGroupDto,
+  AnimalGroupSummaryDto,
+  SpeciesDto,
+} from '../../services/api.service';
 
 describe('AnimalGroupDetailComponent', () => {
   const group: AnimalGroupDto = {
@@ -29,9 +34,7 @@ describe('AnimalGroupDetailComponent', () => {
     lastTreatmentAt: '2026-08-05T10:00:00Z',
   };
 
-  const species: SpeciesDto[] = [
-    { id: 's1', name: 'Bovino', isMilkable: true },
-  ];
+  const species: SpeciesDto[] = [{ id: 's1', name: 'Bovino', isMilkable: true }];
 
   let apiStub: Partial<ApiService>;
 
@@ -62,8 +65,12 @@ describe('AnimalGroupDetailComponent', () => {
     const fixture = TestBed.createComponent(AnimalGroupDetailComponent);
     fixture.detectChanges();
 
-    expect(fixture.nativeElement.querySelector('.page-title')?.textContent).toContain('Vacas en ordeño');
-    expect(fixture.nativeElement.querySelector('[data-testid="live-head-count"]')?.textContent).toContain('12');
+    expect(fixture.nativeElement.querySelector('.page-title')?.textContent).toContain(
+      'Vacas en ordeño',
+    );
+    expect(
+      fixture.nativeElement.querySelector('[data-testid="live-head-count"]')?.textContent,
+    ).toContain('12');
   });
 
   it('marks notFound when the API returns 404', () => {
@@ -97,10 +104,16 @@ describe('AnimalGroupDetailComponent', () => {
 
     vi.spyOn(apiStub, 'deactivateAnimalGroup');
 
-    (fixture.nativeElement.querySelector('[data-testid="deactivate-detail"]') as HTMLButtonElement).click();
+    (
+      fixture.nativeElement.querySelector('[data-testid="deactivate-detail"]') as HTMLButtonElement
+    ).click();
     fixture.detectChanges();
 
-    (fixture.nativeElement.querySelector('[data-testid="confirm-deactivate-detail"]') as HTMLButtonElement).click();
+    (
+      fixture.nativeElement.querySelector(
+        '[data-testid="confirm-deactivate-detail"]',
+      ) as HTMLButtonElement
+    ).click();
 
     expect(apiStub.deactivateAnimalGroup).toHaveBeenCalledWith('g1');
   });
@@ -113,10 +126,16 @@ describe('AnimalGroupDetailComponent', () => {
 
     vi.spyOn(apiStub, 'activateAnimalGroup');
 
-    (fixture.nativeElement.querySelector('[data-testid="reactivate-detail"]') as HTMLButtonElement).click();
+    (
+      fixture.nativeElement.querySelector('[data-testid="reactivate-detail"]') as HTMLButtonElement
+    ).click();
     fixture.detectChanges();
 
-    (fixture.nativeElement.querySelector('[data-testid="confirm-reactivate-detail"]') as HTMLButtonElement).click();
+    (
+      fixture.nativeElement.querySelector(
+        '[data-testid="confirm-reactivate-detail"]',
+      ) as HTMLButtonElement
+    ).click();
 
     expect(apiStub.activateAnimalGroup).toHaveBeenCalledWith('g1');
   });
@@ -128,10 +147,18 @@ describe('AnimalGroupDetailComponent', () => {
     vi.spyOn(apiStub, 'changeAnimalGroupTrackingMode');
 
     // The fixture's group is currently 'Individual'; click the "to headcount" button.
-    (fixture.nativeElement.querySelector('[data-testid="change-to-headcount"]') as HTMLButtonElement).click();
+    (
+      fixture.nativeElement.querySelector(
+        '[data-testid="change-to-headcount"]',
+      ) as HTMLButtonElement
+    ).click();
     fixture.detectChanges();
 
-    (fixture.nativeElement.querySelector('[data-testid="confirm-tracking-mode"]') as HTMLButtonElement).click();
+    (
+      fixture.nativeElement.querySelector(
+        '[data-testid="confirm-tracking-mode"]',
+      ) as HTMLButtonElement
+    ).click();
 
     expect(apiStub.changeAnimalGroupTrackingMode).toHaveBeenCalledWith('g1', 'Headcount');
   });

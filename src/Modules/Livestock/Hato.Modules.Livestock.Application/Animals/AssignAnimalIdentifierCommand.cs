@@ -21,6 +21,13 @@ public class AssignAnimalIdentifierHandler(ILivestockDbContext dbContext)
             .FirstOrDefaultAsync(a => a.Id == request.AnimalId, cancellationToken)
             ?? throw new KeyNotFoundException($"No existe el animal {request.AnimalId}.");
 
+        var trimmedValue = request.Value.Trim();
+        var existingActive = animal.Identifiers.SingleOrDefault(i => i.Type == request.Type && i.IsActive);
+        if (existingActive is not null && string.Equals(existingActive.Value.Trim(), trimmedValue, StringComparison.OrdinalIgnoreCase))
+        {
+            return existingActive.Id;
+        }
+
         var identifier = animal.AssignIdentifier(request.Type, request.Value, request.ValidFrom);
 
         // Without this, EF Core only discovers the new identifier via graph traversal

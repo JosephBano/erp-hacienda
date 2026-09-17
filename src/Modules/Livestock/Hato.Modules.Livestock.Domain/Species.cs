@@ -24,7 +24,7 @@ public class Species : AuditableEntity
 
     /// <summary>
     /// Days of lactation used to compute the weaning date of a nursing cohort
-    /// (PLAN-FASE-3-5-PORCINO.md sec.3.5a.4). Null until an operator sets it; the
+    /// (docs/spec/plan-0002-fase-3-5/spec-3.5a.md sec.3.5a.4). Null until an operator sets it; the
     /// application layer rejects cohort weaning for a species that has not declared
     /// one yet, instead of guessing 24 the way the macro plan used to do. The
     /// values are deliberately per species and not constants in code: a 24-day
@@ -34,7 +34,7 @@ public class Species : AuditableEntity
 
     /// <summary>
     /// Number of days during which a subsequent birthing joins the open cohort instead
-    /// of opening a new one (PLAN-FASE-3-5-PORCINO.md sec.3.5a.4). The client's operation
+    /// of opening a new one (docs/spec/plan-0002-fase-3-5/spec-3.5a.md sec.3.5a.4). The client's operation
     /// is "lunes camada de la cerda 1, martes camada de la cerda 2, miércoles camada de la
     /// cerda 3; todos se destetan juntos" — a window of 5 captures that without needing
     /// a new cohort every two days. Null until configured; cohort auto-assignment then

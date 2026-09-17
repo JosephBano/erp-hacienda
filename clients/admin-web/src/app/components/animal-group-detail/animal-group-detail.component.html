@@ -3,7 +3,9 @@
     <p class="text-muted">Cargando lote…</p>
   </div>
 
-  <div class="alert alert-danger" *ngIf="errorMessage() && !loading() && !notFound()">{{ errorMessage() }}</div>
+  <div class="alert alert-danger" *ngIf="errorMessage() && !loading() && !notFound()">
+    {{ errorMessage() }}
+  </div>
 
   <div *ngIf="notFound()" class="glass-card">
     <h2>Lote no encontrado</h2>
@@ -32,7 +34,9 @@
     <div class="summary-grid" data-testid="summary-grid">
       <div class="summary-card glass-card">
         <span class="summary-label">Cabezas vivas</span>
-        <span class="summary-value" data-testid="live-head-count">{{ summary()?.liveHeadCount ?? '—' }}</span>
+        <span class="summary-value" data-testid="live-head-count">{{
+          summary()?.liveHeadCount ?? '—'
+        }}</span>
       </div>
       <div class="summary-card glass-card">
         <span class="summary-label">Afectadas por diagnóstico</span>
@@ -40,15 +44,17 @@
       </div>
       <div class="summary-card glass-card">
         <span class="summary-label">Última vacunación</span>
-        <span class="summary-value">{{ formatDate(summary()?.lastVaccinationAt) }}</span>
+        <span class="summary-value text-normal">{{
+          formatDate(summary()?.lastVaccinationAt)
+        }}</span>
       </div>
       <div class="summary-card glass-card">
         <span class="summary-label">Última baja</span>
-        <span class="summary-value">{{ formatDate(summary()?.lastDisposalAt) }}</span>
+        <span class="summary-value text-normal">{{ formatDate(summary()?.lastDisposalAt) }}</span>
       </div>
       <div class="summary-card glass-card">
         <span class="summary-label">Último tratamiento</span>
-        <span class="summary-value">{{ formatDate(summary()?.lastTreatmentAt) }}</span>
+        <span class="summary-value text-normal">{{ formatDate(summary()?.lastTreatmentAt) }}</span>
       </div>
     </div>
 
@@ -73,12 +79,18 @@
           <h2>Modo de seguimiento</h2>
         </div>
         <p class="hint-text">
-          Cambiá entre <strong>Individual</strong> y <strong>Por conteo</strong>. Solo posible mientras el grupo esté vacío.
+          Cambiá entre <strong>Individual</strong> y <strong>Por conteo</strong>. Solo posible
+          mientras el grupo esté vacío.
         </p>
-        <div *ngIf="requestingTrackingModeChange() as req" class="warning-block" data-testid="tracking-mode-confirm">
+        <div
+          *ngIf="requestingTrackingModeChange() as req"
+          class="warning-block"
+          data-testid="tracking-mode-confirm"
+        >
           <app-icon name="alert" size="sm" ariaLabel="Advertencia"></app-icon>
           <span>
-            Cambiar el modo va a fallar si el grupo ya tiene miembros activos o eventos registrados. Si querés intentarlo, el servidor va a rechazarlo con el motivo exacto.
+            Cambiar el modo va a fallar si el grupo ya tiene miembros activos o eventos registrados.
+            Si querés intentarlo, el servidor va a rechazarlo con el motivo exacto.
           </span>
           <button
             type="button"
@@ -90,7 +102,14 @@
             <span *ngIf="changingTrackingMode()">Cambiando…</span>
             <span *ngIf="!changingTrackingMode()">{{ trackingModeButtonLabel(req.newMode) }}</span>
           </button>
-          <button type="button" class="btn-secondary btn-sm" (click)="cancelTrackingModeChange()" data-testid="cancel-tracking-mode">Cancelar</button>
+          <button
+            type="button"
+            class="btn-secondary btn-sm"
+            (click)="cancelTrackingModeChange()"
+            data-testid="cancel-tracking-mode"
+          >
+            Cancelar
+          </button>
         </div>
         <div *ngIf="!requestingTrackingModeChange()" class="action-row">
           <button
@@ -99,14 +118,20 @@
             class="btn-secondary btn-sm"
             (click)="requestTrackingModeChange('Headcount')"
             data-testid="change-to-headcount"
-          >Cambiar a Por conteo</button>
+          >
+            <app-icon name="toggle-off" size="sm" ariaLabel="Cambiar"></app-icon>
+            <span>Cambiar a Por conteo</span>
+          </button>
           <button
             *ngIf="g.trackingMode !== 'Individual'"
             type="button"
             class="btn-secondary btn-sm"
             (click)="requestTrackingModeChange('Individual')"
             data-testid="change-to-individual"
-          >Cambiar a Individual</button>
+          >
+            <app-icon name="toggle-on" size="sm" ariaLabel="Cambiar"></app-icon>
+            <span>Cambiar a Individual</span>
+          </button>
         </div>
       </ng-container>
 
@@ -138,7 +163,7 @@
           <label class="form-label" for="edit-description">Descripción</label>
           <textarea
             id="edit-description"
-            class="form-input"
+            class="form-textarea"
             [(ngModel)]="editDescription"
             name="editDescription"
             maxlength="500"
@@ -148,7 +173,7 @@
           <label class="form-label" for="edit-species">Especie</label>
           <select
             id="edit-species"
-            class="form-input"
+            class="form-select"
             [(ngModel)]="editSpeciesId"
             name="editSpeciesId"
             data-testid="edit-species-select"
@@ -158,7 +183,14 @@
           </select>
         </div>
         <div class="form-actions">
-          <button type="button" class="btn-secondary" (click)="cancelEdit()" data-testid="cancel-edit">Cancelar</button>
+          <button
+            type="button"
+            class="btn-secondary"
+            (click)="cancelEdit()"
+            data-testid="cancel-edit"
+          >
+            Cancelar
+          </button>
           <button
             type="button"
             class="btn-primary"
@@ -166,6 +198,7 @@
             [disabled]="editSubmitting()"
             data-testid="save-edit"
           >
+            <app-icon name="check" size="sm" ariaLabel="Guardar"></app-icon>
             <span *ngIf="editSubmitting()">Guardando…</span>
             <span *ngIf="!editSubmitting()">Guardar cambios</span>
           </button>
@@ -177,27 +210,78 @@
       <div class="card-header">
         <h2>Estado</h2>
       </div>
-      <p *ngIf="g.isActive">El lote está activo. Desactivarlo lo oculta del listado por defecto, pero conserva todo el historial y es reversible.</p>
-      <p *ngIf="!g.isActive">El lote está inactivo. Reactivarlo lo devuelve al listado por defecto.</p>
+      <p *ngIf="g.isActive">
+        El lote está activo. Desactivarlo lo oculta del listado por defecto, pero conserva todo el
+        historial y es reversible.
+      </p>
+      <p *ngIf="!g.isActive">
+        El lote está inactivo. Reactivarlo lo devuelve al listado por defecto.
+      </p>
 
       <div *ngIf="g.isActive && confirmingDeactivate()" class="warning-block">
         <app-icon name="alert" size="sm" ariaLabel="Advertencia"></app-icon>
         <span>¿Desactivar este lote? La operación es reversible con "Reactivar".</span>
-        <button type="button" class="btn-danger btn-sm" (click)="confirmDeactivate()" data-testid="confirm-deactivate-detail">Confirmar desactivación</button>
-        <button type="button" class="btn-secondary btn-sm" (click)="cancelDeactivate()" data-testid="cancel-deactivate-detail">Cancelar</button>
+        <button
+          type="button"
+          class="btn-danger btn-sm"
+          (click)="confirmDeactivate()"
+          data-testid="confirm-deactivate-detail"
+        >
+          <app-icon name="close" size="sm" ariaLabel="Confirmar"></app-icon>
+          <span>Confirmar desactivación</span>
+        </button>
+        <button
+          type="button"
+          class="btn-secondary btn-sm"
+          (click)="cancelDeactivate()"
+          data-testid="cancel-deactivate-detail"
+        >
+          Cancelar
+        </button>
       </div>
       <div *ngIf="g.isActive && !confirmingDeactivate()" class="action-row">
-        <button type="button" class="btn-secondary btn-sm" (click)="startDeactivate()" data-testid="deactivate-detail">Desactivar lote</button>
+        <button
+          type="button"
+          class="btn-secondary btn-sm"
+          (click)="startDeactivate()"
+          data-testid="deactivate-detail"
+        >
+          <app-icon name="close" size="sm" ariaLabel="Desactivar"></app-icon>
+          <span>Desactivar lote</span>
+        </button>
       </div>
 
       <div *ngIf="!g.isActive && confirmingReactivate()" class="warning-block">
         <app-icon name="alert" size="sm" ariaLabel="Advertencia"></app-icon>
         <span>¿Reactivar este lote?</span>
-        <button type="button" class="btn-primary btn-sm" (click)="confirmReactivate()" data-testid="confirm-reactivate-detail">Confirmar reactivación</button>
-        <button type="button" class="btn-secondary btn-sm" (click)="cancelReactivate()" data-testid="cancel-reactivate-detail">Cancelar</button>
+        <button
+          type="button"
+          class="btn-primary btn-sm"
+          (click)="confirmReactivate()"
+          data-testid="confirm-reactivate-detail"
+        >
+          <app-icon name="check" size="sm" ariaLabel="Confirmar"></app-icon>
+          <span>Confirmar reactivación</span>
+        </button>
+        <button
+          type="button"
+          class="btn-secondary btn-sm"
+          (click)="cancelReactivate()"
+          data-testid="cancel-reactivate-detail"
+        >
+          Cancelar
+        </button>
       </div>
       <div *ngIf="!g.isActive && !confirmingReactivate()" class="action-row">
-        <button type="button" class="btn-primary btn-sm" (click)="startReactivate()" data-testid="reactivate-detail">Reactivar lote</button>
+        <button
+          type="button"
+          class="btn-primary btn-sm"
+          (click)="startReactivate()"
+          data-testid="reactivate-detail"
+        >
+          <app-icon name="check" size="sm" ariaLabel="Reactivar"></app-icon>
+          <span>Reactivar lote</span>
+        </button>
       </div>
     </div>
 
@@ -253,7 +337,9 @@
         <h2>Eventos del grupo</h2>
       </div>
       <p class="text-muted">
-        Los eventos grupales (pesaje muestral, mortalidad de lote, vacunación, diagnóstico grupal) se registran desde los endpoints correspondientes y aparecen en la ficha del animal cuando aplique.
+        Los eventos grupales (pesaje muestral, mortalidad de lote, vacunación, diagnóstico grupal)
+        se registran desde los endpoints correspondientes y aparecen en la ficha del animal cuando
+        aplique.
       </p>
     </div>
   }

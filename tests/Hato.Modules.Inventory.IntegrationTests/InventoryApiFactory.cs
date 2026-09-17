@@ -18,6 +18,9 @@ public class InventoryApiFactory : WebApplicationFactory<Program>, IAsyncLifetim
     // or a fresh database on the server named by HATO_TEST_POSTGRES.
     private TestDatabase _database = null!;
 
+    /// <summary>Exposed so subclasses that override <c>ConfigureWebHost</c> can reuse the connection string.</summary>
+    protected string ConnectionString => _database.ConnectionString;
+
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.ConfigureAppConfiguration((_, config) =>

@@ -219,4 +219,32 @@ public class AnimalGroupTests
         Assert.Equal(TrackingMode.Headcount, group.TrackingMode);
         Assert.True(group.IsActive);
     }
+
+    // === ADR-0025 T1.11: domain-level coverage of Update. The same two rules are
+    // exercised higher up by the command validator (UpdateAnimalGroupValidator) and by
+    // the endpoint (PutGroup_WithEmptyName_Returns400_ProblemDetails), but the entity
+    // owns the invariant, so it gets its own tests: a future caller that bypasses the
+    // validator must still not be able to blank out a group's name.
+
+    [Fact]
+    public void Update_WithNullDescription_AllowsNull()
+    {
+        var group = AnimalGroup.Create("Vacas Lecheras", "Lote de ordeño principal");
+
+        group.Update("Vacas Secas", description: null);
+
+        Assert.Equal("Vacas Secas", group.Name);
+        Assert.Null(group.Description);
+    }
+
+    [Fact]
+    public void Update_WithEmptyName_Throws()
+    {
+        var group = AnimalGroup.Create("Vacas Lecheras");
+
+        Assert.Throws<DomainException>(() => group.Update("   "));
+
+        // The rejected call must leave the entity untouched, not half-applied.
+        Assert.Equal("Vacas Lecheras", group.Name);
+    }
 }

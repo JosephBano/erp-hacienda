@@ -124,6 +124,9 @@ public static class PeopleModule
             options.AddPolicy("LivestockTreatmentsConfigure", p => p.RequirePermission(SystemPermissions.LivestockTreatmentsConfigure));
             options.AddPolicy("SettingsFarmModulesRead", p => p.RequirePermission(SystemPermissions.SettingsFarmModulesRead));
             options.AddPolicy("SettingsFarmModulesManage", p => p.RequirePermission(SystemPermissions.SettingsFarmModulesManage));
+            options.AddPolicy("InventoryFeedStagesManage", p => p.RequirePermission(SystemPermissions.InventoryFeedStagesManage));
+            options.AddPolicy("InventoryReceptionsManage", p => p.RequirePermission(SystemPermissions.InventoryReceptionsManage));
+            options.AddPolicy("InventoryFeedConsumptionsRecord", p => p.RequirePermission(SystemPermissions.InventoryFeedConsumptionsRecord));
         });
 
         return services;

@@ -484,6 +484,34 @@ public class AnimalGroupApiTests(HatoApiFactory factory) : IClassFixture<HatoApi
     }
 
     [Fact]
+    public async Task PatchTrackingMode_OnGroupWithMembership_Returns409_ProblemDetails()
+    {
+        // ADR-0025 T2.5: the sibling guard (group with events) is covered at HTTP level
+        // above; this is the active-membership half of the same 409. Handler-level
+        // coverage lives in ChangeAnimalGroupTrackingModeCommand_OnGroupWithActiveMember_
+        // ThrowsStateException — this test pins that AnimalGroupStateException still
+        // surfaces as 409 Conflict through the endpoint, not just as an exception.
+        var (groupId, _) = await CreateGroupWithSpeciesAsync("Patch Member Blocked");
+
+        var animalId = await CreateAnimalAsync();
+        await SendAsync(new AddGroupMemberCommand(groupId, animalId, new DateOnly(2026, 8, 1)));
+
+        var response = await _client.PatchAsJsonAsync($"/api/v1/animal-groups/{groupId}/tracking-mode", new
+        {
+            trackingMode = "Headcount",
+        });
+
+        Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
+        var problem = await response.Content.ReadFromJsonAsync<ProblemDetails>();
+        Assert.NotNull(problem);
+        Assert.Contains("miembros activos", problem!.Detail, StringComparison.OrdinalIgnoreCase);
+
+        // The rejected change must not have been persisted.
+        var after = await GetByIdAsync(groupId);
+        Assert.Equal(TrackingMode.Individual, after.TrackingMode);
+    }
+
+    [Fact]
     public async Task PatchTrackingMode_OnInactiveGroup_Returns400_ProblemDetails()
     {
         var (groupId, _) = await CreateGroupWithSpeciesAsync("Patch Inactive Target");
@@ -496,5 +524,56 @@ public class AnimalGroupApiTests(HatoApiFactory factory) : IClassFixture<HatoApi
 
         // DomainException from AnimalGroup.ChangeTrackingMode maps to 400.
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Coexistence_IndividualAndHeadcountGroups_CanCoexistWithoutCrossContamination()
+    {
+        // 1. Create Species
+        var speciesId = await CreateSpeciesAsync($"Bovino-Coexist-{Guid.NewGuid():N}");
+
+        // 2. Create an Individual group and a Headcount group
+        var indGroupId = await CreateGroupOnlyAsync(speciesId, "Lote Individual Coexist", TrackingMode.Individual);
+        var hcGroupId = await CreateGroupOnlyAsync(speciesId, "Lote Conteo Coexist", TrackingMode.Headcount);
+
+        // 3. Add an animal to the Individual group
+        var animalId = await CreateAnimalAsync();
+        await SendAsync(new AddGroupMemberCommand(indGroupId, animalId, new DateOnly(2026, 8, 1)));
+
+        // 4. Record a group event on the Headcount group
+        await SendAsync(new Hato.Modules.Livestock.Application.Events.RecordGroupEventCommand(
+            GroupId: hcGroupId,
+            EventType: EventType.GroupWeightSorting,
+            OccurredAt: new DateTimeOffset(2026, 8, 1, 12, 0, 0, TimeSpan.Zero),
+            RecordedBy: "test-suite",
+            PayloadJson: "{\"head_count\":10,\"avg_kg\":30.0}"));
+
+        // 5. Query both groups by id and verify isolation (no cross-contamination, T5.6)
+        var indGroup = await GetByIdAsync(indGroupId);
+        var hcGroup = await GetByIdAsync(hcGroupId);
+
+        Assert.Equal(TrackingMode.Individual, indGroup.TrackingMode);
+        Assert.Equal(1, indGroup.LiveHeadCount);
+        Assert.Single(indGroup.Memberships);
+        Assert.Equal(animalId, indGroup.Memberships[0].AnimalId);
+
+        Assert.Equal(TrackingMode.Headcount, hcGroup.TrackingMode);
+        Assert.Empty(hcGroup.Memberships);
+
+        // 6. Update individual group (T5.7: UpdateAnimalGroupCommand does not receive TrackingMode)
+        var updated = await SendAsync(new UpdateAnimalGroupCommand(
+            indGroupId,
+            "Lote Individual Renombrado",
+            "Sin alterar modo",
+            speciesId));
+        Assert.Equal(TrackingMode.Individual, updated.TrackingMode);
+
+        // 7. Verify listing returns both groups with their respective TrackingMode intact
+        var allGroups = await SendAsync(new GetAnimalGroupsQuery(IncludeInactive: false));
+        var indInList = allGroups.Single(g => g.Id == indGroupId);
+        var hcInList = allGroups.Single(g => g.Id == hcGroupId);
+
+        Assert.Equal(TrackingMode.Individual, indInList.TrackingMode);
+        Assert.Equal(TrackingMode.Headcount, hcInList.TrackingMode);
     }
 }

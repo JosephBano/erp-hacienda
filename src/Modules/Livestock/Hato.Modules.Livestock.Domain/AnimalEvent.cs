@@ -98,6 +98,17 @@ public class AnimalEvent : AuditableEntity
     /// </summary>
     public Guid? AppliedByUserId { get; private set; }
 
+    /// <summary>
+    /// Set when this legacy event (a <c>treatment</c> with a free-text <c>dose</c> in
+    /// <see cref="PayloadJson"/>, pre-3.5a.2-B) has been migrated to a synthetic,
+    /// single-application <see cref="TreatmentCourse"/> (3.5a.2-B task 9). The
+    /// original row is never edited beyond this marker (Art. 1) — the dose itself
+    /// stays exactly as it was typed, readable from <see cref="PayloadJson"/>.
+    /// Idempotency guard for the migration: once set, re-processing the same event
+    /// is a no-op instead of creating a second course.
+    /// </summary>
+    public Guid? MigratedToCourseId { get; private set; }
+
     private AnimalEvent()
     {
         RecordedByLabel = null!;
@@ -263,6 +274,24 @@ public class AnimalEvent : AuditableEntity
             batchId,
             healthPlanItemId,
             appliedByUserId);
+    }
+
+    /// <summary>
+    /// Marks this event as migrated to a synthetic <see cref="TreatmentCourse"/>
+    /// (task 9). Idempotent by design at the caller: the handler checks
+    /// <see cref="MigratedToCourseId"/> first and skips re-migration entirely, so
+    /// this throws only if something calls it twice by mistake within the same
+    /// request — a real bug, not a legitimate retry.
+    /// </summary>
+    public void MarkMigratedToCourse(Guid courseId)
+    {
+        if (courseId == Guid.Empty)
+            throw new DomainException("El ID de la serie de tratamiento migrada no puede ser vacío.");
+
+        if (MigratedToCourseId is not null)
+            throw new DomainException("Este evento ya fue migrado a una serie de tratamiento.");
+
+        MigratedToCourseId = courseId;
     }
 
     private static string? NormaliseReason(string? raw)

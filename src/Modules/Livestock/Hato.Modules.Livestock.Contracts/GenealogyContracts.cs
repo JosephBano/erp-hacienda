@@ -25,7 +25,14 @@ public record RegisterOffspringRequest(
     Guid? FatherAnimalId,
     Guid? FatherStrawId,
     Guid? BirthingId,
-    decimal? BirthWeightKg = null);
+    decimal? BirthWeightKg = null,
+    Guid? ChildId = null);
+
+public record DamFitnessDto(
+    Guid DamId,
+    bool IsFemale,
+    DateTimeOffset? DisposedAt,
+    Guid? SpeciesId);
 
 /// <summary>
 /// Public write port used by Breeding to enroll a newborn as a first-class Animal with
@@ -36,8 +43,14 @@ public interface IAnimalRegistrationService
     Task<Guid> RegisterOffspringAsync(RegisterOffspringRequest request, CancellationToken cancellationToken);
 
     /// <summary>
+    /// Reads dam eligibility for birthing: existence, sex, disposal timestamp, and species id.
+    /// Used by Breeding to validate dam fitness before recording a birth.
+    /// </summary>
+    Task<DamFitnessDto?> GetDamFitnessAsync(Guid damId, CancellationToken cancellationToken);
+
+    /// <summary>
     /// Reads the species id of an animal. Used by Breeding to pick the right cohort
-    /// window when a birthing is recorded (PLAN-FASE-3-5-PORCINO.md sec.3.5a.4). Returns
+    /// window when a birthing is recorded (docs/spec/plan-0002-fase-3-5/spec-3.5a.md sec.3.5a.4). Returns
     /// null when the animal does not exist or has been soft-deleted, so the calling
     /// command can fall back to "no cohort" without an exception.
     /// </summary>
@@ -46,7 +59,7 @@ public interface IAnimalRegistrationService
     /// <summary>
     /// Counts how many of this litter's offspring already carry a Disposal event.
     /// Used by Breeding's cohort-weaning handler to compute the actual weaned count
-    /// (PLAN-FASE-3-5-PORCINO.md sec.3.5a.4 task 5): a weaning that records BornAlive
+    /// (docs/spec/plan-0002-fase-3-5/spec-3.5a.md sec.3.5a.4 task 5): a weaning that records BornAlive
     /// silently ignores the preweaning deaths that 3.5a.3 was built to capture.
     /// Animals that were tombstoned (mis-registration) are excluded: their absence is
     /// not a death.
@@ -65,23 +78,95 @@ public interface IAnimalSpeciesReader
     Task<int?> GetGestationDaysAsync(Guid animalId, CancellationToken cancellationToken);
 
     /// <summary>
-    /// Reads the lactation parameters of a species directly (PLAN-FASE-3-5-PORCINO.md
+    /// Reads the lactation parameters of a species directly (docs/spec/plan-0002-fase-3-5/spec.md
     /// sec.3.5a.4). Returns nulls when the species has not been configured yet, so the
     /// application layer can refuse cohort weaning with a clear message instead of
     /// silently defaulting to 24. The cohort window is the only addition relative to
     /// <see cref="GetGestationDaysAsync"/>; it is what decides whether a new birthing
-    /// joins an open cohort or opens its own.
+    /// joins an existing cohort or opens a new one.
     /// </summary>
     Task<SpeciesLactationProfile?> GetLactationProfileAsync(Guid speciesId, CancellationToken cancellationToken);
 }
 
 /// <summary>
-/// Lactation and cohort parameters for a species, as configured by the operator in the
-/// panel. Backs the nursing cohort feature (3.5a.4): <c>DaysOfLactation</c> is added to
-/// the cohort's latest birth to get the weaning date; <c>CohortWindowDays</c> is the
-/// window during which a new birth joins the existing cohort instead of opening a new one.
+/// Lightweight projection of an offspring row (sex, optional birth weight, optional
+/// farm tag) for the read-side of a <c>recordBirth</c> flow. Carries no entity identity
+/// beyond the animal id so the panel can render the "Detalle de crías" expansion
+/// without coupling to <c>Livestock.Domain.Animal</c>.
+/// </summary>
+public record BirthingOffspringRow(
+    Guid AnimalId,
+    string Sex,
+    decimal? BirthWeightKg,
+    string? FarmTag);
+
+/// <summary>
+/// Read bundle for a single birthing: dam farm tag + the list of offspring rows.
+/// The dam farm tag is empty-string-friendly (null when the animal has no active
+/// FarmTag) so the caller can render either "—" or the actual tag.
+/// </summary>
+public record BirthingOffspringBundle(
+    string? DamFarmTag,
+    IReadOnlyList<BirthingOffspringRow> Offspring);
+
+/// <summary>
+/// Public read port used by Breeding to populate <c>BirthingListItemDto</c> with
+/// the dam's farm tag and the offspring rows for the panel "Partos" tab, without
+/// Breeding depending on <c>Livestock.Application.Abstractions</c> (Art. 6). The
+/// caller passes the (birthingId, damId) pairs because the canonical source for
+/// dam ids is <c>breeding.birthings.dam_id</c>, not <c>livestock.animals</c>.
+/// </summary>
+public interface IBirthingOffspringReader
+{
+    /// <summary>
+    /// For each (birthingId, damId) pair, returns the dam's currently-active
+    /// <see cref="IdentifierType.FarmTag"/> (null if absent) and the non-deleted
+    /// offspring rows whose <c>BirthingId</c> matches. Birthings with no offspring
+    /// yield an empty offspring list. Two SQL round-trips total no matter how many
+    /// pairs are supplied.
+    /// </summary>
+    Task<IReadOnlyDictionary<Guid, BirthingOffspringBundle>> GetForBirthingPairsAsync(
+        IReadOnlyCollection<BirthingDamPair> pairs,
+        CancellationToken cancellationToken);
+}
+
+/// <summary>
+/// One row of the input to <see cref="IBirthingOffspringReader.GetForBirthingPairsAsync"/>:
+/// which dam goes with which birthing. Lives in Contracts because the producer
+/// (Breeding handler) and the consumer (the reader implementation) need to agree
+/// on the shape; the data is already known on the producer side.
+/// </summary>
+public record BirthingDamPair(Guid BirthingId, Guid DamId);
+
+/// <summary>
+/// Lactation and cohort parameters of a species, as configured by the operator in the
+/// panel. Backs the nursing cohort feature (3.5a.4): <c>DaysOfLactation</c> is added
+/// to the cohort's latest birth to get the weaning date; <c>CohortWindowDays</c> is
+/// the window during which a new birth joins the existing cohort instead of opening a new one.
 /// </summary>
 public record SpeciesLactationProfile(
     Guid SpeciesId,
     int? DaysOfLactation,
     int? CohortWindowDays);
+
+/// <summary>
+/// Minimal projection of an <c>AnimalGroup</c> for cross-module read consumers
+/// that only need the display name (consumption history panels, pedigree headers,
+/// KPI dashboards). The full group detail stays in Livestock; this contract exists
+/// so Inventory can render "Lote X comió Y" without coupling to the livestock
+/// DbContext (Art. 6).
+/// </summary>
+public record AnimalGroupSummary(Guid Id, string Name);
+
+/// <summary>
+/// Public read port used by Inventory to label consumption rows with the group name
+/// ("se consumieron 10 kg para LOTE-A1"). One round-trip for the whole set, keyed by
+/// group id — the same batching trick the breeding read port uses for its
+/// offspring/dam lookups.
+/// </summary>
+public interface IAnimalGroupSummaryReader
+{
+    Task<IReadOnlyDictionary<Guid, AnimalGroupSummary>> GetByIdsAsync(
+        IReadOnlyCollection<Guid> groupIds,
+        CancellationToken cancellationToken);
+}

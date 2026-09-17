@@ -15,9 +15,33 @@ public class InventoryItemConfiguration : IEntityTypeConfiguration<InventoryItem
         builder.Property(i => i.Category).HasConversion<string>().HasMaxLength(20).IsRequired();
         builder.Property(i => i.Unit).HasMaxLength(20).IsRequired();
         builder.Property(i => i.Description).HasMaxLength(500);
+        builder.Property(i => i.FeedStageId).IsRequired(false);
+
+        // Restrict, not cascade: deactivating/removing a feed stage must never silently
+        // wipe the classification off items that reference it (Art. 1).
+        builder.HasOne<FeedStage>().WithMany().HasForeignKey(i => i.FeedStageId).OnDelete(DeleteBehavior.Restrict);
 
         builder.Metadata.FindNavigation(nameof(InventoryItem.Batches))!
             .SetPropertyAccessMode(PropertyAccessMode.Field);
+    }
+}
+
+public class FeedStageConfiguration : IEntityTypeConfiguration<FeedStage>
+{
+    public void Configure(EntityTypeBuilder<FeedStage> builder)
+    {
+        builder.ToTable("feed_stages");
+        builder.HasKey(s => s.Id);
+
+        builder.Property(s => s.Key).HasMaxLength(50).IsRequired();
+        builder.Property(s => s.LabelEs).HasMaxLength(100).IsRequired();
+        builder.Property(s => s.IsActive).IsRequired();
+
+        // Key is the wire-format identifier; unique across active rows only, same pattern
+        // as AdministrationRoute/TreatmentReason — a deactivated row keeps its old key so
+        // historical InventoryItem.FeedStageId references stay meaningful.
+        builder.HasIndex(s => s.Key).IsUnique().HasFilter("deleted_at IS NULL");
+        builder.HasIndex(s => s.IsActive);
     }
 }
 
@@ -29,6 +53,14 @@ public class InventoryBatchConfiguration : IEntityTypeConfiguration<InventoryBat
         builder.HasKey(b => b.Id);
 
         builder.Property(b => b.BatchNumber).HasMaxLength(50).IsRequired();
+        builder.Property(b => b.ReceivedAt).IsRequired();
+        builder.Property(b => b.SupplierLabel).HasMaxLength(200);
+        builder.Property(b => b.InvoiceReference).HasMaxLength(100);
+        builder.Property(b => b.Notes).HasMaxLength(500);
+        builder.Property(b => b.RecordedByLabel).HasMaxLength(200);
+        // RecordedById stays a soft FK (no REFERENCES) — same orphan pattern as
+        // GroupFeedConsumption.RecordedById (ADR-0026 Decisión 1).
+        builder.HasIndex(b => b.ReceivedAt).HasDatabaseName("ix_inventory_batches_received_at");
         builder.HasOne<InventoryItem>().WithMany(i => i.Batches).HasForeignKey(b => b.InventoryItemId).OnDelete(DeleteBehavior.Cascade);
     }
 }

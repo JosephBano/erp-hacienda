@@ -25,8 +25,77 @@ describe('local schema', () => {
         'sync_meta',
         'farm_modules',
         'mortality_causes',
+        'animal_events',
+        'pregnancies',
+        'breeding_services',
       ]),
     );
+  });
+
+  /**
+   * 3.5a.1 (ADR-0015) + BACKLOG "AnimalEvent grupal aún no viaja en el pull": the
+   * event's subject is exactly one of `animal_id` / `group_id`, mirroring the server's
+   * domain invariant and DB CHECK. Both columns must exist and both must be optional —
+   * a schema that made `animal_id` required would force a fake value onto every group
+   * event, which is precisely the synthetic data ADR-0015 exists to avoid.
+   */
+  it('lets an event carry an animal subject, a group subject, or neither column filled — never a forced value on the other', () => {
+    const columns = schema.tables['animal_events'].columns;
+
+    expect(columns['animal_id'].isOptional).toBe(true);
+    expect(columns['group_id'].isOptional).toBe(true);
+    expect(Object.keys(columns)).toEqual(
+      expect.arrayContaining([
+        'animal_id',
+        'group_id',
+        'event_type',
+        'occurred_at',
+        'recorded_by',
+        'payload_json',
+        'affected_count',
+        'cause_id',
+        'related_event_id',
+        'is_deleted',
+      ]),
+    );
+  });
+
+  it('accepts both an animal-subject and a group-subject event row', async () => {
+    const adapter = new LokiJSAdapter({
+      schema,
+      migrations,
+      useWebWorker: false,
+      useIncrementalIndexedDB: false,
+      dbName: `hato-schema-events-${Math.random()}`,
+    });
+    const database = new Database({ adapter: adapter as never, modelClasses });
+
+    await database.write(async () => {
+      await database.get('animal_events').create((row: any) => {
+        row._raw.id = 'evt-animal-1';
+        row.animalId = 'animal-1';
+        row.groupId = undefined;
+        row.eventType = 'Weighing';
+        row.occurredAt = '2026-08-01T00:00:00Z';
+        row.recordedBy = 'Operario';
+        row.payloadJson = '{"kg":45}';
+        row.isDeleted = false;
+      });
+
+      await database.get('animal_events').create((row: any) => {
+        row._raw.id = 'evt-group-1';
+        row.animalId = undefined;
+        row.groupId = 'group-1';
+        row.eventType = 'GroupWeighing';
+        row.occurredAt = '2026-08-02T00:00:00Z';
+        row.recordedBy = 'Operario';
+        row.payloadJson = '{"sample_count":10,"avg_kg":22}';
+        row.affectedCount = 42;
+        row.isDeleted = false;
+      });
+    });
+
+    expect(await database.get('animal_events').query().fetchCount()).toBe(2);
   });
 
   /**
@@ -49,6 +118,7 @@ describe('local schema', () => {
         'server_created_at',
         'server_updated_at',
         'last_edited_at',
+        'disposed_at',
       ]),
     );
   });
@@ -82,8 +152,122 @@ describe('local schema', () => {
         row.endsAt = '2026-08-06';
         row.isDeleted = false;
       });
+      await database.get('pregnancies').create((row: any) => {
+        row._raw.id = 'preg-1';
+        row.damId = 'dam-1';
+        row.status = 'Active';
+        row.isDeleted = false;
+        row.serverCreatedAt = Date.now();
+      });
+      await database.get('breeding_services').create((row: any) => {
+        row._raw.id = 'serv-1';
+        row.damId = 'dam-1';
+        row.serviceType = 'Natural';
+        row.isDeleted = false;
+        row.serverCreatedAt = Date.now();
+      });
     });
 
     expect(await database.get('withdrawal_periods').query().fetchCount()).toBe(1);
+    expect(await database.get('pregnancies').query().fetchCount()).toBe(1);
+    expect(await database.get('breeding_services').query().fetchCount()).toBe(1);
+  });
+
+  it('defines a migration from version 10 to 11 creating pregnancies and breeding_services (T4.14)', () => {
+    const allMigrations =
+      (migrations as any).sortedMigrations ?? (migrations as any).migrations ?? [];
+    const v11Migration = allMigrations.find((m: any) => m.toVersion === 11);
+    expect(v11Migration).toBeDefined();
+
+    const tableNames = v11Migration?.steps.map((s: any) => s.schema?.name ?? s.name);
+    expect(tableNames).toEqual(['pregnancies', 'breeding_services']);
+
+    const pregStep = v11Migration?.steps.find(
+      (s: any) => (s.schema?.name ?? s.name) === 'pregnancies',
+    ) as any;
+    const servStep = v11Migration?.steps.find(
+      (s: any) => (s.schema?.name ?? s.name) === 'breeding_services',
+    ) as any;
+
+    expect(pregStep.type).toBe('create_table');
+    expect(servStep.type).toBe('create_table');
+
+    // Columns match the schema definitions
+    const pregCols = Object.keys(pregStep.schema.columns);
+    expect(pregCols).toEqual([
+      'dam_id',
+      'service_id',
+      'status',
+      'expected_birth_date',
+      'is_deleted',
+      'server_created_at',
+      'server_updated_at',
+    ]);
+
+    const servCols = Object.keys(servStep.schema.columns);
+    expect(servCols).toEqual([
+      'dam_id',
+      'service_type',
+      'sire_animal_id',
+      'straw_id',
+      'is_deleted',
+      'server_created_at',
+      'server_updated_at',
+    ]);
+  });
+
+  it('defines a migration from version 11 to 12 adding disposed_at to animals (T1.4)', () => {
+    const allMigrations =
+      (migrations as any).sortedMigrations ?? (migrations as any).migrations ?? [];
+    const v12Migration = allMigrations.find((m: any) => m.toVersion === 12);
+    expect(v12Migration).toBeDefined();
+
+    expect(v12Migration?.steps).toHaveLength(1);
+    const step = v12Migration?.steps[0];
+    expect(step.type).toBe('add_columns');
+    expect(step.table).toBe('animals');
+    expect(step.columns).toEqual([{ name: 'disposed_at', type: 'string', isOptional: true }]);
+  });
+
+  it('preserves sync_outbox and existing animal data across migration to version 12 (T1.5, T1.6)', async () => {
+    const adapter = new LokiJSAdapter({
+      schema,
+      migrations,
+      useWebWorker: false,
+      useIncrementalIndexedDB: false,
+      dbName: `hato-schema-migration-v12-${Math.random()}`,
+    });
+    const database = new Database({ adapter: adapter as never, modelClasses });
+
+    await database.write(async () => {
+      await database.get('sync_outbox').create((row: any) => {
+        row._raw.id = 'op-1';
+        row.clientOperationId = 'client-op-1';
+        row.operationType = 'recordMilking';
+        row.occurredAt = '2026-08-01T05:00:00Z';
+        row.payloadJson = '{"liters": 15}';
+        row.status = 'pending';
+        row.attempts = 0;
+        row.queuedAt = Date.now();
+      });
+
+      await database.get('animals').create((row: any) => {
+        row._raw.id = 'animal-1';
+        row.sex = 'Female';
+        row.speciesId = 'species-cow';
+        row.isDeleted = false;
+        row.serverCreatedAt = Date.now();
+        row.disposedAt = '2026-08-05T10:00:00Z';
+      });
+    });
+
+    const outboxItem = (await database.get('sync_outbox').find('op-1')) as any;
+    expect(outboxItem.clientOperationId).toBe('client-op-1');
+    expect(outboxItem.operationType).toBe('recordMilking');
+    expect(outboxItem.status).toBe('pending');
+
+    const animal = (await database.get('animals').find('animal-1')) as any;
+    expect(animal.sex).toBe('Female');
+    expect(animal.disposedAt).toBe('2026-08-05T10:00:00Z');
   });
 });

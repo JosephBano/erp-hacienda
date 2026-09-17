@@ -152,9 +152,57 @@ public class SyncTestContext
         return login!;
     }
 
-    public async Task<Guid> CreateSpeciesAsync(string name)
+    public async Task<Guid> CreateSpeciesAsync(string name, int? gestationDays = 283, bool isMilkable = true)
     {
-        var response = await Client.PostAsJsonAsync("/api/v1/species", new { name = $"{name}-{Guid.NewGuid():N}" });
+        var response = await Client.PostAsJsonAsync("/api/v1/species", new
+        {
+            name = $"{name}-{Guid.NewGuid():N}",
+            gestationDays = gestationDays ?? 283,
+            isMilkable,
+        });
+        response.EnsureSuccessStatusCode();
+
+        var body = await response.Content.ReadFromJsonAsync<JsonElement>();
+        return body.GetProperty("id").GetGuid();
+    }
+
+    public async Task<Guid> RegisterBreedingServiceAsync(
+        Guid damId,
+        Guid? sireAnimalId = null,
+        Guid? strawId = null,
+        string serviceType = "Natural",
+        DateOnly? serviceDate = null)
+    {
+        var date = serviceDate ?? DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-30));
+        var response = await Client.PostAsJsonAsync("/api/v1/breeding/services", new
+        {
+            damId,
+            serviceType,
+            serviceDate = date,
+            sireAnimalId,
+            strawId,
+        });
+        response.EnsureSuccessStatusCode();
+
+        var body = await response.Content.ReadFromJsonAsync<JsonElement>();
+        return body.GetProperty("id").GetGuid();
+    }
+
+    public async Task<Guid> RecordPregnancyCheckAsync(
+        Guid serviceId,
+        string result = "Positive",
+        DateOnly? checkDate = null,
+        int? gestationDays = null)
+    {
+        var date = checkDate ?? DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-10));
+        var response = await Client.PostAsJsonAsync("/api/v1/breeding/pregnancy-checks", new
+        {
+            serviceId,
+            checkDate = date,
+            method = "Ultrasound",
+            result,
+            gestationDays,
+        });
         response.EnsureSuccessStatusCode();
 
         var body = await response.Content.ReadFromJsonAsync<JsonElement>();
@@ -208,6 +256,40 @@ public class SyncTestContext
     {
         var response = await Client.DeleteAsync($"/api/v1/animal-groups/{groupId}/members/{animalId}");
         response.EnsureSuccessStatusCode();
+    }
+
+    /// <summary>Seeds an inventory item (category "Feed" by default) for 3.5a.7 task 5 tests.</summary>
+    public async Task<Guid> CreateInventoryItemAsync(string category = "Feed", string unit = "kg", string name = "Balanceado")
+    {
+        var response = await Client.PostAsJsonAsync("/api/v1/inventory/items", new
+        {
+            name = $"{name}-{Guid.NewGuid():N}",
+            category,
+            unit,
+        });
+        response.EnsureSuccessStatusCode();
+
+        var body = await response.Content.ReadFromJsonAsync<JsonElement>();
+        return body.GetProperty("id").GetGuid();
+    }
+
+    /// <summary>
+    /// Seeds a batch via the legacy POST /batches endpoint so a downstream
+    /// feed-consumption push can drain it. Used by tests that exercise
+    /// <c>recordFeedConsumption</c> since the FIFO deduction behaviour
+    /// (feature/inventory-consumption-history B.2) rejects consumptions against
+    /// items with no stock.
+    /// </summary>
+    public async Task<Guid> CreateInventoryBatchAsync(
+        Guid itemId, string batchNumber, decimal quantity)
+    {
+        var response = await Client.PostAsJsonAsync(
+            $"/api/v1/inventory/items/{itemId}/batches",
+            new { batchNumber, quantity, costPerUnit = 1m });
+        response.EnsureSuccessStatusCode();
+
+        var body = await response.Content.ReadFromJsonAsync<JsonElement>();
+        return body.GetProperty("id").GetGuid();
     }
 
     /// <summary>

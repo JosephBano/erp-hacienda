@@ -9,7 +9,7 @@ import { IconComponent } from '../../shared/icon/icon.component';
   standalone: true,
   imports: [CommonModule, RouterModule, IconComponent],
   templateUrl: './animal-detail.component.html',
-  styleUrls: ['./animal-detail.component.css']
+  styleUrls: ['./animal-detail.component.css'],
 })
 export class AnimalDetailComponent implements OnInit {
   private route = inject(ActivatedRoute);
@@ -25,21 +25,21 @@ export class AnimalDetailComponent implements OnInit {
     const id = this.route.snapshot.paramMap.get('id');
     if (id) {
       this.api.getAnimalById(id).subscribe({
-        next: (data) => this.animal = data,
+        next: (data) => (this.animal = data),
         error: () => {
           this.loadError = true;
           this.animal = null;
-        }
+        },
       });
 
       this.api.getPedigree(id).subscribe({
         next: (data) => (this.pedigree = data),
-        error: () => {}
+        error: () => {},
       });
 
       this.api.getDamKpis(id).subscribe({
         next: (data) => (this.damKpis = data),
-        error: () => {}
+        error: () => {},
       });
     }
   }

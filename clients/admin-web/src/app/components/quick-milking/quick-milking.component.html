@@ -18,7 +18,7 @@
     <div class="form-grid">
       <div class="form-group">
         <label class="form-label" for="milking-date">Fecha de ordeño:</label>
-        <input id="milking-date" type="date" class="form-input" [(ngModel)]="sessionDate">
+        <input id="milking-date" type="date" class="form-input" [(ngModel)]="sessionDate" />
       </div>
 
       <div class="form-group">
@@ -32,14 +32,16 @@
 
       <div class="form-group">
         <label class="form-label" for="milking-recorder">Registrado por:</label>
-        <input id="milking-recorder" type="text" class="form-input" [(ngModel)]="recordedBy">
+        <input id="milking-recorder" type="text" class="form-input" [(ngModel)]="recordedBy" />
       </div>
     </div>
   </div>
 
   <div class="glass-card" *ngIf="!loadError">
     <h3>Litros obtenidos por animal</h3>
-    <p class="subtitle text-sm mb-3">Los animales bajo retiro sanitario se resaltan para separar la leche bloqueada.</p>
+    <p class="subtitle text-sm mb-3">
+      Los animales bajo retiro sanitario se resaltan para separar la leche bloqueada.
+    </p>
 
     <div class="table-container">
       <table class="responsive-table">
@@ -53,7 +55,9 @@
         </thead>
         <tbody>
           <tr *ngFor="let item of animals" [class.row-warning]="item.isInWithdrawal">
-            <td data-label="Arete Finca"><strong>{{ item.farmTag }}</strong></td>
+            <td data-label="Arete Finca">
+              <strong>{{ item.farmTag }}</strong>
+            </td>
             <td data-label="Animal">{{ item.name }}</td>
             <td data-label="Estado Sanitario">
               <span *ngIf="item.isInWithdrawal" class="badge badge-danger">
@@ -74,7 +78,7 @@
                 [(ngModel)]="item.liters"
                 [attr.aria-label]="'Litros producidos por ' + item.name"
                 placeholder="0.0"
-              >
+              />
             </td>
           </tr>
         </tbody>

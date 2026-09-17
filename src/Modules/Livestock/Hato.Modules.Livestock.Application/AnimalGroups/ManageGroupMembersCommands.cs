@@ -29,9 +29,22 @@ public class AddGroupMemberHandler(ILivestockDbContext dbContext) : IRequestHand
         if (group is null)
             throw new DomainException($"El grupo con ID '{request.GroupId}' no existe.");
 
-        var animalExists = await dbContext.Animals.AnyAsync(a => a.Id == request.AnimalId, cancellationToken);
-        if (!animalExists)
+        if (!group.IsActive)
+            throw new DomainException("No se pueden agregar miembros a un grupo inactivo.");
+
+        var animal = await dbContext.Animals
+            .FirstOrDefaultAsync(a => a.Id == request.AnimalId && a.DeletedAt == null, cancellationToken);
+        if (animal is null)
             throw new DomainException($"El animal con ID '{request.AnimalId}' no existe.");
+
+        if (animal.DisposedAt is { } disposedAt)
+        {
+            var disposedDate = DateOnly.FromDateTime(disposedAt.UtcDateTime);
+            if (disposedDate <= request.JoinedAt)
+            {
+                throw new DomainException("El animal fue dado de baja y no puede ser agregado a un grupo.");
+            }
+        }
 
         var membership = group.AddMember(request.AnimalId, request.JoinedAt);
         dbContext.GroupMemberships.Add(membership);

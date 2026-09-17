@@ -1,0 +1,96 @@
+# ==============================================================================
+# compose.staging.yml — Stack de staging para Hato ERP en joemanserver
+# Referencia: ADR-0031 / spec.md sec. 7.2
+# ==============================================================================
+# Principios aplicados:
+# 1. ASPNETCORE_ENVIRONMENT: Staging (no Development ni Production).
+# 2. No se publican puertos al host: Caddy (red proxy) enruta dentro de Tailscale.
+# 3. Datos fuera de la raíz: volumen bajo /srv/hato-staging/pgdata, que queda
+#    FUERA del contexto de build (el checkout vive en /srv/hato-staging/repo).
+#    Si los datos cayeran dentro del contexto, el build fallaria al no poder
+#    leer un directorio que crea PostgreSQL como root.
+# 4. Ninguna imagen usa latest: versión fija postgres:16-alpine.
+# ==============================================================================
+
+# Nombre de proyecto fijo: si se derivara del directorio, mover o renombrar el
+# checkout cambiaria el nombre de la red y de los recursos, y compose dejaria
+# huerfanos los contenedores anteriores en vez de reemplazarlos.
+name: hato-staging
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: hato-staging-postgres
+    environment:
+      POSTGRES_DB: hato_staging
+      POSTGRES_USER: hato_staging
+      POSTGRES_PASSWORD: ${STAGING_POSTGRES_PASSWORD:?define STAGING_POSTGRES_PASSWORD}
+    volumes:
+      - /srv/hato-staging/pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hato_staging -d hato_staging"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks:
+      - hato-staging-internal
+    restart: unless-stopped
+
+  migrate:
+    container_name: hato-staging-migrate
+    build:
+      context: .
+      dockerfile: src/Hato.Api/migrate.Dockerfile
+    environment:
+      CONNECTION_STRING: "Host=postgres;Port=5432;Database=hato_staging;Username=hato_staging;Password=${STAGING_POSTGRES_PASSWORD}"
+      ConnectionStrings__HatoDb: "Host=postgres;Port=5432;Database=hato_staging;Username=hato_staging;Password=${STAGING_POSTGRES_PASSWORD}"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - hato-staging-internal
+    restart: "no"
+
+  api:
+    container_name: hato-staging-api
+    build:
+      context: .
+      dockerfile: src/Hato.Api/Dockerfile
+    environment:
+      ASPNETCORE_URLS: http://+:8080
+      ASPNETCORE_ENVIRONMENT: Staging
+      ConnectionStrings__HatoDb: "Host=postgres;Port=5432;Database=hato_staging;Username=hato_staging;Password=${STAGING_POSTGRES_PASSWORD}"
+      # Trazabilidad del build (spec.md sec. 8 / test-e2e.md E2E-5): sin esto el
+      # endpoint /version responde commit "local" y lo desplegado no puede decir
+      # que es. El despliegue los escribe en .env.staging desde el checkout.
+      HATO_VERSION: ${HATO_VERSION:-}
+      HATO_COMMIT: ${HATO_COMMIT:-}
+      HATO_BUILD_DATE: ${HATO_BUILD_DATE:-}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    networks:
+      - proxy
+      - hato-staging-internal
+    restart: unless-stopped
+
+  web:
+    container_name: hato-staging-web
+    build:
+      context: ./clients/admin-web
+      dockerfile: Dockerfile
+    depends_on:
+      api:
+        condition: service_started
+    networks:
+      - proxy
+      - hato-staging-internal
+    restart: unless-stopped
+
+networks:
+  proxy:
+    external: true
+  hato-staging-internal:
+    driver: bridge

@@ -1,0 +1,12 @@
+[Unit]
+Description=HATO ERP - Monthly Backup Restoration Verification Timer (home-server only)
+Documentation=file:///home/joeman/Documents/proyects/erp-hacienda/docs/BACKUPS.md
+Requires=hato-restore-check.service
+
+[Timer]
+OnCalendar=*-*-01 03:00:00 UTC
+RandomizedDelaySec=600
+Persistent=true
+
+[Install]
+WantedBy=timers.target

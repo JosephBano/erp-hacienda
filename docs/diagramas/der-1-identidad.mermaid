@@ -1,3 +1,11 @@
+%% Verificado el 2026-08-16 contra Livestock 20260809165838_AddTreatmentApplicationPlausibilityConfirmed,
+%% Breeding 20260802155241_AddSemenStrawConcurrencyAndCheckConstraint y People 20260802162528_AddRbacPermissions
+%% Auditoría commit 10 (docs/reestructura-documentacion): SPECIES perdió `code`/`milk_withdrawal_default`
+%% (nunca existieron) y ganó `is_milkable`/`days_of_lactation`/`cohort_window_days`; ANIMAL_CATEGORIES
+%% perdió `description`; ANIMALS perdió `birth_date_estimated`/`origin`/`status`/`acquired_at`/`notes`
+%% (nunca se construyeron) y ganó `birth_weight_kg`/`disposed_at`/`last_edited_at`; SEMEN_STRAWS se
+%% reescribió sobre columnas reales (`code`, `bull_code`, `initial_quantity`, `current_quantity`);
+%% USERS perdió `role_id` (el vínculo real es muchos-a-muchos vía `user_roles`, fuera de este núcleo).
 erDiagram
     %% ============================================
     %% NUCLEO 1: IDENTIDAD - Animal generico + doble ID
@@ -15,14 +23,15 @@ erDiagram
     SEMEN_STRAWS |o--o{ ANIMALS : "padre (pajuela IA) de"
 
     ANIMALS ||--o{ ANIMAL_IDENTIFIERS : "identificado por"
-    USERS ||--o{ ANIMALS : "registrado por"
+    USERS |o--o{ ANIMALS : "registrado por (opcional)"
 
     SPECIES {
         uuid id PK
-        varchar code UK "BOV, POR, EQU..."
-        varchar name "Bovino, Porcino..."
-        int gestation_days "283, 114... parametro, no constante"
-        int milk_withdrawal_default "dias retiro por defecto"
+        varchar name UK "Bovino, Porcino... (sin codigo corto; UK real es el nombre)"
+        int gestation_days "283, 114... parametro, no constante; nullable"
+        boolean is_milkable "define si el nucleo 5 (leche) aplica a la especie"
+        int days_of_lactation "duracion tipica de lactancia, nullable"
+        int cohort_window_days "ventana de camadas del mismo nursing_cohort, nullable"
         timestamptz created_at
         timestamptz deleted_at "borrado logico"
     }
@@ -38,7 +47,6 @@ erDiagram
         uuid id PK
         uuid species_id FK
         varchar name "ternera, vaca_produccion, lechon..."
-        varchar description
         timestamptz deleted_at
     }
 
@@ -46,19 +54,17 @@ erDiagram
         uuid id PK "UUID interno soberano, generable offline"
         uuid species_id FK
         uuid breed_id FK "nullable"
-        uuid category_id FK "etapa actual"
+        uuid category_id FK "etapa actual, nullable"
         char sex "M / F"
         date birth_date "nullable"
-        boolean birth_date_estimated "true si es aproximada"
+        numeric birth_weight_kg "nullable"
         uuid mother_id FK "nullable, self-ref"
         uuid father_animal_id FK "nullable, self-ref (monta)"
         uuid father_straw_id FK "nullable (IA) - excluyente con anterior"
         uuid birthing_id FK "parto que lo creo, nullable"
-        varchar origin "nacido / comprado"
-        varchar status "activo / vendido / muerto / robado / descartado"
-        date acquired_at "si fue comprado"
-        text notes
-        uuid created_by FK
+        timestamptz disposed_at "baja (venta/muerte/robo), nullable; el motivo vive en el evento disposal"
+        timestamptz last_edited_at "baseline LWW para conflictos de sync (ADR-0008), nullable"
+        uuid created_by FK "nullable"
         timestamptz created_at
         timestamptz updated_at
         timestamptz deleted_at "borrado logico, jamas fisico"
@@ -67,32 +73,35 @@ erDiagram
     ANIMAL_IDENTIFIERS {
         uuid id PK
         uuid animal_id FK
-        varchar id_type "farm_tag / official_sifae / rfid / name"
+        varchar type "farm_tag / official_sifae / rfid / name"
         varchar value "el codigo o numero"
         date valid_from "asignacion"
         date valid_to "nullable = vigente; los aretes se caen"
-        text notes "motivo de reemplazo, etc"
-        uuid created_by FK
+        uuid created_by FK "nullable"
         timestamptz created_at
     }
 
     SEMEN_STRAWS {
         uuid id PK
+        varchar code UK "identificador corto del lote de pajuelas"
+        varchar bull_code "codigo del toro en el catalogo, nullable"
         varchar bull_name "toro de catalogo"
         uuid breed_id FK
-        varchar registration_code "registro genealogico del toro"
-        varchar supplier_name "o FK a suppliers en Fase 4"
-        varchar batch_code
-        jsonb genetic_info "pruebas, indices, catalogo"
-        int doses_purchased
-        int doses_remaining
+        varchar supplier_name "nullable; FK a suppliers en Fase 4"
+        int initial_quantity "dosis compradas"
+        int current_quantity "dosis restantes; CHECK >= 0"
+        text notes "nullable"
         timestamptz created_at
+        timestamptz deleted_at
     }
 
     USERS {
         uuid id PK
-        varchar name
+        varchar full_name
         varchar email UK
-        uuid role_id FK
+        boolean is_active
         timestamptz deleted_at
     }
+
+    %% NOTA: USERS no tiene role_id. El rol es muchos-a-muchos via user_roles -> roles
+    %% (People module), fuera del alcance de este nucleo; ver People snapshot para el detalle.

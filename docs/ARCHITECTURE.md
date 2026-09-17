@@ -121,6 +121,27 @@ hato/
 └─ .github/workflows/ci.yml
 ```
 
+## Entornos desplegables (staging y producción)
+
+Dos entornos de promoción, ninguno con IP pública (ADR-0029, ADR-0030, ADR-0031, ADR-0033).
+El detalle operativo completo de producción vive en
+`docs/spec/feature-0012-production-environment/spec.md`; aquí solo se documenta la forma.
+
+| | Staging | Producción |
+|---|---|---|
+| Destino | `joemanserver`, el servidor doméstico (ADR-0031) | Oracle Cloud, cuenta bajo control del propietario (ADR-0033) |
+| Rama que despliega | `develop` | `main`, releases etiquetadas |
+| Acceso | Solo Tailscale (SSH y HTTPS) | Solo Tailscale (D2), incluidos los teléfonos de campo — reemplaza expresamente la premisa de ADR-0031 de que los teléfonos no podían incorporarse al tailnet |
+| Definición de stack | `compose.staging.yml` (existente) | `compose.production.yml` versionado; su instalación y evidencia operativa siguen pendientes |
+| Disponibilidad | Reconstruible, sin garantías | Sin HA ni promesa de disponibilidad continua; sin dominio comprado (§7 de la spec) |
+
+`compose.staging.yml` es el precedente directo: mismo patrón de Postgres + migrador
+one-shot + API + web/proxy, sin puertos publicados al host, con Caddy como entrada HTTPS
+única dentro del tailnet. Producción repite esa forma sobre Oracle en vez del servidor
+doméstico, con su propio archivo de compose y su propio usuario de despliegue restringido
+(ver `docs/SEGURIDAD.md` sec. 7 y 8). Producción no abre registros reales hasta cumplir la
+compuerta de backups de `feature-0013` (D6 de la spec).
+
 ## Seguridad y auditoría (mínimos desde fase 1)
 
 - Roles/permisos en BD (no hardcodeados); JWT con refresh; contraseñas con hash moderno.
@@ -261,4 +282,3 @@ teléfono. No se borra nunca.
 
 > **Estado real**: los tombstones están implementados de punta a punta en el protocolo, el
 > borrado lógico y el cliente (ver "Borrado lógico" más arriba).
-

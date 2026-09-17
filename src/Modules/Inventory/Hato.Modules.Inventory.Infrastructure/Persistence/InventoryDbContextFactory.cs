@@ -14,7 +14,9 @@ public class InventoryDbContextFactory : IDesignTimeDbContextFactory<InventoryDb
             .AddUserSecrets(HatoApiUserSecretsId)
             .Build();
 
-        var connectionString = configuration.GetConnectionString("HatoDb")
+        var connectionString = Environment.GetEnvironmentVariable("ConnectionStrings__HatoDb")
+            ?? Environment.GetEnvironmentVariable("CONNECTION_STRING")
+            ?? configuration.GetConnectionString("HatoDb")
             ?? "Host=localhost;Database=hato_migrations_design_time_only";
 
         var optionsBuilder = new DbContextOptionsBuilder<InventoryDbContext>();

@@ -1,0 +1,10 @@
+# Regla sudoers para el servicio de respaldos `hato-backup`.
+#
+# Instalar como /etc/sudoers.d/hato-backup (root:root, 440).
+#
+# Validar este archivo con `sudo visudo -cf ops/backups/sudoers-hato-backup` antes de instalar.
+#
+# hato-backup puede ejecutar EXACTAMENTE el helper root-owned de volcado de base de datos,
+# sin contraseña, por ruta absoluta exacta. Sin wildcards, sin argumentos arbitrarios.
+# No se otorga pertenencia al grupo docker ni acceso al socket Docker.
+hato-backup ALL=(root) NOPASSWD: /usr/local/libexec/hato/backup-dump-root

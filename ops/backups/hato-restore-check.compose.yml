@@ -1,0 +1,24 @@
+# PostgreSQL efímero para el simulacro mensual de recuperación.
+# Se instala únicamente en home-server; no tiene puertos ni redes externas.
+name: hato-restore-check
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: hato-restore-check-postgres
+    environment:
+      POSTGRES_DB: postgres
+      POSTGRES_USER: ${RESTORE_POSTGRES_USER:?define RESTORE_POSTGRES_USER}
+      POSTGRES_PASSWORD: ${RESTORE_POSTGRES_PASSWORD:?define RESTORE_POSTGRES_PASSWORD}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d postgres"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+    networks:
+      - restore-internal
+    restart: "no"
+
+networks:
+  restore-internal:
+    internal: true

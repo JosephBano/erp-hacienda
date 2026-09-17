@@ -1,0 +1,15 @@
+# TLS privado de producción. El certificado lo emite `tailscale cert` y lo instala
+# `production-tls-renew.sh` en el volumen persistente /data; Caddy no solicita ACME.
+{
+    # La API administrativa queda únicamente en el volumen Docker compartido con
+    # el contenedor. No hay listener TCP administrativo.
+    admin unix//data/caddy-admin.sock
+    auto_https off
+}
+
+# El nombre ts.net se valida en el certificado servido. No se codifica aquí: el
+# hostname efectivo se conserva fuera del checkout en /etc/hato-production/tls.env.
+:443 {
+    tls /data/tls/server.crt /data/tls/server.key
+    reverse_proxy api:8080
+}

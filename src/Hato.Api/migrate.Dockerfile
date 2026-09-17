@@ -14,4 +14,7 @@ COPY . .
 
 RUN dotnet tool restore
 
-CMD ["sh", "-c", "set -e; export CONNECTION_STRING=\"${CONNECTION_STRING:-Host=postgres;Port=5432;Database=hato;Username=hato;Password=$POSTGRES_PASSWORD}\"; for project in src/Modules/*/Hato.Modules.*.Infrastructure/Hato.Modules.*.Infrastructure.csproj; do name=$(basename \"$(dirname \"$project\")\" | sed 's/Hato\\.Modules\\.\\([^.][^.]*\\)\\.Infrastructure/\\1/'); context=\"${name}DbContext\"; echo \"==> applying migrations for $project ($context)\"; dotnet ef database update --project \"$project\" --startup-project src/Hato.Api --context \"$context\" --connection \"$CONNECTION_STRING\"; done; echo '==> all migrations applied'"]
+# Las factories de diseño resuelven ConnectionStrings__HatoDb (o el legado
+# CONNECTION_STRING) desde el entorno del contenedor. Así `dotnet ef` no recibe
+# credenciales en argv, que sería visible mediante la lista de procesos.
+CMD ["sh", "-c", "set -e; for project in src/Modules/*/Hato.Modules.*.Infrastructure/Hato.Modules.*.Infrastructure.csproj; do name=$(basename \"$(dirname \"$project\")\" | sed 's/Hato\\.Modules\\.\\([^.][^.]*\\)\\.Infrastructure/\\1/'); context=\"${name}DbContext\"; echo \"==> applying migrations for $project ($context)\"; dotnet ef database update --project \"$project\" --startup-project src/Hato.Api --context \"$context\"; done; echo '==> all migrations applied'"]

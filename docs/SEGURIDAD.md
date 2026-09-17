@@ -559,6 +559,80 @@ seguridad del despliegue se rigen bajo los siguientes principios:
 
 ---
 
+## 8. Producción privada en Oracle Cloud (ADR-0033)
+
+**Estado:** diseño aceptado el 2026-09-16 (ADR-0033); implementación y usuario de
+despliegue todavía pendientes. Lo que sigue es lo que el diseño fija, no lo que ya corre.
+Fuente completa: `docs/spec/feature-0012-production-environment/spec.md`.
+
+### Destino y autoridad
+
+Producción se aloja en Oracle Cloud, en una cuenta bajo control del propietario (correo,
+MFA, recuperación y facturación verificados antes de instalar). El servidor doméstico
+(`joemanserver`) continúa como staging (ADR-0031); ninguno de los dos sustituye al otro.
+La cuenta OCI, su MFA y su recuperación son responsabilidad humana exclusiva del
+propietario — ningún agente ni pipeline las administra. No se publican aquí identidades,
+claves, OCID ni contraseñas reales; cualquier ejemplo usa un placeholder explícito
+(`<OCID-EJEMPLO>`).
+
+### Acceso privado
+
+Acceso exclusivo por Tailscale (D2 de la spec), sin dominio comprado y sin Tailscale
+Funnel. HTTPS se sirve con Caddy usando un certificado emitido por `tailscale cert` para
+el nombre `ts.net` del host. Los teléfonos de campo se incorporan al tailnet para esto —
+decisión que reemplaza expresamente la premisa de ADR-0031 de que los teléfonos no podían
+unirse a esa red (ver también ADR-0010 sobre direccionamiento del backend). Que el acceso
+sea privado significa restricción de red, no que el nombre del certificado sea secreto:
+puede aparecer en registros públicos de transparencia de certificados.
+
+### Custodia de credenciales (resumen de spec.md §5)
+
+| Material | Custodia | Consumidor |
+|---|---|---|
+| Cuenta OCI, MFA, recuperación y acceso administrativo | Gestor seguro del propietario, con copia de recuperación separada | Humano |
+| Clave SSH de CI y OAuth de Tailscale de CI, con tags restringidos | GitHub Environment `production` | Job aprobado |
+| Huella del host SSH, verificada por canal independiente | Configuración del entorno | Cliente SSH con `StrictHostKeyChecking=yes` |
+| JWT signing key, contraseñas de la base de datos, credencial de lectura de GHCR si hace falta | Archivos con permisos `600`, propiedad root, fuera del checkout del repositorio | Servicios concretos del stack |
+| Tokens OAuth Google Drive, claves de cifrado rclone crypt y URLs de Healthchecks | Archivo `600` de `hato-backup` (`/etc/hato-backup/backup.env` y `rclone.conf`), con copia offline separada | Servicio `hato-backup` |
+| Firma de Android y GitHub App de compilación | Según `feature-0014`, separadas del flujo de despliegue | Build/orquestador |
+
+Ningún secreto de esta tabla vive en `EXPO_PUBLIC_*`, en un bundle de cliente, en un `ARG`
+o capa de Docker, en el compose renderizado hacia logs, en argumentos de proceso visibles,
+ni en un backup sin cifrar. El enmascarado de GitHub Actions no sustituye evitar
+imprimirlos. Toda credencial expuesta se rota, y esa rotación se documenta.
+
+### Aislamiento de `hato-backup` y cifrado offsite (feature-0013)
+
+El servicio de respaldo opera bajo el usuario de sistema `hato-backup`:
+- Sin privilegios `sudo` generales y **sin pertenencia al grupo `docker`**.
+- El acceso al dump de PostgreSQL se realiza mediante un helper root-owned (`/usr/local/libexec/hato/backup-dump-root`)
+  con argumentos fijos que ejecuta `pg_dump` con el rol de solo lectura (`PRODUCTION_POSTGRES_BACKUP_USER`).
+- Las contraseñas de base de datos nunca se exponen en argumentos de proceso ni en logs.
+- La configuración de `rclone` (tokens OAuth y contraseña/salt de crypt) vive en `/etc/hato-backup/rclone.conf` (modo `600`).
+- La clave de cifrado y el salt de crypt se custodian en el gestor de contraseñas del propietario y en un soporte
+  físico offline fuera de Oracle y de Google Drive; jamás se incluye la única clave dentro del backup cifrado.
+- Las URLs de ping de Healthchecks son secretas y residen exclusivamente en `/etc/hato-backup/backup.env`.
+
+### D7 — el usuario de CI no tiene privilegio general
+
+El usuario de despliegue (`hato-deploy`, todavía sin crear) solo puede invocar, por SSH con
+comando forzado, un helper root-owned que valida un release aprobado y ejecuta una receta
+instalada por el administrador. No tiene sudo general, no abre un shell remoto libre, no
+tiene acceso al socket Docker y no pertenece al grupo `docker` — otorgar ese grupo equivale
+a conceder root, y es justo lo que este diseño evita (ver también sec. 7 de este documento,
+que aplica el mismo principio a staging). Desplegar imágenes sigue implicando confianza en
+código aprobado que puede leer los datos de la aplicación; el diseño acota esa confianza a
+un helper auditable, no la elimina.
+
+### Qué no cubre todavía esta sección
+
+Esta sección documenta artefactos versionados y su diseño aceptado, no un despliegue
+operativo. `ops/production/`, `compose.production.yml`, el workflow de CI de producción y
+`PRODUCCION.md` existen en este repositorio; faltan su instalación en Oracle, credenciales,
+evidencia E2E y las compuertas de backups/corte del mismo plan (`feature-0012`).
+
+---
+
 ## Ver también
 
 - `docs/adr/0007-modelo-permisos-bd.md` — la decisión de RBAC granular en BD (qué se decidió).

@@ -1,0 +1,16 @@
+[Unit]
+Description=Renew Hato production Tailscale TLS certificate
+After=tailscaled.service docker.service
+Wants=tailscaled.service docker.service
+
+[Service]
+Type=oneshot
+User=root
+Group=root
+EnvironmentFile=/etc/hato-production/tls.env
+ExecStart=/usr/local/libexec/hato/production-tls-renew
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+ReadWritePaths=/run /var/lib/docker

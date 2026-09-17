@@ -1,3 +1,5 @@
+using System.Security.Cryptography;
+using System.Text;
 using Hato.Modules.People.Application.Abstractions;
 using Hato.Modules.People.Application.Audit;
 using Hato.Modules.People.Application.Auth;
@@ -7,6 +9,8 @@ using Hato.Modules.People.Domain;
 using Hato.Modules.People.Infrastructure.Authorization;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Hosting;
 
 namespace Hato.Api.Endpoints;
 
@@ -19,12 +23,15 @@ public static class PeopleEndpoints
         var group = app.MapGroup("/api/v1/people").WithTags("People").RequireAuthorization();
 
         // Bootstrap or Admin user registration
-        group.MapPost("/users", async (RegisterUserCommand command, ISender sender, IPeopleDbContext db, HttpContext http, CancellationToken ct) =>
+        group.MapPost("/users", async (RegisterUserCommand command, ISender sender, IPeopleDbContext db, HttpContext http, IHostEnvironment environment, IConfiguration configuration, CancellationToken ct) =>
         {
             await BootstrapLock.WaitAsync(ct);
             try
             {
                 var hasAnyUser = await db.Users.AnyAsync(ct);
+                if (!hasAnyUser && !IsInitialProductionAdminAuthorized(environment, configuration, http.Request))
+                    return Results.Forbid();
+
                 if (hasAnyUser && !http.User.IsInRole(SystemRoles.Admin) && !http.User.HasClaim("permission", SystemPermissions.PeopleUsersManage))
                     return Results.Forbid();
 
@@ -114,5 +121,24 @@ public static class PeopleEndpoints
             var result = await sender.Send(new GetAuditLogsQuery(userId, from, to, page ?? 1, pageSize ?? 50));
             return Results.Ok(result);
         }).WithTags("Audit").RequireAuthorization(policy => policy.RequirePermission(SystemPermissions.PeopleUsersManage));
+    }
+
+    internal static bool IsInitialProductionAdminAuthorized(
+        IHostEnvironment environment,
+        IConfiguration configuration,
+        HttpRequest request)
+    {
+        if (!environment.IsProduction())
+            return true;
+
+        var expected = configuration["Bootstrap:InitialAdminToken"];
+        if (string.IsNullOrWhiteSpace(expected) ||
+            !request.Headers.TryGetValue("X-Hato-Bootstrap-Token", out var supplied) ||
+            supplied.Count != 1)
+            return false;
+
+        var expectedBytes = Encoding.UTF8.GetBytes(expected);
+        var suppliedBytes = Encoding.UTF8.GetBytes(supplied[0]!);
+        return CryptographicOperations.FixedTimeEquals(expectedBytes, suppliedBytes);
     }
 }

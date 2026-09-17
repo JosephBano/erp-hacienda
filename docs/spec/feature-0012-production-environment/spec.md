@@ -8,7 +8,8 @@
 > Aplican [políticas](../../POLITICAS-OPERACION.md) y [preflight](../../PREFLIGHT-PRODUCCION.md).
 
 > Diseño aprobado, 2026-09-16. Trabajo transversal: habilita producción sin cerrar ninguna
-> fase de ROADMAP. Ejecución en [plan.md](./plan.md). Tareas y E2E acompañan el diseño; implementación pendiente.
+> fase de ROADMAP. Los artefactos locales están implementados; instalación, evidencias E2E,
+> backups y apertura siguen pendientes. Ejecución en [plan.md](./plan.md).
 > Rama documental: `feature/production-environment-spec`, base `aed5461` de develop.
 
 ## 1. Propósito y evidencia

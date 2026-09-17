@@ -14,10 +14,9 @@
 #    puerto 443"), nunca 0.0.0.0. TAILSCALE_IP se resuelve desde el entorno del
 #    operador (production.env), nunca hardcodeada aquí.
 # 4. Datos fuera de la raíz: volumen bajo /srv/hato-production/pgdata (patrón
-#    de compose.staging.yml con /srv/hato-staging/pgdata), fuera del contexto
-#    de build. El checkout vive en otro directorio del host; si los datos
-#    cayeran dentro del contexto, el build fallaría al no poder leer un
-#    directorio que crea PostgreSQL como root.
+#    de compose.staging.yml con /srv/hato-staging/pgdata). Las imágenes API y
+#    migrador se consumen exclusivamente como `imagen@digest`; este archivo no
+#    tiene contextos de build y la VPS nunca compila un release.
 # 5. Ninguna imagen usa `latest`: versión fija `postgres:16-alpine` como piso.
 #    TODO(spec sec. 4, línea 110-111): fijar por digest (`postgres@sha256:...`)
 #    en el proceso mensual de actualización de versiones/digests descrito en la
@@ -34,20 +33,10 @@
 #      forma parte de este compose porque el backup no corre como servicio
 #      permanente en este stack; queda documentado aquí para que el mecanismo
 #      de creación de roles sepa que debe provisionarlo).
-#    TODO: la CREACIÓN real de los roles `runtime` y `backup` (GRANT/REVOKE,
-#    ALTER ROLE ... NOSUPERUSER NOCREATEDB NOCREATEROLE, etc.) no existe hoy
-#    como mecanismo de la aplicación. Debe implementarse como una migración EF
-#    Core idempotente (p. ej. en el módulo que posea el esquema base) o como
-#    script de inicialización versionado en `ops/production/`, ejecutado por el
-#    servicio `migrate` o por un paso explícito de bootstrap — no lo asumas
-#    provisto por este compose. `PRODUCTION_POSTGRES_RUNTIME_*` usa `:?`, así
-#    que el stack simplemente NO arranca si esas variables faltan — no hay
-#    fallback automático al rol owner. El riesgo real es humano: mientras el
-#    mecanismo de creación de roles no exista, un operador podría verse
-#    tentado a copiar a mano las credenciales owner/migrador en las variables
-#    runtime solo para que el stack levante, lo cual rompería el mínimo
-#    privilegio en silencio (el compose no lo detectaría). Ese mecanismo debe
-#    cerrarse antes de abrir producción a datos reales (spec sec. 4, D6).
+#    El bootstrap versionado `ops/production/10-bootstrap-postgres-roles.sql`
+#    crea roles y schemas únicamente al inicializar un PGDATA vacío. Las
+#    credenciales llegan desde production.env root-only; el archivo no contiene
+#    secretos y no se pasa ninguna contraseña por argv.
 # 7. Secretos: todas las contraseñas y la clave de firma JWT llegan por
 #    variables de entorno con `:?` (falla si falta, como
 #    STAGING_POSTGRES_PASSWORD en compose.staging.yml). Se investigó soporte
@@ -74,13 +63,13 @@ services:
       # Rol de arranque del contenedor = rol owner/migrador (ver nota 6 arriba).
       POSTGRES_USER: ${PRODUCTION_POSTGRES_OWNER_USER:?define PRODUCTION_POSTGRES_OWNER_USER}
       POSTGRES_PASSWORD: ${PRODUCTION_POSTGRES_OWNER_PASSWORD:?define PRODUCTION_POSTGRES_OWNER_PASSWORD}
+      PRODUCTION_POSTGRES_RUNTIME_USER: ${PRODUCTION_POSTGRES_RUNTIME_USER:?define PRODUCTION_POSTGRES_RUNTIME_USER}
+      PRODUCTION_POSTGRES_RUNTIME_PASSWORD: ${PRODUCTION_POSTGRES_RUNTIME_PASSWORD:?define PRODUCTION_POSTGRES_RUNTIME_PASSWORD}
+      PRODUCTION_POSTGRES_BACKUP_USER: ${PRODUCTION_POSTGRES_BACKUP_USER:?define PRODUCTION_POSTGRES_BACKUP_USER}
+      PRODUCTION_POSTGRES_BACKUP_PASSWORD: ${PRODUCTION_POSTGRES_BACKUP_PASSWORD:?define PRODUCTION_POSTGRES_BACKUP_PASSWORD}
     volumes:
       - /srv/hato-production/pgdata:/var/lib/postgresql/data
-      # TODO: montar aquí el script de creación de roles runtime/backup una vez
-      # exista (p. ej. ./ops/production/init-roles.sql:/docker-entrypoint-initdb.d/10-roles.sql:ro).
-      # No se crea el archivo en esta entrega porque el contrato de qué roles y
-      # privilegios exactos otorgar pertenece a una migración/decisión de la
-      # aplicación, no a este compose (ver nota 6).
+      - ./ops/production/10-bootstrap-postgres-roles.sql:/docker-entrypoint-initdb.d/10-bootstrap-postgres-roles.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${PRODUCTION_POSTGRES_OWNER_USER:?define PRODUCTION_POSTGRES_OWNER_USER} -d hato_production"]
       interval: 5s
@@ -94,17 +83,14 @@ services:
 
   migrate:
     container_name: hato-production-migrate
-    build:
-      context: .
-      dockerfile: src/Hato.Api/migrate.Dockerfile
+    # El helper root-owned valida el par exacto de imagen/digest antes de
+    # escribir /run/hato-production/release.env (600, root-owned). No aceptar
+    # tags aquí: un tag mutable no identifica el artefacto aprobado.
+    image: "${HATO_MIGRATE_IMAGE:?define HATO_MIGRATE_IMAGE}@${HATO_MIGRATE_DIGEST:?define HATO_MIGRATE_DIGEST}"
     environment:
-      # Rol owner/migrador: único con DDL. Ver bloqueador documentado en
-      # src/Hato.Api/migrate.Dockerfile y en el reporte de esta entrega sobre
-      # por qué CONNECTION_STRING (y no solo ConnectionStrings__HatoDb) sigue
-      # siendo necesaria hoy: el `--connection` del CMD la consume vía
-      # `ps aux` porque los IDesignTimeDbContextFactory de cada módulo (p.ej.
-      # src/Modules/Inventory/.../InventoryDbContextFactory.cs) solo leen
-      # `dotnet user-secrets`, no variables de entorno.
+      # Rol owner/migrador: único con DDL. Las factories de EF leen esta
+      # configuración desde el entorno; migrate.Dockerfile no la pasa por
+      # `--connection`, por lo que no aparece en argv del proceso.
       CONNECTION_STRING: "Host=postgres;Port=5432;Database=hato_production;Username=${PRODUCTION_POSTGRES_OWNER_USER:?define PRODUCTION_POSTGRES_OWNER_USER};Password=${PRODUCTION_POSTGRES_OWNER_PASSWORD:?define PRODUCTION_POSTGRES_OWNER_PASSWORD}"
       ConnectionStrings__HatoDb: "Host=postgres;Port=5432;Database=hato_production;Username=${PRODUCTION_POSTGRES_OWNER_USER:?define PRODUCTION_POSTGRES_OWNER_USER};Password=${PRODUCTION_POSTGRES_OWNER_PASSWORD:?define PRODUCTION_POSTGRES_OWNER_PASSWORD}"
     depends_on:
@@ -116,9 +102,9 @@ services:
 
   api:
     container_name: hato-production-api
-    build:
-      context: .
-      dockerfile: src/Hato.Api/Dockerfile
+    # Igual que migrate: el digest procede del manifiesto aprobado, no de un
+    # build local ni de un tag mutable.
+    image: "${HATO_API_IMAGE:?define HATO_API_IMAGE}@${HATO_API_DIGEST:?define HATO_API_DIGEST}"
     environment:
       ASPNETCORE_URLS: http://+:8080
       ASPNETCORE_ENVIRONMENT: Production
@@ -135,6 +121,10 @@ services:
       Jwt__Issuer: ${PRODUCTION_JWT_ISSUER:?define PRODUCTION_JWT_ISSUER}
       Jwt__Audience: ${PRODUCTION_JWT_AUDIENCE:?define PRODUCTION_JWT_AUDIENCE}
       Jwt__SigningKey: ${PRODUCTION_JWT_SIGNING_KEY:?define PRODUCTION_JWT_SIGNING_KEY}
+      # La primera cuenta administrativa no se siembra ni tiene contraseña por
+      # defecto. Este token de un solo uso se entrega en un header HTTPS y deja
+      # de autorizar en cuanto existe el primer usuario.
+      Bootstrap__InitialAdminToken: ${PRODUCTION_INITIAL_ADMIN_TOKEN:?define PRODUCTION_INITIAL_ADMIN_TOKEN}
       # Trazabilidad del build (mismo patrón que compose.staging.yml): sin
       # esto el endpoint /version responde commit "local". El despliegue los
       # escribe en production.env desde el release etiquetado (spec sec. 6).
@@ -157,9 +147,7 @@ services:
     container_name: hato-production-proxy
     image: caddy:2-alpine
     volumes:
-      # Caddyfile.production es responsabilidad de TLS.1 (tasks.md), fuera del
-      # alcance de esta entrega; se referencia por nombre para que el
-      # despliegue real lo monte cuando exista.
+      # Caddyfile y la renovación de certificados viven en ops/production/.
       - ./ops/production/Caddyfile.production:/etc/caddy/Caddyfile:ro
       - hato-production-caddy-data:/data
       - hato-production-caddy-config:/config

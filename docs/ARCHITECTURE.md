@@ -132,7 +132,7 @@ El detalle operativo completo de producción vive en
 | Destino | `joemanserver`, el servidor doméstico (ADR-0031) | Oracle Cloud, cuenta bajo control del propietario (ADR-0033) |
 | Rama que despliega | `develop` | `main`, releases etiquetadas |
 | Acceso | Solo Tailscale (SSH y HTTPS) | Solo Tailscale (D2), incluidos los teléfonos de campo — reemplaza expresamente la premisa de ADR-0031 de que los teléfonos no podían incorporarse al tailnet |
-| Definición de stack | `compose.staging.yml` (existente) | `compose.production.yml` — **entrega futura de este mismo plan; todavía no existe** |
+| Definición de stack | `compose.staging.yml` (existente) | `compose.production.yml` versionado; su instalación y evidencia operativa siguen pendientes |
 | Disponibilidad | Reconstruible, sin garantías | Sin HA ni promesa de disponibilidad continua; sin dominio comprado (§7 de la spec) |
 
 `compose.staging.yml` es el precedente directo: mismo patrón de Postgres + migrador
@@ -282,4 +282,3 @@ teléfono. No se borra nunca.
 
 > **Estado real**: los tombstones están implementados de punta a punta en el protocolo, el
 > borrado lógico y el cliente (ver "Borrado lógico" más arriba).
-

@@ -614,10 +614,10 @@ un helper auditable, no la elimina.
 
 ### Qué no cubre todavía esta sección
 
-Esta sección documenta el diseño aceptado, no un despliegue operativo. `ops/production/`,
-`compose.production.yml`, el workflow de CI de producción y un eventual `PRODUCCION.md`
-son entregas futuras del mismo plan (`feature-0012`) y no existen todavía en este
-repositorio.
+Esta sección documenta artefactos versionados y su diseño aceptado, no un despliegue
+operativo. `ops/production/`, `compose.production.yml`, el workflow de CI de producción y
+`PRODUCCION.md` existen en este repositorio; faltan su instalación en Oracle, credenciales,
+evidencia E2E y las compuertas de backups/corte del mismo plan (`feature-0012`).
 
 ---
 

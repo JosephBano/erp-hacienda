@@ -1,0 +1,9 @@
+/var/log/hato-production/deploy.log {
+    weekly
+    rotate 14
+    missingok
+    notifempty
+    compress
+    delaycompress
+    create 0640 root root
+}

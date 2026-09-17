@@ -1,6 +1,7 @@
 # tasks.md — Checklist de implementación
 
-> Pendiente de ejecución. [Spec](./spec.md) · [Plan](./plan.md) · [E2E](./test-e2e.md).
+> Artefactos locales implementados; ejecución contra Oracle y sus evidencias siguen
+> pendientes. [Spec](./spec.md) · [Plan](./plan.md) · [E2E](./test-e2e.md).
 > Políticas comunes: [POLITICAS-OPERACION](../../POLITICAS-OPERACION.md).
 > Ninguna casilla implica autorización para borrar datos reales ni instalación ya realizada.
 
@@ -47,7 +48,7 @@
   en el PR o inventario privado; los escenarios E2E relacionados pasan sin secretos en logs.
 - [ ] **T3.5** Eliminar el paso de la cadena de conexión como argumento `--connection` en
   `src/Hato.Api/migrate.Dockerfile` (visible hoy en `ps aux` del contenedor `migrate`) antes
-  de abrir producción a datos reales. Requiere que los seis `IDesignTimeDbContextFactory`
+  de abrir producción a datos reales. Requiere que las cuatro `IDesignTimeDbContextFactory` existentes
   de los módulos (`src/Modules/*/Hato.Modules.*.Infrastructure/Persistence/*DbContextFactory.cs`,
   p. ej. `InventoryDbContextFactory.cs`) lean la cadena de conexión también desde variables
   de entorno (`.AddEnvironmentVariables()` o lectura explícita de

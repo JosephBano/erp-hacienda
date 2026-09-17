@@ -60,6 +60,13 @@ jobs:
   resolve-and-build:
     name: Resolve SHA, verify CI, build artifacts
     runs-on: ubuntu-latest
+    # Mismo techo que deploy-staging.yml (30 min), por una razón distinta: aquí el
+    # runner es un ubuntu-latest amd64 normal, pero construye DOS imágenes para
+    # linux/arm64 bajo emulación QEMU (setup-qemu-action), que es sensiblemente más
+    # lento que una compilación nativa. 30 min da margen holgado para ese build
+    # cruzado sin dejar un job colgado ocupando la cola de `deploy-production`
+    # indefinidamente (recuerda que `concurrency.group: deploy-production` serializa
+    # todo despliegue posterior detrás de este).
     timeout-minutes: 30
     permissions:
       contents: read
@@ -200,6 +207,15 @@ jobs:
     needs: resolve-and-build
     runs-on: ubuntu-latest
     environment: production
+    # `timeout-minutes` cuenta desde que el job arranca a ejecutarse, no desde que
+    # queda en espera de aprobación (GitHub Actions no descuenta el tiempo de espera
+    # del entorno contra este techo). 30 min, igual que deploy-staging.yml, cubre:
+    # handshake de Tailscale, verificación de huella SSH, el placeholder de backup,
+    # el `docker compose pull/up` remoto (pull de dos imágenes + migración sobre la
+    # DB real) y el smoke test de production-release-verify.sh (que ya trae su
+    # propio techo interno de 120s de espera de health). Igual que en staging: un
+    # despliegue colgado debe fallar visiblemente, no ocupar la cola indefinidamente
+    # (concurrency.group: deploy-production serializa todo lo que venga después).
     timeout-minutes: 30
     permissions:
       contents: read
@@ -278,6 +294,8 @@ jobs:
 
       - name: Build release manifest
         id: manifest
+        env:
+          DEPLOY_AUTHORIZATION_KEY: ${{ secrets.DEPLOY_AUTHORIZATION_KEY }}
         run: |
           set -euo pipefail
           # El mismo manifiesto (release/sha/digests) que valida
@@ -288,12 +306,30 @@ jobs:
           jq -n \
             --arg release "${{ needs.resolve-and-build.outputs.release }}" \
             --arg sha "${{ needs.resolve-and-build.outputs.sha }}" \
+            --arg run_id "${{ github.run_id }}" \
+            --arg run_attempt "${{ github.run_attempt }}" \
             --arg api_image "${{ needs.resolve-and-build.outputs.image_api }}" \
             --arg api_digest "${{ needs.resolve-and-build.outputs.digest_api }}" \
             --arg migrate_image "${{ needs.resolve-and-build.outputs.image_migrate }}" \
             --arg migrate_digest "${{ needs.resolve-and-build.outputs.digest_migrate }}" \
-            '{release: $release, sha: $sha, digests: {($api_image): $api_digest, ($migrate_image): $migrate_digest}}' \
-            > /tmp/release-manifest.json
+            '{release: $release, sha: $sha, run_id: $run_id, run_attempt: $run_attempt, digests: {($api_image): $api_digest, ($migrate_image): $migrate_digest}}' \
+            > /tmp/release-authorization-payload.json
+
+          # Esta clave es distinta de DEPLOY_SSH_KEY. El host conserva solo su
+          # pública en deploy-authorization.allowed-signers y comprueba la firma
+          # antes de invocar sudo; así vincula run/attempt/SHA/digests a un job que
+          # ya cruzó el Environment production. No se muestra ni queda en argv.
+          umask 077
+          printf '%s\n' "$DEPLOY_AUTHORIZATION_KEY" > /tmp/deploy-authorization-key
+          ssh-keygen -Y sign -f /tmp/deploy-authorization-key -n hato-production \
+            /tmp/release-authorization-payload.json >/dev/null
+          authorization="$(base64 -w 0 /tmp/release-authorization-payload.json.sig)"
+          rm -f /tmp/deploy-authorization-key /tmp/release-authorization-payload.json.sig
+
+          jq --arg authorization "$authorization" \
+            '. + {authorization: $authorization}' \
+            /tmp/release-authorization-payload.json > /tmp/release-manifest.json
+          rm -f /tmp/release-authorization-payload.json
 
           cat /tmp/release-manifest.json
 

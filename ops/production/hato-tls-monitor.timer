@@ -1,0 +1,11 @@
+[Unit]
+Description=Daily Hato production TLS certificate expiry check
+
+[Timer]
+OnCalendar=daily
+Persistent=true
+RandomizedDelaySec=1h
+Unit=hato-tls-monitor.service
+
+[Install]
+WantedBy=timers.target

@@ -3,7 +3,32 @@
 > Paquete completo: [tareas](./tasks.md) y [E2E](./test-e2e.md).
 > Aplican [políticas](../../POLITICAS-OPERACION.md) y [preflight](../../PREFLIGHT-PRODUCCION.md).
 
-> Plan de [spec.md](./spec.md), aprobado 2026-09-16. Implementación pendiente. La guía writing-plans orienta secuencia y dependencias.
+> Plan de [spec.md](./spec.md), aprobado 2026-09-16. La base documental y los
+> artefactos locales se implementan en esta rama; ninguna de esas entregas acredita una
+> instalación en Oracle, custodia de secretos ni apertura a datos reales. La guía
+> writing-plans orienta secuencia y dependencias.
+
+## Cierre de implementación local — 2026-09-16
+
+**Objetivo:** dejar artefactos versionados que puedan desplegar exclusivamente imágenes
+ARM64 aprobadas por digest, sin exponer conexiones en argumentos de proceso, y que sean
+comprobables antes del bootstrap humano.
+
+**Orden ejecutable:**
+
+1. Hacer que cada fábrica de DbContext acepte `ConnectionStrings__HatoDb` del entorno y
+   retirar `--connection` del migrador; probar el contrato de configuración.
+2. Sustituir los `build:` de API/migrador en producción por referencias obligatorias a
+   imágenes GHCR por digest. El helper valida el manifiesto y escribe solo metadatos no
+   secretos en una configuración root-owned antes de llamar a Compose.
+3. Añadir Caddyfile, renovación de `tailscale cert` y comprobación de expiración, sin
+   publicar un endpoint de administración ni conceder la clave al usuario de despliegue.
+4. Incorporar una autorización de despliegue verificable por el host, ligada a
+   run/attempt/SHA/digests, y rechazar replays antes de mutar el stack.
+5. Ejecutar checks estáticos de YAML y shell, pruebas unitarias de los contratos nuevos y
+   `dotnet build/test -c Release`. Las tareas que requieren Oracle, Tailscale, GitHub
+   Environments, Drive o teléfonos conservan su estado pendiente hasta tener evidencia
+   privada reproducible.
 
 ## Secuencia de entregas
 

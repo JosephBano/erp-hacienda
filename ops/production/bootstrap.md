@@ -47,7 +47,7 @@ sudo install -d -o root -g root -m 700 /etc/hato-production
 
 | Directorio | Dueño | Modo | Propósito |
 |---|---|---|---|
-| `/etc/ssh/authorized_keys` | root:root | 755 | Contiene `hato-deploy` (600) con la clave pública de CI. |
+| `/etc/ssh/authorized_keys` | root:root | 755 | Contiene `hato-deploy` (644) con la clave pública de CI. Es una clave pública, y `sshd` debe poder leerla al evaluar esta cuenta. |
 | `/usr/local/libexec/hato` | root:root | 755 | Contiene `deploy-entry` y `deploy-root`, ambos root-owned. |
 | `/etc/hato-production` | root:root | 700 | Secretos y configuración de producción fuera del checkout. |
 
@@ -59,7 +59,7 @@ La clave privada correspondiente vive únicamente en el GitHub Environment `prod
 ```bash
 # TODO: reemplazar <CLAVE-PUBLICA-CI> con el contenido real de la clave pública
 # dedicada generada para el job de despliegue (no la clave personal del administrador).
-sudo install -o root -g root -m 600 /dev/stdin /etc/ssh/authorized_keys/hato-deploy <<'EOF'
+sudo install -o root -g root -m 644 /dev/stdin /etc/ssh/authorized_keys/hato-deploy <<'EOF'
 restrict,command="/usr/local/libexec/hato/deploy-entry" ssh-ed25519 AAAA...<CLAVE-PUBLICA-CI>... hato-deploy-ci
 EOF
 ```
@@ -72,6 +72,25 @@ Notas sobre la entrada:
   pida el cliente SSH, el servidor ejecute siempre este script. `deploy-entry` recibe la
   petición original solo como texto en `SSH_ORIGINAL_COMMAND` y **no la usa como código**
   (ver `scripts/production-deploy-entry.sh`); lee la petición estructurada por stdin.
+
+### Firma independiente de la autorización de despliegue
+
+Además de la clave SSH, generar una segunda clave ed25519 exclusiva para firmar el
+manifiesto de despliegue. Su privada entra como `DEPLOY_AUTHORIZATION_KEY` en el Environment
+`production`; **no** se instala en la VPS. La pública se instala como una lista de firmantes
+OpenSSH, con el principal fijo `hato-production`:
+
+```bash
+sudo install -o root -g root -m 644 /dev/stdin \
+    /etc/hato-production/deploy-authorization.allowed-signers <<'EOF'
+hato-production ssh-ed25519 AAAA...<CLAVE-PUBLICA-DE-AUTORIZACION>... hato-production-authorization
+EOF
+```
+
+`deploy-entry` verifica esa firma antes de llamar a `sudo`. El manifiesto firmado contiene
+`run_id`, `run_attempt`, release, SHA y los dos digests; `deploy-root` consume el par
+run/attempt una sola vez en `/var/lib/hato-production/consumed-deployments`. Un retry debe
+crear un nuevo intento de GitHub Actions, no reenviar un manifiesto previo.
 
 ## 4. Configurar sshd para esta cuenta
 
@@ -132,6 +151,20 @@ sudo visudo -c
 La regla da a `hato-deploy` permiso para ejecutar **exactamente un comando**,
 `/usr/local/libexec/hato/deploy-root`, sin contraseña. No hay wildcards ni `ALL`. No hay
 acceso al grupo `docker` ni al socket Docker (spec.md D7).
+
+## 6.1 Instalar rotación de logs y programar mantenimiento
+
+```bash
+sudo install -d -o root -g root -m 750 /var/log/hato-production
+sudo install -o root -g root -m 644 ops/production/hato-production.logrotate \
+    /etc/logrotate.d/hato-production
+sudo logrotate --debug /etc/logrotate.d/hato-production
+```
+
+La ventana mensual de mantenimiento se agenda por el operador después de que feature-0013
+habilite el backup pre-mantenimiento verificable. Antes de actualizar paquetes o imágenes:
+comprobar backup offsite, registrar SHA, validar health y versión después del mantenimiento.
+No habilitar reinicios automáticos inesperados ni ejecutar mantenimiento desde `hato-deploy`.
 
 ## 7. Probar acceso de recuperación de OCI
 

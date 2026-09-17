@@ -19,15 +19,14 @@
 set -euo pipefail
 
 readonly DEPLOY_ROOT_HELPER="/usr/local/libexec/hato/deploy-root"
+readonly AUTHORIZATION_ALLOWED_SIGNERS="/etc/hato-production/deploy-authorization.allowed-signers"
 readonly MAX_REQUEST_BYTES=65536
 
-# Allowlist estricta de imágenes permitidas. Placeholders: reemplazar
-# TODO: reemplazar "ORG_PLACEHOLDER" con la organización/usuario real de GHCR
-# antes de instalar esto en un servidor real. No hay organización real en este repo.
+# Allowlist estricta de imágenes publicadas por el repositorio de producción.
+# Debe mantenerse sincronizada con el owner que resuelve el workflow de despliegue.
 readonly ALLOWED_IMAGES=(
-    "ghcr.io/ORG_PLACEHOLDER/hato-api"
-    "ghcr.io/ORG_PLACEHOLDER/hato-web"
-    "ghcr.io/ORG_PLACEHOLDER/hato-migrate"
+    "ghcr.io/josephbano/hato-api"
+    "ghcr.io/josephbano/hato-migrate"
 )
 
 fail() {
@@ -53,11 +52,11 @@ if ! printf '%s' "$request_raw" | jq empty >/dev/null 2>&1; then
 fi
 
 # Exactamente los campos esperados, sin campos extra desconocidos.
-allowed_keys='["release","sha","digests"]'
+allowed_keys='["authorization","digests","release","run_attempt","run_id","sha"]'
 actual_keys="$(printf '%s' "$request_raw" | jq -c '(keys | sort)')"
 expected_keys="$(printf '%s' "$allowed_keys" | jq -c 'sort')"
 if [ "$actual_keys" != "$expected_keys" ]; then
-    fail "la petición no tiene exactamente los campos release, sha, digests"
+    fail "la petición no tiene exactamente los campos release, sha, run_id, run_attempt, digests y authorization"
 fi
 
 # release: tag inmutable, formato conservador (letras, números, punto, guion, guion bajo).
@@ -70,6 +69,15 @@ fi
 sha="$(printf '%s' "$request_raw" | jq -r '.sha // empty')"
 if ! [[ "$sha" =~ ^[0-9a-f]{40}$ ]]; then
     fail "sha con formato inválido"
+fi
+
+# El run y su intento hacen que una autorización sea específica a una ejecución de
+# GitHub Actions. Ambos se firman con el resto del manifiesto y deploy-root conserva
+# el par consumido antes de mutar el stack.
+run_id="$(printf '%s' "$request_raw" | jq -r '.run_id // empty')"
+run_attempt="$(printf '%s' "$request_raw" | jq -r '.run_attempt // empty')"
+if ! [[ "$run_id" =~ ^[1-9][0-9]{0,19}$ ]] || ! [[ "$run_attempt" =~ ^[1-9][0-9]{0,9}$ ]]; then
+    fail "run_id o run_attempt con formato inválido"
 fi
 
 # digests: objeto no vacío, imagen -> digesto sha256, solo imágenes de la allowlist.
@@ -98,6 +106,32 @@ while IFS=$'\t' read -r image digest; do
     fi
 done < <(printf '%s' "$request_raw" | jq -r '.digests | to_entries[] | [.key, .value] | @tsv')
 
+authorization="$(printf '%s' "$request_raw" | jq -r '.authorization // empty')"
+if ! [[ "$authorization" =~ ^[A-Za-z0-9+/=]{32,65536}$ ]]; then
+    fail "authorization con formato inválido"
+fi
+
+[ -f "$AUTHORIZATION_ALLOWED_SIGNERS" ] && [ ! -L "$AUTHORIZATION_ALLOWED_SIGNERS" ] \
+    || fail "no existe el archivo root-owned de firmantes autorizados"
+[ "$(stat -c '%a:%U:%G' "$AUTHORIZATION_ALLOWED_SIGNERS")" = "644:root:root" ] \
+    || fail "el archivo de firmantes autorizados debe ser root:root con modo 644"
+
+# GitHub Environment entrega DEPLOY_AUTHORIZATION_KEY solo al job aprobado. El host
+# verifica su firma OpenSSH sobre un JSON canónico, por lo que ni CI SSH ni un payload
+# reinyectado pueden cambiar run, SHA o artefactos sin la clave independiente.
+authorization_payload="$(printf '%s' "$request_raw" | jq -cS '{release, sha, run_id, run_attempt, digests}')"
+authorization_signature="$(mktemp)"
+trap 'rm -f "$authorization_signature"' EXIT
+printf '%s' "$authorization" | base64 --decode > "$authorization_signature" 2>/dev/null \
+    || fail "authorization no es base64 válido"
+if ! printf '%s' "$authorization_payload" | ssh-keygen -Y verify \
+    -f "$AUTHORIZATION_ALLOWED_SIGNERS" \
+    -I hato-production \
+    -n hato-production \
+    -s "$authorization_signature" >/dev/null 2>&1; then
+    fail "la firma de autorización no es válida"
+fi
+
 # Re-serializar la petición ya validada a partir de los valores extraídos (no
 # reenviamos el blob original tal cual): esto garantiza que deploy-root solo ve
 # datos que ya pasaron por esta validación campo por campo.
@@ -105,8 +139,10 @@ validated_request="$(
     jq -n \
         --arg release "$release" \
         --arg sha "$sha" \
+        --arg run_id "$run_id" \
+        --arg run_attempt "$run_attempt" \
         --argjson digests "$(printf '%s' "$request_raw" | jq -c '.digests')" \
-        '{release: $release, sha: $sha, digests: $digests}'
+        '{release: $release, sha: $sha, run_id: $run_id, run_attempt: $run_attempt, digests: $digests}'
 )"
 
 # Nunca por SSH_ORIGINAL_COMMAND, nunca por argumento de proceso (grep-eable en ps):

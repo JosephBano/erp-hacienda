@@ -1,0 +1,12 @@
+[Unit]
+Description=HATO ERP - Daily Encrypted PostgreSQL Backup Timer (07:00 UTC)
+Documentation=file:///home/joeman/Documents/proyects/erp-hacienda/docs/BACKUPS.md
+Requires=hato-backup.service
+
+[Timer]
+OnCalendar=*-*-* 07:00:00 UTC
+RandomizedDelaySec=300
+Persistent=true
+
+[Install]
+WantedBy=timers.target

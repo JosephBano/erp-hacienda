@@ -39,9 +39,11 @@ grep -Fq "07:00:00 UTC" "${TIMER_DAILY}" || fail "hato-backup.timer must run at 
 grep -Fq "User=hato-backup" "${SERVICE_DAILY}" || fail "hato-backup.service must run as User=hato-backup"
 grep -Fq "TimeoutStartSec=" "${SERVICE_DAILY}" || fail "hato-backup.service must have TimeoutStartSec"
 
-# Check Monthly Restore Timer Properties
+# Check Monthly Restore Timer Properties. The restore runs on the isolated
+# home-server boundary, not on Oracle under the backup uploader account.
 grep -Fq "Persistent=true" "${TIMER_RESTORE}" || fail "hato-restore-check.timer must have Persistent=true"
-grep -Fq "User=hato-backup" "${SERVICE_RESTORE}" || fail "hato-restore-check.service must run as User=hato-backup"
+grep -Fq "User=root" "${SERVICE_RESTORE}" || fail "hato-restore-check.service must run as root on home-server"
+grep -Fq "EnvironmentFile=-/etc/hato-restore/restore.env" "${SERVICE_RESTORE}" || fail "hato-restore-check.service must use the home-server restore configuration"
 
 # Optional systemd-analyze verify if systemd-analyze exists
 if command -v systemd-analyze >/dev/null 2>&1; then

@@ -1,5 +1,5 @@
 [Unit]
-Description=HATO ERP - Monthly Backup Restoration Verification Timer
+Description=HATO ERP - Monthly Backup Restoration Verification Timer (home-server only)
 Documentation=file:///home/joeman/Documents/proyects/erp-hacienda/docs/BACKUPS.md
 Requires=hato-restore-check.service
 

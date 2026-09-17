@@ -20,7 +20,7 @@ elif [ -f "/etc/hato-backup/backup.env" ]; then
     set +a
 fi
 
-POSTGRES_CONTAINER="${POSTGRES_CONTAINER:-hato-postgres}"
+POSTGRES_CONTAINER="${POSTGRES_CONTAINER:-hato-production-postgres}"
 POSTGRES_DB="${POSTGRES_DB:-hato_production}"
 BACKUP_USER="${PRODUCTION_POSTGRES_BACKUP_USER:-${POSTGRES_USER:-hato_backup}}"
 BACKUP_PASSWORD="${PRODUCTION_POSTGRES_BACKUP_PASSWORD:-${POSTGRES_PASSWORD:-}}"

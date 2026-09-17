@@ -1,21 +1,21 @@
 [Unit]
-Description=HATO ERP - Monthly Isolated Backup Restoration Verification
+Description=HATO ERP - Monthly Isolated Backup Restoration Verification (home-server only)
 Documentation=file:///home/joeman/Documents/proyects/erp-hacienda/docs/BACKUPS.md
 After=network-online.target docker.service
 Wants=network-online.target
 
 [Service]
 Type=oneshot
-User=hato-backup
-Group=hato-backup
-EnvironmentFile=-/etc/hato-backup/backup.env
+User=root
+Group=root
+EnvironmentFile=-/etc/hato-restore/restore.env
 ExecStart=/usr/local/bin/hato-restore-check
 TimeoutStartSec=3600
 PrivateTmp=true
 ProtectSystem=strict
 ProtectHome=read-only
-ReadWritePaths=/var/backups/hato-db /tmp /var/log
-NoNewPrivileges=false
+ReadWritePaths=/tmp /var/log
+NoNewPrivileges=true
 
 [Install]
 WantedBy=multi-user.target

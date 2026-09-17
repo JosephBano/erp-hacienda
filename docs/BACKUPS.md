@@ -91,7 +91,10 @@ Cada ejecución genera cuatro archivos complementarios con el mismo prefijo:
 
 ## 3. Comandos y Scripts Operativos
 
-Todos los scripts admiten variables de entorno o archivo de configuración `/etc/hato-backup/backup.env` (permisos `600` de `hato-backup:hato-backup`).
+El pipeline diario de Oracle usa `/etc/hato-backup/backup.env` (modo `600`,
+propietario `hato-backup:hato-backup`). El simulacro mensual usa una configuración
+distinta en home-server: `/etc/hato-restore/restore.env` y su `rclone.conf`, ambos
+`root:root`, modo `600`. Las credenciales de Oracle no se copian al host de restore.
 
 ### 3.1 Generación de Backup Local
 ```bash
@@ -143,12 +146,36 @@ Todos los scripts admiten variables de entorno o archivo de configuración `/etc
 
 ## 4. Automatización con Systemd y Monitorización Externa
 
-### Unidades de Servicio y Temporizadores en VPS
-Instalados en `/etc/systemd/system/`:
+### Oracle: backup diario
+
+Instalar únicamente estas unidades en Oracle bajo `/etc/systemd/system/`:
 - `hato-backup.timer`: Se dispara diariamente a las `07:00 UTC` (02:00 Ecuador) con `Persistent=true`.
 - `hato-backup.service`: Ejecuta el ciclo completo (backup local -> upload -> verificación -> rotación -> ping monitor).
   - Configurado con `User=hato-backup`, `Group=hato-backup`.
   - `TimeoutStartSec=1800` (evita procesos colgados).
+
+El archivo `ops/backups/backup.env.example` configura el contenedor real de Oracle,
+`hato-production-postgres`, y guarda el lock dentro de `/var/backups/hato-db`, que es
+la única ruta de trabajo escribible por el servicio.
+
+### Home-server: restore mensual aislado
+
+Instalar únicamente en home-server `hato-restore-check.service` y
+`hato-restore-check.timer`, junto con:
+
+- `/opt/hato-restore/hato-restore-check.compose.yml`, desde
+  `ops/backups/hato-restore-check.compose.yml`;
+- `/etc/hato-restore/restore.env`, creado a partir de
+  `ops/backups/restore.env.example` y protegido como `root:root`, modo `600`;
+- `/etc/hato-restore/rclone.conf`, con el mismo remote crypt recuperable y protegido
+  como `root:root`, modo `600`;
+- `/usr/local/bin/hato-restore-check`, `restore.sh` y `backup-manifest.sh`, todos
+  root-owned y no modificables por usuarios de aplicación.
+
+El servicio crea `hato-restore-check-postgres` mediante Docker Compose, sin puertos
+publicados y en red Docker `internal`. Solo acepta ese nombre de contenedor, exige un
+marcador remoto `.complete`, y destruye contenedor, volumen y descarga temporal al
+terminar. No debe instalarse en Oracle ni recibir `/etc/hato-production/production.env`.
 
 ### Monitorización Externa (Healthchecks en Home-Server + Email)
 Conforme a ADR-0036:
@@ -226,4 +253,3 @@ El repositorio cuenta con una suite automatizada de simulacro de recuperación a
 tests/ops/backups/test-disaster-recovery-rehearsal.sh
 ```
 Dicha suite genera un dump completo con esquemas modulares reales, descarga a un host limpio aislado, valida el checksum y el manifiesto, restaura mediante `scripts/restore.sh`, mide el RTO exacto, y valida la integridad de los 6 esquemas (`livestock`, `production`, `inventory`, `people`, `breeding`, `tasks`).
-

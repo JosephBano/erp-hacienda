@@ -81,7 +81,7 @@ jobs:
       image_migrate: ${{ steps.meta.outputs.image_migrate }}
     steps:
       - name: Checkout requested ref
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           ref: ${{ inputs.ref }}
           fetch-depth: 0
@@ -221,7 +221,7 @@ jobs:
       contents: read
     steps:
       - name: Checkout repository (for release-verify script)
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           ref: ${{ needs.resolve-and-build.outputs.sha }}
 

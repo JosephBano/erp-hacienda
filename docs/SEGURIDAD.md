@@ -593,13 +593,25 @@ puede aparecer en registros públicos de transparencia de certificados.
 | Clave SSH de CI y OAuth de Tailscale de CI, con tags restringidos | GitHub Environment `production` | Job aprobado |
 | Huella del host SSH, verificada por canal independiente | Configuración del entorno | Cliente SSH con `StrictHostKeyChecking=yes` |
 | JWT signing key, contraseñas de la base de datos, credencial de lectura de GHCR si hace falta | Archivos con permisos `600`, propiedad root, fuera del checkout del repositorio | Servicios concretos del stack |
-| Tokens de Google y claves de cifrado de backups | Según `feature-0013`, con recuperación independiente | Proceso de backup |
+| Tokens OAuth Google Drive, claves de cifrado rclone crypt y URLs de Healthchecks | Archivo `600` de `hato-backup` (`/etc/hato-backup/backup.env` y `rclone.conf`), con copia offline separada | Servicio `hato-backup` |
 | Firma de Android y GitHub App de compilación | Según `feature-0014`, separadas del flujo de despliegue | Build/orquestador |
 
 Ningún secreto de esta tabla vive en `EXPO_PUBLIC_*`, en un bundle de cliente, en un `ARG`
 o capa de Docker, en el compose renderizado hacia logs, en argumentos de proceso visibles,
 ni en un backup sin cifrar. El enmascarado de GitHub Actions no sustituye evitar
 imprimirlos. Toda credencial expuesta se rota, y esa rotación se documenta.
+
+### Aislamiento de `hato-backup` y cifrado offsite (feature-0013)
+
+El servicio de respaldo opera bajo el usuario de sistema `hato-backup`:
+- Sin privilegios `sudo` generales y **sin pertenencia al grupo `docker`**.
+- El acceso al dump de PostgreSQL se realiza mediante un helper root-owned (`/usr/local/libexec/hato/backup-dump-root`)
+  con argumentos fijos que ejecuta `pg_dump` con el rol de solo lectura (`PRODUCTION_POSTGRES_BACKUP_USER`).
+- Las contraseñas de base de datos nunca se exponen en argumentos de proceso ni en logs.
+- La configuración de `rclone` (tokens OAuth y contraseña/salt de crypt) vive en `/etc/hato-backup/rclone.conf` (modo `600`).
+- La clave de cifrado y el salt de crypt se custodian en el gestor de contraseñas del propietario y en un soporte
+  físico offline fuera de Oracle y de Google Drive; jamás se incluye la única clave dentro del backup cifrado.
+- Las URLs de ping de Healthchecks son secretas y residen exclusivamente en `/etc/hato-backup/backup.env`.
 
 ### D7 — el usuario de CI no tiene privilegio general
 

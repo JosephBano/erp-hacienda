@@ -12,16 +12,19 @@ fail() {
     exit 1
 }
 
-send_alert() {
+send_ping() {
+    # $1: "" para éxito, "/fail" para fallo.
     [[ -r "$ALERT_URL_FILE" ]] || return 0
     local alert_url
     alert_url="$(<"$ALERT_URL_FILE")"
     [[ -n "$alert_url" ]] || return 0
-    # Healthchecks recibe un ping de fallo; ni la URL secreta ni datos de la finca
-    # entran al log de systemd.
+    # Ni la URL secreta ni datos de la finca entran al log de systemd.
     curl --fail --silent --show-error --max-time 15 --output /dev/null \
-        --request POST "${alert_url%/}/fail" || true
+        --request POST "${alert_url%/}${1}" || true
 }
+
+send_success() { send_ping ""; }
+send_alert() { send_ping "/fail"; }
 
 main() {
     [[ "$(id -u)" == "0" ]] || fail "must run as root"
@@ -40,6 +43,8 @@ main() {
         send_alert
         fail "certificate is absent or expires in fewer than ${MINIMUM_VALIDITY_DAYS} days"
     fi
+
+    send_success
 }
 
 main "$@"

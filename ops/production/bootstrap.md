@@ -131,6 +131,11 @@ sudo install -o root -g root -m 755 scripts/production-deploy-entry.sh \
     /usr/local/libexec/hato/deploy-entry
 sudo install -o root -g root -m 755 scripts/production-deploy-root.sh \
     /usr/local/libexec/hato/deploy-root
+sudo install -o root -g root -m 755 scripts/production-backup-pre-release.sh \
+    /usr/local/libexec/hato/production-backup-pre-release
+sudo install -o root -g root -m 755 scripts/backup.sh /usr/local/libexec/hato/backup.sh
+sudo install -o root -g root -m 755 scripts/backup-upload.sh /usr/local/libexec/hato/backup-upload.sh
+sudo install -o root -g root -m 755 scripts/backup-manifest.sh /usr/local/libexec/hato/backup-manifest.sh
 ```
 
 Ambos archivos y el directorio que los contiene son root-owned y **no escribibles por

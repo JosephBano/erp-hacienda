@@ -1,45 +1,25 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# ==============================================================================
-# ERP Hacienda Ganadera - Safe Backup Retention & Rotation
-# Policies: 7 days local, 30 days daily remote, 12 months monthly remote.
-# Protects last valid copy, operates ONLY on owned stems, supports --dry-run.
-# ==============================================================================
-
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
-
-# Source optional environment file
+# Retention operates only on complete backup sets. A valid set contains dump,
+# checksum, manifest and completion marker.
 if [ -f "/etc/hato-backup/backup.env" ]; then
-    # shellcheck disable=SC1091
     set -a
+    # shellcheck disable=SC1091
     . "/etc/hato-backup/backup.env"
     set +a
 fi
 
 DRY_RUN=0
-SCOPE="all" # all, local, remote
-
+SCOPE=all
 while [ "$#" -gt 0 ]; do
     case "$1" in
-        --dry-run)
-            DRY_RUN=1
-            shift
-            ;;
-        --local-only)
-            SCOPE="local"
-            shift
-            ;;
-        --remote-only)
-            SCOPE="remote"
-            shift
-            ;;
-        *)
-            echo "Opción desconocida: $1" >&2
-            exit 1
-            ;;
+        --dry-run) DRY_RUN=1 ;;
+        --local-only) SCOPE=local ;;
+        --remote-only) SCOPE=remote ;;
+        *) echo "Opción desconocida: $1" >&2; exit 1 ;;
     esac
+    shift
 done
 
 BACKUP_DIR="${BACKUP_DIR:-/var/backups/hato-db}"
@@ -50,145 +30,140 @@ RETENTION_LOCAL_DAYS="${RETENTION_LOCAL_DAYS:-7}"
 RETENTION_DAILY_DAYS="${RETENTION_REMOTE_DAILY_DAYS:-30}"
 RETENTION_MONTHLY_DAYS=$(( ${RETENTION_REMOTE_MONTHLY_MONTHS:-12} * 30 ))
 
-echo "[$(date -u +"%Y-%m-%dT%H:%M:%SZ")] Iniciando proceso de retención (Modo Dry-Run: ${DRY_RUN}, Alcance: ${SCOPE})..."
+is_complete_local_set() {
+    local dir="$1" stem="$2"
+    [[ -f "$dir/$stem.dump" && -f "$dir/$stem.sha256" \
+       && -f "$dir/$stem.manifest.json" && -f "$dir/$stem.complete" ]]
+}
 
-# ==============================================================================
-# 1. Local Retention (7 Days)
-# ==============================================================================
-if [ "${SCOPE}" = "all" ] || [ "${SCOPE}" = "local" ]; then
-    if [ -d "${BACKUP_DIR}" ]; then
-        echo "[LOCAL] Evaluando copias locales en ${BACKUP_DIR}..."
-        # Find newest valid dump to protect it
-        NEWEST_LOCAL="$(find "${BACKUP_DIR}" -name "hato-*-db-*.dump" -type f -printf '%T@ %p\n' 2>/dev/null | sort -nr | head -n 1 | awk '{print $2}' || true)"
+remove_local_set() {
+    local dir="$1" stem="$2"
+    rm -f -- "$dir/$stem.dump" "$dir/$stem.sha256" \
+        "$dir/$stem.manifest.json" "$dir/$stem.complete"
+}
 
-        find "${BACKUP_DIR}" -name "hato-*-db-*.dump" -type f -mtime +"${RETENTION_LOCAL_DAYS}" 2>/dev/null | while read -r EXPIRED_LOCAL; do
-            if [ "${EXPIRED_LOCAL}" = "${NEWEST_LOCAL}" ]; then
-                echo "  [LOCAL-PROTEGIDO] Conservando última copia válida local: $(basename "${EXPIRED_LOCAL}")"
-                continue
+backup_month() {
+    local stem="$1" value="${stem#*-db-}"
+    value="${value:0:6}"
+    [[ "$value" =~ ^[0-9]{6}$ ]] || return 1
+    printf '%s\n' "$value"
+}
+
+echo "[$(date -u +%Y-%m-%dT%H:%M:%SZ)] Retención (dry-run=$DRY_RUN, scope=$SCOPE)"
+
+if [ "$SCOPE" = all ] || [ "$SCOPE" = local ]; then
+    if [ -d "$BACKUP_DIR" ]; then
+        newest=""
+        while IFS= read -r dump; do
+            stem="$(basename "$dump" .dump)"
+            if is_complete_local_set "$BACKUP_DIR" "$stem"; then newest="$dump"; break; fi
+        done < <(find "$BACKUP_DIR" -name 'hato-*-db-*.dump' -type f -printf '%T@ %p\n' | sort -nr | awk '{print $2}')
+
+        while IFS= read -r dump; do
+            stem="$(basename "$dump" .dump)"
+            is_complete_local_set "$BACKUP_DIR" "$stem" || continue
+            [ "$dump" = "$newest" ] && continue
+            if [ "$DRY_RUN" -eq 1 ]; then echo "[DRY-RUN] local prune $stem"; else remove_local_set "$BACKUP_DIR" "$stem"; fi
+        done < <(find "$BACKUP_DIR" -name 'hato-*-db-*.dump' -type f -mtime +"$RETENTION_LOCAL_DAYS")
+    fi
+fi
+
+if [ "$SCOPE" = all ] || [ "$SCOPE" = remote ]; then
+    if [ -n "${REMOTE_DAILY_DIR:-}" ] && [ -d "${REMOTE_DAILY_DIR}" ]; then
+        daily="$REMOTE_DAILY_DIR"
+        monthly="${REMOTE_MONTHLY_DIR:-}"
+        declare -A selected=()
+        while IFS= read -r dump; do
+            stem="$(basename "$dump" .dump)"
+            is_complete_local_set "$daily" "$stem" || continue
+            age=$(( ( $(date +%s) - $(stat -c%Y "$dump") ) / 86400 ))
+            if [ "$age" -gt "$RETENTION_DAILY_DAYS" ]; then
+                month="$(backup_month "$stem")" || continue
+                candidate="${selected[$month]:-}"
+                if [ -z "$candidate" ] || [ "$dump" -nt "$candidate" ]; then selected[$month]="$dump"; fi
             fi
-            STEM="${EXPIRED_LOCAL%.dump}"
-            if [ "${DRY_RUN}" -eq 1 ]; then
-                echo "  [DRY-RUN] [LOCAL-PODA] Se eliminaría copia local caducada: $(basename "${EXPIRED_LOCAL}")"
-            else
-                echo "  [LOCAL-PODA] Eliminando copia local caducada: $(basename "${EXPIRED_LOCAL}")"
-                rm -f "${EXPIRED_LOCAL}" "${STEM}.sha256" "${STEM}.manifest.json" "${STEM}.complete" "${STEM}.dump.partial" 2>/dev/null || true
+        done < <(find "$daily" -name 'hato-prod-db-*.dump' -type f -printf '%T@ %p\n' | sort -nr | awk '{print $2}')
+
+        for month in "${!selected[@]}"; do
+            dump="${selected[$month]}"; stem="$(basename "$dump" .dump)"
+            [ -n "$monthly" ] || continue
+            mkdir -p "$monthly"
+            if [ ! -f "$monthly/$stem.complete" ]; then
+                if [ "$DRY_RUN" -eq 1 ]; then echo "[DRY-RUN] promote monthly $stem"; else cp -- "$daily/$stem".* "$monthly/"; fi
+            fi
+        done
+
+        if [ -n "$monthly" ] && [ -d "$monthly" ]; then
+            monthly_dumps=()
+            while IFS= read -r dump; do
+                stem="$(basename "$dump" .dump)"
+                is_complete_local_set "$monthly" "$stem" || continue
+                monthly_dumps+=("$dump")
+            done < <(find "$monthly" -name 'hato-prod-db-*.dump' -type f -printf '%T@ %p\n' | sort -nr | awk '{print $2}')
+            index=0
+            for dump in "${monthly_dumps[@]}"; do
+                index=$((index + 1)); age=$(( ( $(date +%s) - $(stat -c%Y "$dump") ) / 86400 ))
+                if [ "$index" -gt 1 ] && [ "$age" -gt "$RETENTION_MONTHLY_DAYS" ]; then
+                    stem="$(basename "$dump" .dump)"
+                    if [ "$DRY_RUN" -eq 1 ]; then echo "[DRY-RUN] monthly prune $stem"; else remove_local_set "$monthly" "$stem"; fi
+                fi
+            done
+        fi
+    elif [ -f "$RCLONE_CONFIG" ] && command -v "$RCLONE_CMD" >/dev/null 2>&1; then
+        daily="${RCLONE_REMOTE}:database/prod/daily"; monthly="${RCLONE_REMOTE}:database/prod/monthly"
+        files="$($RCLONE_CMD --config "$RCLONE_CONFIG" lsf "$daily" 2>/dev/null || true)"
+        complete_dumps=()
+        while IFS= read -r dump; do
+            stem="${dump%.dump}"
+            grep -Fxq "$stem.complete" <<<"$files" || continue
+            grep -Fxq "$stem.sha256" <<<"$files" || continue
+            grep -Fxq "$stem.manifest.json" <<<"$files" || continue
+            complete_dumps+=("$dump")
+        done < <(grep -E '^hato-prod-db-.*\.dump$' <<<"$files" | sort)
+
+        declare -A selected_remote=()
+        for dump in "${complete_dumps[@]}"; do
+            stem="${dump%.dump}"; timestamp="$($RCLONE_CMD --config "$RCLONE_CONFIG" lsf "$daily/$dump" --format t --time-format unix)"
+            age=$(( ( $(date +%s) - timestamp ) / 86400 )); [ "$age" -gt "$RETENTION_DAILY_DAYS" ] || continue
+            month="$(backup_month "$stem")" || continue; selected_remote[$month]="$dump"
+        done
+        for month in "${!selected_remote[@]}"; do
+            dump="${selected_remote[$month]}"; stem="${dump%.dump}"
+            if ! $RCLONE_CMD --config "$RCLONE_CONFIG" lsf "$monthly/$stem.complete" >/dev/null 2>&1; then
+                [ "$DRY_RUN" -eq 1 ] || $RCLONE_CMD --config "$RCLONE_CONFIG" copy "$daily" "$monthly" --include "$stem.*"
+            fi
+        done
+
+        newest="${complete_dumps[${#complete_dumps[@]}-1]:-}"
+        for dump in "${complete_dumps[@]}"; do
+            [ "$dump" = "$newest" ] && continue
+            stem="${dump%.dump}"; timestamp="$($RCLONE_CMD --config "$RCLONE_CONFIG" lsf "$daily/$dump" --format t --time-format unix)"
+            age=$(( ( $(date +%s) - timestamp ) / 86400 ))
+            if [ "$age" -gt "$RETENTION_DAILY_DAYS" ]; then [ "$DRY_RUN" -eq 1 ] || $RCLONE_CMD --config "$RCLONE_CONFIG" delete "$daily" --include "$stem.*"; fi
+        done
+
+        # Apply the same 12-month policy to the monthly namespace. Preserve
+        # the newest complete monthly set even if it is older than the window;
+        # deleting the last known-good recovery point is never acceptable.
+        monthly_files="$($RCLONE_CMD --config "$RCLONE_CONFIG" lsf "$monthly" 2>/dev/null || true)"
+        monthly_dumps=()
+        while IFS= read -r dump; do
+            stem="${dump%.dump}"
+            grep -Fxq "$stem.complete" <<<"$monthly_files" || continue
+            grep -Fxq "$stem.sha256" <<<"$monthly_files" || continue
+            grep -Fxq "$stem.manifest.json" <<<"$monthly_files" || continue
+            monthly_dumps+=("$dump")
+        done < <(grep -E '^hato-prod-db-.*\.dump$' <<<"$monthly_files" | sort -r)
+        monthly_index=0
+        for dump in "${monthly_dumps[@]}"; do
+            monthly_index=$((monthly_index + 1)); stem="${dump%.dump}"
+            timestamp="$($RCLONE_CMD --config "$RCLONE_CONFIG" lsf "$monthly/$dump" --format t --time-format unix)"
+            age=$(( ( $(date +%s) - timestamp ) / 86400 ))
+            if [ "$monthly_index" -gt 1 ] && [ "$age" -gt "$RETENTION_MONTHLY_DAYS" ]; then
+                [ "$DRY_RUN" -eq 1 ] || $RCLONE_CMD --config "$RCLONE_CONFIG" delete "$monthly" --include "$stem.*"
             fi
         done
     fi
 fi
 
-# ==============================================================================
-# 2. Remote Retention (Daily 30d, Monthly 12m)
-# ==============================================================================
-if [ "${SCOPE}" = "all" ] || [ "${SCOPE}" = "remote" ]; then
-    # Support direct directory testing via REMOTE_DAILY_DIR / REMOTE_MONTHLY_DIR
-    if [ -n "${REMOTE_DAILY_DIR:-}" ] && [ -d "${REMOTE_DAILY_DIR}" ]; then
-        # Direct Directory Mode (e.g. testing fixtures)
-        echo "[REMOTO-TEST] Evaluando retención sobre directorio fixture: ${REMOTE_DAILY_DIR}"
-
-        # Collect all valid owned stems with complete marker
-        STEMS=()
-        while read -r DUMP_PATH; do
-            [ -n "${DUMP_PATH}" ] || continue
-            STEM_NAME="$(basename "${DUMP_PATH}" .dump)"
-            STEMS+=("${STEM_NAME}")
-        done < <(find "${REMOTE_DAILY_DIR}" -name "hato-*-db-*.dump" -type f | sort)
-
-        TOTAL_VALID="${#STEMS[@]}"
-        if [ "${TOTAL_VALID}" -eq 0 ]; then
-            echo "  No se encontraron copias propias en ${REMOTE_DAILY_DIR}."
-        else
-            NEWEST_STEM="${STEMS[$((TOTAL_VALID - 1))]}"
-
-            for STEM in "${STEMS[@]}"; do
-                DUMP_PATH="${REMOTE_DAILY_DIR}/${STEM}.dump"
-                # Check age
-                AGE_DAYS=$(( ( $(date +%s) - $(stat -c%Y "${DUMP_PATH}" 2>/dev/null || stat -f%m "${DUMP_PATH}" 2>/dev/null) ) / 86400 ))
-
-                # Check if it should be promoted to monthly
-                if [ -n "${REMOTE_MONTHLY_DIR:-}" ]; then
-                    MONTHLY_DEST="${REMOTE_MONTHLY_DIR}/${STEM}.dump"
-                    if [ ! -f "${MONTHLY_DEST}" ]; then
-                        if [ "${DRY_RUN}" -eq 1 ]; then
-                            echo "  [DRY-RUN] [PROMOCION-MENSUAL] Copiar a mensual: ${STEM}"
-                        else
-                            echo "  [PROMOCION-MENSUAL] Copiando a mensual: ${STEM}"
-                            cp "${REMOTE_DAILY_DIR}/${STEM}".* "${REMOTE_MONTHLY_DIR}/" 2>/dev/null || true
-                        fi
-                    fi
-                fi
-
-                # Check expiration in daily
-                if [ "${AGE_DAYS}" -gt "${RETENTION_DAILY_DAYS}" ]; then
-                    if [ "${STEM}" = "${NEWEST_STEM}" ] || [ "${TOTAL_VALID}" -eq 1 ]; then
-                        echo "  [REMOTO-PROTEGIDO] Conservando única/última copia válida en daily: ${STEM}"
-                    else
-                        if [ "${DRY_RUN}" -eq 1 ]; then
-                            echo "  [DRY-RUN] [REMOTO-PODA-DAILY] Se eliminaría copia caducada (>30d): ${STEM}"
-                        else
-                            echo "  [REMOTO-PODA-DAILY] Eliminando copia caducada (>30d): ${STEM}"
-                            rm -f "${REMOTE_DAILY_DIR}/${STEM}".* 2>/dev/null || true
-                        fi
-                    fi
-                fi
-            done
-        fi
-    elif [ -f "${RCLONE_CONFIG}" ] && command -v "${RCLONE_CMD}" >/dev/null 2>&1; then
-        # Production rclone remote mode
-        DAILY_DEST="${RCLONE_REMOTE}:database/prod/daily"
-        MONTHLY_DEST="${RCLONE_REMOTE}:database/prod/monthly"
-
-        echo "[REMOTO] Evaluando retención en Google Drive: ${DAILY_DEST}..."
-
-        # List files on daily
-        FILES_LIST=$("${RCLONE_CMD}" --config "${RCLONE_CONFIG}" lsf "${DAILY_DEST}" 2>/dev/null || true)
-
-        # Extract only our owned stems that have a .dump file
-        DUMP_FILES=$(echo "${FILES_LIST}" | grep -E '^hato-.*-db-.*\.dump$' | sort || true)
-        TOTAL_VALID=$(echo "${DUMP_FILES}" | grep -c . || true)
-
-        if [ "${TOTAL_VALID}" -eq 0 ]; then
-            echo "  No se encontraron copias válidas en ${DAILY_DEST}."
-        else
-            NEWEST_DUMP=$(echo "${DUMP_FILES}" | tail -n 1)
-            NEWEST_STEM="${NEWEST_DUMP%.dump}"
-
-            echo "${DUMP_FILES}" | while read -r DUMP_NAME; do
-                [ -n "${DUMP_NAME}" ] || continue
-                STEM="${DUMP_NAME%.dump}"
-
-                # Promotion to monthly: copy companion files if not exists
-                MONTHLY_EXISTS=$("${RCLONE_CMD}" --config "${RCLONE_CONFIG}" lsf "${MONTHLY_DEST}/${DUMP_NAME}" 2>/dev/null || true)
-                if [ -z "${MONTHLY_EXISTS}" ]; then
-                    if [ "${DRY_RUN}" -eq 1 ]; then
-                        echo "  [DRY-RUN] [PROMOCION-MENSUAL] Promovería ${STEM} a ${MONTHLY_DEST}"
-                    else
-                        echo "  [PROMOCION-MENSUAL] Promoviendo ${STEM} a ${MONTHLY_DEST}..."
-                        "${RCLONE_CMD}" --config "${RCLONE_CONFIG}" copy "${DAILY_DEST}" "${MONTHLY_DEST}" --include "${STEM}.*" 2>/dev/null || true
-                    fi
-                fi
-
-                # Daily pruning
-                if [ "${STEM}" = "${NEWEST_STEM}" ] || [ "${TOTAL_VALID}" -eq 1 ]; then
-                    echo "  [REMOTO-PROTEGIDO] Conservando última copia válida en remoto: ${STEM}"
-                else
-                    # Query age with lsf
-                    AGE_SECONDS=$("${RCLONE_CMD}" --config "${RCLONE_CONFIG}" lsf "${DAILY_DEST}/${DUMP_NAME}" --format "t" --time-format "unix" 2>/dev/null || echo 0)
-                    NOW_SECONDS=$(date +%s)
-                    DIFF_DAYS=$(( (NOW_SECONDS - AGE_SECONDS) / 86400 ))
-
-                    if [ "${DIFF_DAYS}" -gt "${RETENTION_DAILY_DAYS}" ]; then
-                        if [ "${DRY_RUN}" -eq 1 ]; then
-                            echo "  [DRY-RUN] [REMOTO-PODA-DAILY] Eliminaría ${STEM} de daily (>30d)"
-                        else
-                            echo "  [REMOTO-PODA-DAILY] Eliminando ${STEM} de daily (>30d)..."
-                            "${RCLONE_CMD}" --config "${RCLONE_CONFIG}" delete "${DAILY_DEST}" --include "${STEM}.*" 2>/dev/null || true
-                        fi
-                    fi
-                fi
-            done
-        fi
-    fi
-fi
-
-echo "[$(date -u +"%Y-%m-%dT%H:%M:%SZ")] Proceso de retención finalizado."
+echo "[$(date -u +%Y-%m-%dT%H:%M:%SZ)] Retención finalizada"

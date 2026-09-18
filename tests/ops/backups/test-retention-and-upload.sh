@@ -184,7 +184,12 @@ create_backup_set() {
 create_backup_set "${RETENTION_DIR}/daily" "hato-prod-db-20260801T070000Z-11111111-1111-1111-1111-111111111111" 45
 # 2. A recent backup (5 days ago) - should be kept
 create_backup_set "${RETENTION_DIR}/daily" "hato-prod-db-20260912T070000Z-22222222-2222-2222-2222-222222222222" 5
-# 3. A foreign file belonging to another process or user
+# 3. A second old backup in the same month. Monthly retention must select only
+# one completed snapshot per month, not promote every daily dump.
+create_backup_set "${RETENTION_DIR}/daily" "hato-prod-db-20260815T070000Z-33333333-3333-3333-3333-333333333333" 34
+# An expired monthly snapshot must be pruned after the retention window.
+create_backup_set "${RETENTION_DIR}/monthly" "hato-prod-db-20250701T070000Z-44444444-4444-4444-4444-444444444444" 400
+# 4. A foreign file belonging to another process or user
 echo "photo or document" > "${RETENTION_DIR}/daily/family_photo.jpg"
 echo "apk artifact" > "${RETENTION_DIR}/daily/app-release.apk"
 
@@ -212,12 +217,18 @@ pass "Foreign files left completely untouched"
 [ -f "${RETENTION_DIR}/daily/hato-prod-db-20260912T070000Z-22222222-2222-2222-2222-222222222222.dump" ] || fail "Recent backup was incorrectly deleted"
 pass "Recent daily backup preserved"
 
-# Monthly promotion: the 45-days-ago backup was promoted to monthly
-if [ -f "${RETENTION_DIR}/monthly/hato-prod-db-20260801T070000Z-11111111-1111-1111-1111-111111111111.dump" ]; then
+# Monthly promotion: one completed August snapshot was promoted to monthly.
+if [ -f "${RETENTION_DIR}/monthly/hato-prod-db-20260815T070000Z-33333333-3333-3333-3333-333333333333.dump" ]; then
     pass "Monthly backup successfully promoted to monthly retention"
 else
     fail "Oldest monthly backup was not promoted to monthly/"
 fi
+
+# Only one monthly snapshot is retained for August and expired monthly data is
+# removed. The recent September daily is not promoted before the month closes.
+MONTHLY_DUMPS=$(find "${RETENTION_DIR}/monthly" -name 'hato-*.dump' -type f | wc -l | tr -d ' ')
+[ "${MONTHLY_DUMPS}" -eq 1 ] || fail "Monthly retention promoted too many snapshots or kept an expired one"
+[ ! -f "${RETENTION_DIR}/monthly/hato-prod-db-20250701T070000Z-44444444-4444-4444-4444-444444444444.dump" ] || fail "Expired monthly backup was not pruned"
 
 # ------------------------------------------------------------------------------
 # 5. Retention: Last Valid Copy Protection

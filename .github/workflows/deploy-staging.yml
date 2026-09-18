@@ -46,7 +46,22 @@ jobs:
           # Sin `|| true`: si no se puede fijar la huella del host, el
           # despliegue no debe seguir a ciegas. El ssh de abajo la exige con
           # StrictHostKeyChecking=yes.
-          ssh-keyscan -H "$DEPLOY_HOST" >> ~/.ssh/known_hosts
+          # Un nodo de CI recién unido al tailnet puede tardar unos segundos
+          # en tener ruta asentada hacia sus pares (visto en producción:
+          # ssh-keyscan de un solo intento cayendo en ese hueco); se
+          # reintenta con backoff antes de fallar.
+          known_host=""
+          for attempt in 1 2 3 4 5 6; do
+            known_host="$(ssh-keyscan -H "$DEPLOY_HOST" 2>/dev/null)"
+            [ -n "$known_host" ] && break
+            echo "ssh-keyscan intento $attempt/6 sin respuesta de $DEPLOY_HOST; reintentando en $((attempt * 5))s..."
+            sleep "$((attempt * 5))"
+          done
+          [ -n "$known_host" ] || {
+            echo "::error::ssh-keyscan no obtuvo ninguna clave de host para $DEPLOY_HOST tras 6 intentos." >&2
+            exit 1
+          }
+          printf '%s\n' "$known_host" >> ~/.ssh/known_hosts
 
       - name: Deploy staging stack via SSH
         env:

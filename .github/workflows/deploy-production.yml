@@ -259,16 +259,34 @@ jobs:
             exit 1
           }
 
+          resolved_addresses="$(getent ahosts "$DEPLOY_HOST" 2>/dev/null | awk '{print $1}' | sort -u | tr '\n' ' ' || true)"
+          [ -n "$resolved_addresses" ] || {
+            echo "::error::DEPLOY_HOST no resolvió ninguna dirección desde el runner de GitHub." >&2
+            exit 1
+          }
+          echo "DEPLOY_HOST resolvió a: $resolved_addresses"
+
           candidate_key="$(ssh-keyscan -T 10 -t ed25519 -H "$DEPLOY_HOST" 2>/dev/null)"
           [ -n "$candidate_key" ] || {
             echo "::error::ssh-keyscan no obtuvo una clave de host ed25519 para $DEPLOY_HOST." >&2
             exit 1
           }
 
-          candidate_fingerprint="$(printf '%s\n' "$candidate_key" | ssh-keygen -lf - | awk '{print $2}')"
+          key_line_count="$(printf '%s\n' "$candidate_key" | awk 'NF >= 3 {count++} END {print count+0}')"
+          [ "$key_line_count" -eq 1 ] || {
+            echo "::error::ssh-keyscan devolvió $key_line_count claves ed25519; se esperaba exactamente una." >&2
+            exit 1
+          }
+
+          candidate_fingerprint="$(printf '%s\n' "$candidate_key" | ssh-keygen -E sha256 -lf - | awk 'NF >= 2 {print $2}')"
+          echo "ssh-keyscan obtuvo una clave ed25519; huella candidata: ${candidate_fingerprint:-<none>}"
+          [ -n "$candidate_fingerprint" ] || {
+            echo "::error::ssh-keygen no pudo calcular la huella SHA256 de la clave obtenida." >&2
+            exit 1
+          }
 
           if [ "$candidate_fingerprint" != "$PRODUCTION_SSH_HOST_FINGERPRINT" ]; then
-            echo "::error::La huella del host ($candidate_fingerprint) no coincide con PRODUCTION_SSH_HOST_FINGERPRINT. Posible MITM o host reinstalado sin actualizar el secret. Abortando." >&2
+            echo "::error::La huella candidata no coincide con PRODUCTION_SSH_HOST_FINGERPRINT. Posible endpoint equivocado, MITM o host reinstalado sin actualizar el secret. Abortando." >&2
             exit 1
           fi
 

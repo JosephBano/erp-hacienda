@@ -31,6 +31,12 @@ grep -Fq 'production-backup-pre-release' "$root_helper" \
     || fail 'root deploy helper must run the pre-release backup before compose'
 grep -Fq 'pre-release backup is executed on the production host' "$workflow" \
     || fail 'workflow must document that pre-release backup runs on the production host'
+grep -Fq 'ssh-keygen -E sha256 -lf -' "$workflow" \
+    || fail 'workflow must compute the SSH fingerprint explicitly as SHA256'
+grep -Fq 'getent ahosts' "$workflow" \
+    || fail 'workflow must diagnose DEPLOY_HOST resolution before scanning'
+grep -Fq 'candidate_fingerprint=' "$workflow" \
+    || fail 'workflow must capture the candidate host fingerprint for diagnostics'
 test -x "$pre_backup" || fail 'pre-release backup helper must be executable'
 grep -Fq 'REMOTE_NAMESPACE=database/prod/pre-release' "$pre_backup" \
     || fail 'pre-release helper must use the dedicated remote namespace'

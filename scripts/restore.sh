@@ -98,17 +98,17 @@ if ! (cd "${DUMP_DIR}" && sha256sum -c "${CHECKSUM_BASENAME}" >/dev/null 2>&1); 
 fi
 echo "[OK] Checksum SHA256 verificado correctamente."
 
-# 4. Optional Manifest Verification if Present
+# 4. Mandatory Manifest Verification
 MANIFEST_FILE="${BACKUP_FILE%.dump}.manifest.json"
-if [ -f "${MANIFEST_FILE}" ]; then
-    echo "[$(date -u +"%Y-%m-%dT%H:%M:%SZ")] Verificando manifiesto de respaldo..."
-    MANIFEST_SCRIPT="${SCRIPT_DIR}/backup-manifest.sh"
-    if [ -x "${MANIFEST_SCRIPT}" ]; then
-        if ! "${MANIFEST_SCRIPT}" verify "${MANIFEST_FILE}" "${BACKUP_FILE}"; then
-            echo "[ERROR] La verificación del manifiesto falló." >&2
-            exit 1
-        fi
-    fi
+if [ ! -f "${MANIFEST_FILE}" ]; then
+    echo "[ERROR] No se encontró el manifiesto '${MANIFEST_FILE}'. Las restauraciones requieren un conjunto completo verificado." >&2
+    exit 1
+fi
+echo "[$(date -u +"%Y-%m-%dT%H:%M:%SZ")] Verificando manifiesto de respaldo..."
+MANIFEST_SCRIPT="${SCRIPT_DIR}/backup-manifest.sh"
+if [ ! -x "${MANIFEST_SCRIPT}" ] || ! "${MANIFEST_SCRIPT}" verify "${MANIFEST_FILE}" "${BACKUP_FILE}"; then
+    echo "[ERROR] La verificación del manifiesto falló." >&2
+    exit 1
 fi
 
 # Helper functions for database execution
@@ -156,16 +156,19 @@ echo "[$(date -u +"%Y-%m-%dT%H:%M:%SZ")] Verificando esquemas y registros en ${T
 
 # Verify modular schemas exist
 QUERY_SCHEMAS="SELECT count(*) FROM information_schema.schemata WHERE schema_name IN ('livestock', 'production', 'inventory', 'people', 'breeding', 'tasks');"
+QUERY_TABLE_SCHEMAS="SELECT count(DISTINCT table_schema) FROM information_schema.tables WHERE table_schema IN ('livestock', 'production', 'inventory', 'people', 'breeding', 'tasks') AND table_type = 'BASE TABLE';"
 if command -v docker >/dev/null 2>&1 && docker ps --format '{{.Names}}' 2>/dev/null | grep -q "^${POSTGRES_CONTAINER}\$"; then
     SCHEMA_COUNT=$(docker exec "${POSTGRES_CONTAINER}" psql -U "${POSTGRES_USER}" -d "${TARGET_DB}" -v ON_ERROR_STOP=1 -t -c "${QUERY_SCHEMAS}" | tr -d '[:space:]')
+    TABLE_SCHEMA_COUNT=$(docker exec "${POSTGRES_CONTAINER}" psql -U "${POSTGRES_USER}" -d "${TARGET_DB}" -v ON_ERROR_STOP=1 -t -c "${QUERY_TABLE_SCHEMAS}" | tr -d '[:space:]')
     ANIMAL_COUNT=$(docker exec "${POSTGRES_CONTAINER}" psql -U "${POSTGRES_USER}" -d "${TARGET_DB}" -v ON_ERROR_STOP=1 -t -c "SELECT count(*) FROM livestock.animals;" | tr -d '[:space:]')
 else
     SCHEMA_COUNT=$(PGPASSWORD="${POSTGRES_PASSWORD}" psql -h "${POSTGRES_HOST}" -p "${POSTGRES_PORT}" -U "${POSTGRES_USER}" -d "${TARGET_DB}" -v ON_ERROR_STOP=1 -t -c "${QUERY_SCHEMAS}" | tr -d '[:space:]')
+    TABLE_SCHEMA_COUNT=$(PGPASSWORD="${POSTGRES_PASSWORD}" psql -h "${POSTGRES_HOST}" -p "${POSTGRES_PORT}" -U "${POSTGRES_USER}" -d "${TARGET_DB}" -v ON_ERROR_STOP=1 -t -c "${QUERY_TABLE_SCHEMAS}" | tr -d '[:space:]')
     ANIMAL_COUNT=$(PGPASSWORD="${POSTGRES_PASSWORD}" psql -h "${POSTGRES_HOST}" -p "${POSTGRES_PORT}" -U "${POSTGRES_USER}" -d "${TARGET_DB}" -v ON_ERROR_STOP=1 -t -c "SELECT count(*) FROM livestock.animals;" | tr -d '[:space:]')
 fi
 
-if [ -z "${SCHEMA_COUNT}" ] || [ "${SCHEMA_COUNT}" -lt 1 ]; then
-    echo "[ERROR] Verificación fallida: no se encontraron los esquemas del dominio en la base restaurada." >&2
+if [ "${SCHEMA_COUNT:-0}" -ne 6 ] || [ "${TABLE_SCHEMA_COUNT:-0}" -ne 6 ]; then
+    echo "[ERROR] Verificación fallida: no se restauraron los seis esquemas y sus tablas de dominio." >&2
     exit 1
 fi
 

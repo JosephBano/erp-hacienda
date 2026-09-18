@@ -41,6 +41,20 @@ else
         pass "backup.sh failed closed without leaving partial or invalid dump files"
     fi
 fi
+
+# ------------------------------------------------------------------------------
+# 3b. Restore requires the manifest, not only a checksum
+# ------------------------------------------------------------------------------
+echo "Running Test 3b: Restore fails when manifest is missing..."
+MANIFEST_DUMP="${TEST_DIR}/no_manifest.dump"
+printf 'fake dump content' > "${MANIFEST_DUMP}"
+sha256sum "${MANIFEST_DUMP}" > "${MANIFEST_DUMP%.dump}.sha256"
+if "${REPO_ROOT}/scripts/restore.sh" "${MANIFEST_DUMP}" "test_restore_db" >"${TEST_DIR}/restore_no_manifest.log" 2>&1; then
+    fail "restore.sh should require a manifest for every backup"
+else
+    grep -Fq 'manifiesto' "${TEST_DIR}/restore_no_manifest.log" || fail "restore.sh did not explain the missing manifest"
+    pass "restore.sh rejected dump without manifest"
+fi
 unset BACKUP_HELPER
 
 # ------------------------------------------------------------------------------

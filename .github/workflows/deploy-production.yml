@@ -210,7 +210,7 @@ jobs:
     # `timeout-minutes` cuenta desde que el job arranca a ejecutarse, no desde que
     # queda en espera de aprobación (GitHub Actions no descuenta el tiempo de espera
     # del entorno contra este techo). 30 min, igual que deploy-staging.yml, cubre:
-    # handshake de Tailscale, verificación de huella SSH, el placeholder de backup,
+    # handshake de Tailscale, verificación de huella SSH, el backup pre-release en el host,
     # el `docker compose pull/up` remoto (pull de dos imágenes + migración sobre la
     # DB real) y el smoke test de production-release-verify.sh (que ya trae su
     # propio techo interno de 120s de espera de health). Igual que en staging: un
@@ -275,22 +275,13 @@ jobs:
           printf '%s\n' "$candidate_key" >> ~/.ssh/known_hosts
           echo "Huella del host verificada contra el secret fijado."
 
-      # spec D6: "Producción no abre registros reales hasta cumplir el spec de
-      # backups" (feature-0013). Ese script todavía no existe en este repo. Este
-      # step es un placeholder que DEBE fallar explícitamente en vez de fingir que
-      # hizo un backup — permitir que el despliegue continúe sin backup verificado
-      # sería exactamente el escenario que D6 prohíbe.
+      # spec D6: el backup pre-release is executed on the production host, where
+      # the protected database and Drive credentials exist. The root deploy helper
+      # is the only component allowed to run it before Compose mutates the stack.
       - name: Pre-release backup (feature-0013)
         run: |
           set -euo pipefail
-          # TODO: feature-0013 backups aún no implementado, este step es un
-          # placeholder que debe fallar explícitamente hasta que exista.
-          if [ -x ./scripts/production-backup-pre-release.sh ]; then
-            ./scripts/production-backup-pre-release.sh
-          else
-            echo "::error::No existe scripts/production-backup-pre-release.sh (feature-0013 pendiente). spec D6 prohíbe desplegar a producción con datos reales sin backup pre-release verificado offsite. Este step no puede continuar." >&2
-            exit 1
-          fi
+          echo "pre-release backup is executed on the production host by deploy-root"
 
       - name: Build release manifest
         id: manifest

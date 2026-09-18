@@ -30,6 +30,7 @@ readonly CONSUMED_AUTHORIZATIONS_DIRECTORY="/var/lib/hato-production/consumed-de
 # un manifiesto elija un registro o nombre de imagen distinto.
 readonly API_IMAGE="ghcr.io/josephbano/hato-api"
 readonly MIGRATE_IMAGE="ghcr.io/josephbano/hato-migrate"
+readonly PRE_RELEASE_BACKUP_HELPER="/usr/local/libexec/hato/production-backup-pre-release"
 
 # TODO: reemplazar con la ruta real del archivo de estado que registra la última
 # versión desplegada con éxito (fuera del checkout, análogo a /etc/hato-production).
@@ -188,6 +189,20 @@ chmod 600 "$release_env_tmp"
 mv -f "$release_env_tmp" "$RELEASE_ENV_FILE"
 
 log "artefactos aprobados: api=$API_IMAGE@$api_digest migrador=$MIGRATE_IMAGE@$migrate_digest"
+
+# D6: the backup is executed on the production host, where the protected DB and
+# Drive credentials exist. The GitHub runner must never pretend it can perform
+# this operation remotely. A missing helper is a hard failure before Compose.
+# Exception: the very first deploy has no prior successful release (no
+# $STATE_FILE yet), so there is no existing database to back up — Compose is
+# what creates it. D6 protects data that already exists, not a bootstrap of an
+# empty one; skip explicitly and log it instead of failing forever.
+if [ "$previous_release" = 'ninguna' ]; then
+    log "primer despliegue (sin release previa registrada): se omite el backup pre-release, no hay base de datos existente que respaldar"
+else
+    [ -x "$PRE_RELEASE_BACKUP_HELPER" ] || fail "no existe el helper root-owned de backup pre-release"
+    RELEASE_SHA="$sha" "$PRE_RELEASE_BACKUP_HELPER" || fail "backup pre-release no verificado"
+fi
 
 # docker compose no recibe shell ni compose arbitrario del caller: siempre el mismo
 # archivo, project y env-files root-owned. `--no-build` es una segunda barrera:

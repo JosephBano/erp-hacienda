@@ -150,7 +150,7 @@ trap - EXIT # Disarm cleanup trap
 chmod 600 "${SHA_FILE}"
 
 MANIFEST_SCRIPT="${SCRIPT_DIR}/backup-manifest.sh"
-"${MANIFEST_SCRIPT}" generate "${FINAL_DUMP}" "${MANIFEST_FILE}" "${ENVIRONMENT}" "${POSTGRES_DB}"
+"${MANIFEST_SCRIPT}" generate "${FINAL_DUMP}" "${MANIFEST_FILE}" "${ENVIRONMENT}" "${POSTGRES_DB}" "${RELEASE_SHA:-}"
 chmod 600 "${MANIFEST_FILE}"
 
 echo "[$(date -u +"%Y-%m-%dT%H:%M:%SZ")] Backup generado y verificado exitosamente:"

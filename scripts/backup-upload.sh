@@ -10,7 +10,9 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
-# Source optional environment file
+# Preserve explicit one-shot overrides (for example pre-release namespace)
+# while loading the protected defaults for credentials and remotes.
+REMOTE_NAMESPACE_OVERRIDE="${REMOTE_NAMESPACE:-}"
 if [ -f "/etc/hato-backup/backup.env" ]; then
     # shellcheck disable=SC1091
     set -a
@@ -33,7 +35,7 @@ fi
 RCLONE_CMD="${RCLONE_CMD:-rclone}"
 RCLONE_CONFIG="${RCLONE_CONFIG:-/etc/hato-backup/rclone.conf}"
 RCLONE_REMOTE="${RCLONE_REMOTE:-hato-crypt}"
-REMOTE_NAMESPACE="${REMOTE_NAMESPACE:-database/prod/daily}"
+REMOTE_NAMESPACE="${REMOTE_NAMESPACE_OVERRIDE:-${REMOTE_NAMESPACE:-database/prod/daily}}"
 DRIVE_SHARED_LIMIT_BYTES="${DRIVE_SHARED_LIMIT_BYTES:-300000000000}"   # 300 GB decimal
 DRIVE_WARN_THRESHOLD_BYTES="${DRIVE_WARN_THRESHOLD_BYTES:-210000000000}" # 210 GB (70%)
 DRIVE_ALERT_THRESHOLD_BYTES="${DRIVE_ALERT_THRESHOLD_BYTES:-255000000000}" # 255 GB (85%)

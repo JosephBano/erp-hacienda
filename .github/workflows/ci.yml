@@ -52,27 +52,8 @@ jobs:
           # 3. Validate Commits in PR
           BASE_REF="${{ github.base_ref }}"
           if [ -n "$BASE_REF" ]; then
-            COMMIT_RANGE="origin/$BASE_REF..HEAD"
-            LOG_OPTIONS=()
-
-            # A release towards main can carry develop's complete, already-accepted
-            # history plus a merge parent from main. Validate only the release's own
-            # first-parent commits; validating main..HEAD would retroactively reject
-            # historic develop commits that never belonged to this release PR.
-            if [[ "$BASE_REF" == "main" && "$BRANCH_NAME" == release/* ]]; then
-              # Actions checks out GitHub's synthetic test merge for a PR. Use the
-              # real head SHA so that synthetic merge's main parent cannot enter the
-              # release-only range.
-              PR_HEAD_SHA="${{ github.event.pull_request.head.sha }}"
-              if git merge-base --is-ancestor origin/develop "$PR_HEAD_SHA"; then
-                RELEASE_BASE=$(git merge-base origin/develop "$PR_HEAD_SHA")
-                COMMIT_RANGE="$RELEASE_BASE..$PR_HEAD_SHA"
-                LOG_OPTIONS=(--first-parent)
-              fi
-            fi
-
-            echo "Validando commits en $COMMIT_RANGE..."
-            COMMITS=$(git log "${LOG_OPTIONS[@]}" "$COMMIT_RANGE" --format="%s" || true)
+            echo "Validando commits contra origin/$BASE_REF..."
+            COMMITS=$(git log "origin/$BASE_REF..HEAD" --format="%s" || true)
             while IFS= read -r msg; do
               [ -z "$msg" ] && continue
               if echo "$msg" | grep -Eq "^Merge "; then
@@ -314,3 +295,4 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_REPOSITORY: ${{ github.repository }}
         run: ./scripts/check-config-drift.sh
+

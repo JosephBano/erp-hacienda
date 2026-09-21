@@ -63,6 +63,14 @@ services:
       # Rol de arranque del contenedor = rol owner/migrador (ver nota 6 arriba).
       POSTGRES_USER: ${PRODUCTION_POSTGRES_OWNER_USER:?define PRODUCTION_POSTGRES_OWNER_USER}
       POSTGRES_PASSWORD: ${PRODUCTION_POSTGRES_OWNER_PASSWORD:?define PRODUCTION_POSTGRES_OWNER_PASSWORD}
+      # Mismo valor que POSTGRES_USER, pero tambien bajo su nombre original: el
+      # hook 10-bootstrap-postgres-roles.sql lo lee con
+      # `\getenv owner_user PRODUCTION_POSTGRES_OWNER_USER`, igual que las cuatro
+      # de abajo. Sin esta linea esa variable no existe dentro del contenedor,
+      # \getenv deja la variable de psql sin definir, `:'owner_user'` se queda
+      # literal y el hook muere con un error de sintaxis, dejando postgres
+      # unhealthy y sin crear los roles runtime/backup (run 35567780579).
+      PRODUCTION_POSTGRES_OWNER_USER: ${PRODUCTION_POSTGRES_OWNER_USER:?define PRODUCTION_POSTGRES_OWNER_USER}
       PRODUCTION_POSTGRES_RUNTIME_USER: ${PRODUCTION_POSTGRES_RUNTIME_USER:?define PRODUCTION_POSTGRES_RUNTIME_USER}
       PRODUCTION_POSTGRES_RUNTIME_PASSWORD: ${PRODUCTION_POSTGRES_RUNTIME_PASSWORD:?define PRODUCTION_POSTGRES_RUNTIME_PASSWORD}
       PRODUCTION_POSTGRES_BACKUP_USER: ${PRODUCTION_POSTGRES_BACKUP_USER:?define PRODUCTION_POSTGRES_BACKUP_USER}

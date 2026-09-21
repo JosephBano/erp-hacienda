@@ -232,6 +232,22 @@ jobs:
           oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
           tags: tag:ci
 
+      # La acción de Tailscale cierra con `outcome=success` aunque TODOS sus
+      # reintentos de `tailscale up` hayan fallado (run 35400874614: cinco
+      # "backend error: invalid key: unable to validate API key" seguidos y aun
+      # así el paso pasó). Sin esta aserción el job sigue dos minutos más y
+      # termina culpando a ssh-keyscan de algo que en realidad es una credencial
+      # OAuth inválida. Aquí se exige estado Running ANTES de tocar nada más.
+      - name: Assert tailnet membership
+        run: |
+          set -euo pipefail
+          state="$(tailscale status --json | jq -r '.BackendState')"
+          if [ "$state" != "Running" ]; then
+            echo "::error::El nodo efímero no se unió al tailnet (BackendState=$state). Revisa TS_OAUTH_CLIENT_ID/TS_OAUTH_SECRET del environment production y que el cliente OAuth tenga scope 'Auth Keys: Write' y el tag tag:ci." >&2
+            exit 1
+          fi
+          echo "Nodo unido al tailnet: $(tailscale ip -4)"
+
       - name: Configure SSH key and pin host fingerprint
         env:
           DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
@@ -266,9 +282,28 @@ jobs:
           }
           echo "DEPLOY_HOST resolvió a: $resolved_addresses"
 
-          candidate_key="$(ssh-keyscan -T 10 -t ed25519 -H "$DEPLOY_HOST" 2>/dev/null)"
+          # El nodo efímero recién se unió al tailnet (paso anterior). El OAuth
+          # client ya está scoped a tag:ci y el ACL ya permite tag:ci -> tag:
+          # hato-production tcp:22 (verificado 2026-09-18), pero un nodo que
+          # se autentica por primera vez puede tardar unos segundos en tener
+          # una ruta/DERP asentada hacia sus pares antes de aceptar tráfico —
+          # un ssh-keyscan de un solo intento de 10s puede caer justo en ese
+          # hueco (visto repetidamente en runs reales: 35374586448,
+          # 35365338237). Se reintenta con backoff antes de fallar de verdad.
+          candidate_key=""
+          for attempt in 1 2 3 4 5 6; do
+            # `|| true`: ssh-keyscan sale con código 1 cuando no obtiene ninguna
+            # clave. Bajo `set -e` una asignación desde una sustitución de comandos
+            # adopta ese código y aborta el script en el PRIMER intento, dejando
+            # este bucle sin reintentar nunca (visto en el run 35400874614: el paso
+            # murió a los 10s exactos, sin imprimir una sola línea "intento N/6").
+            candidate_key="$(ssh-keyscan -T 10 -t ed25519 -H "$DEPLOY_HOST" 2>/dev/null || true)"
+            [ -n "$candidate_key" ] && break
+            echo "ssh-keyscan intento $attempt/6 sin respuesta de $DEPLOY_HOST; reintentando en $((attempt * 5))s..."
+            sleep "$((attempt * 5))"
+          done
           [ -n "$candidate_key" ] || {
-            echo "::error::ssh-keyscan no obtuvo una clave de host ed25519 para $DEPLOY_HOST." >&2
+            echo "::error::ssh-keyscan no obtuvo una clave de host ed25519 para $DEPLOY_HOST tras 6 intentos." >&2
             exit 1
           }
 

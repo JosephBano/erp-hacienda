@@ -31,6 +31,19 @@ jobs:
           oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
           tags: tag:ci
 
+      # La acción cierra con `outcome=success` aunque todos sus reintentos de
+      # `tailscale up` fallen; sin esta aserción el fallo real queda enmascarado
+      # y el job culpa a ssh-keyscan. Mismo guard que en deploy-production.yml.
+      - name: Assert tailnet membership
+        run: |
+          set -euo pipefail
+          state="$(tailscale status --json | jq -r '.BackendState')"
+          if [ "$state" != "Running" ]; then
+            echo "::error::El nodo efímero no se unió al tailnet (BackendState=$state). Revisa TS_OAUTH_CLIENT_ID/TS_OAUTH_SECRET del environment staging." >&2
+            exit 1
+          fi
+          echo "Nodo unido al tailnet: $(tailscale ip -4)"
+
       - name: Configure SSH key
         env:
           DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
@@ -46,7 +59,25 @@ jobs:
           # Sin `|| true`: si no se puede fijar la huella del host, el
           # despliegue no debe seguir a ciegas. El ssh de abajo la exige con
           # StrictHostKeyChecking=yes.
-          ssh-keyscan -H "$DEPLOY_HOST" >> ~/.ssh/known_hosts
+          # Un nodo de CI recién unido al tailnet puede tardar unos segundos
+          # en tener ruta asentada hacia sus pares (visto en producción:
+          # ssh-keyscan de un solo intento cayendo en ese hueco); se
+          # reintenta con backoff antes de fallar.
+          known_host=""
+          for attempt in 1 2 3 4 5 6; do
+            # `|| true`: ssh-keyscan sale con código 1 cuando no obtiene ninguna
+            # clave, y bajo `set -e` la asignación adopta ese código y aborta el
+            # script antes de reintentar. Mismo bug que en deploy-production.yml.
+            known_host="$(ssh-keyscan -H "$DEPLOY_HOST" 2>/dev/null || true)"
+            [ -n "$known_host" ] && break
+            echo "ssh-keyscan intento $attempt/6 sin respuesta de $DEPLOY_HOST; reintentando en $((attempt * 5))s..."
+            sleep "$((attempt * 5))"
+          done
+          [ -n "$known_host" ] || {
+            echo "::error::ssh-keyscan no obtuvo ninguna clave de host para $DEPLOY_HOST tras 6 intentos." >&2
+            exit 1
+          }
+          printf '%s\n' "$known_host" >> ~/.ssh/known_hosts
 
       - name: Deploy staging stack via SSH
         env:

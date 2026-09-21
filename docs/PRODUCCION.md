@@ -119,6 +119,88 @@ Qué observar cuando algo falla, y a través de qué canal:
 - El **monitor** (feature-0015, autohospedado en home-server) recibe únicamente pings de
   estado — nunca claves de despliegue ni acceso a datos de la aplicación.
 
+### 5.1 Verificar el despliegue capa por capa
+
+El despliegue atraviesa siete capas y cada una falla con su propio mensaje. Cuando algo se
+rompe, identificar **la capa** antes de tocar nada ahorra el grueso del tiempo: un fallo en
+la capa 3 se manifiesta con frecuencia como un síntoma que parece de la capa 4.
+
+| # | Capa | Cómo comprobarla de forma aislada |
+|---|---|---|
+| 1 | Nodo efímero de CI en el tailnet | paso `Assert tailnet membership` (exige `BackendState == Running`) |
+| 2 | Ruta y ACL hacia el host | `ssh-keyscan` obtiene la clave de host; requiere grant `tag:ci` → destino |
+| 3 | Identidad del host y clave de CI | huella comparada contra `PRODUCTION_SSH_HOST_FINGERPRINT` |
+| 4 | Autorización del manifiesto | `deploy-entry` valida formato, firmantes y firma |
+| 5 | Compose y variables | `docker compose pull/up` con `--env-file` root-owned |
+| 6 | Base de datos y migraciones | contenedor `migrate` debe salir con código 0 |
+| 7 | Proxy y publicación TLS | Caddy escuchando en 443 y `/health` respondiendo |
+
+**Dos formas de verificar que mienten.** Ambas costaron tiempo real y conviene tenerlas
+presentes:
+
+- **Verificar con `sudo` no reproduce nada.** `deploy-entry` corre como `hato-deploy`, sin
+  sudo (spec D7). Comprobar un permiso con `sudo` pasa por encima justo de las barreras que
+  fallan. Usar siempre `sudo -u hato-deploy ...` para reproducir el camino real.
+- **Verificar contra el repositorio no reproduce nada.** `deploy-entry`,
+  `deploy-root` y `compose.production.yml` viven en la VPS y **no se sincronizan solos** al
+  desplegar. Comparar siempre el `sha256sum` de lo instalado contra el del repositorio antes
+  de dar por aplicado un cambio.
+
+### 5.2 Catálogo de fallos conocidos del despliegue
+
+Registrados durante la puesta en marcha de producción (2026-09-21). Todos eran bloqueos
+absolutos en código que nunca se había ejecutado de extremo a extremo, no regresiones.
+Cada uno tiene hoy una prueba de regresión en `tests/ops/production/`.
+
+**`backend error: invalid key: unable to validate API key`** (capa 1)
+Las credenciales OAuth de Tailscale del Environment correspondiente no son válidas
+(revocadas, mal pegadas o de otro tailnet). Regenerar el cliente OAuth con scope
+**Auth Keys: Write** y el tag `tag:ci`, y recargar `TS_OAUTH_CLIENT_ID` /
+`TS_OAUTH_SECRET`. Atención: la acción de Tailscale cierra con `outcome=success` aunque
+todos sus reintentos fallen; el paso `Assert tailnet membership` existe precisamente para
+que eso no se enmascare.
+
+**`ssh-keyscan` sin respuesta pese a que el host está vivo** (capa 2)
+Falta un grant en la ACL de Tailscale hacia el destino. El nodo de CI lleva `tag:ci`;
+comprobar que existe un grant `tag:ci` → `tag:<destino>` para `tcp:22`. Staging apunta a
+`joemanserver` (`tag:home-server`), que es un destino **distinto** al de producción y
+necesita su propio grant.
+
+**`[deploy-entry] rechazado: authorization con formato inválido`** (capa 4)
+Con una firma legítima, indica que la comprobación de formato no puede evaluarse. Causa
+original: un cuantificador `{32,65536}` en la regex superaba el `RE_DUP_MAX` de glibc
+(32767), bash no llegaba a compilar la expresión y `[[ =~ ]]` devolvía error, que el `!`
+convertía en rechazo. No usar intervalos grandes en regex de bash; comprobar la longitud
+aparte.
+
+**`[deploy-entry] rechazado: no existe el archivo root-owned de firmantes autorizados`** (capa 4)
+El archivo puede existir con permisos correctos y aun así ser inalcanzable: `hato-deploy`
+no puede **atravesar** un directorio 700. Por eso la lista de firmantes vive en
+`/etc/hato-production-public` (755) y no junto a los secretos. Comprobar con
+`sudo -u hato-deploy test -f ...`, nunca con `sudo` a secas.
+
+**`[deploy-entry] rechazado: la firma de autorización no es válida`** (capa 4)
+Si la clave es la correcta, sospechar de los **bytes**, no de la clave. El servidor no
+verifica lo que recibe: reconstruye el payload con
+`jq -cS '{release, sha, run_id, run_attempt, digests}'` y verifica eso. El workflow tiene
+que firmar exactamente esa forma canónica. Firmar la salida por defecto de `jq` producía
+110 bytes contra 79 verificados.
+
+**`dependency failed to start: container hato-production-postgres is unhealthy`** (capa 6)
+Revisar los logs del contenedor buscando el hook de inicialización. Un
+`syntax error at or near ":"` con un `:'nombre'` sin interpolar significa que
+`\getenv` no encontró la variable de entorno **dentro del contenedor**: `compose.production.yml`
+debe pasar cada variable que el hook lee, con su nombre original. Importante: el hook solo
+corre con `PGDATA` vacío. Si ya falló una vez, la imagen lo salta
+(`Skipping initialization`) y los roles no se crearán aunque se corrija la causa — hay que
+vaciar el directorio de datos, decisión que exige confirmación humana explícita (§6).
+
+**`open /data/tls/server.crt: no such file or directory`** (capa 7)
+Caddy en bucle de reinicio con el certificado sano en otro volumen. Compose antepone el
+nombre del proyecto a los volúmenes declarados, mientras que `production-tls-renew.sh`
+escribe en el nombre sin prefijo. Los volúmenes llevan `name:` explícito para desactivar
+ese prefijado; si vuelve a divergir, comparar el nombre en ambos archivos.
+
 ## 6. Retorno seguro / rollback
 
 `docker compose` **no garantiza rollback** (spec línea 150-153). El procedimiento de

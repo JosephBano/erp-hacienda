@@ -173,8 +173,17 @@ services:
     restart: unless-stopped
 
 volumes:
+  # `name:` explicito para que Compose NO les anteponga el nombre del proyecto.
+  # scripts/production-tls-renew.sh escribe el certificado en el volumen
+  # "hato-production-caddy-data" (sin prefijo). Sin esta linea, Compose montaba
+  # "hato-production_hato-production-caddy-data" —otro volumen, vacio— y Caddy
+  # moria en bucle con "open /data/tls/server.crt: no such file or directory"
+  # mientras el certificado estaba sano en el volumen de al lado
+  # (run 35569428731).
   hato-production-caddy-data:
+    name: hato-production-caddy-data
   hato-production-caddy-config:
+    name: hato-production-caddy-config
 
 networks:
   # A diferencia de compose.staging.yml, no hay red `proxy` externa compartida:

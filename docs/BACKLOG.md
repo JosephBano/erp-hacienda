@@ -47,6 +47,29 @@ Al resolverlo hay que decidir explícitamente **quién** puede reemplazar el com
 hace `deploy-root` a partir del checkout, deja de ser un artefacto que CI no puede tocar, y
 eso es un cambio del modelo de confianza que merece su propio ADR.
 
+### [ops] El bootstrap de producción no verifica que quedó completo (Fecha objetivo: 2026-10-15)
+
+`ops/production/bootstrap.md` §5 instala **seis** helpers en `/usr/local/libexec/hato`. El
+2026-09-21 se constató que solo estaban `deploy-entry` y `deploy-root`: faltaban
+`production-backup-pre-release`, `backup.sh`, `backup-upload.sh` y `backup-manifest.sh`.
+
+Nadie lo detectó porque el camino que los usa **no se recorre en el primer despliegue**: sin
+release previa registrada, `deploy-root` se salta el backup pre-release por diseño. El fallo
+apareció en el segundo despliegue, tres rondas de diagnóstico después.
+
+Falta un paso de cierre que verifique el inventario —los seis archivos presentes,
+ejecutables y root-owned, con su `sha256sum` contra el repositorio— antes de dar el
+bootstrap por terminado. La misma comprobación debería correr al principio de `deploy-root`,
+para fallar con «falta X» en vez de descubrirlo a mitad de un release.
+
+### [ci] `tag:ci` necesita `tcp:443` para verificar lo que despliega (Fecha objetivo: cerrado 2026-09-21)
+
+La ACL concedía a `tag:ci` solo `tcp:22` hacia `tag:hato-production`. El nodo efímero podía
+desplegar por SSH pero no alcanzar el endpoint HTTPS del smoke test, de modo que
+`Verify release` se colgaba y el job moría por `timeout-minutes` con el release ya
+desplegado y sano. Grant corregido el 2026-09-21. Se deja anotado porque la ACL vive fuera
+de este repositorio y no hay nada aquí que impida que vuelva a divergir.
+
 ### [ci] La promoción a `main` no puede hacerse con un merge de `develop` (Fecha objetivo: sin fecha)
 
 `main` se construye con **squash merges**, así que no contiene los commits individuales de

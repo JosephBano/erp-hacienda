@@ -201,6 +201,48 @@ nombre del proyecto a los volúmenes declarados, mientras que `production-tls-re
 escribe en el nombre sin prefijo. Los volúmenes llevan `name:` explícito para desactivar
 ese prefijado; si vuelve a divergir, comparar el nombre en ambos archivos.
 
+**`[deploy-root] fallo: no existe el helper root-owned de backup pre-release`** (capa 5)
+El bootstrap instala **seis** helpers (`ops/production/bootstrap.md` §5); si solo se
+ejecutó parte del bloque, faltan. Este en concreto no se nota hasta el **segundo**
+despliegue: el primero no tiene release previa registrada y se salta el backup por
+completo, así que ese camino no se recorre. Comprobar que existen y son ejecutables
+`production-backup-pre-release`, `backup.sh`, `backup-upload.sh` y `backup-manifest.sh`,
+además de `deploy-entry` y `deploy-root`.
+
+**El paso `Verify release` queda `cancelled` y el job agota `timeout-minutes`** (capa 7)
+Síntoma de que el smoke test no alcanza el endpoint, no de que el release esté mal.
+Comprobar **antes que nada** si el despliegue en sí funcionó: contenedores arriba,
+`STATE_FILE` actualizado y `/health` respondiendo desde una máquina del tailnet con
+permisos. La causa observada fue que la ACL concedía a `tag:ci` únicamente `tcp:22` hacia
+`tag:hato-production`, mientras que el smoke test necesita **`tcp:443`**; el nodo de CI
+podía desplegar pero no verificar lo que acababa de desplegar.
+
+### 5.3 Estado alcanzado el 2026-09-21
+
+Primer despliegue completo de producción, verificado de extremo a extremo:
+
+```
+release       8167a4eb33d861f566d0fc2c0f186231bc108a76
+/health       {"status":"ok"}
+/version      commit 8167a4eb... (coincide exacto con el release)
+roles         hato_owner, hato_runtime, hato_backup
+contenedores  postgres (healthy), migrate (exit 0), api, proxy
+publicacion   100.78.135.16:443 via Caddy con certificado de Tailscale
+```
+
+**Producción expone únicamente la API.** `compose.production.yml` declara `postgres`,
+`migrate`, `api` y `proxy`; no incluye el servicio `web` que sí tiene
+`compose.staging.yml`, y `Caddyfile.production` envía todo `:443` a `api:8080`. La interfaz
+administrativa (`clients/admin-web`) está desplegada en staging, no en producción; añadirla
+es alcance nuevo, no un arreglo pendiente.
+
+URLs vigentes, todas solo dentro del tailnet:
+
+| Entorno | API | Interfaz web |
+|---|---|---|
+| Producción | `https://hato-production.tail833a02.ts.net` | — no desplegada |
+| Staging | `https://joemanserver.tail833a02.ts.net:8448` | `https://joemanserver.tail833a02.ts.net:8449` |
+
 ## 6. Retorno seguro / rollback
 
 `docker compose` **no garantiza rollback** (spec línea 150-153). El procedimiento de

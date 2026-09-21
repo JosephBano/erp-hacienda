@@ -43,6 +43,7 @@ del administrador.
 sudo install -d -o root -g root -m 755 /etc/ssh/authorized_keys
 sudo install -d -o root -g root -m 755 /usr/local/libexec/hato
 sudo install -d -o root -g root -m 700 /etc/hato-production
+sudo install -d -o root -g root -m 755 /etc/hato-production-public
 ```
 
 | Directorio | Dueño | Modo | Propósito |
@@ -50,6 +51,7 @@ sudo install -d -o root -g root -m 700 /etc/hato-production
 | `/etc/ssh/authorized_keys` | root:root | 755 | Contiene `hato-deploy` (644) con la clave pública de CI. Es una clave pública, y `sshd` debe poder leerla al evaluar esta cuenta. |
 | `/usr/local/libexec/hato` | root:root | 755 | Contiene `deploy-entry` y `deploy-root`, ambos root-owned. |
 | `/etc/hato-production` | root:root | 700 | Secretos y configuración de producción fuera del checkout. |
+| `/etc/hato-production-public` | root:root | 755 | Material de confianza **público** que `deploy-entry` debe leer corriendo como `hato-deploy`, sin sudo. Va aparte del directorio anterior justamente para que ese siga en 700: `hato-deploy` no puede atravesar un 700, y meter la lista de firmantes ahí dejaba el despliegue sin forma de verificar la firma. Aquí no entra ningún secreto. |
 
 ## 3. Instalar la clave pública dedicada de CI
 
@@ -82,7 +84,7 @@ OpenSSH, con el principal fijo `hato-production`:
 
 ```bash
 sudo install -o root -g root -m 644 /dev/stdin \
-    /etc/hato-production/deploy-authorization.allowed-signers <<'EOF'
+    /etc/hato-production-public/deploy-authorization.allowed-signers <<'EOF'
 hato-production ssh-ed25519 AAAA...<CLAVE-PUBLICA-DE-AUTORIZACION>... hato-production-authorization
 EOF
 ```

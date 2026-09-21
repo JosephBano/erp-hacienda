@@ -41,4 +41,28 @@ test -x "$pre_backup" || fail 'pre-release backup helper must be executable'
 grep -Fq 'REMOTE_NAMESPACE=database/prod/pre-release' "$pre_backup" \
     || fail 'pre-release helper must use the dedicated remote namespace'
 
+# La lista de firmantes la lee deploy-entry corriendo como hato-deploy, SIN sudo
+# (spec D7). /etc/hato-production es 700 y guarda secretos, asi que hato-deploy no
+# puede atravesarlo: mientras la lista vivio ahi, el despliegue fallaba con "no
+# existe el archivo root-owned de firmantes autorizados" aunque el archivo existia
+# y tenia 644 (visto en el run 35564486035). Debe vivir en el directorio publico.
+signers_path="$(grep -E '^readonly AUTHORIZATION_ALLOWED_SIGNERS=' "$entry" | cut -d'"' -f2)"
+[ -n "$signers_path" ] \
+    || fail 'deploy-entry must declare AUTHORIZATION_ALLOWED_SIGNERS'
+case "$signers_path" in
+    /etc/hato-production/*)
+        fail "allowed-signers must not live under the 700 secrets dir (got $signers_path); hato-deploy cannot traverse it"
+        ;;
+    /etc/hato-production-public/*) ;;
+    *)
+        fail "unexpected allowed-signers location: $signers_path"
+        ;;
+esac
+
+bootstrap="$repo_root/ops/production/bootstrap.md"
+grep -Fq 'install -d -o root -g root -m 755 /etc/hato-production-public' "$bootstrap" \
+    || fail 'bootstrap must create the public trust dir traversable by hato-deploy'
+grep -Fq '/etc/hato-production-public/deploy-authorization.allowed-signers' "$bootstrap" \
+    || fail 'bootstrap must install allowed-signers into the public trust dir'
+
 echo 'PASS: deployment authorization contract'

@@ -70,6 +70,28 @@ desplegar por SSH pero no alcanzar el endpoint HTTPS del smoke test, de modo que
 desplegado y sano. Grant corregido el 2026-09-21. Se deja anotado porque la ACL vive fuera
 de este repositorio y no hay nada aquí que impida que vuelva a divergir.
 
+### [ci] `check-config-drift.sh` no ve los rulesets (Fecha objetivo: 2026-11-15)
+
+El detector de deriva consulta únicamente la API **clásica** de protección de rama
+(`/branches/{branch}/protection`). Los **rulesets** de GitHub son un mecanismo distinto que
+se aplica **a la vez** y de forma aditiva —gana la regla más restrictiva—, y le son
+completamente invisibles.
+
+El 2026-09-21 eso produjo un fallo silencioso: se desactivó `required_linear_history` en
+`main` por la API clásica, `check-config-drift.sh` reportó `OK: Configuración sin deriva`, y
+sin embargo los merge commits seguían bloqueados porque un ruleset imponía esa misma regla.
+Un detector que no ve la mitad de la configuración da confianza falsa, que es peor que no
+tenerlo.
+
+Se resolvió eliminando los rulesets y dejando la protección clásica como única fuente de
+verdad (ADR-0039), pero **nada impide que alguien vuelva a crear uno desde la interfaz web**,
+y la interfaz de GitHub empuja activamente hacia los rulesets.
+
+Falta que `check-config-drift.sh` consulte también `/repos/{owner}/{repo}/rulesets` y **falle
+si encuentra cualquiera**, mientras ADR-0039 siga vigente. Si algún día se migra a rulesets,
+ese mismo punto pasa a comprobar que las reglas coinciden con lo declarado y que no queda
+protección clásica residual.
+
 ### [ci] La promoción a `main` no puede hacerse con un merge de `develop` (Fecha objetivo: sin fecha)
 
 `main` se construye con **squash merges**, así que no contiene los commits individuales de

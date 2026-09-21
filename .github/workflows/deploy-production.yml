@@ -357,7 +357,21 @@ jobs:
             --arg migrate_image "${{ needs.resolve-and-build.outputs.image_migrate }}" \
             --arg migrate_digest "${{ needs.resolve-and-build.outputs.digest_migrate }}" \
             '{release: $release, sha: $sha, run_id: $run_id, run_attempt: $run_attempt, digests: {($api_image): $api_digest, ($migrate_image): $migrate_digest}}' \
+            | jq -cS '{release, sha, run_id, run_attempt, digests}' \
+            > /tmp/release-authorization-payload.canonical
+
+          # El servidor NO verifica los bytes que recibe: reconstruye el payload
+          # canonico con `jq -cS '{release, sha, run_id, run_attempt, digests}'` y
+          # verifica ESO (production-deploy-entry.sh). Hay que firmar exactamente esa
+          # misma forma. Firmar la salida por defecto de `jq -n` producia bytes
+          # distintos en tres cosas a la vez —indentacion, orden de claves y salto
+          # final— asi que la firma no podia verificar jamas, aunque la clave fuera
+          # la correcta (run 35566153050: "la firma de autorizacion no es valida").
+          # `$(...)` ya come el salto final de jq y `printf '%s'` no anade otro, que
+          # es justo lo que hace el servidor con `printf '%s' "$authorization_payload"`.
+          printf '%s' "$(cat /tmp/release-authorization-payload.canonical)" \
             > /tmp/release-authorization-payload.json
+          rm -f /tmp/release-authorization-payload.canonical
 
           # Esta clave es distinta de DEPLOY_SSH_KEY. El host conserva solo su
           # pública en deploy-authorization.allowed-signers y comprueba la firma

@@ -30,7 +30,29 @@ name: Deploy to Production
 # `production`, hoy solo declara `allowed_branches: ["main"]`, pensado para el patrón
 # de branch de un `workflow_dispatch` sobre main) y probar esa política antes de
 # confiar en ella — no se cambia en este workflow, solo se deja esta advertencia.
+#
+# Disparadores (ADR-0038, que reemplaza a D4 en este punto):
+#
+#   - push a main: cada commit que entra en main lanza el despliegue.
+#   - workflow_dispatch: sigue disponible para redesplegar un SHA concreto a mano.
+#
+# NO se usa `workflow_run` sobre CI, que seria lo natural: GitHub ejecuta ese
+# evento en el contexto de la rama POR DEFECTO (aqui `develop`), y el Environment
+# `production` declara allowed_branches: ["main"], asi que el job quedaria
+# rechazado por la politica del entorno. Abrir esa politica a `develop` para
+# rodearlo debilitaria justo la barrera que impide desplegar desde cualquier rama.
+#
+# A cambio, el paso "Require green CI for this exact SHA" ESPERA a que ci.yml
+# termine para ese SHA en vez de exigir que ya hubiera terminado: con `push`
+# ambos workflows arrancan a la vez. La garantia no se debilita —sigue exigiendo
+# conclusion == success para ese SHA exacto— solo se vuelve paciente.
+#
+# El gate de aprobacion del Environment `production` se mantiene intacto: el
+# despliegue se lanza solo, pero no toca la VPS hasta que un humano lo aprueba.
 on:
+  push:
+    branches:
+      - main
   workflow_dispatch:
     inputs:
       ref:
@@ -83,7 +105,7 @@ jobs:
       - name: Checkout requested ref
         uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.ref }}
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.ref || github.sha }}
           fetch-depth: 0
 
       - name: Resolve exact SHA and verify it is reachable from main
@@ -93,7 +115,7 @@ jobs:
           # ya exige permiso de escritura para dispararlo, pero se trata igual como
           # entrada no confiable (puede contener metacaracteres de shell) siguiendo
           # la misma disciplina que el resto de este workflow para secretos/inputs.
-          REQUESTED_REF: ${{ inputs.ref }}
+          REQUESTED_REF: ${{ github.event_name == 'workflow_dispatch' && inputs.ref || github.sha }}
         run: |
           set -euo pipefail
           sha="$(git rev-parse HEAD)"
@@ -102,8 +124,10 @@ jobs:
           # ref distinto; se trae explícitamente para el chequeo de ancestro.
           git fetch origin main:refs/remotes/origin/main
 
-          # D4/spec línea 46-47: "Un push a main por sí solo no publica producción",
-          # pero SÍ se exige que la referencia solicitada provenga de main. Cualquier
+          # ADR-0038 reemplaza aqui a D4 ("un push a main por si solo no publica
+          # produccion"): ahora si lo hace, pero sigue mediando el gate de aprobacion
+          # del Environment production, que es lo que D4 protegia de verdad. Se
+          # mantiene la exigencia de que la referencia provenga de main. Cualquier
           # tag o SHA que no sea ancestro de main (p. ej. de una rama de feature) se
           # rechaza aquí, antes de construir nada.
           if ! git merge-base --is-ancestor "$sha" origin/main; then
@@ -128,10 +152,30 @@ jobs:
           # o no hay ninguna ejecución exitosa para este SHA exacto, el job falla
           # explícitamente — nunca se asume éxito (spec: "si no puedes verificarlo
           # con certeza, el job debe fallar explícitamente").
-          response="$(gh api "repos/${{ github.repository }}/actions/workflows/ci.yml/runs?head_sha=${sha}&status=completed" --jq '.workflow_runs')" \
-            || { echo "::error::No se pudo consultar el estado de CI para $sha vía la API de GitHub." >&2; exit 1; }
+          # Con el disparador `push`, ci.yml y este workflow arrancan a la vez, asi
+          # que aqui se ESPERA a que termine en vez de exigir que ya hubiera
+          # terminado. La garantia no cambia —sigue haciendo falta conclusion ==
+          # success para este SHA exacto—, solo se vuelve paciente. 20 intentos de
+          # 30s dan 10 minutos, holgado frente a los ~3-4 min que tarda ci.yml.
+          success_count=0
+          for attempt in $(seq 1 20); do
+            response="$(gh api "repos/${{ github.repository }}/actions/workflows/ci.yml/runs?head_sha=${sha}&status=completed" --jq '.workflow_runs')" \
+              || { echo "::error::No se pudo consultar el estado de CI para $sha vía la API de GitHub." >&2; exit 1; }
 
-          success_count="$(printf '%s' "$response" | jq '[.[] | select(.conclusion=="success")] | length')"
+            success_count="$(printf '%s' "$response" | jq '[.[] | select(.conclusion=="success")] | length')"
+            [ "${success_count:-0}" -ge 1 ] && break
+
+            # Una ejecucion COMPLETADA que no sea exitosa es un no definitivo: no
+            # tiene sentido seguir esperando a que un CI rojo se vuelva verde solo.
+            failed_count="$(printf '%s' "$response" | jq '[.[] | select(.conclusion!="success")] | length')"
+            if [ "${failed_count:-0}" -ge 1 ]; then
+              echo "::error::ci.yml termino sin exito para el SHA $sha. No se despliega un commit con CI en rojo." >&2
+              exit 1
+            fi
+
+            echo "Esperando a que ci.yml termine para $sha (intento $attempt/20)..."
+            sleep 30
+          done
 
           if [ -z "$success_count" ] || [ "$success_count" -lt 1 ]; then
             echo "::error::No hay una ejecución exitosa de ci.yml para el SHA exacto $sha. No se despliega un commit sin CI verde confirmado." >&2

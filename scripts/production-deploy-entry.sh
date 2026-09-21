@@ -19,7 +19,12 @@
 set -euo pipefail
 
 readonly DEPLOY_ROOT_HELPER="/usr/local/libexec/hato/deploy-root"
-readonly AUTHORIZATION_ALLOWED_SIGNERS="/etc/hato-production/deploy-authorization.allowed-signers"
+# Vive en un directorio APARTE de /etc/hato-production (que es 700 y guarda
+# secretos: production.env, tls.env, tls-alert-url). Este script corre como
+# hato-deploy, sin sudo (spec D7), asi que no puede atravesar aquel directorio.
+# La lista de firmantes es material publico —solo contiene una clave publica—,
+# de modo que separarla no filtra nada y deja los secretos en 700 intactos.
+readonly AUTHORIZATION_ALLOWED_SIGNERS="/etc/hato-production-public/deploy-authorization.allowed-signers"
 readonly MAX_REQUEST_BYTES=65536
 
 # Allowlist estricta de imágenes publicadas por el repositorio de producción.

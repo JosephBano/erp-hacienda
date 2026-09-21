@@ -29,13 +29,38 @@ jobs:
 
           # 1. Validate Branch Name
           BRANCH_NAME="${{ github.head_ref }}"
-          if [ -n "$BRANCH_NAME" ]; then
+          # `develop` es la unica rama de larga vida que abre PRs (la promocion a
+          # main, ver 1b) y no lleva prefijo por definicion: exigirselo haria que
+          # toda promocion fallara por nombre de rama.
+          if [ -n "$BRANCH_NAME" ] && [ "$BRANCH_NAME" != "develop" ]; then
             if ! echo "$BRANCH_NAME" | grep -Eq "$BRANCH_REGEX"; then
               echo "::error::Nombre de rama inválido: '$BRANCH_NAME'. Debe comenzar con feature/, release/, hotfix/ o docs/ (AGENTS.md regla 4, Art. 13)."
               FAILED=1
             else
               echo "OK: Rama '$BRANCH_NAME' cumple la convención."
             fi
+          elif [ "$BRANCH_NAME" = "develop" ]; then
+            echo "OK: 'develop' exenta de la convención de prefijos (rama de larga vida)."
+          fi
+
+          # 1b. A main solo se promueve desde develop.
+          #
+          # main se construia por squash merge, que reescribe los commits, asi que
+          # nunca compartia historia con develop: un PR develop -> main salia
+          # CONFLICTING con add/add y habia que rodearlo con una rama release/*.
+          # Peor aun, un hotfix mergeado directo a main no volvia solo a develop, y
+          # develop se quedaba atras en silencio (paso con #142, #144, #154, #155,
+          # #156 y #157 durante la puesta en marcha de produccion). Reconciliadas
+          # las historias y desactivado required_linear_history, esta regla cierra
+          # la via que causaba la deriva. Una urgencia va hotfix/* -> develop ->
+          # main: un PR mas y unos minutos de CI, mucho menos de lo que costo cada
+          # una de esas derivas.
+          BASE_REF="${{ github.base_ref }}"
+          if [ "$BASE_REF" = "main" ] && [ "$BRANCH_NAME" != "develop" ]; then
+            echo "::error::A main solo se promueve desde develop (rama recibida: '$BRANCH_NAME'). Lleva el cambio a develop y promociona desde ahi."
+            FAILED=1
+          elif [ "$BASE_REF" = "main" ]; then
+            echo "OK: promocion a main desde develop."
           fi
 
           # 2. Validate PR Title
@@ -50,10 +75,18 @@ jobs:
           fi
 
           # 3. Validate Commits in PR
-          BASE_REF="${{ github.base_ref }}"
+          #
+          # `--not origin/main` excluye lo que ya esta en el tronco. Un PR que
+          # incorpora historia ya aceptada —el merge de reconciliacion entre main y
+          # develop, por ejemplo— arrastra al rango commits viejos que la convencion
+          # de su momento no cubria, como "Develop (#86)". Revalidarlos bloquea un
+          # merge legitimo y no arregla nada: esa historia ya esta mergeada y
+          # reescribirla no es una opcion. Se valida solo el trabajo nuevo.
           if [ -n "$BASE_REF" ]; then
-            echo "Validando commits contra origin/$BASE_REF..."
-            COMMITS=$(git log "origin/$BASE_REF..HEAD" --format="%s" || true)
+            echo "Validando commits contra origin/$BASE_REF (excluyendo lo ya presente en main)..."
+            git fetch -q origin main 2>/dev/null || true
+            COMMITS=$(git log "origin/$BASE_REF..HEAD" --not origin/main --format="%s" 2>/dev/null \
+              || git log "origin/$BASE_REF..HEAD" --format="%s" || true)
             while IFS= read -r msg; do
               [ -z "$msg" ] && continue
               if echo "$msg" | grep -Eq "^Merge "; then

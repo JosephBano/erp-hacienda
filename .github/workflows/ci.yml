@@ -76,16 +76,20 @@ jobs:
 
           # 3. Validate Commits in PR
           #
-          # `--not origin/main` excluye lo que ya esta en el tronco. Un PR que
-          # incorpora historia ya aceptada —el merge de reconciliacion entre main y
-          # develop, por ejemplo— arrastra al rango commits viejos que la convencion
-          # de su momento no cubria, como "Develop (#86)". Revalidarlos bloquea un
-          # merge legitimo y no arregla nada: esa historia ya esta mergeada y
-          # reescribirla no es una opcion. Se valida solo el trabajo nuevo.
+          # Cada commit se valida UNA vez: cuando entra en develop. Se excluye del
+          # rango lo que ya esta en main o en develop.
+          #
+          # Sin esta exclusion, un PR de promocion develop -> main tiene como base
+          # main, asi que el rango pasa a ser TODA la historia de develop —338
+          # commits, muchos anteriores a esta convencion— y la promocion queda
+          # bloqueada por mensajes de hace meses que ya se aceptaron en su momento:
+          # ambitos con comas o espacios ("docs(adr, roadmap)"), tipos fuera de la
+          # lista ("sec(inventory)"), un "merge:" en minuscula. Reescribir esa
+          # historia no es una opcion y revalidarla no aporta nada.
           if [ -n "$BASE_REF" ]; then
-            echo "Validando commits contra origin/$BASE_REF (excluyendo lo ya presente en main)..."
-            git fetch -q origin main 2>/dev/null || true
-            COMMITS=$(git log "origin/$BASE_REF..HEAD" --not origin/main --format="%s" 2>/dev/null \
+            echo "Validando commits contra origin/$BASE_REF (excluyendo lo ya presente en main y develop)..."
+            git fetch -q origin main develop 2>/dev/null || true
+            COMMITS=$(git log "origin/$BASE_REF..HEAD" --not origin/main origin/develop --format="%s" 2>/dev/null \
               || git log "origin/$BASE_REF..HEAD" --format="%s" || true)
             while IFS= read -r msg; do
               [ -z "$msg" ] && continue

@@ -22,6 +22,12 @@ set -euo pipefail
 
 MAX_WAIT_SECONDS="${MAX_WAIT_SECONDS:-120}"
 SLEEP_SECONDS=3
+# Techo por intento. Sin el, `elapsed` solo avanza ENTRE iteraciones, asi que un
+# curl que se queda colgado hace que el presupuesto de MAX_WAIT_SECONDS no acote
+# nada: con la ruta bloqueada por ACL, este bucle se comio los 30 minutos de
+# timeout-minutes del job y el paso salio "cancelled" en vez de fallar limpio a
+# los 120s con un mensaje util (run 35598824208). Cubre conexion y transferencia.
+CURL_MAX_TIME="${CURL_MAX_TIME:-10}"
 
 fail() {
     echo "[production-release-verify] FAIL: $1" >&2
@@ -53,22 +59,24 @@ HEALTH_URL="${BASE_URL%/}/health"
 VERSION_URL="${BASE_URL%/}/version"
 
 echo "[production-release-verify] esperando health en $HEALTH_URL ..."
-elapsed=0
+# Fecha limite sobre reloj real, no un contador que solo suma los `sleep`: lo que
+# tarda cada curl tambien consume presupuesto. Asi MAX_WAIT_SECONDS significa
+# exactamente lo que dice, aunque los intentos agoten su propio techo.
+deadline=$(( $(date +%s) + MAX_WAIT_SECONDS ))
 health_ok=0
-while (( elapsed < MAX_WAIT_SECONDS )); do
-    if curl -fsS -o /dev/null "$HEALTH_URL" 2>/dev/null; then
+while (( $(date +%s) < deadline )); do
+    if curl -fsS --max-time "$CURL_MAX_TIME" -o /dev/null "$HEALTH_URL" 2>/dev/null; then
         health_ok=1
         break
     fi
     sleep "$SLEEP_SECONDS"
-    elapsed=$(( elapsed + SLEEP_SECONDS ))
 done
 
 [ "$health_ok" -eq 1 ] || fail "el endpoint de health no respondió en ${MAX_WAIT_SECONDS}s ($HEALTH_URL). No se publica sin health verificado."
 
 echo "[production-release-verify] health OK. Verificando versión reportada en $VERSION_URL ..."
 
-version_body="$(curl -fsS "$VERSION_URL")" \
+version_body="$(curl -fsS --max-time "$CURL_MAX_TIME" "$VERSION_URL")" \
     || fail "el endpoint de versión no respondió ($VERSION_URL). No se publica sin confirmar el SHA desplegado."
 
 printf '%s' "$version_body" | jq empty >/dev/null 2>&1 \

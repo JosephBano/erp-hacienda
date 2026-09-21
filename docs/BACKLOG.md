@@ -21,6 +21,73 @@ CodeQL se integró como análisis estático de seguridad y calidad en modo infor
 
 Durante el diseño de la tubería de despliegue a staging (`feature-0011`, ADR-0030, ADR-0031) se constató la existencia histórica del secreto `SERVER_PASSWORD` asociado a `home-server`. Este secreto **no** fue utilizado en ningún workflow ni archivo de este proyecto (T11.5), habiendo optado por una clave SSH dedicada (`DEPLOY_SSH_KEY`) y usuario restringido sin sudo. Se anota como deuda técnica operativa en `home-server` la rotación y eventual revocación de dicha contraseña maestra en el servidor físico, con fecha límite 2026-10-31.
 
+### [ops] El despliegue no sincroniza `compose.production.yml` al host (Fecha objetivo: 2026-10-15)
+
+`scripts/production-deploy-root.sh` lee el compose de una ruta fija con un `TODO` explícito:
+
+```bash
+# TODO: reemplazar con la ruta real donde vive compose.production.yml en el host
+readonly COMPOSE_FILE="/srv/hato-production/releases/current/compose.production.yml"
+```
+
+Ese archivo **no lo actualiza el despliegue**: lo puso el administrador durante el bootstrap
+y ahí se queda. Consecuencia medida el 2026-09-21: el arreglo de
+`PRODUCTION_POSTGRES_OWNER_USER` (PR #155) se mergeó a `main` y el despliegue siguió
+fallando con el error anterior, porque el compose del servidor era de nueve días antes.
+Hubo que copiarlo a mano.
+
+Mientras esto siga así, **todo cambio en `compose.production.yml` exige una copia manual a
+la VPS**, y mergear el PR da una falsa sensación de haberlo aplicado. La misma trampa vale
+para `production-deploy-entry.sh` y `production-deploy-root.sh`, que también se instalan a
+mano (ahí es deliberado: son root-owned y el propio modelo de amenaza exige que CI no pueda
+reescribirlos — el compose no tiene esa justificación, ya que se carga con `--env-file`
+root-owned y `--no-build`).
+
+Al resolverlo hay que decidir explícitamente **quién** puede reemplazar el compose: si lo
+hace `deploy-root` a partir del checkout, deja de ser un artefacto que CI no puede tocar, y
+eso es un cambio del modelo de confianza que merece su propio ADR.
+
+### [ops] El bootstrap de producción no verifica que quedó completo (Fecha objetivo: 2026-10-15)
+
+`ops/production/bootstrap.md` §5 instala **seis** helpers en `/usr/local/libexec/hato`. El
+2026-09-21 se constató que solo estaban `deploy-entry` y `deploy-root`: faltaban
+`production-backup-pre-release`, `backup.sh`, `backup-upload.sh` y `backup-manifest.sh`.
+
+Nadie lo detectó porque el camino que los usa **no se recorre en el primer despliegue**: sin
+release previa registrada, `deploy-root` se salta el backup pre-release por diseño. El fallo
+apareció en el segundo despliegue, tres rondas de diagnóstico después.
+
+Falta un paso de cierre que verifique el inventario —los seis archivos presentes,
+ejecutables y root-owned, con su `sha256sum` contra el repositorio— antes de dar el
+bootstrap por terminado. La misma comprobación debería correr al principio de `deploy-root`,
+para fallar con «falta X» en vez de descubrirlo a mitad de un release.
+
+### [ci] `tag:ci` necesita `tcp:443` para verificar lo que despliega (Fecha objetivo: cerrado 2026-09-21)
+
+La ACL concedía a `tag:ci` solo `tcp:22` hacia `tag:hato-production`. El nodo efímero podía
+desplegar por SSH pero no alcanzar el endpoint HTTPS del smoke test, de modo que
+`Verify release` se colgaba y el job moría por `timeout-minutes` con el release ya
+desplegado y sano. Grant corregido el 2026-09-21. Se deja anotado porque la ACL vive fuera
+de este repositorio y no hay nada aquí que impida que vuelva a divergir.
+
+### [ci] La promoción a `main` no puede hacerse con un merge de `develop` (Fecha objetivo: sin fecha)
+
+`main` se construye con **squash merges**, así que no contiene los commits individuales de
+`develop`. La base de merge real entre ambas es `42dde0e` (`Develop (#40)`), con más de 335
+commits de diferencia, y un PR `develop -> main` sale `CONFLICTING` con conflictos `add/add`
+en todo archivo tocado por ambos lados.
+
+La vía que sí funciona, y la que usan todas las promociones históricas (#128, #138, #142,
+#149, #151, #153), es una rama `release/*` **que sale de `main`** con el contenido de
+`develop` aplicado como un único commit. Conviene documentarlo en
+`docs/PROTOCOLO-DE-TRABAJO.md` o reconsiderar si las promociones deberían usar merge commits
+en lugar de squash, que eliminaría el problema de raíz a costa de un historial más ruidoso
+en `main`.
+
+Efecto secundario a vigilar: un hotfix mergeado directamente a `main` **no vuelve solo** a
+`develop`. Pasó con #142, #144, #154, #155 y #156. Hay que reaplicarlo sobre `develop` como
+commit propio, o `develop` se queda atrás en silencio.
+
 ## Pendiente feature-0010 — Rediseño de la aplicación de campo (2026-09-08)
 
 > Rediseño general de la aplicación móvil de campo centrado en aretes, fichas y estados en `feature/field-app-redesign`.

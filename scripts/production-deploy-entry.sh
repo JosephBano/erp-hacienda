@@ -107,7 +107,13 @@ while IFS=$'\t' read -r image digest; do
 done < <(printf '%s' "$request_raw" | jq -r '.digests | to_entries[] | [.key, .value] | @tsv')
 
 authorization="$(printf '%s' "$request_raw" | jq -r '.authorization // empty')"
-if ! [[ "$authorization" =~ ^[A-Za-z0-9+/=]{32,65536}$ ]]; then
+# La longitud se comprueba aparte, NO con un cuantificador {32,65536} dentro de
+# la regex: ese intervalo supera el RE_DUP_MAX de glibc (32767) y bash no llega a
+# compilar la expresión ("Regular expression too big"). El [[ =~ ]] devolvía
+# entonces error, el `!` lo convertía en verdadero y TODA autorización válida se
+# rechazaba. Los límites y el alfabeto permitido son exactamente los mismos.
+if [ "${#authorization}" -lt 32 ] || [ "${#authorization}" -gt 65536 ] \
+    || ! [[ "$authorization" =~ ^[A-Za-z0-9+/=]+$ ]]; then
     fail "authorization con formato inválido"
 fi
 

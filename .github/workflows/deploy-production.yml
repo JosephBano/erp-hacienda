@@ -216,7 +216,7 @@ jobs:
       # sale de aquí es el digest capturado en el output `digest`.
       - name: Build and push API image (linux/arm64, by digest)
         id: push-api
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: src/Hato.Api/Dockerfile
@@ -229,7 +229,7 @@ jobs:
 
       - name: Build and push migrate image (linux/arm64, by digest)
         id: push-migrate
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: src/Hato.Api/migrate.Dockerfile

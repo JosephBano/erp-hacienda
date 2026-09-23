@@ -197,7 +197,7 @@ jobs:
           echo "image_migrate=ghcr.io/${owner_lower}/hato-migrate" >> "$GITHUB_OUTPUT"
 
       - name: Set up QEMU (cross-build ARM64 on x86_64 runner)
-        uses: docker/setup-qemu-action@v3
+        uses: docker/setup-qemu-action@v4
         with:
           platforms: arm64
 

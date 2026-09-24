@@ -1,6 +1,6 @@
 # ADR-0041 — Inventario como kardex derivado de movimientos inmutables
 
-- **Estado:** Propuesto
+- **Estado:** Aceptado (2026-09-24)
 - **Fecha:** 2026-09-23
 - **Fase del roadmap:** Fase 4 adelantada, bloque 1 (ADR-0040)
 - **Relacionado:** ADR-0004 (historial de eventos en JSONB), ADR-0007 (permisos en BD),

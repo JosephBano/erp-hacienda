@@ -1,6 +1,6 @@
 # ADR-0040 — Reorientación del roadmap por el cambio de cliente piloto
 
-- **Estado:** Propuesto
+- **Estado:** Aceptado (2026-09-24)
 - **Fecha:** 2026-09-23
 - **Fase del roadmap:** transversal — pausa la Fase 3.5 y adelanta la Fase 4
 - **Relacionado:** ADR-0024 (desacople del piloto de 3.5a), ADR-0026 (recepción de

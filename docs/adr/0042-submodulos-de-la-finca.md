@@ -1,6 +1,6 @@
 # ADR-0042 — Submódulos: interruptores jerárquicos sobre el ADR-0019
 
-- **Estado:** Propuesto
+- **Estado:** Aceptado (2026-09-24)
 - **Fecha:** 2026-09-23
 - **Fase del roadmap:** transversal. Lo estrena el bloque 1 de la Fase 4 adelantada (ADR-0040)
 - **Relacionado:** ADR-0019 (visibilidad de módulos, que este ADR **amplía** sin cambiar sus

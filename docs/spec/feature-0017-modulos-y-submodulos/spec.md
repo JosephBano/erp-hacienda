@@ -75,8 +75,8 @@ Además de D12 y D13 de feature-0016:
   los niveles. Si un submódulo no tiene fila, lo decide su padre.
 - **S3 — En el teléfono, los interruptores solo se pueden cambiar con permiso de
   administrador.** Para los demás usuarios, "Módulos del dispositivo" se muestra en solo
-  lectura. *(Propuesta de esta spec, pendiente de confirmar con el dueño: evita que un
-  empleado apague un módulo en su teléfono sin que el panel lo sepa.)*
+  lectura. *(Confirmado por el dueño el 2026-09-24: evita que un empleado apague un módulo
+  en su teléfono sin que el panel lo sepa.)*
 - **S4 — Ocultar en el panel también protege la ruta.** Un guard de Angular redirige al
   inicio si se entra por URL a una pantalla oculta. Es una decisión de navegación, no de
   seguridad: los permisos siguen siendo los de ADR-0007.

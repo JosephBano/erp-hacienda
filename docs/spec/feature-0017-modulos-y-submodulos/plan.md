@@ -114,5 +114,5 @@ esquema, y revertir deja las filas de submódulo como claves que nadie consulta.
 **Cuerpo:** qué (submódulos, sección "Módulos", menú filtrado, solo lectura en el teléfono);
 por qué (spec sec. 1, ADR-0042); decisiones S1–S4 y D12/D13; qué **no** incluye (crear
 submódulos concretos, dividir módulos existentes); cómo probar (`test-e2e.md`); riesgo (dos
-implementaciones de la regla, mitigado con la misma tabla de pruebas). **Pedir confirmación
-explícita de S3** si el dueño no la dio antes.
+implementaciones de la regla, mitigado con la misma tabla de pruebas). S3 confirmada por el
+dueño el 2026-09-24.

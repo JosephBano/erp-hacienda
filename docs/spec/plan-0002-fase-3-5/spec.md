@@ -16,8 +16,10 @@
 > código. El original permanece en `docs/spec/` sin editarse: es la fuente de este traslado
 > y el commit 11 de esta rama reapunta las 85 citas del código hacia esta carpeta.
 
-- **Fase del ROADMAP:** Fase 3.5 — Adaptación porcina (`docs/ROADMAP.md:146-217`), **en
-  curso**, insertada 2026-08-05.
+- **Fase del ROADMAP:** Fase 3.5 — Adaptación porcina (`docs/ROADMAP.md:146-217`),
+  insertada 2026-08-05, **en pausa desde el 2026-09-23**
+  ([ADR-0040](../../adr/0040-reorientacion-por-cambio-de-cliente-piloto.md)). Nada de lo
+  que describe se descarta; los criterios de salida se revisan si la fase se reanuda.
 - **ADRs vigentes que respalda:** ADR-0015, ADR-0016, ADR-0017, ADR-0018, ADR-0019,
   ADR-0021, ADR-0024, ADR-0026 (ver sec. 5).
 - **Reglas duras que gobiernan este trabajo:** Art. 1 (historia inmutable, corrección con

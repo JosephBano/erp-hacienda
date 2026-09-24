@@ -12,7 +12,10 @@
 > `plan.md` y `tasks.md` tengan dónde nacer sin reorganizar nada.
 
 - **Fase del ROADMAP:** Fase 4 — Dinero completo: ventas, compras, costos
-  (`docs/ROADMAP.md:220-231`), **no iniciada**.
+  (`docs/ROADMAP.md:220-231`), **no iniciada**, **adelantada el 2026-09-23**
+  ([ADR-0040](../../adr/0040-reorientacion-por-cambio-de-cliente-piloto.md)). Lo de "a uno o
+  dos años de distancia" del encabezado ya no aplica. El primer bloque se especifica aparte,
+  en `docs/spec/feature-0016-inventario-kardex/`. Esta carpeta sigue sin `plan.md`.
 - **ADRs vigentes que respalda:** ninguno todavía. Los que este trabajo necesitará (elección
   del proveedor SRI, modelo contable) se citan como pendientes en la sec. 3.
 - **Reglas duras que gobiernan este trabajo:** Art. 6 (contrato público entre módulos, cero

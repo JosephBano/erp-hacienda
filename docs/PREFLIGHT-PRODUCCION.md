@@ -2,6 +2,11 @@
 
 > Procedimiento de preparación. No publicar seriales, correos, tokens, dumps, filas reales
 > ni APKs en git. Resultados sensibles en inventario privado del operador.
+>
+> **Desde el 2026-09-23 no es paso previo a la apertura de producción
+> ([ADR-0040](adr/0040-reorientacion-por-cambio-de-cliente-piloto.md)).** Describe el
+> inventario del piloto anterior, que se desvinculó, y producción arranca sin sus datos. Se
+> conserva como referencia para inventariar el teléfono de una finca real sin dañarlo.
 
 ## 1. App Android instalada
 

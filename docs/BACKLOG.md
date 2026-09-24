@@ -8,6 +8,67 @@
 
 ## Deuda abierta por sub-rama
 
+## Pendiente ADR-0040 — Reorientación por cambio de cliente piloto (2026-09-23)
+
+### [ops] Destino de los datos del piloto anterior (Fecha objetivo: sin fecha)
+
+El cliente del piloto de la Fase 3.5 se desvinculó en septiembre de 2026 y sus datos no se
+migran a producción (ADR-0040, decisión 5). Siguen en custodia de este proyecto, en el
+servidor que usó el piloto y en los teléfonos donde se instaló la app. Hay que decidir
+explícitamente si se conservan, se entregan al cliente o se eliminan, con las obligaciones
+de la LOPDP a la vista (`docs/LEGAL-ECUADOR.md`). Hasta esa decisión no se borra nada
+(Art. 1, valor 1 del `SOUL.md`).
+
+### [producto] Levantamiento de requisitos con el cliente nuevo (Fecha objetivo: sin fecha)
+
+El recorte ya lo fijó el dueño (ADR-0040, decisión 3). El levantamiento estructurado
+siguiendo ISO/IEC/IEEE 29148 **valida el detalle** del bloque 1
+(`docs/spec/feature-0016-inventario-kardex/`) antes del incremento 1: qué ítems, qué
+presentaciones, qué respaldo tienen las entradas sin factura, quién registra las salidas.
+
+## Pendiente bloque 1 (feature-0016 a 0019) — Inventario como kardex (2026-09-23)
+
+> Deuda que el bloque 1 deja declarada a propósito (`docs/spec/feature-0016-inventario-kardex/spec.md`
+> sec. 4 y 10, ADR-0041).
+
+### [inventory] Eliminar `InventoryBatch.Quantity` (Fecha objetivo: tras verificar el incremento 1 en staging)
+
+Deja de escribirse y leerse en el incremento 1, pero la columna se conserva hasta comprobar
+en staging que el saldo derivado cuadra por ítem. Se quita en una migración aparte.
+
+### [inventory] Cierre por período del kardex (Fecha objetivo: sin fecha)
+
+El saldo se calcula recorriendo movimientos. Si el cálculo pasa de ~200 ms en el panel
+(condición de reversa del ADR-0041), se agrega un cierre por período que sella saldos de
+apertura, sin cambiar el modelo.
+
+### [breeding] Unir `SemenStraw` al kardex antes de activar Breeding con inventario (Fecha objetivo: sin fecha)
+
+Las pajuelas llevan su propio stock (`SemenStraw.CurrentQuantity`). Si se enciende Breeding
+junto con el inventario sin unirlos, habría dos stocks del mismo semen. Es **condición previa**
+para activar Breeding: la pajuela apunta al ítem y cada inseminación genera un `Usage`.
+
+### [inventory] Vincular fármacos con tratamientos (Fecha objetivo: sin fecha)
+
+`TreatmentCourse.ProductId` sigue siendo una referencia suelta. El cliente del bloque 1
+registra el uso sin vincularlo al animal. Cuando se pida, cada aplicación genera un `Usage`.
+
+### [inventory] Bodegas o ubicaciones (Fecha objetivo: sin fecha)
+
+Diferidas por decisión del dueño. Entran como atributo del movimiento, sin cambiar el
+cálculo.
+
+### [modules] Dividir otros módulos en submódulos (Fecha objetivo: cuando un cliente lo pida)
+
+El mecanismo existe desde feature-0017 (ADR-0042), pero solo `inventory` tiene submódulos.
+Dividir `breeding` (reproducción, partos, pajuelas) u otros se hace cuando un cliente lo
+necesite, con su propia spec.
+
+### [sync] Retirar la operación `recordfeedconsumption` (Fecha objetivo: cuando ningún teléfono la envíe)
+
+Se sigue aceptando por compatibilidad con las apps instaladas. Se retira cuando la bitácora
+de sync muestre que ninguna la envía.
+
 ## Pendiente feature-0011 — DevOps y tubería de entrega (2026-09-16)
 
 > Tubería de integración y entrega continua en `feature/devops-delivery-pipeline`.

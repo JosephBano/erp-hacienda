@@ -4,6 +4,9 @@
 > Este archivo se actualiza al cerrar cada fase (fecha real + retrospectiva de 5 líneas).
 > Estado actual: `Fase 3 — reabierta` (iniciada 2026-08-02, cerrada en falso 2026-08-02, reabierta 2026-08-03),
 > con la `Fase 3.5 — Adaptación porcina` insertada el 2026-08-05 antes de la Fase 4.
+> **Desde el 2026-09-23 la Fase 3.5 está en pausa y la Fase 4 se adelanta como siguiente
+> trabajo de producto**, con alcance pendiente de un levantamiento formal con el cliente
+> nuevo ([ADR-0040](adr/0040-reorientacion-por-cambio-de-cliente-piloto.md)).
 >
 > **Retrospectiva Fase 0:** el esqueleto se construyó con asistencia intensiva de un agente de
 > IA (Claude Code) siguiendo al pie de la letra `AGENTS.md` y la Constitución; el costo
@@ -153,10 +156,19 @@ móvil, incluyendo días sin señal, sin pérdida ni duplicación de datos.
 > 6. Se aseguró la recuperación manual (`resetMirror`) con exclusión mutua frente a sync, verificación de red previa e inmunidad de `sync_outbox`.
 > 7. Se implementó bitácora diagnóstica persistente en almacenamiento nativo con retención acotada (100 entradas), redacción de secretos y exportación deliberada vía `Share`.
 > Sigue abierto para el cierre definitivo de la fase: validación manual de `test-e2e.md` en SQLite nativo en el dispositivo físico de la finca.
+> Desde el 2026-09-23 esa finca es la del cliente nuevo: el piloto anterior se desvinculó
+> ([ADR-0040](adr/0040-reorientacion-por-cambio-de-cliente-piloto.md), decisión 4).
 
 ---
 
 ## Fase 3.5 — Adaptación porcina (insertada 2026-08-05)
+
+> **En pausa desde el 2026-09-23 ([ADR-0040](adr/0040-reorientacion-por-cambio-de-cliente-piloto.md)).**
+> El cliente del piloto se desvinculó en septiembre de 2026 y los criterios de salida de
+> 3.5a y 3.5b dependían de su finca. No se borra nada: el código porcino sigue vigente, la
+> deuda de 3.5a y el bloque 3.5b siguen documentados en `docs/spec/plan-0002-fase-3-5/` y
+> los criterios de salida no se reescriben. Si la fase se reanuda, se revisan con la finca
+> donde se vayan a cumplir.
 
 > **Desacople del inicio del piloto del cierre completo del bloque 3.5a (ADR-0024,
 > 2026-08-07; ADR-0021, 2026-08-07, sobre la compuerta sec.2.3).** El inicio del piloto
@@ -232,6 +244,14 @@ por el sistema, y una decisión de manejo del cliente tomada con ese número.
 
 ## Fase 4 — Dinero completo: ventas, compras, costos
 **Objetivo:** saber cuánto cuesta y cuánto deja cada cosa.
+
+> **Adelantada el 2026-09-23 ([ADR-0040](adr/0040-reorientacion-por-cambio-de-cliente-piloto.md)).**
+> Es el siguiente trabajo de producto. El dueño fijó el recorte con el cliente nuevo:
+> **bloque 1, inventario como kardex** (`docs/spec/feature-0016-inventario-kardex/`,
+> [ADR-0041](adr/0041-inventario-kardex-derivado.md)); **bloque 2, ventas informativas y un
+> resumen de lo invertido, en bodega, consumido y vendido**. Activos, pagos y comprobantes
+> quedan fuera. La lista de módulos de abajo es el plan original de la fase y no se reescribe
+> hasta cerrarla; la línea de comprobantes SRI no la pidió nadie.
 
 - **Sales**: ventas de leche (con calidad/precio), de animales (genera baja), clientes,
   cuentas por cobrar. Comprobantes vía **proveedor autorizado SRI** (API).

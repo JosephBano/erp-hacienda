@@ -47,6 +47,12 @@ cifrar (spec §5).
 
 ## 3. Migración desde el piloto (corte de datos)
 
+> **Retirado como compuerta de apertura el 2026-09-23
+> ([ADR-0040](adr/0040-reorientacion-por-cambio-de-cliente-piloto.md)).** El piloto
+> anterior se desvinculó y producción arranca sin datos. Los datos de ese piloto no se
+> migran ni se borran. El procedimiento se conserva como referencia para cortar datos de una
+> finca real en el futuro.
+
 Este es el procedimiento de spec §6 líneas 155-160. Es una compuerta que exige conciliación
 real, no un cambio de endpoint. Ver `docs/PREFLIGHT-PRODUCCION.md` para el inventario que
 debe completarse **antes** de iniciar este procedimiento — este documento no repite ese
@@ -277,9 +283,9 @@ documento, deben cumplirse antes de esa apertura:
   depende de que el canal estable de producción (esta spec, feature-0012) exista primero.
   ADR-0035 aceptado; inventario de firma y ejecución pendientes a la fecha de este
   documento.
-- **Validación de campo del corte de datos** (sec. 3 de este documento): restauración de
-  ensayo, conciliación de UUID/eventos/permisos/sincronización y confirmación del operador
-  de que el origen migrado es el real.
+- ~~**Validación de campo del corte de datos** (sec. 3 de este documento)~~ — retirada el
+  2026-09-23 por [ADR-0040](adr/0040-reorientacion-por-cambio-de-cliente-piloto.md):
+  producción arranca sin datos del piloto anterior.
 
 El orden de paquetes declarado en `docs/PREFLIGHT-PRODUCCION.md` sec. 4 aplica: bootstrap de
 0012 → backup 0013 y monitores 0015 → restore de DB → release y corte de 0012 (este

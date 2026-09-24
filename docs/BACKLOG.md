@@ -8,6 +8,24 @@
 
 ## Deuda abierta por sub-rama
 
+## Pendiente ADR-0040 — Reorientación por cambio de cliente piloto (2026-09-23)
+
+### [ops] Destino de los datos del piloto anterior (Fecha objetivo: sin fecha)
+
+El cliente del piloto de la Fase 3.5 se desvinculó en septiembre de 2026 y sus datos no se
+migran a producción (ADR-0040, decisión 5). Siguen en custodia de este proyecto, en el
+servidor que usó el piloto y en los teléfonos donde se instaló la app. Hay que decidir
+explícitamente si se conservan, se entregan al cliente o se eliminan, con las obligaciones
+de la LOPDP a la vista (`docs/LEGAL-ECUADOR.md`). Hasta esa decisión no se borra nada
+(Art. 1, valor 1 del `SOUL.md`).
+
+### [producto] Levantamiento de requisitos con el cliente nuevo (Fecha objetivo: sin fecha)
+
+El recorte ya lo fijó el dueño (ADR-0040, decisión 3). El levantamiento estructurado
+siguiendo ISO/IEC/IEEE 29148 **valida el detalle** del bloque 1
+(`docs/spec/feature-0016-inventario-kardex/`) antes del incremento 1: qué ítems, qué
+presentaciones, qué respaldo tienen las entradas sin factura, quién registra las salidas.
+
 ## Pendiente feature-0011 — DevOps y tubería de entrega (2026-09-16)
 
 > Tubería de integración y entrega continua en `feature/devops-delivery-pipeline`.

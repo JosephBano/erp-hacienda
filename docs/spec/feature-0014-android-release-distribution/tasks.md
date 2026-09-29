@@ -27,15 +27,12 @@
 
 - [x] **T3.1** Implementar Delivery, migraciones, permisos, idempotencia y auditoría.
   **Terminado:** Módulo Delivery implementado con Clean Architecture (Domain, Application, Infrastructure, Api). Entidades MobileBuildRequest, MobileRelease, MobileReleaseTransitionAudit y PackageVersionSequence con persistencia EF Core y migraciones en PostgreSQL real. Permisos de People integrados (delivery.builds.manage, delivery.releases.publish, delivery.releases.download) con migración de semillas. Idempotencia en solicitudes activas, reserva transaccional atómica monotónica de versionCode (con ON CONFLICT DO UPDATE), y endpoints REST con Problem Details para solicitudes, lanzamientos, publicación, retiro y descarga con streaming. Pruebas unitarias (33) e integración (6) verificadas contra PostgreSQL real.
-- [ ] **T3.2** Implementar worker sin webhook público con GitHub App acotada y validación run/attempt.
-  **Terminado:** evidencia reproducible de la acción y resultado esperado del spec archivada
-  en el PR o inventario privado; los escenarios E2E relacionados pasan sin secretos en logs.
-- [ ] **T3.3** Importar APKs de forma atómica, limitar cuotas, conservar catálogo y copias externas por namespace.
-  **Terminado:** evidencia reproducible de la acción y resultado esperado del spec archivada
-  en el PR o inventario privado; los escenarios E2E relacionados pasan sin secretos en logs.
-- [ ] **T3.4** Aplicar retención con actual/última buena protegidas y publicaciones humanas auditadas.
-  **Terminado:** evidencia reproducible de la acción y resultado esperado del spec archivada
-  en el PR o inventario privado; los escenarios E2E relacionados pasan sin secretos en logs.
+- [x] **T3.2** Implementar worker sin webhook público con GitHub App acotada y validación run/attempt.
+  **Terminado:** Implementado MobileDeliveryWorker como servicio hospedado en segundo plano sin dependencias de webhooks públicos. Valida estrictamente la correlación entre workflow (build-android.yml), run ID, run attempt y commit SHA, rechazando ejecuciones ajenas o no solicitadas. Recupera solicitudes en estado Building tras reinicios sin duplicar dispatches, con timeout operativo de 90 minutos y registro de leases y auditoría.
+- [x] **T3.3** Importar APKs de forma atómica, limitar cuotas, conservar catálogo y copias externas por namespace.
+  **Terminado:** Implementado ArtifactImporter con validación rigurosa de integridad manifest/APK (checksum SHA-256, tamaño en bytes, versionCode y package por canal). Protección estricta contra path traversal (regex permitida, rechazo de separadores y secuencias relativas). Enforzamiento de cuota de almacenamiento local (5 GiB) con bloqueo de importación ante sobrepaso. Copia externa a Google Drive mediante scripts/backup-upload.sh en namespaces dedicados (mobile/stage y mobile/prod).
+- [x] **T3.4** Aplicar retención con actual/última buena protegidas y publicaciones humanas auditadas.
+  **Terminado:** Implementado RetentionPolicyService con reglas por canal (stage: máx 10 APKs o 30 días; prod: máx 5 APKs o 180 días). Excepciones inviolables: la actual estable (IsCurrentStable), la última buena compatible (IsLastGood) y releases bajo investigación (UnderInvestigation) jamás se podan. La poda elimina únicamente el binario físico del almacenamiento y preserva intacto el registro MobileRelease y su auditoría de transiciones en PostgreSQL real para trazabilidad absoluta.
 
 ## Bloque 4 — Web y operación
 

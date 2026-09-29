@@ -32,6 +32,13 @@ public static class DeliveryModule
         services.AddScoped<IDeliveryDbContext>(sp => sp.GetRequiredService<DeliveryDbContext>());
         services.AddScoped<IVersionCodeReservator, VersionCodeReservator>();
         services.AddSingleton<IArtifactStorage, LocalArtifactStorage>();
+        services.AddScoped<IRetentionPolicyService, Services.RetentionPolicyService>();
+        services.AddScoped<IExternalArtifactUploader, Services.ExternalArtifactUploader>();
+        services.AddScoped<IArtifactImporter, Services.ArtifactImporter>();
+        services.AddHttpClient<IGitHubActionsClient, Services.GitHubActionsClient>();
+
+        services.AddSingleton<Workers.MobileDeliveryWorker>();
+        services.AddHostedService(sp => sp.GetRequiredService<Workers.MobileDeliveryWorker>());
 
         services.AddMediatR(cfg =>
         {

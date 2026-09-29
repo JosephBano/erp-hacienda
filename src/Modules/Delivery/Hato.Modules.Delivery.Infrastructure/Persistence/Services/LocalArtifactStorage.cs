@@ -64,6 +64,16 @@ public class LocalArtifactStorage : IArtifactStorage
         return Task.FromResult(true);
     }
 
+    public Task<long> GetTotalStorageBytesAsync(CancellationToken cancellationToken = default)
+    {
+        if (!Directory.Exists(_storagePath))
+            return Task.FromResult(0L);
+
+        var dirInfo = new DirectoryInfo(_storagePath);
+        var totalBytes = dirInfo.EnumerateFiles().Sum(f => f.Length);
+        return Task.FromResult(totalBytes);
+    }
+
     private string GetSafePath(string fileName)
     {
         if (string.IsNullOrWhiteSpace(fileName))

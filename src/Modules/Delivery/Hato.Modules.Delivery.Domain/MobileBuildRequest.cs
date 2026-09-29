@@ -102,6 +102,13 @@ public class MobileBuildRequest : AuditableEntity
         UpdatedAt = DateTimeOffset.UtcNow;
     }
 
+    public void SetWorkflowRun(long runId, int attempt)
+    {
+        WorkflowRunId = runId;
+        WorkflowRunAttempt = attempt;
+        UpdatedAt = DateTimeOffset.UtcNow;
+    }
+
     public void MarkFailed(string error)
     {
         Status = MobileBuildStatuses.Failed;

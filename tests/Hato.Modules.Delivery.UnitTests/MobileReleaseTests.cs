@@ -107,4 +107,49 @@ public class MobileReleaseTests
         Assert.Throws<InvalidReleaseTransitionException>(() =>
             release.Publish(Guid.NewGuid(), "Intento de revivir binario retirado"));
     }
+
+    [Fact]
+    public void MarkPruned_WhenCurrentStable_ThrowsDeliveryDomainException()
+    {
+        var release = CreateSampleRelease();
+        release.Publish(Guid.NewGuid(), "Publicado");
+        Assert.True(release.IsCurrentStable);
+
+        var ex = Assert.Throws<DeliveryDomainException>(() => release.MarkPruned());
+        Assert.Contains("actual estable", ex.Message);
+    }
+
+    [Fact]
+    public void MarkPruned_WhenLastGood_ThrowsDeliveryDomainException()
+    {
+        var release = CreateSampleRelease();
+        release.Publish(Guid.NewGuid(), "Publicado");
+        release.DemoteCurrentStable();
+        Assert.True(release.IsLastGood);
+
+        var ex = Assert.Throws<DeliveryDomainException>(() => release.MarkPruned());
+        Assert.Contains("última versión buena compatible", ex.Message);
+    }
+
+    [Fact]
+    public void MarkPruned_WhenUnderInvestigation_ThrowsDeliveryDomainException()
+    {
+        var release = CreateSampleRelease();
+        release.MarkUnderInvestigation(Guid.NewGuid(), "Análisis de bug en campo");
+        Assert.Equal(MobileReleaseStatuses.UnderInvestigation, release.Status);
+
+        var ex = Assert.Throws<DeliveryDomainException>(() => release.MarkPruned());
+        Assert.Contains("bajo investigación", ex.Message);
+    }
+
+    [Fact]
+    public void MarkPruned_WhenEligible_TransitionsToPrunedAndRecordsAudit()
+    {
+        var release = CreateSampleRelease();
+        release.MarkPruned(null, "Poda de artefacto antiguo");
+
+        Assert.Equal(MobileReleaseStatuses.Pruned, release.Status);
+        Assert.Contains(release.TransitionAudits, a =>
+            a.ToStatus == MobileReleaseStatuses.Pruned && a.Reason == "Poda de artefacto antiguo");
+    }
 }

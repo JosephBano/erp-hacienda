@@ -149,4 +149,44 @@ public class MobileRelease : AuditableEntity
             withdrawnBy,
             reason));
     }
+
+    public void MarkPruned(Guid? prunedBy = null, string? reason = null)
+    {
+        if (IsCurrentStable)
+            throw new DeliveryDomainException("No se puede podar el binario de la versión actual estable.");
+
+        if (IsLastGood)
+            throw new DeliveryDomainException("No se puede podar el binario de la última versión buena compatible.");
+
+        if (Status == MobileReleaseStatuses.UnderInvestigation)
+            throw new DeliveryDomainException("No se puede podar el binario de una release bajo investigación.");
+
+        var fromStatus = Status;
+        Status = MobileReleaseStatuses.Pruned;
+        UpdatedAt = DateTimeOffset.UtcNow;
+
+        _transitionAudits.Add(MobileReleaseTransitionAudit.Create(
+            Id,
+            fromStatus,
+            MobileReleaseStatuses.Pruned,
+            prunedBy,
+            reason ?? "Poda de binario por política de retención"));
+    }
+
+    public void MarkUnderInvestigation(Guid markedBy, string reason)
+    {
+        if (string.IsNullOrWhiteSpace(reason))
+            throw new DeliveryDomainException("El motivo para marcar bajo investigación es obligatorio.");
+
+        var fromStatus = Status;
+        Status = MobileReleaseStatuses.UnderInvestigation;
+        UpdatedAt = DateTimeOffset.UtcNow;
+
+        _transitionAudits.Add(MobileReleaseTransitionAudit.Create(
+            Id,
+            fromStatus,
+            MobileReleaseStatuses.UnderInvestigation,
+            markedBy,
+            reason.Trim()));
+    }
 }

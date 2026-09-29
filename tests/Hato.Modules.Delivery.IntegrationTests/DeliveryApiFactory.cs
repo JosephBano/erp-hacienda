@@ -1,5 +1,6 @@
 using Hato.Modules.Breeding.Infrastructure.Persistence;
 using Hato.Modules.Delivery.Application.Abstractions;
+using Hato.Modules.Delivery.Domain;
 using Hato.Modules.Delivery.Infrastructure.Persistence;
 using Hato.Modules.Delivery.Infrastructure.Persistence.Services;
 using Hato.Modules.Inventory.Infrastructure.Persistence;
@@ -25,6 +26,7 @@ public class DeliveryApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
 
     public string ArtifactDirectory => _tempArtifactDirectory;
     public string ConnectionString => _database.ConnectionString;
+    public FakeGitHubActionsClient GitHubClient { get; } = new();
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
@@ -44,6 +46,7 @@ public class DeliveryApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
             services.AddTestAuthentication();
             // Ensure IArtifactStorage points to test directory
             services.AddSingleton<IArtifactStorage>(new LocalArtifactStorage(_tempArtifactDirectory));
+            services.AddSingleton<IGitHubActionsClient>(GitHubClient);
         });
     }
 
@@ -116,5 +119,30 @@ public class DeliveryApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
             }
         }
         await _database.DisposeAsync();
+    }
+}
+
+public class FakeGitHubActionsClient : IGitHubActionsClient
+{
+    public List<MobileBuildRequest> DispatchedRequests { get; } = [];
+    public List<GitHubWorkflowRunDto> Runs { get; set; } = [];
+    public Func<long, string, Stream?>? ArtifactStreamFactory { get; set; }
+
+    public Task<bool> DispatchWorkflowAsync(MobileBuildRequest request, CancellationToken cancellationToken = default)
+    {
+        DispatchedRequests.Add(request);
+        return Task.FromResult(true);
+    }
+
+    public Task<IReadOnlyList<GitHubWorkflowRunDto>> ListWorkflowRunsAsync(string workflowFileName, CancellationToken cancellationToken = default)
+    {
+        return Task.FromResult<IReadOnlyList<GitHubWorkflowRunDto>>(Runs);
+    }
+
+    public Task<Stream?> DownloadArtifactAsync(long runId, string artifactName, CancellationToken cancellationToken = default)
+    {
+        if (ArtifactStreamFactory != null)
+            return Task.FromResult(ArtifactStreamFactory(runId, artifactName));
+        return Task.FromResult<Stream?>(null);
     }
 }

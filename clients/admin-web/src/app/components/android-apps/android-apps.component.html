@@ -1,0 +1,518 @@
+<div class="page-container">
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">
+        <app-icon name="tag" size="lg" />
+        Aplicaciones Android
+      </h1>
+      <p class="subtitle">
+        Compilación, distribución privada y gestión de versiones móviles (Spec 0014 / ADR-0035).
+      </p>
+    </div>
+    <div class="header-actions">
+      <button
+        type="button"
+        class="btn btn-secondary"
+        (click)="loadData()"
+        [disabled]="loading()"
+        aria-label="Actualizar datos de releases"
+      >
+        <app-icon name="dashboard" size="sm" />
+        <span>Actualizar</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Status Banners -->
+  <div *ngIf="successMessage()" class="alert alert-success" role="status">
+    {{ successMessage() }}
+  </div>
+
+  <div *ngIf="partialStatusMessage()" class="alert alert-warning" role="status">
+    <strong>Estado Parcial:</strong> {{ partialStatusMessage() }}
+  </div>
+
+  <div *ngIf="errorMessage()" class="alert alert-danger" role="alert">
+    {{ errorMessage() }}
+  </div>
+
+  <!-- Channel Summary Cards -->
+  <div class="summary-grid">
+    <!-- Stage Card -->
+    <div class="glass-card channel-card">
+      <div class="card-header">
+        <span class="channel-badge badge-stage">Stage</span>
+        <span class="app-package">com.joemandev.hatofieldapp.stage</span>
+      </div>
+      <div class="card-body">
+        <div class="card-metric">
+          <span class="metric-label">Última versión disponible</span>
+          <span class="metric-value">
+            {{ latestStageRelease()?.versionName || 'Sin releases' }}
+            <small *ngIf="latestStageRelease()">(b{{ latestStageRelease()?.versionCode }})</small>
+          </span>
+        </div>
+        <div class="card-subtext" *ngIf="latestStageRelease()">
+          <span>Tamaño: {{ formatBytes(latestStageRelease()!.fileSizeBytes) }}</span>
+          <span>·</span>
+          <span>Commit: {{ shortSha(latestStageRelease()!.commitSha) }}</span>
+        </div>
+        <div class="card-subtext" *ngIf="!latestStageRelease()">
+          <span>Sin artefactos compilados aún en este canal.</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Production Card -->
+    <div class="glass-card channel-card">
+      <div class="card-header">
+        <span class="channel-badge badge-prod">Producción</span>
+        <span class="app-package">com.joemandev.hatofieldapp</span>
+      </div>
+      <div class="card-body">
+        <div class="card-metric">
+          <span class="metric-label">Versión estable en campo</span>
+          <span class="metric-value">
+            {{ currentStableRelease()?.versionName || 'Pendiente' }}
+            <small *ngIf="currentStableRelease()">(b{{ currentStableRelease()?.versionCode }})</small>
+          </span>
+        </div>
+        <div class="card-subtext" *ngIf="currentStableRelease()">
+          <span>Publicado: {{ formatDate(currentStableRelease()!.publishedAtUtc) }}</span>
+        </div>
+        <div class="card-subtext" *ngIf="!currentStableRelease()">
+          <span>No hay versión marcada como estable actual.</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Storage & Quota Card -->
+    <div class="glass-card channel-card">
+      <div class="card-header">
+        <span class="channel-badge badge-storage">Almacenamiento Local</span>
+        <span class="app-package">Presupuesto 5.0 GiB</span>
+      </div>
+      <div class="card-body">
+        <div class="card-metric">
+          <span class="metric-label">Espacio ocupado por binarios</span>
+          <span class="metric-value">{{ totalStorageMb() }} MB</span>
+        </div>
+        <div class="card-subtext">
+          <span>Retención: 10 stage / 5 prod</span>
+          <span>·</span>
+          <span>Estable protegida</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Trigger Build Section -->
+  <div class="glass-card form-card" *ngIf="auth.hasPermission('delivery.builds.manage')">
+    <div class="section-title-row">
+      <h2>Solicitar Compilación Móvil</h2>
+      <span class="text-muted text-sm">Dispara pipeline en GitHub Actions con firma privada</span>
+    </div>
+
+    <div class="build-form-grid">
+      <div class="form-group">
+        <label for="gitRefInput" class="form-label">Rama / Git Ref:</label>
+        <input
+          id="gitRefInput"
+          type="text"
+          class="form-control"
+          [(ngModel)]="buildGitRef"
+          placeholder="develop o main"
+        />
+        <span class="field-hint">develop para Stage, main para Producción</span>
+      </div>
+
+      <div class="form-group">
+        <label for="commitShaInput" class="form-label">Commit SHA (Opcional):</label>
+        <input
+          id="commitShaInput"
+          type="text"
+          class="form-control"
+          [(ngModel)]="buildCommitSha"
+          placeholder="HEAD o hash completo"
+        />
+        <span class="field-hint">Opcional. Vacío compila HEAD de la rama</span>
+      </div>
+
+      <div class="form-group">
+        <label for="notesInput" class="form-label">Notas de compilación:</label>
+        <input
+          id="notesInput"
+          type="text"
+          class="form-control"
+          [(ngModel)]="buildNotes"
+          placeholder="Ej: Corrección de sincronización de pesajes"
+        />
+      </div>
+    </div>
+
+    <div class="build-actions">
+      <button
+        type="button"
+        class="btn btn-primary"
+        (click)="generateBoth()"
+        [disabled]="generating()"
+        aria-label="Generar compilaciones para Stage y Producción"
+      >
+        <app-icon name="save" size="sm" />
+        <span>Generar Ambas (Stage y Prod)</span>
+      </button>
+
+      <button
+        type="button"
+        class="btn btn-secondary"
+        (click)="generateStage()"
+        [disabled]="generating()"
+        aria-label="Generar compilación para Stage"
+      >
+        <span>Generar Stage</span>
+      </button>
+
+      <button
+        type="button"
+        class="btn btn-secondary"
+        (click)="generateProduction()"
+        [disabled]="generating()"
+        aria-label="Generar compilación para Producción"
+      >
+        <span>Generar Producción</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- In-flight Build Requests Queue -->
+  <div class="glass-card queue-card" *ngIf="buildRequests().length > 0">
+    <div class="section-title-row">
+      <h2>Cola de Compilaciones</h2>
+      <span class="badge badge-info" *ngIf="inFlightBuildRequests().length > 0">
+        {{ inFlightBuildRequests().length }} en curso
+      </span>
+    </div>
+
+    <div class="table-container">
+      <table class="responsive-table">
+        <thead>
+          <tr>
+            <th>Versión</th>
+            <th>Canal</th>
+            <th>Ref / SHA</th>
+            <th>Solicitado Por</th>
+            <th>Fecha</th>
+            <th>Estado</th>
+            <th>GitHub Run</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let req of buildRequests().slice(0, 10)">
+            <td data-label="Versión">
+              <strong>v{{ req.versionName }}</strong>
+              <span class="field-hint">#{{ req.versionCode }} (intento {{ req.attempt }})</span>
+            </td>
+            <td data-label="Canal">
+              <span
+                class="badge"
+                [class.badge-stage]="req.channel.toLowerCase() === 'stage'"
+                [class.badge-prod]="req.channel.toLowerCase() === 'production'"
+              >
+                {{ req.channel }}
+              </span>
+            </td>
+            <td data-label="Ref / SHA">
+              <div>{{ req.gitRef }}</div>
+              <span class="field-hint">{{ shortSha(req.commitSha) }}</span>
+            </td>
+            <td data-label="Solicitado Por">{{ req.requestedBy }}</td>
+            <td data-label="Fecha">{{ formatDate(req.requestedAtUtc) }}</td>
+            <td data-label="Estado">
+              <span
+                class="badge"
+                [class.badge-success]="req.status.toLowerCase() === 'completed'"
+                [class.badge-danger]="req.status.toLowerCase() === 'failed'"
+                [class.badge-warning]="['pending', 'dispatched', 'building', 'importing'].includes(req.status.toLowerCase())"
+                [class.badge-neutral]="req.status.toLowerCase() === 'canceled'"
+              >
+                {{ req.status }}
+              </span>
+              <div *ngIf="req.errorDetails" class="error-detail-text">
+                {{ req.errorDetails }}
+              </div>
+            </td>
+            <td data-label="GitHub Run">
+              <a
+                *ngIf="req.gitHubRunUrl"
+                [href]="req.gitHubRunUrl"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="run-link"
+              >
+                #{{ req.gitHubRunId }}
+              </a>
+              <span *ngIf="!req.gitHubRunUrl" class="text-muted">—</span>
+            </td>
+            <td data-label="Acciones">
+              <button
+                type="button"
+                class="btn btn-sm btn-outline-danger"
+                *ngIf="['pending', 'dispatched', 'building'].includes(req.status.toLowerCase()) && auth.hasPermission('delivery.builds.manage')"
+                (click)="cancelBuildRequest(req)"
+              >
+                Cancelar
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Releases History Table -->
+  <div class="glass-card releases-card">
+    <div class="releases-header-row">
+      <h2>Historial de Releases Disponibles</h2>
+
+      <div class="filters-bar">
+        <div class="filter-item">
+          <label for="channelFilterSelect" class="filter-label">Canal:</label>
+          <select
+            id="channelFilterSelect"
+            class="filter-select"
+            [ngModel]="selectedChannelFilter()"
+            (ngModelChange)="selectedChannelFilter.set($event)"
+          >
+            <option value="All">Todos</option>
+            <option value="Stage">Stage</option>
+            <option value="Production">Producción</option>
+          </select>
+        </div>
+
+        <div class="filter-item">
+          <label for="statusFilterSelect" class="filter-label">Estado:</label>
+          <select
+            id="statusFilterSelect"
+            class="filter-select"
+            [ngModel]="selectedStatusFilter()"
+            (ngModelChange)="selectedStatusFilter.set($event)"
+          >
+            <option value="All">Todos</option>
+            <option value="Available">Disponible</option>
+            <option value="Active">Activo</option>
+            <option value="Withdrawn">Retirado</option>
+            <option value="Pruned">Depurado</option>
+            <option value="UnderInvestigation">Bajo investigación</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="table-container">
+      <table class="responsive-table">
+        <thead>
+          <tr>
+            <th>Canal</th>
+            <th>Versión</th>
+            <th>Commit</th>
+            <th>Tamaño</th>
+            <th>SHA-256</th>
+            <th>Publicación</th>
+            <th>Estado</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let rel of filteredReleases()">
+            <td data-label="Canal">
+              <span
+                class="badge"
+                [class.badge-stage]="rel.channel.toLowerCase() === 'stage'"
+                [class.badge-prod]="rel.channel.toLowerCase() === 'production'"
+              >
+                {{ rel.channel }}
+              </span>
+            </td>
+            <td data-label="Versión">
+              <div class="version-name-cell">
+                <strong>v{{ rel.versionName }}</strong>
+                <span class="field-hint">b{{ rel.versionCode }}</span>
+              </div>
+              <div class="version-tags">
+                <span class="badge badge-stable" *ngIf="rel.isCurrentStable">Estable Actual</span>
+                <span class="badge badge-lastgood" *ngIf="rel.isLastGood && !rel.isCurrentStable">Última Buena</span>
+              </div>
+            </td>
+            <td data-label="Commit">
+              <code>{{ shortSha(rel.commitSha) }}</code>
+            </td>
+            <td data-label="Tamaño">{{ formatBytes(rel.fileSizeBytes) }}</td>
+            <td data-label="SHA-256">
+              <span class="digest-snippet" [title]="rel.sha256Digest">
+                {{ shortSha(rel.sha256Digest) }}...
+              </span>
+            </td>
+            <td data-label="Publicación">
+              <div>{{ formatDate(rel.publishedAtUtc) }}</div>
+              <span class="field-hint" *ngIf="rel.publishedBy">{{ rel.publishedBy }}</span>
+            </td>
+            <td data-label="Estado">
+              <span
+                class="badge"
+                [class.badge-success]="rel.status.toLowerCase() === 'active'"
+                [class.badge-info]="rel.status.toLowerCase() === 'available'"
+                [class.badge-danger]="rel.status.toLowerCase() === 'withdrawn'"
+                [class.badge-neutral]="rel.status.toLowerCase() === 'pruned'"
+                [class.badge-warning]="rel.status.toLowerCase() === 'underinvestigation'"
+              >
+                {{ rel.status }}
+              </span>
+              <div *ngIf="rel.withdrawnReason" class="withdrawn-reason-text">
+                {{ rel.withdrawnReason }}
+              </div>
+            </td>
+            <td data-label="Acciones">
+              <div class="row-actions">
+                <!-- Streaming Download Button -->
+                <button
+                  type="button"
+                  class="btn btn-sm btn-primary"
+                  *ngIf="rel.status.toLowerCase() !== 'pruned' && auth.hasPermission('delivery.releases.download')"
+                  (click)="downloadRelease(rel)"
+                  [disabled]="downloadingReleaseId() === rel.id"
+                  [title]="'Descargar APK ' + rel.versionName"
+                >
+                  <span *ngIf="downloadingReleaseId() === rel.id">Descargando...</span>
+                  <span *ngIf="downloadingReleaseId() !== rel.id">Descargar APK</span>
+                </button>
+
+                <span *ngIf="rel.status.toLowerCase() === 'pruned'" class="pruned-hint">
+                  Binario depurado
+                </span>
+
+                <!-- Publish Button -->
+                <button
+                  type="button"
+                  class="btn btn-sm btn-outline-success"
+                  *ngIf="rel.status.toLowerCase() === 'available' && auth.hasPermission('delivery.releases.publish')"
+                  (click)="openPublishModal(rel)"
+                >
+                  Publicar
+                </button>
+
+                <!-- Withdraw Button -->
+                <button
+                  type="button"
+                  class="btn btn-sm btn-outline-danger"
+                  *ngIf="(rel.status.toLowerCase() === 'active' || rel.status.toLowerCase() === 'available') && auth.hasPermission('delivery.releases.publish')"
+                  (click)="openWithdrawModal(rel)"
+                >
+                  Retirar
+                </button>
+              </div>
+            </td>
+          </tr>
+
+          <tr *ngIf="filteredReleases().length === 0" class="empty-row">
+            <td colspan="8" class="text-center py-4 text-muted">
+              No se encontraron releases registradas con los filtros seleccionados.
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Publicar Release -->
+<div class="modal-backdrop" *ngIf="showPublishModal()" (click)="closePublishModal()">
+  <div class="modal-dialog" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3>Publicar Release para Operadores</h3>
+      <button type="button" class="close-btn" (click)="closePublishModal()" aria-label="Cerrar">&times;</button>
+    </div>
+    <div class="modal-body" *ngIf="targetReleaseForPublish() as target">
+      <p class="modal-intro">
+        Está a punto de publicar la versión <strong>{{ target.versionName }}</strong> (b{{ target.versionCode }})
+        del canal <strong>{{ target.channel }}</strong>. Esta versión pasará a estado <em>Active</em> y será elegible
+        para instalación en teléfonos de campo.
+      </p>
+
+      <div class="form-group">
+        <label for="publishNotesInput" class="form-label">Notas de la versión:</label>
+        <textarea
+          id="publishNotesInput"
+          class="form-control"
+          rows="3"
+          [(ngModel)]="publishNotes"
+          placeholder="Detalle cambios relevantes para el operador de campo..."
+        ></textarea>
+      </div>
+
+      <div class="form-group">
+        <label for="minVersionInput" class="form-label">Versión mínima soportada (Opcional):</label>
+        <input
+          id="minVersionInput"
+          type="text"
+          class="form-control"
+          [(ngModel)]="publishMinVersion"
+          placeholder="Ej: 1.0.0"
+        />
+        <span class="field-hint">Versiones previas a este umbral serán forzadas a actualizar</span>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-secondary" (click)="closePublishModal()" [disabled]="isPublishing()">
+        Cancelar
+      </button>
+      <button type="button" class="btn btn-primary" (click)="confirmPublish()" [disabled]="isPublishing()">
+        <span *ngIf="isPublishing()">Publicando...</span>
+        <span *ngIf="!isPublishing()">Confirmar y Publicar</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Retirar Release -->
+<div class="modal-backdrop" *ngIf="showWithdrawModal()" (click)="closeWithdrawModal()">
+  <div class="modal-dialog" (click)="$event.stopPropagation()">
+    <div class="modal-header header-danger">
+      <h3>Retirar Release del Servicio</h3>
+      <button type="button" class="close-btn" (click)="closeWithdrawModal()" aria-label="Cerrar">&times;</button>
+    </div>
+    <div class="modal-body" *ngIf="targetReleaseForWithdraw() as target">
+      <p class="modal-intro text-danger">
+        Retirar una release impide nuevas descargas e instalaciones. Si esta versión era la estable actual,
+        el sistema marcará automáticamente la última versión buena (<em>Last Good</em>) para mitigar regresiones.
+      </p>
+
+      <div class="form-group">
+        <label for="withdrawReasonInput" class="form-label">Motivo de retiro (Obligatorio):</label>
+        <textarea
+          id="withdrawReasonInput"
+          class="form-control"
+          rows="3"
+          [(ngModel)]="withdrawReason"
+          placeholder="Explique el problema de seguridad, regresión de datos o fallo crítico encontrado..."
+          required
+        ></textarea>
+        <span class="field-hint">El motivo quedará registrado en la auditoría inmutable del sistema</span>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-secondary" (click)="closeWithdrawModal()" [disabled]="isWithdrawing()">
+        Cancelar
+      </button>
+      <button
+        type="button"
+        class="btn btn-danger"
+        (click)="confirmWithdraw()"
+        [disabled]="isWithdrawing() || !withdrawReason.trim()"
+      >
+        <span *ngIf="isWithdrawing()">Retirando...</span>
+        <span *ngIf="!isWithdrawing()">Confirmar Retiro</span>
+      </button>
+    </div>
+  </div>
+</div>

@@ -15,6 +15,7 @@ import { AnimalGroupsListComponent } from './components/animal-groups-list/anima
 import { AnimalGroupCreateComponent } from './components/animal-group-create/animal-group-create.component';
 import { AnimalGroupDetailComponent } from './components/animal-group-detail/animal-group-detail.component';
 import { InventoryItemDetailComponent } from './components/inventory-item-detail/inventory-item-detail.component';
+import { AndroidAppsComponent } from './components/android-apps/android-apps.component';
 import { authGuard } from './guards/auth.guard';
 import { permissionGuard } from './guards/permission.guard';
 
@@ -66,6 +67,11 @@ export const routes: Routes = [
     path: 'catalogs',
     component: CatalogsComponent,
     canActivate: [authGuard, permissionGuard('livestock.species.manage')],
+  },
+  {
+    path: 'android-apps',
+    component: AndroidAppsComponent,
+    canActivate: [authGuard, permissionGuard('delivery.releases.download')],
   },
   { path: '**', redirectTo: '' },
 ];

@@ -59,6 +59,11 @@ public class ReleaseCommandsHandler(IDeliveryDbContext dbContext)
             stable.DemoteCurrentStable();
         }
 
+        if (currentStable.Count > 0)
+        {
+            await dbContext.SaveChangesAsync(cancellationToken);
+        }
+
         release.Publish(request.PublishedBy, request.Reason);
         await dbContext.SaveChangesAsync(cancellationToken);
 

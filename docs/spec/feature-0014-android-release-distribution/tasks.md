@@ -36,9 +36,8 @@
 
 ## Bloque 4 — Web y operación
 
-- [ ] **T4.1** Crear sección privada generar ambas, estados parciales, publicar/retirar y descarga autorizada.
-  **Terminado:** evidencia reproducible de la acción y resultado esperado del spec archivada
-  en el PR o inventario privado; los escenarios E2E relacionados pasan sin secretos en logs.
+- [x] **T4.1** Crear sección privada generar ambas, estados parciales, publicar/retirar y descarga autorizada.
+  **Terminado:** Implementada sección «Aplicaciones Android» en clients/admin-web (AndroidAppsComponent). Tarjetas de resumen por canal (Stage, Producción, Cuota 5 GiB), acción «Generar Ambas» con reporte honesto de fallos parciales, cola de compilaciones con polling liviano y cancelación, tabla de releases con filtros por canal/estado y badges de protección (Estable Actual, Última Buena). Descarga de binarios APK mediante streaming de Blob con Bearer token sin exponer tokens en URL ni query strings. Modales de confirmación para publicación (con notas y versión mínima) y retiro (con motivo obligatorio). Integrado en rutas bajo authGuard y permissionGuard('delivery.releases.download') y probado exhaustivamente con 8 pruebas unitarias en Vitest.
 - [ ] **T4.2** Entregar GUIA-CAMPO-ANDROID al operador tras validación física; registrar responsables privadamente.
   **Terminado:** evidencia reproducible de la acción y resultado esperado del spec archivada
   en el PR o inventario privado; los escenarios E2E relacionados pasan sin secretos en logs.

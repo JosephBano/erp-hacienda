@@ -28,8 +28,7 @@ public class PermissionAuthorizationHandler(
         // Admin role override: Admin system role has all permissions (case-insensitive for "admin" / "Admin").
         // Preserves TestAuthHandler (which runs as synthetic Admin with Guid.Empty) and admin principals.
         if (context.User.IsInRole(SystemRoles.Admin) ||
-            context.User.HasClaim(c => c.Type == ClaimTypes.Role && c.Value.Equals(SystemRoles.Admin, StringComparison.OrdinalIgnoreCase)) ||
-            context.User.HasClaim("permission", requirement.PermissionCode))
+            context.User.HasClaim(c => c.Type == ClaimTypes.Role && c.Value.Equals(SystemRoles.Admin, StringComparison.OrdinalIgnoreCase)))
         {
             context.Succeed(requirement);
             return;

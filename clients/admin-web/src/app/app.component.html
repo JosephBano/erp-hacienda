@@ -89,7 +89,9 @@
         *ngIf="
           auth.hasPermission('people.roles.manage') ||
           auth.hasPermission('people.users.manage') ||
-          auth.hasPermission('livestock.animals.write')
+          auth.hasPermission('livestock.animals.write') ||
+          auth.hasPermission('delivery.releases.download') ||
+          auth.hasPermission('delivery.builds.manage')
         "
       >
         Administración
@@ -145,6 +147,23 @@
       >
         <app-icon class="nav-icon" name="wifi" />
         <span class="nav-label">Sincronización</span>
+      </a>
+
+      <a
+        routerLink="/android-apps"
+        routerLinkActive="active"
+        class="nav-item"
+        aria-label="Aplicaciones Android"
+        title="Aplicaciones Android"
+        *ngIf="
+          auth.hasPermission('delivery.releases.download') ||
+          auth.hasPermission('delivery.builds.manage') ||
+          auth.hasPermission('delivery.releases.publish')
+        "
+        (click)="closeDrawer()"
+      >
+        <app-icon class="nav-icon" name="tag" />
+        <span class="nav-label">Aplicaciones Android</span>
       </a>
     </nav>
 

@@ -59,6 +59,25 @@ public class HeaderAuthHandler(
     }
 }
 
+public class TestUserPermissionsReader(Microsoft.AspNetCore.Http.IHttpContextAccessor httpContextAccessor) : Hato.Modules.People.Contracts.IUserPermissionsReader
+{
+    public Task<HashSet<string>> GetPermissionCodesAsync(Guid userId, CancellationToken cancellationToken = default)
+    {
+        var httpContext = httpContextAccessor.HttpContext;
+        if (httpContext == null) return Task.FromResult(new HashSet<string>());
+
+        if (httpContext.Request.Headers.TryGetValue("X-Test-Permissions", out var perms))
+        {
+            var set = perms.ToString()
+                .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .ToHashSet();
+            return Task.FromResult(set);
+        }
+
+        return Task.FromResult(new HashSet<string>());
+    }
+}
+
 public class DeliveryAuthorizationTests(DeliveryApiFactory factory) : IClassFixture<DeliveryApiFactory>
 {
     private HttpClient CreateCustomClient()
@@ -70,6 +89,7 @@ public class DeliveryAuthorizationTests(DeliveryApiFactory factory) : IClassFixt
                 services.AddAuthentication(HeaderAuthHandler.SchemeName)
                     .AddScheme<AuthenticationSchemeOptions, HeaderAuthHandler>(
                         HeaderAuthHandler.SchemeName, _ => { });
+                services.AddScoped<Hato.Modules.People.Contracts.IUserPermissionsReader, TestUserPermissionsReader>();
             });
         }).CreateClient();
     }

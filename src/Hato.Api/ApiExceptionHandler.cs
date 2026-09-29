@@ -25,6 +25,7 @@ public class ApiExceptionHandler : IExceptionHandler
             AnimalGroupStateException => (StatusCodes.Status409Conflict, "Estado del grupo no permite la operación"),
             UnauthorizedAccessException => (StatusCodes.Status401Unauthorized, "No autorizado"),
             KeyNotFoundException => (StatusCodes.Status404NotFound, "No encontrado"),
+            FileNotFoundException => (StatusCodes.Status404NotFound, "Archivo no encontrado"),
             _ => (0, string.Empty),
         };
 

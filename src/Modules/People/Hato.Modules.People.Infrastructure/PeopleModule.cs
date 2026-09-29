@@ -127,6 +127,9 @@ public static class PeopleModule
             options.AddPolicy("InventoryFeedStagesManage", p => p.RequirePermission(SystemPermissions.InventoryFeedStagesManage));
             options.AddPolicy("InventoryReceptionsManage", p => p.RequirePermission(SystemPermissions.InventoryReceptionsManage));
             options.AddPolicy("InventoryFeedConsumptionsRecord", p => p.RequirePermission(SystemPermissions.InventoryFeedConsumptionsRecord));
+            options.AddPolicy("DeliveryBuildsManage", p => p.RequirePermission(SystemPermissions.DeliveryBuildsManage));
+            options.AddPolicy("DeliveryReleasesPublish", p => p.RequirePermission(SystemPermissions.DeliveryReleasesPublish));
+            options.AddPolicy("DeliveryReleasesDownload", p => p.RequirePermission(SystemPermissions.DeliveryReleasesDownload));
         });
 
         return services;

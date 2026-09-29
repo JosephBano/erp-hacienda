@@ -90,4 +90,9 @@ public static class SystemPermissions
     // a permission that does not depend on which module the toggle controls.
     public const string SettingsFarmModulesRead = "settings.farm-modules.read";
     public const string SettingsFarmModulesManage = "settings.farm-modules.manage";
+
+    // Delivery (ADR-0035 / spec 0014)
+    public const string DeliveryBuildsManage = "delivery.builds.manage";
+    public const string DeliveryReleasesPublish = "delivery.releases.publish";
+    public const string DeliveryReleasesDownload = "delivery.releases.download";
 }

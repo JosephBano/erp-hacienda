@@ -6,15 +6,13 @@
 
 ## Bloque 1 — Identidad y contrato
 
-- [ ] **T1.1** Aprobar ADR Delivery/GitHub App/EAS y registrar permisos/términos en glosario.
-  **Terminado:** evidencia reproducible de la acción y resultado esperado del spec archivada
-  en el PR o inventario privado; los escenarios E2E relacionados pasan sin secretos en logs.
+- [x] **T1.1** Aprobar ADR Delivery/GitHub App/EAS y registrar permisos/términos en glosario.
+  **Terminado:** ADR-0035 aceptado el 2026-09-16. Términos MobileBuildRequest, MobileRelease, MobileReleaseChannel registrados en GLOSSARY.md; límite modular en ARCHITECTURE.md; permisos People (delivery.builds.manage, delivery.releases.publish, delivery.releases.download) y custodios documentados en SEGURIDAD.md.
 - [ ] **T1.2** Inventariar package/firma/versionCode de teléfonos reales; recuperar keystore sin publicar secretos.
   **Terminado:** evidencia reproducible de la acción y resultado esperado del spec archivada
   en el PR o inventario privado; los escenarios E2E relacionados pasan sin secretos en logs.
-- [ ] **T1.3** Definir capacidades/API soportadas con actual y anterior durante 90 días mínimo según política.
-  **Terminado:** evidencia reproducible de la acción y resultado esperado del spec archivada
-  en el PR o inventario privado; los escenarios E2E relacionados pasan sin secretos en logs.
+- [x] **T1.3** Definir capacidades/API soportadas con actual y anterior durante 90 días mínimo según política.
+  **Terminado:** Política de compatibilidad fijada en spec y ADR-0035: soporte mínimo de 90 días para versión actual y anterior; campo de compatibilidad de API registrado en MobileRelease y validado antes de permitir actualización o retiro.
 
 ## Bloque 2 — Build y firma
 

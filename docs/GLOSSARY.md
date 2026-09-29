@@ -237,6 +237,14 @@
 | Cleartext por Tailscale | `network_security_config.xml` (Android) | Configuración que permite HTTP plano **solo** para `100.101.240.44` (IP Tailscale del backend de la laptop del desarrollador). Cualquier otro host sigue forzado a HTTPS. Existe porque Android 9+ bloquea cleartext por default; si el backend pasa a público, este archivo se elimina. |
 | Orden de plugins de Babel | `babel.config.js` | WatermelonDB usa `declare` en los modelos y requiere `@babel/plugin-transform-typescript` (con `allowDeclareFields: true`) **antes** de `@babel/plugin-proposal-decorators` y `@babel/plugin-transform-class-properties`. Si el orden está mal, sale con "Decorating class property failed". |
 
+## Distribución móvil y entregas (Delivery — ADR-0035)
+
+| Término (ES) | Código (EN) | Definición |
+|---|---|---|
+| Solicitud de compilación móvil | `MobileBuildRequest` | Registro persistido que solicita compilar un artefacto móvil para un canal (`stage`, `prod`), congelando commit SHA, versión, solicitante e idempotencia. |
+| Release móvil / Entrega móvil | `MobileRelease` | Artefacto compilado (APK) catalogado para un canal, con número de versión, `versionCode` monotónico reservado, hash SHA-256, estado de publicación y retención. |
+| Canal de distribución móvil | `MobileReleaseChannel` | Vía o entorno de distribución de la aplicación (`stage` desde `develop` contra staging; `prod` desde release aprobada de `main` contra producción). |
+
 ## Legal Ecuador (referencias)
 
 | Término | Qué es |

@@ -38,6 +38,7 @@ documento.
 | `PREFLIGHT-PRODUCCION.md` | ¿Cómo inventariar apps/datos y realizar altas asistidas antes del corte? | Cambia la preparación o se verifica un nuevo origen. |
 | `PRODUCCION.md` | ¿Cómo se despliega, corta y recupera producción? | Cambia el procedimiento de release, corte o recuperación. |
 | `GUIA-CAMPO-ANDROID.md` | ¿Cómo accede, instala y actualiza HATO un empleado? | Cambia el flujo del teléfono o la distribución. |
+| `APPS-ANDROID.md` | ¿Cómo se compilan, firman, distribuyen y recuperan las aplicaciones Android? | Cambia el flujo de build, firma, retención o el procedimiento de mitigación móvil. |
 | `METRICAS-ENTREGA.md` | ¿Cuál es la velocidad y estabilidad de la entrega (DORA) y su línea base histórica? | Se recalculan métricas de entrega o se cierra una fase. |
 | `docs/BACKLOG.md` | ¿Qué sabemos que falta y decidimos no hacer ahora? | Continuamente. |
 | `adr/NNNN-*.md` | ¿Por qué se decidió esto y qué se descartó? | Nunca: un ADR se reemplaza, no se edita. |
@@ -50,8 +51,8 @@ documento.
 | `tesis/plantillas/*.md` | ¿Qué debe contener cada pieza de la tesis? | Mejora la plantilla — nunca con contenido real. |
 
 Estas entradas cubren los documentos de la raíz del repositorio y de la raíz de
-`docs/` (`AGENTS.md`, `README.md`; `ARCHITECTURE.md`, `docs/BACKLOG.md`, `BACKUPS.md`,
-`CONSTITUTION.md`, `DATA-MODEL.md`, `GLOSSARY.md`, `LEGAL-ECUADOR.md`, `METRICAS-ENTREGA.md`, `ROADMAP.md`,
+`docs/` (`AGENTS.md`, `README.md`; `APPS-ANDROID.md`, `ARCHITECTURE.md`, `docs/BACKLOG.md`, `BACKUPS.md`,
+`CONSTITUTION.md`, `DATA-MODEL.md`, `GLOSSARY.md`, `GUIA-CAMPO-ANDROID.md`, `LEGAL-ECUADOR.md`, `METRICAS-ENTREGA.md`, `POLITICAS-OPERACION.md`, `PREFLIGHT-PRODUCCION.md`, `PRODUCCION.md`, `ROADMAP.md`,
 `SOUL.md`), más las filas de patrón que cubren carpetas (`adr/`, `spec/<x>/`,
 `diagramas/`, `tesis/`). Verificable con `ls *.md` y `ls docs/*.md`: todo lo que devuelven
 aparece arriba.

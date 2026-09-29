@@ -1,0 +1,212 @@
+name: Build Android APK
+
+on:
+  workflow_dispatch:
+    inputs:
+      channel:
+        description: 'Canal de release (stage o production)'
+        required: true
+        default: 'stage'
+        type: choice
+        options:
+          - stage
+          - production
+      version_code:
+        description: 'VersionCode entero monotónico reservado por Delivery'
+        required: true
+        type: string
+      build_request_id:
+        description: 'ID de la solicitud MobileBuildRequest'
+        required: false
+        type: string
+        default: ''
+      commit_sha:
+        description: 'Commit SHA explícito (opcional, por defecto HEAD)'
+        required: false
+        type: string
+        default: ''
+      release_tag:
+        description: 'Tag de release (opcional)'
+        required: false
+        type: string
+        default: ''
+
+concurrency:
+  group: android-build-${{ inputs.channel }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build Signed Android APK (${{ inputs.channel }})
+    runs-on: ubuntu-latest
+    environment: mobile-${{ inputs.channel }}
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - name: Validate environment and branch policy
+        run: |
+          set -euo pipefail
+          if [ "${{ github.event.repository.fork }}" = "true" ]; then
+            echo "::error::No se permite compilar releases firmados en forks."
+            exit 1
+          fi
+
+          if [ "${{ inputs.channel }}" = "production" ]; then
+            CURRENT_REF="${{ github.ref }}"
+            if [ "$CURRENT_REF" != "refs/heads/main" ] && [[ ! "$CURRENT_REF" =~ ^refs/tags/ ]]; then
+              echo "::error::El canal 'production' solo puede compilarse desde la rama 'main' o un tag de release. Ref recibido: $CURRENT_REF"
+              exit 1
+            fi
+          fi
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.commit_sha != '' && inputs.commit_sha || github.sha }}
+          fetch-depth: 0
+
+      - name: Setup Java JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: clients/field-app/package.json
+
+      - name: Resolve build metadata and paths
+        id: meta
+        run: |
+          set -euo pipefail
+          VERSION=$(cat VERSION)
+          COMMIT_SHORT=$(git rev-parse --short HEAD)
+          COMMIT_FULL=$(git rev-parse HEAD)
+          SHORT_CHANNEL="${{ inputs.channel == 'production' && 'prod' || 'stage' }}"
+          APK_BASENAME="hato-${VERSION}-${SHORT_CHANNEL}-b${{ inputs.version_code }}-${COMMIT_SHORT}.apk"
+
+          if [ "${{ inputs.channel }}" = "production" ]; then
+            PKG_NAME="com.joemandev.hatofieldapp"
+            API_URL="https://hato-oracle.ts.net/api"
+          else
+            PKG_NAME="com.joemandev.hatofieldapp.stage"
+            API_URL="https://joemanserver.ts.net/api"
+          fi
+
+          mkdir -p build-output
+          APK_PATH="$(pwd)/build-output/${APK_BASENAME}"
+          MANIFEST_PATH="$(pwd)/build-output/manifest.json"
+
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "commit_short=${COMMIT_SHORT}" >> "$GITHUB_OUTPUT"
+          echo "commit_full=${COMMIT_FULL}" >> "$GITHUB_OUTPUT"
+          echo "package_name=${PKG_NAME}" >> "$GITHUB_OUTPUT"
+          echo "target_api_url=${API_URL}" >> "$GITHUB_OUTPUT"
+          echo "apk_path=${APK_PATH}" >> "$GITHUB_OUTPUT"
+          echo "manifest_path=${MANIFEST_PATH}" >> "$GITHUB_OUTPUT"
+
+      - name: Install dependencies
+        working-directory: clients/field-app
+        run: npm ci --legacy-peer-deps
+
+      - name: Materialize build credentials
+        id: creds
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          KEYSTORE_DIR=$(mktemp -d -t hato-keystore-XXXXXX)
+          chmod 700 "$KEYSTORE_DIR"
+          echo "keystore_dir=${KEYSTORE_DIR}" >> "$GITHUB_OUTPUT"
+
+          if [ -n "${KEYSTORE_BASE64:-}" ]; then
+            echo "$KEYSTORE_BASE64" | base64 -d > "$KEYSTORE_DIR/release.keystore"
+            chmod 600 "$KEYSTORE_DIR/release.keystore"
+
+            cat <<EOF > clients/field-app/credentials.json
+          {
+            "android": {
+              "keystore": {
+                "keystorePath": "$KEYSTORE_DIR/release.keystore",
+                "keystorePassword": "$KEYSTORE_PASSWORD",
+                "keyAlias": "$KEY_ALIAS",
+                "keyPassword": "$KEY_PASSWORD"
+              }
+            }
+          }
+          EOF
+            chmod 600 clients/field-app/credentials.json
+            echo "Keystore y credentials.json materializados de forma segura."
+          else
+            echo "::warning::No se encontraron secretos de firma en el entorno. Se procederá sin credentials.json predefinido."
+          fi
+
+      - name: Build Android APK (EAS local)
+        working-directory: clients/field-app
+        env:
+          APP_VARIANT: ${{ inputs.channel }}
+          EXPO_PUBLIC_APP_VARIANT: ${{ inputs.channel }}
+          EXPO_PUBLIC_API_URL: ${{ steps.meta.outputs.target_api_url }}
+          APP_VERSION_CODE: ${{ inputs.version_code }}
+          EAS_NO_VCS: '1'
+        run: |
+          set -euo pipefail
+          npx eas-cli build \
+            --platform android \
+            --profile ${{ inputs.channel }} \
+            --local \
+            --output "${{ steps.meta.outputs.apk_path }}" \
+            --non-interactive
+
+      - name: Verify APK build integrity
+        run: |
+          set -euo pipefail
+          ./scripts/android-build-verify.sh \
+            "${{ steps.meta.outputs.apk_path }}" \
+            "${{ inputs.channel }}" \
+            "${{ steps.meta.outputs.package_name }}" \
+            "${{ inputs.version_code }}" \
+            "${{ steps.meta.outputs.version }}"
+
+      - name: Generate Artifact Manifest
+        run: |
+          set -euo pipefail
+          ./scripts/android-artifact-manifest.sh generate \
+            "${{ steps.meta.outputs.apk_path }}" \
+            "${{ steps.meta.outputs.manifest_path }}" \
+            "${{ inputs.channel }}" \
+            "${{ steps.meta.outputs.commit_full }}" \
+            "${{ inputs.version_code }}" \
+            "${{ steps.meta.outputs.version }}" \
+            "${{ steps.meta.outputs.package_name }}" \
+            "${{ steps.meta.outputs.target_api_url }}" \
+            "${{ inputs.build_request_id }}" \
+            "${{ inputs.release_tag }}"
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-release-${{ inputs.channel }}-${{ inputs.version_code }}
+          path: |
+            ${{ steps.meta.outputs.apk_path }}
+            ${{ steps.meta.outputs.manifest_path }}
+          retention-days: 7
+          if-no-files-found: error
+
+      - name: Cleanup credentials and temporary keystore
+        if: always()
+        run: |
+          set -euo pipefail
+          if [ -n "${{ steps.creds.outputs.keystore_dir }}" ] && [ -d "${{ steps.creds.outputs.keystore_dir }}" ]; then
+            rm -rf "${{ steps.creds.outputs.keystore_dir }}"
+          fi
+          rm -f clients/field-app/credentials.json
+          echo "Limpieza de credenciales completada."

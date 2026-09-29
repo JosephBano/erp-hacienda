@@ -103,10 +103,11 @@ queda `null` en el flujo de login).
 implícita entre roles. `SystemRoles`
 (`src/Modules/People/Hato.Modules.People.Domain/UserRole.cs:39-44`) declara tres roles semilla:
 `admin`, `registrar`, `veterinarian`. `SystemPermissions` (mismo archivo, líneas 49-95)
-declara **22 códigos de permiso** en 7 módulos (People, Livestock, Production, Inventory,
-Breeding, Tasks, Settings). Se agregó `inventory.feed-consumptions.record` en `feature-0008`
-para permitir a los operarios registrar alimentación de lotes sin otorgarles administración
-del catálogo de inventario (`inventory.items.manage`).
+declara **25 códigos de permiso** en 8 módulos (People, Livestock, Production, Inventory,
+Breeding, Tasks, Settings, Delivery). Se agregaron en `feature-0014` (ADR-0035):
+`delivery.builds.manage` (solicitar compilaciones móviles), `delivery.releases.publish`
+(publicar/retirar releases de forma auditada) y `delivery.releases.download`
+(descargar APKs de releases publicadas; stage requiere además manage).
 
 **El rol `admin` tiene bypass total**: `PermissionAuthorizationHandler`
 (`src/Modules/People/Hato.Modules.People.Infrastructure/Authorization/PermissionAuthorization.cs`)
@@ -370,6 +371,19 @@ tratamiento completo con dosis y período de retiro.
 | `POST /api/v1/treatment-reasons/{id}/activate` | `livestock.treatments.configure` |
 | `PATCH /api/v1/treatment-reasons/{id}/label` | `livestock.treatments.configure` |
 
+#### `MobileReleasesEndpoints.cs` (ADR-0035)
+
+| Método y ruta | Permiso exigido |
+|---|---|
+| `POST /api/v1/mobile-build-requests` | `delivery.builds.manage` |
+| `GET /api/v1/mobile-build-requests` | `delivery.builds.manage` |
+| `GET /api/v1/mobile-build-requests/{id}` | `delivery.builds.manage` |
+| `GET /api/v1/mobile-releases` | `delivery.releases.download` |
+| `GET /api/v1/mobile-releases/{id}` | `delivery.releases.download` |
+| `POST /api/v1/mobile-releases/{id}/publish` | `delivery.releases.publish` |
+| `POST /api/v1/mobile-releases/{id}/withdraw` | `delivery.releases.publish` |
+| `GET /api/v1/mobile-releases/{id}/download` | `delivery.releases.download` (para stage requiere además `delivery.builds.manage`) |
+
 #### Fuera de `Endpoints/`: `Program.cs`
 
 | Método y ruta | Permiso exigido |
@@ -430,6 +444,15 @@ aplastando la rama antes del merge. La retrospectiva de Fase 0 lo registra como 
 de PR + CI "pagándose sola en la primera pasada" — el control (GitGuardian en el pipeline)
 funcionó como diseñado, pero el hecho de que haya ocurrido una vez es la razón por la que
 este documento existe.
+
+### Custodios y secretos de distribución Android (ADR-0035 / spec 0014)
+
+| Secreto / Llave | Custodio y ubicación | Políticas de aislamiento y recuperación |
+|---|---|---|
+| Keystores Android (`stage` / `prod`) y passwords de alias | Gestor de contraseñas del propietario; secrets en GitHub Environments (`staging` / `production`) | Materializados solo durante el build en `/tmp` con permisos 600 y borrados forzados (`always()`). Copia cifrada offline fuera de Oracle y Drive. La firma prod no debe cambiarse arbitrariamente para permitir actualizaciones del package instalado sin pérdida de SQLite/outbox. |
+| Clave privada GitHub App (`APP_PRIVATE_KEY_PEM`) y App ID | Host de producción/staging: `/etc/hato-delivery/github-app.pem` (600, usuario de servicio `hato-delivery` o root) | Solo el worker interno de `Delivery` accede a esta clave para emitir tokens de instalación de corta vida (Actions write, Contents read). Nunca expuesta en API web pública, navegador ni logs. |
+| Catálogo de artefactos APK locales | `/srv/hato-production/mobile-artifacts` (directorio 700, archivos 600) | Fuera del webroot. Descargas solo autenticadas mediante streaming con permisos en backend. Límite de presupuesto local 5 GiB con compuertas de admisión. |
+| Copia cifrada en Google Drive | Carpeta `backups-hato-erp` vía rclone crypt (`mobile/stage`, `mobile/prod`) | Utiliza las credenciales OAuth y rclone crypt del usuario `hato-backup` (ADR-0034). Comparte el límite operativo global de 300 GB con backups de base de datos y adjuntos. |
 
 ---
 

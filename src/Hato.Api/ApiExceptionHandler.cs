@@ -18,6 +18,11 @@ public class ApiExceptionHandler : IExceptionHandler
         var (statusCode, title) = exception switch
         {
             ValidationException => (StatusCodes.Status400BadRequest, "Solicitud inválida"),
+            Hato.Modules.Delivery.Domain.Exceptions.DuplicateBuildRequestException => (StatusCodes.Status409Conflict, "Solicitud de compilación duplicada"),
+            Hato.Modules.Delivery.Domain.Exceptions.StorageQuotaExceededException => (StatusCodes.Status507InsufficientStorage, "Presupuesto de almacenamiento excedido"),
+            Hato.Modules.Delivery.Domain.Exceptions.BuildQuotaExceededException => (StatusCodes.Status429TooManyRequests, "Límite de compilaciones excedido"),
+            Hato.Modules.Delivery.Domain.Exceptions.ArtifactIntegrityException => (StatusCodes.Status422UnprocessableEntity, "Integridad de artefacto inválida"),
+            Hato.Modules.Delivery.Domain.Exceptions.DeliverySecurityException => (StatusCodes.Status400BadRequest, "Violación de seguridad en artefacto"),
             DomainException => (StatusCodes.Status400BadRequest, "Regla de negocio violada"),
             DuplicateHealthPlanException => (StatusCodes.Status409Conflict, "Plan duplicado"),
             DuplicatePlausibilityRangeException => (StatusCodes.Status409Conflict, "Combinación duplicada"),
@@ -25,6 +30,7 @@ public class ApiExceptionHandler : IExceptionHandler
             AnimalGroupStateException => (StatusCodes.Status409Conflict, "Estado del grupo no permite la operación"),
             UnauthorizedAccessException => (StatusCodes.Status401Unauthorized, "No autorizado"),
             KeyNotFoundException => (StatusCodes.Status404NotFound, "No encontrado"),
+            FileNotFoundException => (StatusCodes.Status404NotFound, "Archivo no encontrado"),
             _ => (0, string.Empty),
         };
 

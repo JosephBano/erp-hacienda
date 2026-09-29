@@ -39,6 +39,10 @@
 │  proveedores)     centros de       roles,           reglas y       │
 │                   costo, CxC)      permisos)        recordatorios) │
 │                                                                    │
+│  Delivery                                                          │
+│  (solicitudes de build, catálogo privado releases móvil,           │
+│  versionCode monotónico, retención y orquestación CI)              │
+│                                                                    │
 │  ─── Shared Kernel: UUID, unidades, dinero, DomainEvent, auditoría │
 │  ─── Transversales: Identity/Auth, Adjuntos, Sync móvil, Auditoría │
 └────────────────────────────────────────────────────────────────────┘
@@ -95,6 +99,16 @@ de una vaca en retiro se registra pero se marca no-vendible; la venta se bloquea
 `decimal` para dinero; cantidades siempre con unidad explícita (tabla de unidades y
 conversiones); persistencia en UTC, presentación en `America/Guayaquil`.
 
+### 9. Distribución móvil y entregas (Delivery — ADR-0035)
+Módulo operativo responsable del ciclo de vida de binarios Android (`stage` y `prod`):
+registro de `MobileBuildRequest`, reserva transaccional monotónica de `versionCode` por paquete,
+catálogo privado de `MobileRelease`, auditoría de transiciones (`Candidate`, `Published`, `Withdrawn`),
+descarga autenticada por streaming (`/api/v1/mobile-releases/{id}/download`), orquestación con
+GitHub Actions (vía GitHub App sin webhook público), y retención con copia a Google Drive
+bajo namespaces dedicados (`mobile/stage`, `mobile/prod`) respetando el límite operativo de 300 GB
+(ADR-0034). Se relaciona con People únicamente para autorización (`delivery.builds.manage`,
+`delivery.releases.publish`, `delivery.releases.download`).
+
 ## Esqueleto de solución
 
 ```
@@ -110,9 +124,12 @@ hato/
 │     ├─ Inventory/ {...}
 │     ├─ Sales/     {...}
 │     ├─ Accounting/{...}
-│     └─ People/    {...}
+│     ├─ People/    {...}
+│     ├─ Tasks/     {...}
+│     └─ Delivery/  {Domain, Application, Infrastructure, Contracts}
 ├─ tests/
 │  ├─ Livestock.UnitTests / Livestock.IntegrationTests
+│  ├─ Delivery.UnitTests / Delivery.IntegrationTests
 │  └─ ...
 ├─ clients/
 │  ├─ admin-web/    # Angular

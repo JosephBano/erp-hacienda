@@ -935,4 +935,110 @@ export class ApiService {
       trackingMode,
     });
   }
+
+  // --- Mobile Delivery (Spec 0014 / ADR-0035) ---
+
+  getMobileBuildRequests(channel?: string): Observable<MobileBuildRequestDto[]> {
+    let params = new HttpParams();
+    if (channel) params = params.set('channel', channel);
+    return this.http.get<MobileBuildRequestDto[]>(`${this.baseUrl}/mobile-build-requests`, { params });
+  }
+
+  getMobileBuildRequestById(id: string): Observable<MobileBuildRequestDto> {
+    return this.http.get<MobileBuildRequestDto>(`${this.baseUrl}/mobile-build-requests/${id}`);
+  }
+
+  createMobileBuildRequest(data: CreateMobileBuildRequestPayload): Observable<MobileBuildRequestDto> {
+    return this.http.post<MobileBuildRequestDto>(`${this.baseUrl}/mobile-build-requests`, data);
+  }
+
+  cancelMobileBuildRequest(id: string, reason?: string): Observable<MobileBuildRequestDto> {
+    return this.http.post<MobileBuildRequestDto>(`${this.baseUrl}/mobile-build-requests/${id}/cancel`, {
+      reason,
+    });
+  }
+
+  getMobileReleases(channel?: string, status?: string): Observable<MobileReleaseDto[]> {
+    let params = new HttpParams();
+    if (channel) params = params.set('channel', channel);
+    if (status) params = params.set('status', status);
+    return this.http.get<MobileReleaseDto[]>(`${this.baseUrl}/mobile-releases`, { params });
+  }
+
+  getMobileReleaseById(id: string): Observable<MobileReleaseDto> {
+    return this.http.get<MobileReleaseDto>(`${this.baseUrl}/mobile-releases/${id}`);
+  }
+
+  downloadMobileRelease(id: string): Observable<Blob> {
+    return this.http.get(`${this.baseUrl}/mobile-releases/${id}/download`, {
+      responseType: 'blob',
+    });
+  }
+
+  publishMobileRelease(id: string, data: PublishMobileReleasePayload): Observable<MobileReleaseDto> {
+    return this.http.post<MobileReleaseDto>(`${this.baseUrl}/mobile-releases/${id}/publish`, data);
+  }
+
+  withdrawMobileRelease(id: string, data: WithdrawMobileReleasePayload): Observable<MobileReleaseDto> {
+    return this.http.post<MobileReleaseDto>(`${this.baseUrl}/mobile-releases/${id}/withdraw`, data);
+  }
 }
+
+export interface MobileBuildRequestDto {
+  id: string;
+  channel: 'Stage' | 'Production' | string;
+  gitRef: string;
+  commitSha: string;
+  attempt: number;
+  versionCode: number;
+  versionName: string;
+  status: 'Pending' | 'Dispatched' | 'Building' | 'Importing' | 'Completed' | 'Failed' | 'Canceled' | string;
+  requestedBy: string;
+  requestedAtUtc: string;
+  notes?: string | null;
+  gitHubRunId?: number | null;
+  gitHubRunUrl?: string | null;
+  errorDetails?: string | null;
+  startedAtUtc?: string | null;
+  finishedAtUtc?: string | null;
+}
+
+export interface MobileReleaseDto {
+  id: string;
+  buildRequestId: string;
+  channel: 'Stage' | 'Production' | string;
+  versionName: string;
+  versionCode: number;
+  commitSha: string;
+  packageName: string;
+  applicationId: string;
+  sha256Digest: string;
+  fileSizeBytes: number;
+  storagePath: string;
+  status: 'Available' | 'Active' | 'Withdrawn' | 'Pruned' | 'UnderInvestigation' | string;
+  isCurrentStable: boolean;
+  isLastGood: boolean;
+  releaseNotes?: string | null;
+  minimumSupportedVersion?: string | null;
+  publishedAtUtc: string;
+  publishedBy?: string | null;
+  withdrawnAtUtc?: string | null;
+  withdrawnReason?: string | null;
+}
+
+export interface CreateMobileBuildRequestPayload {
+  channel: 'Stage' | 'Production' | string;
+  gitRef: string;
+  commitSha: string;
+  notes?: string | null;
+}
+
+export interface PublishMobileReleasePayload {
+  releaseNotes?: string | null;
+  minimumSupportedVersion?: string | null;
+}
+
+export interface WithdrawMobileReleasePayload {
+  reason: string;
+}
+

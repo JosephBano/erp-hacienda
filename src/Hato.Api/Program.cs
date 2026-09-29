@@ -1,6 +1,7 @@
 using Hato.Api;
 using Hato.Api.Endpoints;
 using Hato.Modules.Breeding.Infrastructure;
+using Hato.Modules.Delivery.Infrastructure;
 using Hato.Modules.Inventory.Infrastructure;
 using Hato.Modules.Livestock.Infrastructure;
 using Hato.Modules.People.Infrastructure;
@@ -20,6 +21,7 @@ builder.Services.AddInventoryModule(builder.Configuration);
 builder.Services.AddPeopleModule(builder.Configuration, builder.Environment);
 builder.Services.AddBreedingModule(builder.Configuration);
 builder.Services.AddTasksModule(builder.Configuration);
+builder.Services.AddDeliveryModule(builder.Configuration);
 
 builder.Services.AddCors(options =>
 {
@@ -66,6 +68,7 @@ app.MapBreedingEndpoints();
 app.MapTasksEndpoints();
 app.MapFarmModulesEndpoints();
 app.MapSyncEndpoints();
+app.MapMobileReleasesEndpoints();
 
 app.Run();
 

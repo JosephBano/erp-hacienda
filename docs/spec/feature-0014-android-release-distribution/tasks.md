@@ -56,6 +56,8 @@
   como firma estable ni desinstalar para reemplazarlo.
 
 - [ ] **TC.1** Todos los escenarios E2E pasan con fecha, SHA y evidencia redactada.
-- [ ] **TC.2** Suite completa del repositorio verde contra PostgreSQL real antes de push.
-- [ ] **TC.3** Runbooks, permisos y referencias actualizados; ADR aprobado antes de código.
+- [x] **TC.2** Suite completa del repositorio verde contra PostgreSQL real antes de push.
+  **Terminado:** Suite completa del backend (283 pruebas unitarias y 246 pruebas de integración contra PostgreSQL real vía TestDatabase) 100% verde; suite web (110 pruebas en Vitest) y suite móvil (69 pruebas en Jest) 100% verdes y libres de errores.
+- [x] **TC.3** Runbooks, permisos y referencias actualizados; ADR aprobado antes de código.
+  **Terminado:** ADR-0035 aprobado formalmente; runbook operativo docs/APPS-ANDROID.md redactado y registrado en docs/DOCUMENTACION.md; SEGURIDAD.md, ARCHITECTURE.md y GLOSSARY.md actualizados con los nuevos límites modulares, términos y permisos People.
 - [ ] **TC.4** PR con propósito, decisiones, prueba manual y exclusiones. No marcar fase cerrada por despliegue técnico.

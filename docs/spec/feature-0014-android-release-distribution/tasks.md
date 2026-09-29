@@ -16,9 +16,8 @@
 
 ## Bloque 2 — Build y firma
 
-- [ ] **T2.1** Separar variantes stage/prod con paquetes y URLs correctos, APK release sin Metro.
-  **Terminado:** evidencia reproducible de la acción y resultado esperado del spec archivada
-  en el PR o inventario privado; los escenarios E2E relacionados pasan sin secretos en logs.
+- [x] **T2.1** Separar variantes stage/prod con paquetes y URLs correctos, APK release sin Metro.
+  **Terminado:** Creado clients/field-app/app.config.ts con paquetes independientes (com.joemandev.hatofieldapp para prod preservado pendiente de INV.1; com.joemandev.hatofieldapp.stage para stage), nombres e iconos diferenciados, banner offline en stage, allowlist estricta de URLs de API, y eas.json configurado con buildType apk para stage y production. Cubierto con pruebas en tests/appConfig.test.ts.
 - [ ] **T2.2** Reservar versionCode monotónico transaccional y validar manifiesto con firma/hash/SHA.
   **Terminado:** evidencia reproducible de la acción y resultado esperado del spec archivada
   en el PR o inventario privado; los escenarios E2E relacionados pasan sin secretos en logs.

@@ -64,6 +64,8 @@ import { ThemeProvider, useTheme, theme } from './ui/theme';
 // (ADR-0010): a runtime override would conflate bundle-misconfig with network-down and
 // would require designing a config-delivery channel we do not need yet.
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://10.0.2.2:5282';
+const APP_VARIANT = process.env.EXPO_PUBLIC_APP_VARIANT ?? process.env.APP_VARIANT ?? 'development';
+const isStage = APP_VARIANT.toLowerCase() === 'stage' || APP_VARIANT.toLowerCase() === 'staging' || APP_VARIANT.toLowerCase() === 'preview';
 const DEVICE_ID = 'field-device';
 
 type Tab = TabKey;
@@ -297,6 +299,11 @@ function AppShell() {
           backgroundColor={activeTheme.color.background}
           translucent={false}
         />
+        {isStage && (
+          <View testID="stage-banner" style={styles.stageBanner}>
+            <Text style={styles.stageBannerText}>HATO CAMPO — STAGE (PRUEBAS)</Text>
+          </View>
+        )}
         <Screen>
           <Title>HATO</Title>
           <Body muted>Abriendo la base local…</Body>
@@ -316,6 +323,11 @@ function AppShell() {
           backgroundColor={activeTheme.color.background}
           translucent={false}
         />
+        {isStage && (
+          <View testID="stage-banner" style={styles.stageBanner}>
+            <Text style={styles.stageBannerText}>HATO CAMPO — STAGE (PRUEBAS)</Text>
+          </View>
+        )}
         <LoginScreen
           auth={auth}
           hasCachedSession={hasCachedSession}
@@ -337,6 +349,11 @@ function AppShell() {
         backgroundColor={activeTheme.color.background}
         translucent={false}
       />
+      {isStage && (
+        <View testID="stage-banner" style={styles.stageBanner}>
+          <Text style={styles.stageBannerText}>HATO CAMPO — STAGE (PRUEBAS)</Text>
+        </View>
+      )}
 
       {/* Global Header — always accessible sync state & secondary settings */}
       <View
@@ -989,5 +1006,18 @@ const styles = StyleSheet.create({
   themeOptionText: {
     fontSize: theme.font.micro,
     fontWeight: '700',
+  },
+  stageBanner: {
+    backgroundColor: '#b45309',
+    paddingVertical: 5,
+    paddingHorizontal: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  stageBannerText: {
+    color: '#ffffff',
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 0.5,
   },
 });

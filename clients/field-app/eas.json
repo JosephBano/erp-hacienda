@@ -13,26 +13,35 @@
         "gradleCommand": ":app:assembleDebug"
       },
       "env": {
+        "APP_VARIANT": "development",
+        "EXPO_PUBLIC_APP_VARIANT": "development",
         "EXPO_PUBLIC_API_URL": "http://10.0.2.2:5282"
       }
     },
-    "preview": {
+    "stage": {
       "extends": "base",
       "distribution": "internal",
       "android": {
         "buildType": "apk"
       },
       "env": {
-        "EXPO_PUBLIC_API_URL": "http://100.121.210.68:8080"
+        "APP_VARIANT": "stage",
+        "EXPO_PUBLIC_APP_VARIANT": "stage",
+        "EXPO_PUBLIC_API_URL": "https://joemanserver.ts.net/api"
       }
+    },
+    "preview": {
+      "extends": "stage"
     },
     "production": {
       "extends": "base",
       "android": {
-        "buildType": "app-bundle"
+        "buildType": "apk"
       },
       "env": {
-        "EXPO_PUBLIC_API_URL": "http://100.121.210.68:8080"
+        "APP_VARIANT": "production",
+        "EXPO_PUBLIC_APP_VARIANT": "production",
+        "EXPO_PUBLIC_API_URL": "https://hato-oracle.ts.net/api"
       }
     },
     "base": {

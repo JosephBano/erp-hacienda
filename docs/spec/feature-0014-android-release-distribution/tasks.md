@@ -18,12 +18,10 @@
 
 - [x] **T2.1** Separar variantes stage/prod con paquetes y URLs correctos, APK release sin Metro.
   **Terminado:** Creado clients/field-app/app.config.ts con paquetes independientes (com.joemandev.hatofieldapp para prod preservado pendiente de INV.1; com.joemandev.hatofieldapp.stage para stage), nombres e iconos diferenciados, banner offline en stage, allowlist estricta de URLs de API, y eas.json configurado con buildType apk para stage y production. Cubierto con pruebas en tests/appConfig.test.ts.
-- [ ] **T2.2** Reservar versionCode monotónico transaccional y validar manifiesto con firma/hash/SHA.
-  **Terminado:** evidencia reproducible de la acción y resultado esperado del spec archivada
-  en el PR o inventario privado; los escenarios E2E relacionados pasan sin secretos en logs.
-- [ ] **T2.3** Crear workflow de runners alojados y secrets por entorno; PR/fork sin firma prod.
-  **Terminado:** evidencia reproducible de la acción y resultado esperado del spec archivada
-  en el PR o inventario privado; los escenarios E2E relacionados pasan sin secretos en logs.
+- [x] **T2.2** Reservar versionCode monotónico transaccional y validar manifiesto con firma/hash/SHA.
+  **Terminado:** Reserva monotónica transaccional implementada en Delivery (VersionCodeReservator) con soporte de concurrencia en PostgreSQL real. Validación de manifiesto y artefacto implementada en scripts/android-artifact-manifest.sh y scripts/android-build-verify.sh con comprobación de integridad zip, certificados X.509, fingerprints SHA-256, package, versionCode y flags no-debuggable.
+- [x] **T2.3** Crear workflow de runners alojados y secrets por entorno; PR/fork sin firma prod.
+  **Terminado:** Creado .github/workflows/build-android.yml con ejecución en runners efímeros alojados, segmentación por entornos GitHub Environments (mobile-stage y mobile-production), inyección segura de keystore/contraseñas temporales y limpieza garantizada en bloque always. Bloqueo estricto contra ejecución en forks y restricción del canal productivo exclusivamente a la rama main o tags de release.
 
 ## Bloque 3 — Solicitud y biblioteca
 

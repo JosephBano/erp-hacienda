@@ -42,11 +42,11 @@ export function isVisible(key: string, rows: readonly ModuleRow[]): boolean;
 
 ## Commit 2 — Visibilidad en el panel
 
-- [ ] **T2.1** `module-visibility.spec.ts` con la tabla compartida. Verla fallar e
+- [x] **T2.1** `module-visibility.spec.ts` con la tabla compartida. Verla fallar e
       implementar `isVisible` y `normalizeModuleKey`.
-- [ ] **T2.2** `module-visibility.service.spec.ts`: carga las filas al iniciar sesión, las
+- [x] **T2.2** `module-visibility.service.spec.ts`: carga las filas al iniciar sesión, las
       recarga tras un cambio, y `isVisible` es reactivo (`computed`).
-- [ ] **T2.3** Commit `feat(admin-web): evaluate module visibility along the key chain`.
+- [x] **T2.3** Commit `feat(admin-web): evaluate module visibility along the key chain`.
 
 ## Commit 3 — Sección "Módulos" y menú filtrado
 

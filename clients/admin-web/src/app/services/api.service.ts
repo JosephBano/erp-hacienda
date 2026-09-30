@@ -179,6 +179,10 @@ export interface FarmModuleDto {
   key: string;
   enabled: boolean;
   disabledReason?: string | null;
+  parentKey?: string | null;
+  id?: string;
+  createdAt?: string;
+  updatedAt?: string | null;
 }
 
 export interface RegisterAnimalRequest {

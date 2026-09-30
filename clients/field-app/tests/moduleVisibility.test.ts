@@ -4,7 +4,12 @@ import LokiJSAdapter from '@nozbe/watermelondb/adapters/lokijs';
 import { schema } from '../src/database/schema';
 import { migrations } from '../src/database/migrations';
 import { modelClasses } from '../src/database/models';
-import { ModuleVisibility } from '../src/services/moduleVisibility';
+import {
+  ModuleVisibility,
+  isVisible,
+  normalizeModuleKey,
+  type ModuleRow,
+} from '../src/services/moduleVisibility';
 import { Outbox } from '../src/services/outbox';
 import { MilkingService } from '../src/services/milkingService';
 
@@ -167,4 +172,87 @@ describe('ModuleVisibility', () => {
     // Single row, no extras — setting the same value twice does not duplicate.
     expect((await database.get('farm_modules').query().fetch()).length).toBe(1);
   });
+
+  describe('hierarchical module visibility (canShow with local WatermelonDB)', () => {
+    it('shows submodule when local database has no rows at all (fail-open)', async () => {
+      await expect(visibility.canShow('inventory.transformations')).resolves.toBe(true);
+    });
+
+    it('hides submodule when parent is disabled in local database', async () => {
+      await seedModule('inventory', false);
+      await expect(visibility.canShow('inventory.transformations')).resolves.toBe(false);
+    });
+
+    it('hides submodule when parent is enabled but submodule is disabled in local database', async () => {
+      await seedModule('inventory', true);
+      await seedModule('inventory.transformations', false);
+      await expect(visibility.canShow('inventory.transformations')).resolves.toBe(false);
+    });
+
+    it('shows parent when parent is enabled and submodule is disabled in local database', async () => {
+      await seedModule('inventory', true);
+      await seedModule('inventory.transformations', false);
+      await expect(visibility.canShow('inventory')).resolves.toBe(true);
+    });
+
+    it('hides submodule when parent is disabled even if submodule is enabled in local database', async () => {
+      await seedModule('inventory', false);
+      await seedModule('inventory.transformations', true);
+      await expect(visibility.canShow('inventory.transformations')).resolves.toBe(false);
+    });
+
+    it('shows submodule without row when parent is enabled in local database', async () => {
+      await seedModule('inventory', true);
+      await expect(visibility.canShow('inventory.usages')).resolves.toBe(true);
+    });
+  });
 });
+
+describe('normalizeModuleKey', () => {
+  it('trims whitespace and normalizes to lower case', () => {
+    expect(normalizeModuleKey('Inventory.X ')).toBe('inventory.x');
+    expect(normalizeModuleKey('  PRODUCTION  ')).toBe('production');
+  });
+});
+
+describe('isVisible (shared visibility table - spec sec. 5 / tasks T4.1)', () => {
+  it('row 1: ninguna fila -> inventory.transformations is visible', () => {
+    const rows: ModuleRow[] = [];
+    expect(isVisible('inventory.transformations', rows)).toBe(true);
+  });
+
+  it('row 2: inventory=off -> inventory.transformations is hidden', () => {
+    const rows: ModuleRow[] = [{ key: 'inventory', enabled: false }];
+    expect(isVisible('inventory.transformations', rows)).toBe(false);
+  });
+
+  it('row 3: inventory=on, inventory.transformations=off -> inventory.transformations is hidden', () => {
+    const rows: ModuleRow[] = [
+      { key: 'inventory', enabled: true },
+      { key: 'inventory.transformations', enabled: false },
+    ];
+    expect(isVisible('inventory.transformations', rows)).toBe(false);
+  });
+
+  it('row 4: inventory=on, inventory.transformations=off -> inventory is visible', () => {
+    const rows: ModuleRow[] = [
+      { key: 'inventory', enabled: true },
+      { key: 'inventory.transformations', enabled: false },
+    ];
+    expect(isVisible('inventory', rows)).toBe(true);
+  });
+
+  it('row 5: inventory=off, inventory.transformations=on -> inventory.transformations is hidden', () => {
+    const rows: ModuleRow[] = [
+      { key: 'inventory', enabled: false },
+      { key: 'inventory.transformations', enabled: true },
+    ];
+    expect(isVisible('inventory.transformations', rows)).toBe(false);
+  });
+
+  it('row 6: inventory=on -> inventory.usages (sin fila) is visible', () => {
+    const rows: ModuleRow[] = [{ key: 'inventory', enabled: true }];
+    expect(isVisible('inventory.usages', rows)).toBe(true);
+  });
+});
+

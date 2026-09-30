@@ -29,13 +29,20 @@ export function SyncStatusScreen({
   engine,
   outbox,
   visibility,
+  permissions,
   onModulesChanged,
 }: {
   engine: SyncEngine;
   outbox: Outbox;
   visibility: ModuleVisibility;
+  permissions?: string[];
   onModulesChanged?: () => void;
 }) {
+  const canManageModules =
+    !permissions ||
+    permissions.includes('settings.farm-modules.manage') ||
+    permissions.includes('*');
+
   const [stats, setStats] = useState<OutboxStats | null>(null);
   const [rejected, setRejected] = useState<OutboxEntry[]>([]);
   const [result, setResult] = useState<SyncResult | null>(null);
@@ -117,6 +124,7 @@ export function SyncStatusScreen({
   };
 
   const onToggleModule = (key: ModuleKey, nextEnabled: boolean) => {
+    if (!canManageModules) return;
     setModuleError(null);
     if (!nextEnabled) {
       // Disable is the destructive direction: the only way to undo a local disable is
@@ -252,12 +260,22 @@ export function SyncStatusScreen({
       )}
 
       <Title>Módulos del dispositivo</Title>
-      <Body muted>Los cambios se aplican de inmediato al próximo refresh.</Body>
+      <Body muted>
+        {canManageModules
+          ? 'Los cambios se aplican de inmediato al próximo refresh.'
+          : 'Solo lectura. Se requiere el permiso settings.farm-modules.manage para cambiar módulos.'}
+      </Body>
       {moduleError ? <Notice text={moduleError} /> : null}
       <ModuleToggle
         moduleKey="production"
         label="Ordeño"
         enabled={moduleFlags.production}
+        disabled={!canManageModules}
+        hint={
+          !canManageModules
+            ? 'Solo lectura: se requiere el permiso settings.farm-modules.manage'
+            : undefined
+        }
         onChange={onToggleModule}
       />
 

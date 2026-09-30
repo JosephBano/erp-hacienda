@@ -62,21 +62,21 @@ export function isVisible(key: string, rows: readonly ModuleRow[]): boolean;
 
 ## Commit 4 — Visibilidad en el teléfono
 
-- [ ] **T4.1** `moduleVisibility.test.ts` con la tabla compartida, más "sin ninguna fila en
+- [x] **T4.1** `moduleVisibility.test.ts` con la tabla compartida, más "sin ninguna fila en
       la base local → visible". Verla fallar.
-- [ ] **T4.2** `canShow` lee de WatermelonDB las filas de la cadena (`inventory` y
+- [x] **T4.2** `canShow` lee de WatermelonDB las filas de la cadena (`inventory` y
       `inventory.transformations`) y aplica `isVisible`. Sin llamadas de red.
-- [ ] **T4.3** `SyncStatusScreen`/`ModuleToggle`: prueba que con una sesión sin
+- [x] **T4.3** `SyncStatusScreen`/`ModuleToggle`: prueba que con una sesión sin
       `settings.farm-modules.manage` los interruptores están deshabilitados y `setEnabled` no
       se llama.
-- [ ] **T4.4** **Terminado:** `npm run typecheck && npm run lint && npm test` en
+- [x] **T4.4** **Terminado:** `npm run typecheck && npm run lint && npm test` en
       `clients/field-app` en verde.
-- [ ] **T4.5** Commit `feat(field-app): evaluate module visibility along the key chain`.
+- [x] **T4.5** Commit `feat(field-app): evaluate module visibility along the key chain`.
 
 ---
 
 ## Cierre
 
-- [ ] **TC.1** `dotnet test Hato.sln` completo en verde.
+- [x] **TC.1** `dotnet test Hato.sln` completo en verde.
 - [ ] **TC.2** [`test-e2e.md`](./test-e2e.md) completo en staging y en un teléfono físico.
 - [ ] **TC.3** PR con la descripción de `plan.md`.

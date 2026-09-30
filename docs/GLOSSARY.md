@@ -69,14 +69,23 @@
 | Lactancia | `Lactation` | Período productivo entre parto y secado; unidad de análisis lechero. |
 | Calidad de leche | `MilkQualityTest` | CMT/mastitis, sólidos, células somáticas; puede afectar precio de venta. |
 | Ítem de inventario | `InventoryItem` | Cualquier bien: insumo, medicamento, producto, subproducto. |
-| Lote de inventario | `InventoryBatch` | Partida con cantidad, costo, vencimiento (¡distinto de `AnimalGroup`!). |
-| Recepción de inventario | `InventoryReception` | Registro de una entrada de stock a un `InventoryItem`: fecha de recepción declarada, cantidad, costo, vencimiento opcional, proveedor (texto libre hasta Fase 4 — `Supplier` será FK entonces), referencia de factura opcional. Crea un `InventoryBatch` con `ReceivedAt`. Evento de dominio: `InventoryReceptionRecorded`. Flujo deprecado y reemplazado por `Purchase/PurchaseReception` cuando llegue Purchasing (Fase 4). |
+| Lote de inventario | `InventoryBatch` | Partida con cantidad, costo, vencimiento (¡distinto de `AnimalGroup`!). Desde ADR-0041, lo que queda de un lote **se deriva** por PEPS de los movimientos y solo sirve para la alerta de vencimiento; no valora el inventario. |
+| Recepción de inventario | `InventoryReception` | Registro de una entrada de stock a un `InventoryItem`: fecha de recepción declarada, cantidad, costo, vencimiento opcional, proveedor (texto libre hasta Fase 4 — `Supplier` será FK entonces), referencia de factura opcional. Crea un `InventoryBatch` con `ReceivedAt`. Evento de dominio: `InventoryReceptionRecorded`. Flujo deprecado y reemplazado por `Purchase/PurchaseReception` cuando llegue Purchasing (Fase 4). **Desde ADR-0041 es un tipo de `InventoryMovement` (`Reception`)**, y puede agruparse bajo una `SupplierInvoice`. |
 | Evento de recepción | `InventoryReceptionRecorded` | Evento de dominio emitido al registrar una `InventoryReception`. Lleva `BatchId`, `ItemId`, `QuantityInBaseUnit`, `UnitRecorded`, `AppliedFactor?`, `ReceivedAt`, `SupplierLabel?`, `InvoiceReference?`, `RecordedBy?`. Permite reconstruir el momento y origen de cada entrada de stock. |
 | Producto | `Product` | Bien vendible (leche cruda, queso fresco, cerdo en pie…). Configurable. |
 | Subproducto | `ByProduct` | Salida secundaria de una transformación (suero, estiércol). |
 | Receta / BOM | `BillOfMaterials` | Definición de transformación: insumos → productos + subproductos + merma. |
-| Orden de transformación | `TransformationOrder` | Ejecución de una BOM en fecha, con costos reales distribuidos. |
-| Merma | `ProcessLoss` | Pérdida esperada/real en una transformación. |
+| Orden de transformación | `TransformationOrder` | Ejecución de una transformación en una fecha, con costos reales: insumos que salen, producto que entra y un costo de servicio opcional (monto sin ítem de inventario). La BOM es **opcional**: sin ella, la orden se registra tal como ocurrió (ADR-0041). En la interfaz, "Preparar alimento". |
+| Merma | `ProcessLoss` | Pérdida esperada/real en una transformación. La merma de bodega (fuera de una transformación) se registra como un **ajuste** con motivo "merma". |
+| Categoría de inventario | `ItemCategory` | Clasificación de un ítem (fármaco, alimento, insumo, producto, material genético…). **Catálogo editable**, no enum (ADR-0041). La marca `IsFeed` habilita la etapa de alimento. |
+| Movimiento de inventario | `InventoryMovement` | Entrada o salida de stock de un ítem, **inmutable**: saldo inicial, recepción, uso, ajuste, insumo o producto de transformación. Es la única fuente de verdad del stock (ADR-0041). **No confundir con `MovementEvent`**, el cambio de grupo o potrero de un animal. |
+| Kardex | `StockLedger` | Las líneas de movimientos de un ítem en orden cronológico, con saldo, costo promedio y valor acumulados. **Se calcula al leer**, nunca se guarda. Lo calcula `StockLedgerCalculator`. |
+| Saldo | `StockBalance` | Cantidad de un ítem en un momento, derivada del kardex. Puede ser negativa: indica una entrada que falta o un error de conteo, y genera una alerta. |
+| Costo promedio ponderado | `WeightedAverageCost` | Método de valoración del inventario: cada entrada recalcula el promedio, y las salidas salen al promedio vigente en su fecha. |
+| Saldo inicial | `OpeningBalance` | Movimiento que registra lo que ya había en bodega al arrancar, a partir de un conteo físico. Su costo puede ser **estimado** (`IsCostEstimated`). No cuenta como dinero invertido. |
+| Uso (salida) | `Usage` | Movimiento que registra que se usó una cantidad en una fecha. El destino (grupo o nota) es opcional. |
+| Ajuste de inventario | `Adjustment` | Movimiento que corrige el saldo a la realidad, con un **motivo obligatorio** (`AdjustmentReason`: merma, diferencia de pesaje, conteo físico, vencimiento…). Solo para administrador. |
+| Factura recibida | `SupplierInvoice` | Documento del proveedor que respalda una o más recepciones. Opcional: una recepción puede no tener factura. No es cuenta por pagar. |
 
 ## Comercial, contabilidad y personas
 
@@ -215,6 +224,7 @@
 | Término (ES) | Código (EN) | Definición |
 |---|---|---|
 | Módulo de la finca | `FarmModule` | Interruptor **explícito** por módulo (`key`, `enabled`, `disabled_reason`), editable desde el panel sin deploy. Lo decide el dueño, no el catálogo de datos. |
+| Submódulo | `FarmModule` (clave jerárquica) | Interruptor de una parte de un módulo, con clave separada por punto (`inventory.transformations`). Visible solo si él y todos sus ancestros están encendidos (ADR-0042, que amplía el ADR-0019). |
 | Módulo oculto | — | Módulo apagado: su entrada desaparece de la navegación. **Nada se borra** — código, pruebas, endpoints y datos siguen intactos y en verde. Ocultar es decisión de producto, no permiso para dejar de mantener. |
 | Entrada vs. camino de los datos | — | Se oculta **la puerta de entrada**, jamás **la salida de lo ya registrado**: un teléfono con ordeños sin sincronizar debe poder subirlos aunque el módulo esté apagado. Es el único punto donde esta decisión puede perder datos en silencio. |
 | Capacidad de especie vs. visibilidad | `Species.IsMilkable` vs. `FarmModule` | Dos ejes distintos que estaban confundidos: `IsMilkable` es **verdad de dominio** (un cerdo no se ordeña nunca); la visibilidad es **decisión de producto** (esta finca no usa el módulo todavía). Se puede tener vacas ordeñables y el módulo apagado. |

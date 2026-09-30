@@ -72,6 +72,75 @@ public class FarmModulesEndpointsApiTests(PeopleApiFactory factory) : IClassFixt
         Assert.Contains("people", keys);
     }
 
+    [Fact]
+    public async Task GetFarmModules_RootModulesHaveNullParentKey()
+    {
+        var authedClient = await CreateAuthenticatedAdminClientAsync();
+
+        var response = await authedClient.GetAsync("/api/v1/farm-modules");
+        response.EnsureSuccessStatusCode();
+
+        var modules = await response.Content.ReadFromJsonAsync<List<FarmModuleDto>>();
+        Assert.NotNull(modules);
+
+        var inventory = modules!.FirstOrDefault(m => m.Key == "inventory");
+        Assert.NotNull(inventory);
+        Assert.Null(inventory!.ParentKey);
+
+        var production = modules!.FirstOrDefault(m => m.Key == "production");
+        Assert.NotNull(production);
+        Assert.Null(production!.ParentKey);
+    }
+
+    [Fact]
+    public async Task PatchFarmModule_HierarchicalKey_ReturnsParentKey_AndParentPatchDoesNotMutateChild()
+    {
+        var authedClient = await CreateAuthenticatedAdminClientAsync();
+
+        // 1. Create or enable submodule inventory.transformations
+        var childResponse = await authedClient.PatchAsJsonAsync(
+            "/api/v1/farm-modules/inventory.transformations",
+            new { enabled = true, disabledReason = (string?)null });
+
+        childResponse.EnsureSuccessStatusCode();
+        var childDto = await childResponse.Content.ReadFromJsonAsync<FarmModuleDto>();
+        Assert.NotNull(childDto);
+        Assert.Equal("inventory.transformations", childDto!.Key);
+        Assert.True(childDto.Enabled);
+        Assert.Equal("inventory", childDto.ParentKey);
+
+        // Verify GET returns parentKey for child
+        var listResponse = await authedClient.GetAsync("/api/v1/farm-modules");
+        listResponse.EnsureSuccessStatusCode();
+        var list = await listResponse.Content.ReadFromJsonAsync<List<FarmModuleDto>>();
+        var fromList = list!.FirstOrDefault(m => m.Key == "inventory.transformations");
+        Assert.NotNull(fromList);
+        Assert.Equal("inventory", fromList!.ParentKey);
+
+        // 2. Disable parent module "inventory" (T1.3)
+        var disableParentResponse = await authedClient.PatchAsJsonAsync(
+            "/api/v1/farm-modules/inventory",
+            new { enabled = false, disabledReason = "apagar inventario para prueba" });
+        disableParentResponse.EnsureSuccessStatusCode();
+
+        // 3. Verify parent is disabled, but child is STILL enabled (not mutated)
+        var verifyListResponse = await authedClient.GetAsync("/api/v1/farm-modules");
+        verifyListResponse.EnsureSuccessStatusCode();
+        var verifyList = await verifyListResponse.Content.ReadFromJsonAsync<List<FarmModuleDto>>();
+
+        var parentVerify = verifyList!.First(m => m.Key == "inventory");
+        Assert.False(parentVerify.Enabled);
+
+        var childVerify = verifyList!.First(m => m.Key == "inventory.transformations");
+        Assert.True(childVerify.Enabled, "El PATCH del padre no debe escribir en los hijos.");
+
+        // Restore parent for idempotency
+        var restoreParent = await authedClient.PatchAsJsonAsync(
+            "/api/v1/farm-modules/inventory",
+            new { enabled = true, disabledReason = (string?)null });
+        restoreParent.EnsureSuccessStatusCode();
+    }
+
     private async Task<HttpClient> CreateAuthenticatedAdminClientAsync()
     {
         await _client.PostAsJsonAsync("/api/v1/people/users", new
@@ -96,5 +165,5 @@ public class FarmModulesEndpointsApiTests(PeopleApiFactory factory) : IClassFixt
         return authedClient;
     }
 
-    private sealed record FarmModuleDto(Guid Id, string Key, bool Enabled, string? DisabledReason);
+    private sealed record FarmModuleDto(Guid Id, string Key, bool Enabled, string? DisabledReason, string? ParentKey = null);
 }

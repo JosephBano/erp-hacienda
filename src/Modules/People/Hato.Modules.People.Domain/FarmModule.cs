@@ -19,9 +19,25 @@ namespace Hato.Modules.People.Domain;
 /// </summary>
 public class FarmModule : AuditableEntity
 {
+    private static readonly System.Text.RegularExpressions.Regex ModuleKeyRegex =
+        new(@"^[a-z0-9_]+(\.[a-z0-9_]+)*$", System.Text.RegularExpressions.RegexOptions.Compiled);
+
     public string Key { get; private set; }
     public bool Enabled { get; private set; }
     public string? DisabledReason { get; private set; }
+
+    /// <summary>
+    /// Derived parent module key (e.g., "inventory" for "inventory.transformations",
+    /// or null for top-level modules like "inventory").
+    /// </summary>
+    public string? ParentKey
+    {
+        get
+        {
+            var lastDot = Key.LastIndexOf('.');
+            return lastDot > 0 ? Key[..lastDot] : null;
+        }
+    }
 
     private FarmModule()
     {
@@ -41,6 +57,18 @@ public class FarmModule : AuditableEntity
             throw new DomainException("La clave del módulo no puede estar vacía.");
 
         var normalized = key.Trim().ToLowerInvariant();
+        if (!ModuleKeyRegex.IsMatch(normalized))
+        {
+            throw new DomainException(
+                $"La clave de módulo '{key}' tiene un formato inválido. Debe contener segmentos [a-z0-9_] separados por punto.");
+        }
+
+        if (!enabled && string.IsNullOrWhiteSpace(disabledReason))
+        {
+            throw new DomainException(
+                "Apagar un módulo requiere una razón; el campo no puede quedar vacío.");
+        }
+
         return new FarmModule(normalized, enabled, disabledReason?.Trim());
     }
 

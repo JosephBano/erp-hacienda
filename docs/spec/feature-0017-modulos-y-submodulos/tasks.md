@@ -30,15 +30,15 @@ export function isVisible(key: string, rows: readonly ModuleRow[]): boolean;
 
 ## Commit 1 — Claves jerárquicas en el servidor
 
-- [ ] **T1.1** Pruebas en `FarmModuleKeyTests`: `"Inventory.X "` → `"inventory.x"`;
+- [x] **T1.1** Pruebas en `FarmModuleKeyTests`: `"Inventory.X "` → `"inventory.x"`;
       `"inventory..x"`, `".inventory"`, `"inventory."` y `"inv entory"` se rechazan;
       `"inventory.transformations"` se acepta. Implementar la validación en
       `FarmModule.Create`.
-- [ ] **T1.2** `GET /api/v1/farm-modules` devuelve `parentKey` (`null` para módulos de primer
+- [x] **T1.2** `GET /api/v1/farm-modules` devuelve `parentKey` (`null` para módulos de primer
       nivel). Prueba de integración.
-- [ ] **T1.3** Prueba: `PATCH /farm-modules/inventory` a `false` **no** cambia la fila de
+- [x] **T1.3** Prueba: `PATCH /farm-modules/inventory` a `false` **no** cambia la fila de
       `inventory.transformations`.
-- [ ] **T1.4** Commit `feat(people): accept hierarchical farm module keys`.
+- [x] **T1.4** Commit `feat(people): accept hierarchical farm module keys`.
 
 ## Commit 2 — Visibilidad en el panel
 

@@ -13,6 +13,7 @@ public class FarmModuleConfiguration : IEntityTypeConfiguration<FarmModule>
 
         builder.Property(m => m.Key).HasMaxLength(50).IsRequired();
         builder.Property(m => m.DisabledReason).HasMaxLength(500);
+        builder.Ignore(m => m.ParentKey);
 
         // The whole module toggle list is small. The index keeps the lookup O(1)
         // even after several toggles flip enabled/disabled back and forth.

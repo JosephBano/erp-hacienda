@@ -79,4 +79,4 @@ export function isVisible(key: string, rows: readonly ModuleRow[]): boolean;
 
 - [x] **TC.1** `dotnet test Hato.sln` completo en verde.
 - [ ] **TC.2** [`test-e2e.md`](./test-e2e.md) completo en staging y en un teléfono físico.
-- [ ] **TC.3** PR con la descripción de `plan.md`.
+- [x] **TC.3** PR con la descripción de `plan.md`.

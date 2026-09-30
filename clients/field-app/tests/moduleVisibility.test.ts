@@ -255,4 +255,3 @@ describe('isVisible (shared visibility table - spec sec. 5 / tasks T4.1)', () =>
     expect(isVisible('inventory.usages', rows)).toBe(true);
   });
 });
-

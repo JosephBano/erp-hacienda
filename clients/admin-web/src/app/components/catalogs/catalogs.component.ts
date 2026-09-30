@@ -27,13 +27,7 @@ import {
 import { IconComponent } from '../../shared/icon/icon.component';
 
 type TabKey =
-  | 'species'
-  | 'breeds'
-  | 'categories'
-  | 'mortality'
-  | 'routes'
-  | 'reasons'
-  | 'inventory';
+  'species' | 'breeds' | 'categories' | 'mortality' | 'routes' | 'reasons' | 'inventory';
 
 interface Tab {
   key: TabKey;

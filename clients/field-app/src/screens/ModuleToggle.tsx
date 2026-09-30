@@ -45,9 +45,7 @@ export function ModuleToggle({
       <BigButton
         testID={testIdOn}
         label={
-          disabled
-            ? `${label}: encendido (solo lectura)`
-            : `${label}: encendido (toca para apagar)`
+          disabled ? `${label}: encendido (solo lectura)` : `${label}: encendido (toca para apagar)`
         }
         tone="primary"
         disabled={disabled}
@@ -61,9 +59,7 @@ export function ModuleToggle({
     <BigButton
       testID={testIdOff}
       label={
-        disabled
-          ? `${label}: apagado (solo lectura)`
-          : `${label}: apagado (toca para encender)`
+        disabled ? `${label}: apagado (solo lectura)` : `${label}: apagado (toca para encender)`
       }
       tone="neutral"
       disabled={disabled}

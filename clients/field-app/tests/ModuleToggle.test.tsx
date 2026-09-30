@@ -89,4 +89,3 @@ describe('ModuleToggle', () => {
     expect(onChange).not.toHaveBeenCalled();
   });
 });
-

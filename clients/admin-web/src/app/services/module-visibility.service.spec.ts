@@ -17,7 +17,12 @@ describe('ModuleVisibilityService', () => {
 
   const sampleModules: FarmModuleDto[] = [
     { key: 'inventory', enabled: true, disabledReason: null, parentKey: null },
-    { key: 'inventory.transformations', enabled: false, disabledReason: 'disabled', parentKey: 'inventory' },
+    {
+      key: 'inventory.transformations',
+      enabled: false,
+      disabledReason: 'disabled',
+      parentKey: 'inventory',
+    },
     { key: 'breeding', enabled: false, disabledReason: 'not used', parentKey: null },
   ];
 
@@ -67,7 +72,12 @@ describe('ModuleVisibilityService', () => {
   it('reloads module rows after a change', () => {
     const updatedModules: FarmModuleDto[] = [
       { key: 'inventory', enabled: true, disabledReason: null, parentKey: null },
-      { key: 'inventory.transformations', enabled: true, disabledReason: null, parentKey: 'inventory' },
+      {
+        key: 'inventory.transformations',
+        enabled: true,
+        disabledReason: null,
+        parentKey: 'inventory',
+      },
     ];
     mockApiService.getFarmModules.mockReturnValue(of(updatedModules));
 
@@ -83,12 +93,8 @@ describe('ModuleVisibilityService', () => {
       { key: 'inventory.transformations', enabled: false },
     ]);
 
-    const canSeeTransformations = computed(() =>
-      service.isVisible('inventory.transformations'),
-    );
-    const canSeeInventory = computed(() =>
-      service.isVisible('inventory'),
-    );
+    const canSeeTransformations = computed(() => service.isVisible('inventory.transformations'));
+    const canSeeInventory = computed(() => service.isVisible('inventory'));
 
     expect(canSeeInventory()).toBe(true);
     expect(canSeeTransformations()).toBe(false);

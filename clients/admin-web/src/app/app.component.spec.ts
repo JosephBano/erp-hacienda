@@ -146,4 +146,3 @@ describe('AppComponent', () => {
     expect(root.querySelector('a[routerLink="/"]')).not.toBeNull();
   });
 });
-

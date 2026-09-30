@@ -467,9 +467,7 @@ describe('SyncStatusScreen', () => {
 
     const toggle = await screen.findByTestId('module-toggle-production-on');
     expect(toggle.props.accessibilityState?.disabled).toBe(true);
-    expect(
-      screen.getByText(/Se requiere el permiso settings\.farm-modules\.manage/i),
-    ).toBeTruthy();
+    expect(screen.getByText(/Se requiere el permiso settings\.farm-modules\.manage/i)).toBeTruthy();
     expect(screen.getAllByText(/solo lectura/i).length).toBeGreaterThan(0);
 
     fireEvent.press(toggle);
@@ -481,4 +479,3 @@ describe('SyncStatusScreen', () => {
     setEnabledSpy.mockRestore();
   });
 });
-

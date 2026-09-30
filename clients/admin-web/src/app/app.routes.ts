@@ -23,12 +23,36 @@ import { moduleGuard } from './guards/module.guard';
 export const routes: Routes = [
   { path: 'login', component: LoginComponent },
   { path: '', component: DashboardComponent, canActivate: [authGuard] },
-  { path: 'animals', component: AnimalListComponent, canActivate: [authGuard, moduleGuard('livestock')] },
-  { path: 'animals/new', component: AnimalRegisterComponent, canActivate: [authGuard, moduleGuard('livestock')] },
-  { path: 'animals/:id', component: AnimalDetailComponent, canActivate: [authGuard, moduleGuard('livestock')] },
-  { path: 'milking', component: QuickMilkingComponent, canActivate: [authGuard, moduleGuard('production')] },
-  { path: 'events', component: QuickEventComponent, canActivate: [authGuard, moduleGuard('livestock')] },
-  { path: 'breeding', component: BreedingDashboardComponent, canActivate: [authGuard, moduleGuard('breeding')] },
+  {
+    path: 'animals',
+    component: AnimalListComponent,
+    canActivate: [authGuard, moduleGuard('livestock')],
+  },
+  {
+    path: 'animals/new',
+    component: AnimalRegisterComponent,
+    canActivate: [authGuard, moduleGuard('livestock')],
+  },
+  {
+    path: 'animals/:id',
+    component: AnimalDetailComponent,
+    canActivate: [authGuard, moduleGuard('livestock')],
+  },
+  {
+    path: 'milking',
+    component: QuickMilkingComponent,
+    canActivate: [authGuard, moduleGuard('production')],
+  },
+  {
+    path: 'events',
+    component: QuickEventComponent,
+    canActivate: [authGuard, moduleGuard('livestock')],
+  },
+  {
+    path: 'breeding',
+    component: BreedingDashboardComponent,
+    canActivate: [authGuard, moduleGuard('breeding')],
+  },
   {
     path: 'animal-groups',
     component: AnimalGroupsListComponent,

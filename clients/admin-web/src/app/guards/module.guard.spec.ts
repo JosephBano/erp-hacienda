@@ -26,7 +26,10 @@ describe('moduleGuard', () => {
 
     const guard = moduleGuard('breeding');
     const result = TestBed.runInInjectionContext(() =>
-      guard({} as unknown as import('@angular/router').ActivatedRouteSnapshot, {} as unknown as import('@angular/router').RouterStateSnapshot),
+      guard(
+        {} as unknown as import('@angular/router').ActivatedRouteSnapshot,
+        {} as unknown as import('@angular/router').RouterStateSnapshot,
+      ),
     );
 
     expect(result).toBe(true);
@@ -38,7 +41,10 @@ describe('moduleGuard', () => {
 
     const guard = moduleGuard('breeding');
     const result = TestBed.runInInjectionContext(() =>
-      guard({} as unknown as import('@angular/router').ActivatedRouteSnapshot, {} as unknown as import('@angular/router').RouterStateSnapshot),
+      guard(
+        {} as unknown as import('@angular/router').ActivatedRouteSnapshot,
+        {} as unknown as import('@angular/router').RouterStateSnapshot,
+      ),
     );
 
     const expectedTree = router.parseUrl('/');

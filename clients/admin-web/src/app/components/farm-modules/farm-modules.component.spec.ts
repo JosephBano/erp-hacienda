@@ -18,7 +18,12 @@ describe('FarmModulesComponent', () => {
 
   const sampleModules: FarmModuleDto[] = [
     { key: 'inventory', enabled: true, disabledReason: null, parentKey: null },
-    { key: 'inventory.transformations', enabled: true, disabledReason: null, parentKey: 'inventory' },
+    {
+      key: 'inventory.transformations',
+      enabled: true,
+      disabledReason: null,
+      parentKey: 'inventory',
+    },
     { key: 'breeding', enabled: false, disabledReason: 'no aplica', parentKey: null },
   ];
 
@@ -26,7 +31,12 @@ describe('FarmModulesComponent', () => {
     mockApiService = {
       getFarmModules: vi.fn().mockReturnValue(of(sampleModules)),
       setFarmModuleEnabled: vi.fn().mockReturnValue(
-        of({ key: 'inventory', enabled: false, disabledReason: 'motivo de prueba', parentKey: null }),
+        of({
+          key: 'inventory',
+          enabled: false,
+          disabledReason: 'motivo de prueba',
+          parentKey: null,
+        }),
       ),
     };
 
@@ -65,10 +75,14 @@ describe('FarmModulesComponent', () => {
     fixture.detectChanges();
 
     // Reason input must be visible
-    const reasonInput = compiled.querySelector('[data-reason-input="inventory"]') as HTMLInputElement;
+    const reasonInput = compiled.querySelector(
+      '[data-reason-input="inventory"]',
+    ) as HTMLInputElement;
     expect(reasonInput).toBeTruthy();
 
-    const confirmBtn = compiled.querySelector('[data-confirm-disable="inventory"]') as HTMLButtonElement;
+    const confirmBtn = compiled.querySelector(
+      '[data-confirm-disable="inventory"]',
+    ) as HTMLButtonElement;
     expect(confirmBtn).toBeTruthy();
 
     // Confirming without reason should NOT call API
@@ -92,7 +106,12 @@ describe('FarmModulesComponent', () => {
   it('displays "apagado por su padre" when child is on but parent is off', () => {
     const modulesWithParentOff: FarmModuleDto[] = [
       { key: 'inventory', enabled: false, disabledReason: 'inventario apagado', parentKey: null },
-      { key: 'inventory.transformations', enabled: true, disabledReason: null, parentKey: 'inventory' },
+      {
+        key: 'inventory.transformations',
+        enabled: true,
+        disabledReason: null,
+        parentKey: 'inventory',
+      },
     ];
     mockApiService.getFarmModules.mockReturnValue(of(modulesWithParentOff));
 

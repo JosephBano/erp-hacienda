@@ -1,9 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-  type ModuleRow,
-  isVisible,
-  normalizeModuleKey,
-} from './module-visibility';
+import { type ModuleRow, isVisible, normalizeModuleKey } from './module-visibility';
 
 describe('module-visibility', () => {
   describe('normalizeModuleKey', () => {

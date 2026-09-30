@@ -106,7 +106,9 @@
         class="nav-item"
         aria-label="Administración de lotes y grupos"
         title="Lotes y Grupos"
-        *ngIf="auth.hasPermission('livestock.animals.write') && moduleVisibility.isVisible('livestock')"
+        *ngIf="
+          auth.hasPermission('livestock.animals.write') && moduleVisibility.isVisible('livestock')
+        "
         (click)="closeDrawer()"
       >
         <app-icon class="nav-icon" name="tag" />

@@ -5,9 +5,9 @@
       <div>
         <h2>Módulos y submódulos</h2>
         <p class="text-muted">
-          Active o desactive módulos y partes de módulo según las necesidades de la finca.
-          Apagar un módulo oculta sus entradas en la web y en los dispositivos móviles al sincronizar,
-          sin eliminar datos históricos ni bloquear operaciones pendientes.
+          Active o desactive módulos y partes de módulo según las necesidades de la finca. Apagar un
+          módulo oculta sus entradas en la web y en los dispositivos móviles al sincronizar, sin
+          eliminar datos históricos ni bloquear operaciones pendientes.
         </p>
       </div>
     </div>
@@ -22,13 +22,19 @@
 
   <div class="modules-tree">
     @for (node of moduleTree(); track node.module.key) {
-      <div class="module-card" [attr.data-module]="node.module.key" [class.is-disabled]="!node.module.enabled">
+      <div
+        class="module-card"
+        [attr.data-module]="node.module.key"
+        [class.is-disabled]="!node.module.enabled"
+      >
         <div class="module-row">
           <div class="module-info">
             <span class="module-title">{{ node.module.key }}</span>
             <div class="badges">
               @if (node.disabledByParent) {
-                <span class="badge badge-warning" data-status="parent-disabled">apagado por su padre</span>
+                <span class="badge badge-warning" data-status="parent-disabled"
+                  >apagado por su padre</span
+                >
               } @else if (node.module.enabled) {
                 <span class="badge badge-success" data-status="active">Activo</span>
               } @else {
@@ -57,7 +63,9 @@
 
         @if (pendingDisableKey === node.module.key) {
           <div class="disable-prompt">
-            <label [attr.for]="'reason-' + node.module.key">Motivo de desactivación (obligatorio):</label>
+            <label [attr.for]="'reason-' + node.module.key"
+              >Motivo de desactivación (obligatorio):</label
+            >
             <input
               [id]="'reason-' + node.module.key"
               type="text"
@@ -90,13 +98,19 @@
             <span class="submodules-label text-muted">Submódulos:</span>
             <div class="submodules-list">
               @for (child of node.children; track child.module.key) {
-                <div class="submodule-card" [attr.data-module]="child.module.key" [class.is-disabled]="!child.module.enabled">
+                <div
+                  class="submodule-card"
+                  [attr.data-module]="child.module.key"
+                  [class.is-disabled]="!child.module.enabled"
+                >
                   <div class="module-row">
                     <div class="module-info">
                       <span class="submodule-title">{{ child.module.key }}</span>
                       <div class="badges">
                         @if (child.disabledByParent) {
-                          <span class="badge badge-warning" data-status="parent-disabled">apagado por su padre</span>
+                          <span class="badge badge-warning" data-status="parent-disabled"
+                            >apagado por su padre</span
+                          >
                         } @else if (child.module.enabled) {
                           <span class="badge badge-success" data-status="active">Activo</span>
                         } @else {
@@ -125,7 +139,9 @@
 
                   @if (pendingDisableKey === child.module.key) {
                     <div class="disable-prompt">
-                      <label [attr.for]="'reason-' + child.module.key">Motivo de desactivación (obligatorio):</label>
+                      <label [attr.for]="'reason-' + child.module.key"
+                        >Motivo de desactivación (obligatorio):</label
+                      >
                       <input
                         [id]="'reason-' + child.module.key"
                         type="text"
@@ -146,7 +162,11 @@
                         >
                           Confirmar desactivación
                         </button>
-                        <button type="button" class="btn btn-secondary btn-sm" (click)="cancelDisable()">
+                        <button
+                          type="button"
+                          class="btn btn-secondary btn-sm"
+                          (click)="cancelDisable()"
+                        >
                           Cancelar
                         </button>
                       </div>

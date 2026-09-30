@@ -2,23 +2,28 @@
 
 > [Spec](./spec.md) · [Tareas](./tasks.md) · [E2E](./test-e2e.md).
 
-Investigación y paquete de infraestructura completados en
+El receptor Healthchecks está desplegado y versionado en
 `home-server/docs/spec/hato-monitoring/{spec,plan,tasks,test-e2e}.md`, rama
-`feature/hato-monitoring-spec`. Ese plan concreta stack, DB, archivos, puertos reservados
-8450/8451 y reparación de recarga Caddy. No se han verificado puertos vivos ni desplegado.
+`feature/hato-monitoring-spec`. Healthchecks, PostgreSQL persistente y Caddy 8450/8451 están
+activos; `backup-prod` y `restore-prod` reciben pings de éxito. La entrega de alertas por correo
+y ausencia de ping se verificó con checks efímeros (confirmado por el propietario el 2026-09-29);
+la matriz de acceso privado (E2E-1), recarga TLS y reinicio de stack (E2E-3), respaldo y restauración
+aislada del monitor (E2E-4), y contrato de backups (E2E-2) fueron verificados el 2026-09-30.
+El agente Beszel para Oracle VPS está configurado en `ops/production/beszel-agent.compose.yml`
+escuchando estrictamente en la IP de tailnet. La medición de 24 horas de recursos (T7) se encuentra
+en ejecución mediante timer del sistema, concluyendo el 2026-10-01 02:42 UTC.
 
-1. `docs(ops): define self-hosted monitoring ownership`: aplicar ADR-0036 aceptado, inventariar
-   recursos/puertos/versiones de home-server y leer sus instrucciones. Enlazar ramas/PRs.
-2. En home-server, definir stack Healthchecks con DB persistente, proceso de envío de
-   alertas, secretos, Caddy, backup y límites. Elegir rutas según estructura existente;
-   no inventar comandos operativos antes de ese inventario. Probar aislamiento y reinicio.
-3. En home-server, configurar check diario y mensual, SMTP y Beszel para VPS con grants
-   mínimos. Medir recursos y registrar evidencia privada de entrega al destinatario.
-4. En HATO, conectar `scripts/backup-status.sh` de feature-0013 con endpoint privado,
-   sin cambiar reglas de validez ni retención. Configuración por entorno; URLs fuera de git.
-5. Ensayar fallos, silencio, reinicio y restauración; actualizar runbooks en ambos repos.
-   Abrir producción solo tras evidencia completa. Ejecutar checks correspondientes y
-   suite exigida del repo antes de PR; no alterar servidores por aprobar documentación.
+1. ADR-0036 aprobado; preflight e investigación de home-server completados.
+2. Healthchecks, persistencia, Caddy y secreto de API desplegados y versionados en la rama
+   `feature/hato-monitoring-spec` del repositorio `home-server`. Toda configuración de monitor
+   se custodia allí sin duplicarla en HATO.
+3. Checks de backup/restore, canales de email, ping URLs privados y emisores conectados y
+   probados satisfactoriamente.
+4. Matriz de acceso, recarga TLS, agente Beszel, respaldo y recuperación en aislamiento
+   ejecutados y documentados. Medición continua de recursos de 24 horas iniciada.
+5. Evidencia conciliada en ambos repositorios; la compuerta de apertura de producción permanece
+   cerrada hasta completar 0012/0013 y sus E2E correspondientes.
+
 
 Dependencias: ADR → inventario home-server → servicio privado → integración → E2E →
 compuerta de producción. ADR-0034 conserva políticas de backup; ADR-0036 sustituye únicamente

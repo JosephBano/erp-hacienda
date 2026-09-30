@@ -126,8 +126,7 @@ y secuencias y ausencia de permisos de escritura/DDL.
 Healthchecks autohospedado envía notificaciones por email a la cuenta de backups. Dos checks externos: respaldo diario (24 horas + 2 de gracia) y
 restore mensual (35 días máximo). Ping éxito solo tras verificación; /fail ante fallo,
 sin datos de finca en payload. URL de ping es secreto. El sitio conoce tiempos y estado,
-no dumps ni nombres de personas. Probar email entregado y silencio del host antes de abrir.
-Alta y entrega SMTP se verifican operativamente; ADR-0036 ya aceptado, servicio aún no instalado.
+Alta y entrega SMTP verificadas operativamente; ADR-0036 aceptado, stack Healthchecks activo en home-server y entrega de alertas comprobada el 2026-09-29; medición de 24 horas en curso según spec 0015.
 
 ## Releases y compatibilidad
 
@@ -160,7 +159,7 @@ valores; nunca reemplazarlos por credenciales ficticias en un despliegue real.
 | Producción Oracle privada | ADR-0033 | Aceptada | `hato-deploy`, Tailscale/Caddy, stack y release probados |
 | Backups Drive | ADR-0034 | Aceptada | OAuth/carpeta verificados, `hato-backup`, primer dump y restore real |
 | APKs stage/prod | ADR-0035 | Aceptada | Custodia de firma, pipeline, descarga y actualización Android probada |
-| Monitor autohospedado | ADR-0036 | Aceptada | Stack home-server, email, ausencia de heartbeat y consumo medidos |
+| Monitor autohospedado | ADR-0036 | Aceptada | Stack home-server activo, email y ausencia probados; concluyendo medición de 24 h (spec 0015) |
 
 Los valores del inventario no reabren estas decisiones salvo que la evidencia contradiga
 una premisa esencial. Ejemplos: no localizar la firma instalada obliga a diseñar migración,

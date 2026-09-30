@@ -598,6 +598,7 @@ function AppShell() {
               engine={engine}
               outbox={outbox}
               visibility={visibility}
+              permissions={auth.currentSession()?.permissions}
               onModulesChanged={refresh}
             />
           ) : null}

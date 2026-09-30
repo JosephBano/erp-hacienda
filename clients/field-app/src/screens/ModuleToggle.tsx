@@ -7,6 +7,8 @@ interface ModuleToggleProps {
   moduleKey: ModuleKey;
   label: string;
   enabled: boolean;
+  disabled?: boolean;
+  hint?: string;
   /**
    * Called with the *intended* next state when the operator taps the switch. The parent
    * is responsible for confirmation UX (disabling Production is the kind of flip that
@@ -27,7 +29,14 @@ interface ModuleToggleProps {
  * write goes through `ModuleVisibility.setEnabled`, which is the same path the eventual
  * pull will exercise. That keeps the contract single-sourced.
  */
-export function ModuleToggle({ moduleKey, label, enabled, onChange }: ModuleToggleProps) {
+export function ModuleToggle({
+  moduleKey,
+  label,
+  enabled,
+  disabled = false,
+  hint,
+  onChange,
+}: ModuleToggleProps) {
   const testIdOn = `module-toggle-${moduleKey}-on`;
   const testIdOff = `module-toggle-${moduleKey}-off`;
 
@@ -35,9 +44,13 @@ export function ModuleToggle({ moduleKey, label, enabled, onChange }: ModuleTogg
     return (
       <BigButton
         testID={testIdOn}
-        label={`${label}: encendido (toca para apagar)`}
+        label={
+          disabled ? `${label}: encendido (solo lectura)` : `${label}: encendido (toca para apagar)`
+        }
         tone="primary"
-        onPress={() => onChange(moduleKey, false)}
+        disabled={disabled}
+        hint={hint}
+        onPress={disabled ? undefined : () => onChange(moduleKey, false)}
       />
     );
   }
@@ -45,9 +58,13 @@ export function ModuleToggle({ moduleKey, label, enabled, onChange }: ModuleTogg
   return (
     <BigButton
       testID={testIdOff}
-      label={`${label}: apagado (toca para encender)`}
+      label={
+        disabled ? `${label}: apagado (solo lectura)` : `${label}: apagado (toca para encender)`
+      }
       tone="neutral"
-      onPress={() => onChange(moduleKey, true)}
+      disabled={disabled}
+      hint={hint}
+      onPress={disabled ? undefined : () => onChange(moduleKey, true)}
     />
   );
 }

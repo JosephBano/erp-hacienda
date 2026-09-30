@@ -452,4 +452,30 @@ describe('SyncStatusScreen', () => {
 
     shareSpy.mockRestore();
   });
+
+  it('renders module switches as read-only and does not invoke setEnabled when session lacks settings.farm-modules.manage (T4.3)', async () => {
+    const setEnabledSpy = jest.spyOn(visibility, 'setEnabled');
+
+    await render(
+      <SyncStatusScreen
+        engine={new SyncEngine(database, api)}
+        outbox={outbox}
+        visibility={visibility}
+        permissions={['livestock.animals.write']}
+      />,
+    );
+
+    const toggle = await screen.findByTestId('module-toggle-production-on');
+    expect(toggle.props.accessibilityState?.disabled).toBe(true);
+    expect(screen.getByText(/Se requiere el permiso settings\.farm-modules\.manage/i)).toBeTruthy();
+    expect(screen.getAllByText(/solo lectura/i).length).toBeGreaterThan(0);
+
+    fireEvent.press(toggle);
+
+    // No confirmation dialog or setEnabled call triggered
+    expect(screen.queryByTestId('confirm-disable-production')).toBeNull();
+    expect(setEnabledSpy).not.toHaveBeenCalled();
+
+    setEnabledSpy.mockRestore();
+  });
 });

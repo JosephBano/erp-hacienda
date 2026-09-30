@@ -29,6 +29,7 @@
         class="nav-item"
         aria-label="Inventario de animales"
         title="Inventario de animales"
+        *ngIf="moduleVisibility.isVisible('livestock')"
         (click)="closeDrawer()"
       >
         <app-icon class="nav-icon" name="pig" />
@@ -41,6 +42,7 @@
         class="nav-item"
         aria-label="Registro de ordeño"
         title="Registro de ordeño"
+        *ngIf="moduleVisibility.isVisible('production')"
         (click)="closeDrawer()"
       >
         <app-icon class="nav-icon" name="milk" />
@@ -53,6 +55,7 @@
         class="nav-item"
         aria-label="Registro de eventos"
         title="Registro de eventos"
+        *ngIf="moduleVisibility.isVisible('livestock')"
         (click)="closeDrawer()"
       >
         <app-icon class="nav-icon" name="file-text" />
@@ -65,6 +68,7 @@
         class="nav-item"
         aria-label="Reproducción y alertas"
         title="Reproducción y alertas"
+        *ngIf="moduleVisibility.isVisible('breeding')"
         (click)="closeDrawer()"
       >
         <app-icon class="nav-icon" name="dna" />
@@ -75,7 +79,7 @@
         routerLink="/catalogs"
         routerLinkActive="active"
         class="nav-item"
-        aria-label="Catálogos (especies, inventario, módulos)"
+        aria-label="Catálogos (especies, inventario)"
         title="Catálogos"
         *ngIf="auth.hasPermission('livestock.species.manage')"
         (click)="closeDrawer()"
@@ -89,7 +93,8 @@
         *ngIf="
           auth.hasPermission('people.roles.manage') ||
           auth.hasPermission('people.users.manage') ||
-          auth.hasPermission('livestock.animals.write')
+          auth.hasPermission('livestock.animals.write') ||
+          auth.hasPermission('settings.farm-modules.manage')
         "
       >
         Administración
@@ -101,11 +106,26 @@
         class="nav-item"
         aria-label="Administración de lotes y grupos"
         title="Lotes y Grupos"
-        *ngIf="auth.hasPermission('livestock.animals.write')"
+        *ngIf="
+          auth.hasPermission('livestock.animals.write') && moduleVisibility.isVisible('livestock')
+        "
         (click)="closeDrawer()"
       >
         <app-icon class="nav-icon" name="tag" />
         <span class="nav-label">Lotes y Grupos</span>
+      </a>
+
+      <a
+        routerLink="/modules"
+        routerLinkActive="active"
+        class="nav-item"
+        aria-label="Módulos del sistema"
+        title="Módulos"
+        *ngIf="auth.hasPermission('settings.farm-modules.manage')"
+        (click)="closeDrawer()"
+      >
+        <app-icon class="nav-icon" name="toggle-on" />
+        <span class="nav-label">Módulos</span>
       </a>
 
       <a

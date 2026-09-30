@@ -1,0 +1,183 @@
+<div class="modules-page">
+  <div class="page-header">
+    <div class="title-row">
+      <app-icon name="shield" size="lg" />
+      <div>
+        <h2>Módulos y submódulos</h2>
+        <p class="text-muted">
+          Active o desactive módulos y partes de módulo según las necesidades de la finca. Apagar un
+          módulo oculta sus entradas en la web y en los dispositivos móviles al sincronizar, sin
+          eliminar datos históricos ni bloquear operaciones pendientes.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  @if (successMessage()) {
+    <div class="alert alert-success">{{ successMessage() }}</div>
+  }
+  @if (errorMessage()) {
+    <div class="alert alert-danger">{{ errorMessage() }}</div>
+  }
+
+  <div class="modules-tree">
+    @for (node of moduleTree(); track node.module.key) {
+      <div
+        class="module-card"
+        [attr.data-module]="node.module.key"
+        [class.is-disabled]="!node.module.enabled"
+      >
+        <div class="module-row">
+          <div class="module-info">
+            <span class="module-title">{{ node.module.key }}</span>
+            <div class="badges">
+              @if (node.disabledByParent) {
+                <span class="badge badge-warning" data-status="parent-disabled"
+                  >apagado por su padre</span
+                >
+              } @else if (node.module.enabled) {
+                <span class="badge badge-success" data-status="active">Activo</span>
+              } @else {
+                <span class="badge badge-secondary" data-status="inactive">Inactivo</span>
+              }
+            </div>
+            @if (node.module.disabledReason) {
+              <p class="module-reason text-muted">{{ node.module.disabledReason }}</p>
+            }
+          </div>
+
+          <div class="module-action">
+            <button
+              type="button"
+              class="btn btn-sm"
+              [class.btn-secondary]="node.module.enabled"
+              [class.btn-primary]="!node.module.enabled"
+              [attr.data-toggle]="node.module.key"
+              (click)="onToggle(node.module)"
+            >
+              <app-icon [name]="node.module.enabled ? 'close' : 'check'" size="sm" />
+              <span>{{ node.module.enabled ? 'Desactivar' : 'Activar' }}</span>
+            </button>
+          </div>
+        </div>
+
+        @if (pendingDisableKey === node.module.key) {
+          <div class="disable-prompt">
+            <label [attr.for]="'reason-' + node.module.key"
+              >Motivo de desactivación (obligatorio):</label
+            >
+            <input
+              [id]="'reason-' + node.module.key"
+              type="text"
+              class="form-control"
+              placeholder="Ej. no se usa en esta finca"
+              [(ngModel)]="disableReason"
+              [attr.data-reason-input]="node.module.key"
+            />
+            @if (validationError) {
+              <span class="field-error">{{ validationError }}</span>
+            }
+            <div class="prompt-actions">
+              <button
+                type="button"
+                class="btn btn-danger btn-sm"
+                [attr.data-confirm-disable]="node.module.key"
+                (click)="confirmDisable(node.module.key)"
+              >
+                Confirmar desactivación
+              </button>
+              <button type="button" class="btn btn-secondary btn-sm" (click)="cancelDisable()">
+                Cancelar
+              </button>
+            </div>
+          </div>
+        }
+
+        @if (node.children.length > 0) {
+          <div class="submodules-container">
+            <span class="submodules-label text-muted">Submódulos:</span>
+            <div class="submodules-list">
+              @for (child of node.children; track child.module.key) {
+                <div
+                  class="submodule-card"
+                  [attr.data-module]="child.module.key"
+                  [class.is-disabled]="!child.module.enabled"
+                >
+                  <div class="module-row">
+                    <div class="module-info">
+                      <span class="submodule-title">{{ child.module.key }}</span>
+                      <div class="badges">
+                        @if (child.disabledByParent) {
+                          <span class="badge badge-warning" data-status="parent-disabled"
+                            >apagado por su padre</span
+                          >
+                        } @else if (child.module.enabled) {
+                          <span class="badge badge-success" data-status="active">Activo</span>
+                        } @else {
+                          <span class="badge badge-secondary" data-status="inactive">Inactivo</span>
+                        }
+                      </div>
+                      @if (child.module.disabledReason) {
+                        <p class="module-reason text-muted">{{ child.module.disabledReason }}</p>
+                      }
+                    </div>
+
+                    <div class="module-action">
+                      <button
+                        type="button"
+                        class="btn btn-sm"
+                        [class.btn-secondary]="child.module.enabled"
+                        [class.btn-primary]="!child.module.enabled"
+                        [attr.data-toggle]="child.module.key"
+                        (click)="onToggle(child.module)"
+                      >
+                        <app-icon [name]="child.module.enabled ? 'close' : 'check'" size="sm" />
+                        <span>{{ child.module.enabled ? 'Desactivar' : 'Activar' }}</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  @if (pendingDisableKey === child.module.key) {
+                    <div class="disable-prompt">
+                      <label [attr.for]="'reason-' + child.module.key"
+                        >Motivo de desactivación (obligatorio):</label
+                      >
+                      <input
+                        [id]="'reason-' + child.module.key"
+                        type="text"
+                        class="form-control"
+                        placeholder="Ej. no se usa en esta finca"
+                        [(ngModel)]="disableReason"
+                        [attr.data-reason-input]="child.module.key"
+                      />
+                      @if (validationError) {
+                        <span class="field-error">{{ validationError }}</span>
+                      }
+                      <div class="prompt-actions">
+                        <button
+                          type="button"
+                          class="btn btn-danger btn-sm"
+                          [attr.data-confirm-disable]="child.module.key"
+                          (click)="confirmDisable(child.module.key)"
+                        >
+                          Confirmar desactivación
+                        </button>
+                        <button
+                          type="button"
+                          class="btn btn-secondary btn-sm"
+                          (click)="cancelDisable()"
+                        >
+                          Cancelar
+                        </button>
+                      </div>
+                    </div>
+                  }
+                </div>
+              }
+            </div>
+          </div>
+        }
+      </div>
+    }
+  </div>
+</div>

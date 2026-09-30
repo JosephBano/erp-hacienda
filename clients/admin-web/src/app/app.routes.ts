@@ -15,37 +15,68 @@ import { AnimalGroupsListComponent } from './components/animal-groups-list/anima
 import { AnimalGroupCreateComponent } from './components/animal-group-create/animal-group-create.component';
 import { AnimalGroupDetailComponent } from './components/animal-group-detail/animal-group-detail.component';
 import { InventoryItemDetailComponent } from './components/inventory-item-detail/inventory-item-detail.component';
+import { FarmModulesComponent } from './components/farm-modules/farm-modules.component';
 import { authGuard } from './guards/auth.guard';
 import { permissionGuard } from './guards/permission.guard';
+import { moduleGuard } from './guards/module.guard';
 
 export const routes: Routes = [
   { path: 'login', component: LoginComponent },
   { path: '', component: DashboardComponent, canActivate: [authGuard] },
-  { path: 'animals', component: AnimalListComponent, canActivate: [authGuard] },
-  { path: 'animals/new', component: AnimalRegisterComponent, canActivate: [authGuard] },
-  { path: 'animals/:id', component: AnimalDetailComponent, canActivate: [authGuard] },
-  { path: 'milking', component: QuickMilkingComponent, canActivate: [authGuard] },
-  { path: 'events', component: QuickEventComponent, canActivate: [authGuard] },
-  { path: 'breeding', component: BreedingDashboardComponent, canActivate: [authGuard] },
+  {
+    path: 'animals',
+    component: AnimalListComponent,
+    canActivate: [authGuard, moduleGuard('livestock')],
+  },
+  {
+    path: 'animals/new',
+    component: AnimalRegisterComponent,
+    canActivate: [authGuard, moduleGuard('livestock')],
+  },
+  {
+    path: 'animals/:id',
+    component: AnimalDetailComponent,
+    canActivate: [authGuard, moduleGuard('livestock')],
+  },
+  {
+    path: 'milking',
+    component: QuickMilkingComponent,
+    canActivate: [authGuard, moduleGuard('production')],
+  },
+  {
+    path: 'events',
+    component: QuickEventComponent,
+    canActivate: [authGuard, moduleGuard('livestock')],
+  },
+  {
+    path: 'breeding',
+    component: BreedingDashboardComponent,
+    canActivate: [authGuard, moduleGuard('breeding')],
+  },
   {
     path: 'animal-groups',
     component: AnimalGroupsListComponent,
-    canActivate: [authGuard, permissionGuard('livestock.animals.write')],
+    canActivate: [authGuard, moduleGuard('livestock'), permissionGuard('livestock.animals.write')],
   },
   {
     path: 'animal-groups/new',
     component: AnimalGroupCreateComponent,
-    canActivate: [authGuard, permissionGuard('livestock.animals.write')],
+    canActivate: [authGuard, moduleGuard('livestock'), permissionGuard('livestock.animals.write')],
   },
   {
     path: 'animal-groups/:id',
     component: AnimalGroupDetailComponent,
-    canActivate: [authGuard, permissionGuard('livestock.animals.write')],
+    canActivate: [authGuard, moduleGuard('livestock'), permissionGuard('livestock.animals.write')],
   },
   {
     path: 'inventory/items/:id',
     component: InventoryItemDetailComponent,
-    canActivate: [authGuard, permissionGuard('inventory.items.manage')],
+    canActivate: [authGuard, moduleGuard('inventory'), permissionGuard('inventory.items.manage')],
+  },
+  {
+    path: 'modules',
+    component: FarmModulesComponent,
+    canActivate: [authGuard, permissionGuard('settings.farm-modules.manage')],
   },
   {
     path: 'roles',

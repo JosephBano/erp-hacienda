@@ -69,4 +69,23 @@ describe('ModuleToggle', () => {
 
     expect(onChange).toHaveBeenCalledWith('production', true);
   });
+
+  it('renders read-only label and does not trigger onChange when disabled', async () => {
+    const onChange = jest.fn();
+    await render(
+      <ModuleToggle
+        moduleKey="production"
+        label="Ordeño"
+        enabled={true}
+        disabled={true}
+        onChange={onChange}
+      />,
+    );
+
+    const button = await screen.findByTestId('module-toggle-production-on');
+    expect(await screen.findByText(/solo lectura/)).toBeTruthy();
+
+    fireEvent.press(button);
+    expect(onChange).not.toHaveBeenCalled();
+  });
 });

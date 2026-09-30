@@ -2,6 +2,8 @@ import { provideHttpClient } from '@angular/common/http';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { AppComponent } from './app.component';
+import { AuthService } from './services/auth.service';
+import { ModuleVisibilityService } from './services/module-visibility.service';
 
 describe('AppComponent', () => {
   beforeEach(async () => {
@@ -100,5 +102,47 @@ describe('AppComponent', () => {
 
     expect(root.querySelectorAll('app-icon').length).toBeGreaterThan(0);
     expect(root.textContent ?? '').not.toMatch(emojiPattern);
+  });
+
+  it('hides breeding nav item when breeding is off, but keeps modules, roles, audit, sync', () => {
+    const fixture = TestBed.createComponent(AppComponent);
+    const auth = TestBed.inject(AuthService);
+    const modVis = TestBed.inject(ModuleVisibilityService);
+
+    auth.currentUser.set({
+      token: 'jwt-test',
+      expiresAt: new Date(Date.now() + 3600000).toISOString(),
+      userId: 'user-1',
+      fullName: 'Test Admin',
+      roles: ['Admin'],
+      permissions: [
+        'people.roles.manage',
+        'people.users.manage',
+        'settings.farm-modules.manage',
+        'livestock.animals.write',
+        'livestock.species.manage',
+      ],
+    });
+
+    modVis.modules.set([
+      { key: 'breeding', enabled: false },
+      { key: 'livestock', enabled: true },
+      { key: 'production', enabled: true },
+    ]);
+    modVis.loaded.set(true);
+
+    fixture.detectChanges();
+    const root = fixture.nativeElement as HTMLElement;
+
+    // Breeding link must NOT exist in the DOM
+    expect(root.querySelector('a[routerLink="/breeding"]')).toBeNull();
+    expect(root.textContent).not.toContain('Reproducción y Alertas');
+
+    // Modules, Roles, Audit, Sync, and Dashboard must remain present
+    expect(root.querySelector('a[routerLink="/modules"]')).not.toBeNull();
+    expect(root.querySelector('a[routerLink="/roles"]')).not.toBeNull();
+    expect(root.querySelector('a[routerLink="/audit"]')).not.toBeNull();
+    expect(root.querySelector('a[routerLink="/sync"]')).not.toBeNull();
+    expect(root.querySelector('a[routerLink="/"]')).not.toBeNull();
   });
 });

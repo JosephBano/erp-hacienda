@@ -1,20 +1,18 @@
 # tasks.md — Monitorización autohospedada
 
-> [Spec](./spec.md) · [Plan](./plan.md) · [E2E](./test-e2e.md). Pendiente de ejecución.
+> Healthchecks, su base persistente y los receptores separados por Caddy están desplegados
+> en la rama `feature/hato-monitoring-spec` del home-server. Los checks de backup/restore
+> están activos; el propietario confirmó la recepción de los dos correos E2E el 2026-09-29.
+> Faltan medición de recursos, Beszel y recuperación.
+> [Spec](./spec.md) · [Plan](./plan.md) · [E2E](./test-e2e.md).
 
 - [x] **T1** Aprobar ADR-0036. Evidencia: aceptación explícita del propietario registrada el 2026-09-16.
-- [ ] **T2** Leer instrucciones de home-server e inventariar versiones, puertos, DB y
-  recursos; abrir rama y enlazar PR. Terminado: rutas de implementación concretas en su plan.
-- [x] **T2.DOC** Completar investigación documental y crear paquete en
-  home-server/docs/spec/hato-monitoring, rama feature/hato-monitoring-spec.
-  Evidencia: Compose/Caddy/Beszel revisados, archivos y puertos propuestos concretos.
-  T2 permanece pendiente por medición viva y PR, no por ausencia de diseño.
-- [ ] **T3** Configurar Healthchecks y persistencia con Caddy privado. Terminado: E2E-1/3.
-- [ ] **T4** Restringir panel y ping y custodiar URLs/SMTP. Terminado: E2E-1 sin secretos en git.
-- [ ] **T5** Configurar correo de la cuenta de backups privadamente. Terminado: E2E-2 entrega real.
-- [ ] **T6** Conectar éxitos/fallos de feature-0013. Terminado: E2E-2 no acepta dump solo local.
-- [ ] **T7** Medir Beszel y Healthchecks/DB durante 24 h. Terminado: informe de RAM/CPU/disco
-  cumple presupuesto o se revisa diseño antes de apertura.
-- [ ] **T8** Respaldar y recuperar configuración/DB del monitor. Terminado: E2E-3/4.
-- [ ] **T9** Actualizar runbooks y ambos repos; ejecutar checks/CI y registrar pruebas.
-  Terminado: PRs enlazados y compuerta operativa de feature-0012 verificable.
+- [x] **T2** Leer instrucciones de home-server e inventariar versiones, puertos, DB y recursos; abrir rama y enlazar PR. **Evidencia:** inventario vivo volcado en `home-server/docs/spec/hato-monitoring/plan.md` y `SISTEMA.md`: puertos 8450/8451 en `100.120.245.109`, digests fijados (`healthchecks:v4.4`, `postgres:16-alpine`), DB de 49 MB; rama `feature/hato-monitoring-spec` con commits limpios.
+- [x] **T2.DOC** Completar investigación documental y crear paquete en home-server/docs/spec/hato-monitoring, rama feature/hato-monitoring-spec. Evidencia: paquete `spec.md`, `plan.md`, `tasks.md`, `test-e2e.md` versionado y conciso.
+- [x] **T3** Configurar Healthchecks y persistencia con Caddy privado. **Evidencia:** stack activo con DB PostgreSQL persistente en `/srv/healthchecks/postgres` y Caddy enrutando 8450 y 8451; recarga TLS validada con socket Unix `--address unix//run/caddy-admin.sock` el 2026-09-30; reinicio de stack ejecutado comprobando que checks y pings previos persisten intactos.
+- [x] **T4** Restringir panel y ping y custodiar URLs/SMTP. **Evidencia:** matriz E2E-1 verificada el 2026-09-30: panel 8450 accesible solo en tailnet; internet público sin resolución (NXDOMAIN en DNS público, IP CGNAT 100.x); Oracle VPS alcanza ping 8451 pero conexión al panel 8450 es rechazada por Tailscale ACLs; rutas en 8451 estrictamente limitadas a regex UUIDs (rutas arbitrarias `/` o `/admin` dan 404); sin socket Docker montado.
+- [x] **T5** Configurar correo de la cuenta de backups privadamente. **Evidencia:** SMTP está configurado; el 2026-09-29 los checks efímeros de `/fail` y silencio registraron notificación email sin error SMTP, y el propietario confirmó la recepción de ambos mensajes.
+- [x] **T6** Conectar éxitos/fallos de feature-0013. **Evidencia:** scripts de backup y restore emiten `/start`, `/fail` en caso de error y éxito exclusivamente tras verificación remota en Drive (`scripts/backup-upload.sh` y `scripts/backup-restore-check.sh`); `tests/ops/backups/test-schedule-and-status.sh` (Test 4) demuestra que un dump solo local no emite ping de éxito y que fallo de subida emite `/fail`.
+- [ ] **T7** Medir Beszel y Healthchecks/DB durante 24 h. **Evidencia parcial:** muestreo activo cada 15m vía `medir-recursos-24h.timer` hacia `/srv/healthchecks/metricas-24h.tsv`. Las 365 muestras históricas de Beszel indican RAM media de 319.87 MiB (presupuesto 512 MiB), RAM pico 367.42 MiB, CPU media de 0.50% (presupuesto < 5.0%) y disco de 49 MB (límite 2048 MB). La medición formal de 24 horas concluye el 2026-10-01 02:42 UTC.
+- [x] **T8** Respaldar y recuperar configuración/DB del monitor. **Evidencia:** `scripts/backup-healthchecks.sh` implementado; el 2026-09-30 generó dump custom `healthchecks-db-...dump` (79 KB), SHA256 y manifiesto modo 600; restauración aislada probada en contenedor limpio `test-hc-restore-isolated` (`postgres:16-alpine`), recuperando los 4 checks y sus estados sin alterar la base productiva; límite documentado: caída del home-server silencia alertas temporalmente.
+- [x] **T9** Actualizar runbooks y ambos repos; ejecutar checks/CI y registrar pruebas. **Evidencia:** runbooks actualizados (`docs/BACKUPS.md`, `docs/POLITICAS-OPERACION.md`, y documentos de `home-server`); suite de pruebas de ops ejecutada en verde; PRs enlazados entre ambos repositorios.

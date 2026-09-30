@@ -1,0 +1,119 @@
+:host {
+  display: block;
+  padding: 1.5rem;
+}
+
+.page-header {
+  margin-bottom: 2rem;
+}
+
+.title-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.title-row h2 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1.5rem;
+  color: var(--text-main);
+}
+
+.modules-tree {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.module-card {
+  background: var(--surface-card, #1e293b);
+  border: 1px solid var(--border-color, #334155);
+  border-radius: var(--radius-md, 8px);
+  padding: 1.25rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.module-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+}
+
+.module-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.module-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-main, #f8fafc);
+}
+
+.submodule-title {
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--text-main, #f8fafc);
+}
+
+.badges {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.module-reason {
+  margin: 0.25rem 0 0 0;
+  font-size: 0.875rem;
+}
+
+.disable-prompt {
+  margin-top: 1rem;
+  padding: 1rem;
+  background: rgba(0, 0, 0, 0.25);
+  border-radius: var(--radius-sm, 6px);
+  border-left: 3px solid var(--danger, #ef4444);
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.prompt-actions {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.field-error {
+  color: var(--danger, #ef4444);
+  font-size: 0.85rem;
+}
+
+.submodules-container {
+  margin-top: 1.25rem;
+  padding-left: 1.5rem;
+  border-left: 2px solid var(--border-color, #334155);
+}
+
+.submodules-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.submodules-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-top: 0.75rem;
+}
+
+.submodule-card {
+  background: rgba(15, 23, 42, 0.5);
+  border: 1px solid var(--border-color, #334155);
+  border-radius: var(--radius-sm, 6px);
+  padding: 1rem;
+}

@@ -3,6 +3,7 @@ import { Component, HostListener, inject, signal } from '@angular/core';
 import { NavigationEnd, Router, RouterModule } from '@angular/router';
 import { filter } from 'rxjs';
 import { AuthService } from './services/auth.service';
+import { ModuleVisibilityService } from './services/module-visibility.service';
 import { IconComponent } from './shared/icon/icon.component';
 
 @Component({
@@ -15,6 +16,7 @@ import { IconComponent } from './shared/icon/icon.component';
 export class AppComponent {
   private router = inject(Router);
   auth = inject(AuthService);
+  moduleVisibility = inject(ModuleVisibilityService);
 
   title = 'HATO ERP';
   isLoginPage = signal(this.router.url.startsWith('/login'));

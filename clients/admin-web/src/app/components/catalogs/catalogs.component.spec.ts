@@ -18,7 +18,6 @@ describe('CatalogsComponent', () => {
     getAdministrationRoutes: () => of([]),
     getTreatmentReasons: () => of([]),
     getInventoryItems: () => of([]),
-    getFarmModules: () => of([]),
   };
 
   beforeEach(async () => {
@@ -28,14 +27,14 @@ describe('CatalogsComponent', () => {
     }).compileComponents();
   });
 
-  it('mounts and renders the 8 tabs', () => {
+  it('mounts and renders the 7 tabs', () => {
     const fixture = TestBed.createComponent(CatalogsComponent);
     fixture.detectChanges();
 
     const tablist = fixture.nativeElement.querySelector('[role="tablist"]');
     expect(tablist).toBeTruthy();
     const tabs = fixture.nativeElement.querySelectorAll('[role="tab"]');
-    expect(tabs.length).toBe(8);
+    expect(tabs.length).toBe(7);
   });
 
   it('marks the active tab with aria-selected="true"', () => {

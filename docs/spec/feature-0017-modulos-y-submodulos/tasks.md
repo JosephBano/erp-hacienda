@@ -50,15 +50,15 @@ export function isVisible(key: string, rows: readonly ModuleRow[]): boolean;
 
 ## Commit 3 — Sección "Módulos" y menú filtrado
 
-- [ ] **T3.1** `farm-modules.component.spec.ts`: los hijos se muestran bajo su padre; apagar
+- [x] **T3.1** `farm-modules.component.spec.ts`: los hijos se muestran bajo su padre; apagar
       pide motivo; un hijo con el padre apagado dice "apagado por su padre".
-- [ ] **T3.2** Pruebas de `app.component`: con `breeding` apagado, la entrada "Reproducción"
+- [x] **T3.2** Pruebas de `app.component`: con `breeding` apagado, la entrada "Reproducción"
       no se renderiza; "Módulos", "Roles", "Auditoría" y "Sync" siempre se ven.
-- [ ] **T3.3** `module.guard.spec.ts`: navegar a `/breeding` con `breeding` apagado redirige
+- [x] **T3.3** `module.guard.spec.ts`: navegar a `/breeding` con `breeding` apagado redirige
       a `/`.
-- [ ] **T3.4** Retirar la pestaña de módulos de `catalogs` y sus pruebas.
-- [ ] **T3.5** **Terminado:** lint, pruebas y build del panel en verde.
-- [ ] **T3.6** Commit `feat(admin-web): add the modules section and hide switched-off entries`.
+- [x] **T3.4** Retirar la pestaña de módulos de `catalogs` y sus pruebas.
+- [x] **T3.5** **Terminado:** lint, pruebas y build del panel en verde.
+- [x] **T3.6** Commit `feat(admin-web): add the modules section and hide switched-off entries`.
 
 ## Commit 4 — Visibilidad en el teléfono
 

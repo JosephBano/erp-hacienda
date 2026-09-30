@@ -14,18 +14,15 @@ export class ModuleVisibilityService {
   readonly loaded = signal<boolean>(false);
 
   constructor() {
-    effect(
-      () => {
-        const user = this.auth.currentUser();
-        if (user) {
-          this.loadModules();
-        } else {
-          this.modules.set([]);
-          this.loaded.set(false);
-        }
-      },
-      { allowSignalWrites: true },
-    );
+    effect(() => {
+      const user = this.auth.currentUser();
+      if (user) {
+        this.loadModules();
+      } else {
+        this.modules.set([]);
+        this.loaded.set(false);
+      }
+    });
   }
 
   /**

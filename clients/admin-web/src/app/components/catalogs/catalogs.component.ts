@@ -14,7 +14,6 @@ import {
   AdministrationRouteDto,
   AnimalCategoryDto,
   BreedDto,
-  FarmModuleDto,
   InventoryItemDto,
   MortalityCauseDto,
   SpeciesDto,
@@ -34,8 +33,7 @@ type TabKey =
   | 'mortality'
   | 'routes'
   | 'reasons'
-  | 'inventory'
-  | 'modules';
+  | 'inventory';
 
 interface Tab {
   key: TabKey;
@@ -49,10 +47,6 @@ interface Tab {
  * se podían editar vía curl o SQL (BACKLOG.md "Pantallas de catálogos que
  * faltan"). Cada pestaña usa el <app-catalog-table> compartido con su lista
  * declarativa de columnas y acciones.
- *
- * El módulo "Módulos de la finca" (ADR-0019) usa una presentación distinta —
- * un card-grid con toggle on/off — porque la UX de "activar/desactivar" no
- * encaja en una tabla de filas. La pantalla lo distingue explícitamente.
  */
 @Component({
   selector: 'app-catalogs',
@@ -74,7 +68,6 @@ export class CatalogsComponent implements OnInit {
     { key: 'routes', label: 'Vías de administración' },
     { key: 'reasons', label: 'Motivos de tratamiento' },
     { key: 'inventory', label: 'Ítems de inventario' },
-    { key: 'modules', label: 'Módulos de la finca' },
   ];
 
   readonly activeTab = signal<TabKey>('species');
@@ -87,7 +80,6 @@ export class CatalogsComponent implements OnInit {
   readonly adminRoutes = signal<AdministrationRouteDto[]>([]);
   readonly treatmentReasons = signal<TreatmentReasonDto[]>([]);
   readonly inventoryItems = signal<InventoryItemDto[]>([]);
-  readonly farmModules = signal<FarmModuleDto[]>([]);
 
   // ---- Filters
   breedsSpeciesFilter = '';
@@ -122,7 +114,6 @@ export class CatalogsComponent implements OnInit {
   readonly isRoutes = computed(() => this.activeTab() === 'routes');
   readonly isReasons = computed(() => this.activeTab() === 'reasons');
   readonly isInventory = computed(() => this.activeTab() === 'inventory');
-  readonly isModules = computed(() => this.activeTab() === 'modules');
 
   // ---- Column / action lists for each tab
   readonly speciesColumns = computed<CatalogColumn<SpeciesDto>[]>(() => [
@@ -209,9 +200,6 @@ export class CatalogsComponent implements OnInit {
       case 'inventory':
         this.loadInventoryItems();
         break;
-      case 'modules':
-        this.loadFarmModules();
-        break;
     }
   }
 
@@ -261,13 +249,6 @@ export class CatalogsComponent implements OnInit {
     this.api.getInventoryItems(this.inventoryCategoryFilter || undefined).subscribe({
       next: (data) => this.inventoryItems.set(data),
       error: (err: unknown) => this.handleError(err, 'ítems de inventario'),
-    });
-  }
-
-  private loadFarmModules(): void {
-    this.api.getFarmModules().subscribe({
-      next: (data) => this.farmModules.set(data),
-      error: (err: unknown) => this.handleError(err, 'módulos de la finca'),
     });
   }
 
@@ -448,17 +429,6 @@ export class CatalogsComponent implements OnInit {
         },
         error: (err: unknown) => this.handleError(err, 'crear el ítem'),
       });
-  }
-
-  toggleFarmModule(module: FarmModuleDto): void {
-    const next = !module.enabled;
-    this.api.setFarmModuleEnabled(module.key, next).subscribe({
-      next: () => {
-        this.successMessage = `Módulo "${module.key}" ${next ? 'activado' : 'desactivado'}.`;
-        this.loadFarmModules();
-      },
-      error: (err: unknown) => this.handleError(err, 'cambiar el módulo'),
-    });
   }
 
   onBreedsFilterChange(): void {

@@ -11,7 +11,7 @@ doméstico, cuya batería declara con unas cuatro horas de autonomía; UPS es un
 futura. La autonomía de batería no prueba autonomía del router/ONT ni entrega de alertas.
 
 Este spec define el contrato de integración de HATO. Instalación, Compose, datos, TLS y
-timers de los monitores se versionan en `/home/joeman/Documents/home-server`, después
+timers de los monitores se versionan en `/home/joeman/Documents/proyects/home-server`, después
 de leer sus instrucciones y abrir una rama propia. No duplicar su configuración en este
 repo. Ambos PRs se enlazan y ninguna parte se declara terminada solo por existir la otra.
 

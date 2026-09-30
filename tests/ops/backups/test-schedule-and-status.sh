@@ -139,9 +139,51 @@ else
     fi
 fi
 
+# ------------------------------------------------------------------------------
+# 4. Local-only Dump & Upload Failure /fail Contract (T6 / E2E-2)
+# ------------------------------------------------------------------------------
+echo "Running Test 4: Local-only dump does not emit success, and upload failure reports /fail..."
+LOCAL_ONLY_DIR="${TEST_DIR}/local_only_pipe"
+mkdir -p "${LOCAL_ONLY_DIR}"
+rm -f "${MOCK_SERVER_LOG}"
+export BACKUP_DIR="${LOCAL_ONLY_DIR}"
+export BACKUP_HELPER="printf 'PGDMP-valid-custom-dump-content'"
+
+# Step 4a: Run local backup alone (backup.sh). Must NOT ping Healthchecks.
+if "${REPO_ROOT}/scripts/backup.sh" >"${TEST_DIR}/local_only.log" 2>&1; then
+    if [ -f "${MOCK_SERVER_LOG}" ] && grep -q "https://hc.example/ping/12345" "${MOCK_SERVER_LOG}"; then
+        fail "backup.sh emitted a Healthchecks ping for a local-only dump"
+    else
+        pass "Local-only backup (backup.sh) did not emit any Healthchecks ping"
+    fi
+else
+    fail "backup.sh failed unexpectedly with valid mock helper"
+fi
+
+# Step 4b: Run daily pipeline where local dump succeeds but upload fails.
+# Must report /fail and MUST NOT emit a success ping.
+rm -f "${MOCK_SERVER_LOG}"
+export RCLONE_CMD="false" # Force upload to fail
+
+if "${REPO_ROOT}/scripts/backup-daily.sh" >"${TEST_DIR}/daily_upload_fail.log" 2>&1; then
+    fail "backup-daily.sh should have failed when upload failed"
+else
+    if [ -f "${MOCK_SERVER_LOG}" ] && grep -q "https://hc.example/ping/12345/fail" "${MOCK_SERVER_LOG}"; then
+        # Ensure bare success ping was never sent
+        if grep -qE "CURL: https://hc.example/ping/12345[[:space:]]*$" "${MOCK_SERVER_LOG}"; then
+            fail "backup-daily.sh emitted success ping even though upload failed"
+        else
+            pass "Failed upload after local dump emitted /fail and never emitted success ping"
+        fi
+    else
+        fail "Failed upload did not emit /fail alert to Healthchecks"
+    fi
+fi
+
 if [ "${FAILED}" -ne 0 ]; then
     echo "Schedule and status tests FAILED!" >&2
     exit 1
 fi
 
 echo "All schedule and status tests PASSED!"
+

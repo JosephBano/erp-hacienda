@@ -1,0 +1,19 @@
+# ==============================================================================
+# Beszel Agent — Monitoreo de recursos de la VPS Oracle de producción
+# ==============================================================================
+# Se ejecuta en el host de producción reportando métricas al Beszel Hub
+# alojado en el home-server a través de Tailscale.
+# No monta el socket de Docker inicialmente para limitar privilegios.
+# Escucha exclusivamente en la IP de la interfaz Tailscale (100.78.135.16:45876).
+# ==============================================================================
+
+services:
+  beszel-agent:
+    image: henrygd/beszel-agent:0.18.8
+    container_name: beszel-agent
+    restart: unless-stopped
+    network_mode: host
+    environment:
+      PORT: "45876"
+      LISTEN: "100.78.135.16:45876"
+      KEY: "${BESZEL_KEY:?BESZEL_KEY is required}"

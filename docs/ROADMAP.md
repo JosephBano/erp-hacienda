@@ -7,6 +7,10 @@
 > **Desde el 2026-09-23 la Fase 3.5 está en pausa y la Fase 4 se adelanta como siguiente
 > trabajo de producto**, con alcance pendiente de un levantamiento formal con el cliente
 > nuevo ([ADR-0040](adr/0040-reorientacion-por-cambio-de-cliente-piloto.md)).
+> **Desde el 2026-10-22 no hay clientes activos.** El segundo prospecto desistió,
+> el trabajo de producto se pausa y la Fase 4 deja de estar comprometida para un
+> cliente ([ADR-0043](adr/0043-pausa-operativa-sin-clientes.md)). Los criterios de
+> salida de las fases permanecen abiertos.
 >
 > **Retrospectiva Fase 0:** el esqueleto se construyó con asistencia intensiva de un agente de
 > IA (Claude Code) siguiendo al pie de la letra `AGENTS.md` y la Constitución; el costo
